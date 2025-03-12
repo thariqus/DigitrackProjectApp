@@ -1,0 +1,15 @@
+{
+  "name": "jh_digitrack",
+  "version": "1.0.0",
+  "description": "Digitrack",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "postinstall": "cd jh-digitrack && yarn install",
+    "dev": "cd jh-digitrack && yarn dev",
+    "build": "cd jh-digitrack && yarn build"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

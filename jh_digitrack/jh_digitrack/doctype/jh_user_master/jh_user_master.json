@@ -1,0 +1,175 @@
+{
+ "actions": [],
+ "allow_import": 1,
+ "allow_rename": 1,
+ "creation": "2025-02-19 15:35:36.534450",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "employee_code",
+  "first_name",
+  "middle_name",
+  "last_name",
+  "full_name",
+  "email",
+  "location_name",
+  "designation_name",
+  "department_name",
+  "region",
+  "country",
+  "city",
+  "position",
+  "cost_center",
+  "employee_status",
+  "active",
+  "is_admin",
+  "is_head_of_department",
+  "business",
+  "division",
+  "reporting_manager",
+  "user"
+ ],
+ "fields": [
+  {
+   "fieldname": "first_name",
+   "fieldtype": "Data",
+   "label": "First Name"
+  },
+  {
+   "fieldname": "last_name",
+   "fieldtype": "Data",
+   "label": "Last Name"
+  },
+  {
+   "fieldname": "middle_name",
+   "fieldtype": "Data",
+   "label": "Middle Name"
+  },
+  {
+   "fieldname": "email",
+   "fieldtype": "Data",
+   "label": "Email"
+  },
+  {
+   "fieldname": "location_name",
+   "fieldtype": "Data",
+   "label": "Location Name"
+  },
+  {
+   "fieldname": "designation_name",
+   "fieldtype": "Data",
+   "label": "Designation Name"
+  },
+  {
+   "fieldname": "region",
+   "fieldtype": "Data",
+   "label": "Region"
+  },
+  {
+   "fieldname": "country",
+   "fieldtype": "Data",
+   "label": "Country"
+  },
+  {
+   "fieldname": "city",
+   "fieldtype": "Data",
+   "label": "City"
+  },
+  {
+   "fieldname": "position",
+   "fieldtype": "Data",
+   "label": "Position"
+  },
+  {
+   "fieldname": "cost_center",
+   "fieldtype": "Data",
+   "label": "Cost Center"
+  },
+  {
+   "fieldname": "employee_status",
+   "fieldtype": "Data",
+   "label": "Employee Status"
+  },
+  {
+   "default": "0",
+   "fieldname": "active",
+   "fieldtype": "Check",
+   "label": "Active"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_admin",
+   "fieldtype": "Check",
+   "label": "Is Admin"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_head_of_department",
+   "fieldtype": "Check",
+   "label": "Is Head of Department"
+  },
+  {
+   "fieldname": "business",
+   "fieldtype": "Link",
+   "label": "Business",
+   "options": "JH Business Master"
+  },
+  {
+   "fieldname": "division",
+   "fieldtype": "Link",
+   "label": "Division",
+   "options": "JH Division Master"
+  },
+  {
+   "fieldname": "employee_code",
+   "fieldtype": "Data",
+   "label": "Employee Code"
+  },
+  {
+   "fieldname": "full_name",
+   "fieldtype": "Data",
+   "label": "Name"
+  },
+  {
+   "fieldname": "department_name",
+   "fieldtype": "Data",
+   "label": "Department Name"
+  },
+  {
+   "fieldname": "reporting_manager",
+   "fieldtype": "Link",
+   "label": "Reporting Manager",
+   "options": "JH User Master"
+  },
+  {
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "label": "User",
+   "options": "User"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-03-06 11:00:35.766860",
+ "modified_by": "Administrator",
+ "module": "JH Digitrack",
+ "name": "JH User Master",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

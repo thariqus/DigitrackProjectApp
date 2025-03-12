@@ -1,0 +1,336 @@
+{
+ "actions": [],
+ "allow_import": 1,
+ "allow_rename": 1,
+ "creation": "2025-02-19 15:50:19.889753",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "task_manager_section",
+  "column_break_jwbu",
+  "business_id",
+  "division_id",
+  "title",
+  "description",
+  "dynamic_status",
+  "budget_owner",
+  "project_manager",
+  "buisness_case_date",
+  "go_live_plan",
+  "rfp_sign_off",
+  "bc_signed_off",
+  "contract_sign_off",
+  "project_plan",
+  "go_live_status",
+  "progress",
+  "rfp_signed_date",
+  "rfp_document_folder",
+  "bc_signed_date",
+  "bc_document_folder",
+  "contract_signed_date",
+  "contract__document_folder",
+  "nda_signed_date",
+  "nda_document_folder",
+  "project_plan_date",
+  "project_plan_document_folder",
+  "column_break_cfds",
+  "go_live_date",
+  "brm_required",
+  "brm_date",
+  "brm_status",
+  "action",
+  "learning",
+  "project_folder",
+  "technical_spoc",
+  "nda_signed",
+  "allocated_by",
+  "allocated_to",
+  "is_project",
+  "created_by",
+  "due_date",
+  "brm_first_term",
+  "brm_second_term",
+  "brm_third_term",
+  "brm_fourth_term",
+  "other_details_tab",
+  "other_details_section",
+  "vendor_list"
+ ],
+ "fields": [
+  {
+   "fieldname": "task_manager_section",
+   "fieldtype": "Section Break",
+   "label": "Task Manager"
+  },
+  {
+   "fieldname": "column_break_jwbu",
+   "fieldtype": "Column Break",
+   "options": "Todo\nIn Progress\nCompleted\nCanceld\nHold"
+  },
+  {
+   "fieldname": "business_id",
+   "fieldtype": "Link",
+   "label": "Business ID",
+   "options": "JH Business Master"
+  },
+  {
+   "fieldname": "division_id",
+   "fieldtype": "Link",
+   "label": "Division ID",
+   "options": "JH Division Master"
+  },
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "label": "Title"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Long Text",
+   "label": "Description"
+  },
+  {
+   "fieldname": "dynamic_status",
+   "fieldtype": "Data",
+   "label": "Dynamic Status"
+  },
+  {
+   "fieldname": "budget_owner",
+   "fieldtype": "Data",
+   "label": "Budget Owner",
+   "options": "Yes\nNo \nNA"
+  },
+  {
+   "fieldname": "project_manager",
+   "fieldtype": "Data",
+   "label": "Project manager"
+  },
+  {
+   "fieldname": "buisness_case_date",
+   "fieldtype": "Date",
+   "label": "Buisness Case Date"
+  },
+  {
+   "fieldname": "go_live_plan",
+   "fieldtype": "Date",
+   "label": "Go Live Plan"
+  },
+  {
+   "fieldname": "rfp_sign_off",
+   "fieldtype": "Data",
+   "label": "RFP Sign Off"
+  },
+  {
+   "fieldname": "bc_signed_off",
+   "fieldtype": "Data",
+   "label": "BC Signed Off"
+  },
+  {
+   "fieldname": "contract_sign_off",
+   "fieldtype": "Data",
+   "label": "Contract Sign Off"
+  },
+  {
+   "fieldname": "project_plan",
+   "fieldtype": "Data",
+   "label": "Project Plan"
+  },
+  {
+   "fieldname": "go_live_status",
+   "fieldtype": "Data",
+   "label": "Go Live Status"
+  },
+  {
+   "fieldname": "column_break_cfds",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "go_live_date",
+   "fieldtype": "Date",
+   "label": "Go Live Date"
+  },
+  {
+   "fieldname": "brm_required",
+   "fieldtype": "Data",
+   "label": "BRM Required"
+  },
+  {
+   "fieldname": "brm_date",
+   "fieldtype": "Date",
+   "label": "BRM Date"
+  },
+  {
+   "fieldname": "brm_status",
+   "fieldtype": "Data",
+   "label": "BRM Status"
+  },
+  {
+   "fieldname": "action",
+   "fieldtype": "Small Text",
+   "label": "Action"
+  },
+  {
+   "fieldname": "learning",
+   "fieldtype": "Small Text",
+   "label": "Learning"
+  },
+  {
+   "fieldname": "project_folder",
+   "fieldtype": "Small Text",
+   "label": "Project Folder"
+  },
+  {
+   "fieldname": "technical_spoc",
+   "fieldtype": "Data",
+   "label": "Technical Spoc"
+  },
+  {
+   "fieldname": "nda_signed",
+   "fieldtype": "Data",
+   "label": "NDA Signed"
+  },
+  {
+   "fieldname": "allocated_by",
+   "fieldtype": "Link",
+   "label": "Allocated By",
+   "options": "User"
+  },
+  {
+   "fieldname": "allocated_to",
+   "fieldtype": "Link",
+   "label": "Allocated To",
+   "options": "User"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_project",
+   "fieldtype": "Check",
+   "label": "Is Project"
+  },
+  {
+   "fieldname": "created_by",
+   "fieldtype": "Link",
+   "label": "Created By",
+   "options": "User"
+  },
+  {
+   "fieldname": "due_date",
+   "fieldtype": "Date",
+   "label": "Due Date"
+  },
+  {
+   "fieldname": "other_details_tab",
+   "fieldtype": "Tab Break",
+   "label": "Other Details"
+  },
+  {
+   "fieldname": "other_details_section",
+   "fieldtype": "Section Break",
+   "label": "Other Details"
+  },
+  {
+   "fieldname": "vendor_list",
+   "fieldtype": "Data",
+   "label": "Vendor List"
+  },
+  {
+   "fieldname": "progress",
+   "fieldtype": "Int",
+   "label": "Progress"
+  },
+  {
+   "fieldname": "brm_first_term",
+   "fieldtype": "Data",
+   "label": "BRM First Term"
+  },
+  {
+   "fieldname": "brm_second_term",
+   "fieldtype": "Data",
+   "label": "BRM Second Term"
+  },
+  {
+   "fieldname": "brm_third_term",
+   "fieldtype": "Data",
+   "label": "BRM Third Term"
+  },
+  {
+   "fieldname": "brm_fourth_term",
+   "fieldtype": "Data",
+   "label": "BRM Fourth Term"
+  },
+  {
+   "fieldname": "rfp_signed_date",
+   "fieldtype": "Date",
+   "label": "RFP Signed Date"
+  },
+  {
+   "fieldname": "rfp_document_folder",
+   "fieldtype": "Small Text",
+   "label": "RFP Document Folder"
+  },
+  {
+   "fieldname": "bc_signed_date",
+   "fieldtype": "Date",
+   "label": "BC Signed Date"
+  },
+  {
+   "fieldname": "bc_document_folder",
+   "fieldtype": "Small Text",
+   "label": "BC Document Folder"
+  },
+  {
+   "fieldname": "contract_signed_date",
+   "fieldtype": "Date",
+   "label": "Contract Signed Date"
+  },
+  {
+   "fieldname": "contract__document_folder",
+   "fieldtype": "Small Text",
+   "label": "Contract  Document Folder"
+  },
+  {
+   "fieldname": "nda_signed_date",
+   "fieldtype": "Date",
+   "label": "NDA Signed Date"
+  },
+  {
+   "fieldname": "nda_document_folder",
+   "fieldtype": "Small Text",
+   "label": "NDA Document Folder"
+  },
+  {
+   "fieldname": "project_plan_date",
+   "fieldtype": "Date",
+   "label": "Project Plan Date"
+  },
+  {
+   "fieldname": "project_plan_document_folder",
+   "fieldtype": "Small Text",
+   "label": "Project Plan Document Folder"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-03-06 00:03:35.618001",
+ "modified_by": "Administrator",
+ "module": "JH Digitrack",
+ "name": "JH TS Projects",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
