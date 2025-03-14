@@ -11,9 +11,12 @@ function AppRoutes() {
   return (
     <Suspense fallback={<SplashScreen />}>
       <Routes>
-        <Route index element={<Navigate to="/jh-digitrack" />} />
+        <Route
+          path="/"
+          element={<Navigate to="/jh-digitrack/tasks" replace />}
+        />
         <Route path="/jh-digitrack" element={<Layout />}>
-          <Route index element={<Navigate to="tasks" />} />
+          <Route index element={<Navigate to="tasks" replace />} />
           <Route path="tasks" element={<Tasks />} />
           <Route path="projects" element={<Projects />} />
           <Route path="meetings" element={<Meetings />} />

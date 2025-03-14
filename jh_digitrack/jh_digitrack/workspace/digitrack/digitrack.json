@@ -1,0 +1,62 @@
+{
+ "charts": [],
+ "content": "[{\"id\":\"BKK-p8CJRn\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">JH Digitrack Masters</span>\",\"col\":12}},{\"id\":\"W-hHRY8Due\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Jh Division Master\",\"col\":3}},{\"id\":\"lKVOy2wJaP\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Jh Business Master\",\"col\":3}},{\"id\":\"sB1r4pTPzQ\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Jh User Master\",\"col\":3}},{\"id\":\"prLw3i8ENd\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Jh Tasks Master\",\"col\":3}}]",
+ "creation": "2025-03-14 18:05:39.145654",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 0,
+ "icon": "table",
+ "idx": 0,
+ "indicator_color": "green",
+ "is_hidden": 0,
+ "label": "Digitrack",
+ "links": [],
+ "modified": "2025-03-14 18:08:07.621673",
+ "modified_by": "Administrator",
+ "module": "JH Digitrack",
+ "name": "Digitrack",
+ "number_cards": [],
+ "owner": "faris@bytsolv.com",
+ "parent_page": "",
+ "public": 1,
+ "quick_lists": [],
+ "roles": [],
+ "sequence_id": 28.0,
+ "shortcuts": [
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Jh Division Master",
+   "link_to": "JH Division Master",
+   "stats_filter": "[]",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Jh Business Master",
+   "link_to": "JH Business Master",
+   "stats_filter": "[]",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Jh User Master",
+   "link_to": "JH User Master",
+   "stats_filter": "[]",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Jh Tasks Master",
+   "link_to": "JH Tasks Master",
+   "stats_filter": "[]",
+   "type": "DocType"
+  }
+ ],
+ "title": "Digitrack"
+}
