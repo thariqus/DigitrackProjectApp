@@ -38,7 +38,7 @@ import { JHBusinessMaster } from "@/types/JHDigitrack/JHBusinessMaster";
 import { JHDivisionMaster } from "@/types/JHDigitrack/JHDivisionMaster";
 import { JHUserMaster } from "@/types/JHDigitrack/JHUserMaster";
 import { cn } from "@/lib/utils";
-import { useCurrentJhUser } from "@/hooks/auth";
+import { useCurrentJhUser, useCurrentUser } from "@/hooks/auth";
 import { Attachment } from "@/types/doc";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TaskStatusSelector } from "./task-status-selector";
@@ -96,6 +96,7 @@ export function TaskSheet({
   const uploadFiles = useFilesUpload();
   const fileRemove = useFileRemove();
   const { data: currentJhUser } = useCurrentJhUser();
+  const { data: currentUser } = useCurrentUser();
 
   const {
     data: taskDetails,
@@ -441,6 +442,7 @@ export function TaskSheet({
                     handleStatusChange={(value) =>
                       handleStatusChange(value as JHTasksMaster["status"])
                     }
+                    hideClosed={currentUser !== task.owner}
                   />
                 ) : null}
               </div>

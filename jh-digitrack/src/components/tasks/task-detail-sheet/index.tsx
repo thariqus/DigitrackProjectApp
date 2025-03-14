@@ -5,11 +5,12 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { useState, useRef, useEffect } from "react";
 import { JHTasksMaster } from "@/types/JHDigitrack/JHTasksMaster";
-import { useDoc, useDocDetail } from "@/hooks/doc";
+import { useDoc, useDocDetail, useAddComment } from "@/hooks/doc";
 import { JHBusinessMaster } from "@/types/JHDigitrack/JHBusinessMaster";
 import { JHUserMaster } from "@/types/JHDigitrack/JHUserMaster";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useCurrentUser } from "@/hooks/auth";
+import { useCurrentUser, useCurrentJhUser } from "@/hooks/auth";
+import { queryClient } from "@/utils/query-client";
 interface TaskDetailSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -26,10 +27,13 @@ export function TaskDetailSheet({
   onDelete,
 }: TaskDetailSheetProps) {
   const { data: currentUser } = useCurrentUser();
+  const { data: currentJhUser } = useCurrentJhUser();
   const [showFullDescription, setShowFullDescription] = useState(false);
   const descriptionRef = useRef<HTMLDivElement>(null);
   const [isDescriptionOverflowing, setIsDescriptionOverflowing] =
     useState(false);
+  const [comment, setComment] = useState("");
+  const addCommentMutation = useAddComment();
 
   const { data: taskDetailed, isLoading: isLoadingTaskInfo } =
     useDocDetail<JHTasksMaster>({
@@ -80,6 +84,11 @@ export function TaskDetailSheet({
   // get attachments and attachment logs from task detailed
   const attachments = taskDetailed?.docinfo?.attachments || [];
   const attachmentLogs = taskDetailed?.docinfo?.attachment_logs || [];
+  const commentLogs = taskDetailed?.docinfo?.comments || [];
+
+  const timelineLogs = [...commentLogs].sort(
+    (a, b) => new Date(a.creation).getTime() - new Date(b.creation).getTime()
+  );
 
   // get attachment owner from attachment logs by matching file name with content :check docInfo api response
   const getAttachmentOwner = (fileName: string) => {
@@ -133,6 +142,38 @@ export function TaskDetailSheet({
 
   const isLoading =
     isLoadingTaskInfo || isLoadingBusiness || isLoadingAssignedTo;
+
+  // Add a function to handle comment submission
+  const handleAddComment = () => {
+    if (!comment.trim() || !taskId) return;
+
+    addCommentMutation.mutate(
+      {
+        reference_doctype: "JH Tasks Master",
+        reference_name: taskId,
+        content: comment,
+        comment_by: currentJhUser?.full_name,
+        comment_email: currentJhUser?.email,
+      },
+      {
+        onSuccess: () => {
+          setComment("");
+          // Refetch task details to update the comments
+          if (taskId) {
+            queryClient.invalidateQueries({
+              queryKey: [
+                "DocInfo",
+                {
+                  doctype: "JH Tasks Master",
+                  name: taskId,
+                },
+              ],
+            });
+          }
+        },
+      }
+    );
+  };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -354,7 +395,7 @@ export function TaskDetailSheet({
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {attachmentLogs.map((log, index) => (
+                  {timelineLogs.map((log, index) => (
                     <div key={index} className="border rounded-md p-4">
                       <div className="flex justify-between mb-2">
                         <div className="flex items-center gap-2">
@@ -369,7 +410,7 @@ export function TaskDetailSheet({
                           </span>
                         </div>
                         <div className="text-xs text-gray-500">
-                          <span>% {log.comment_type || "Action"}</span>
+                          <span>{log.comment_type || "Action"}</span>
                         </div>
                       </div>
                       <p
@@ -382,17 +423,25 @@ export function TaskDetailSheet({
                   ))}
                 </div>
               )}
-              {/* TODO: Comment input */}
+              {/* Comment input - replace the disabled input with the enabled one */}
               <div className="flex gap-2 mt-4">
                 <Input
-                  disabled
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
                   placeholder="Enter your comment"
                   className="flex-1"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handleAddComment();
+                    }
+                  }}
                 />
                 <Button
-                  disabled
+                  onClick={handleAddComment}
                   size="icon"
                   className="bg-red-700 hover:bg-red-800"
+                  disabled={addCommentMutation.isPending || !comment.trim()}
                 >
                   <Send className="w-4 h-4" />
                 </Button>

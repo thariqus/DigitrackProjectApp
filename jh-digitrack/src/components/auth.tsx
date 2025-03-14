@@ -1,5 +1,5 @@
-import { createContext, PropsWithChildren, ReactNode } from "react";
-import { useLoggedInUser } from "../hooks/auth";
+import { createContext, PropsWithChildren } from "react";
+import { useLoggedInUser, useCurrentJhUser } from "../hooks/auth";
 import { useUser } from "../hooks/user";
 
 type User = {
@@ -14,13 +14,14 @@ export const AuthContext = createContext<User | null>(null);
 
 function AuthProvider(props: PropsWithChildren) {
   const { data: userId, isLoading } = useLoggedInUser();
-  const { data: user } = useUser(userId);
+  const { data: currentJHUser } = useCurrentJhUser();
+  const { data: user, isLoading: jhUserLoading } = useUser(userId);
 
-  if (isLoading) {
+  if (isLoading || jhUserLoading) {
     return null;
   }
 
-  if (!isLoading && !userId) {
+  if (!isLoading && !jhUserLoading && !currentJHUser?.name) {
     window.open(`${window.location.origin}/login`, "_self");
     return null;
   }

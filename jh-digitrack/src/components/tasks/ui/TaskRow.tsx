@@ -29,8 +29,9 @@ export const TaskRow = ({
       </TableCell>
       <TableCell>{formattedDueDate}</TableCell>
       <TableCell>
-        {activeFilter === "my-tasks" ? task.owner : task["assigned_to"]} //TODO:
-        populate owner name
+        {
+          activeFilter === "my-tasks" ? task.owner : task["assigned_to"] //TODO: populate owner name
+        }
       </TableCell>
       <TableCell className="text-right">
         <TaskActions task={task} onEdit={onEdit} onDelete={onDelete} />

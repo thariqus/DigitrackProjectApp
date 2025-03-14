@@ -73,6 +73,7 @@ export const TaskTable = ({ activeFilter }: TaskTableProps) => {
       "due_date",
       "assigned_to",
       "assigned_to.full_name as assigned_to",
+      "assigned_to.name as assigned_to_id",
       "owner",
     ],
     orderBy: {
@@ -161,6 +162,7 @@ export const TaskTable = ({ activeFilter }: TaskTableProps) => {
       </div>
 
       <FilterButtonsWithComboboxes
+        tasks={tasks}
         onFiltersChange={handleFiltersChange}
         showPrivateTaskToggle={activeFilter === "my-tasks"}
       />

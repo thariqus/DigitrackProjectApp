@@ -145,3 +145,32 @@ export const useUpdateDoc = () => {
     },
   });
 };
+
+export const useAddComment = () => {
+  return useMutation({
+    mutationKey: ["AddComment"],
+    mutationFn: async (args: {
+      reference_doctype: string;
+      reference_name: string;
+      content: string;
+      comment_email?: string;
+      comment_by?: string;
+    }) => {
+      const {
+        reference_doctype,
+        reference_name,
+        content,
+        comment_email,
+        comment_by,
+      } = args;
+
+      return frappe.api.post("frappe.desk.form.utils.add_comment", {
+        reference_doctype,
+        reference_name,
+        content,
+        comment_email,
+        comment_by,
+      });
+    },
+  });
+};

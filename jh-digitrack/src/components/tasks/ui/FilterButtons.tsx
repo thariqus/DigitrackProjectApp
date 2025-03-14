@@ -15,7 +15,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { useDocs, useDocTypeMeta } from "@/hooks/doc";
+import { useDocTypeMeta } from "@/hooks/doc";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { format } from "date-fns";
@@ -28,21 +28,19 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-
-interface JHUserMaster {
-  full_name: string;
-  name: string;
-}
+import { JHTasksMaster } from "@/types/JHDigitrack/JHTasksMaster";
 
 export type TaskFilter = [string, string, string | string[]];
 
 interface FilterButtonsProps {
   onFiltersChange: (filters: TaskFilter[]) => void;
   showPrivateTaskToggle?: boolean;
+  tasks?: JHTasksMaster[];
 }
 
 export default function FilterButtonsWithComboboxes({
   onFiltersChange,
+  tasks = [],
   showPrivateTaskToggle = false,
 }: FilterButtonsProps) {
   const { data: taskMeta, isLoading: isTaskMetaLoading } =
@@ -50,15 +48,19 @@ export default function FilterButtonsWithComboboxes({
 
   const [assigneeSearch, setAssigneeSearch] = useState("");
 
-  const { data: users = [], isLoading: isUsersLoading } = useDocs<JHUserMaster>(
-    {
-      doctype: "JH User Master",
-      fields: ["full_name", "name"],
-      filters: assigneeSearch
-        ? [["full_name", "like", `%${assigneeSearch}%`]]
-        : [],
-    }
-  );
+  const users = tasks
+    .map((task) => ({
+      name: task.assigned_to_id,
+      full_name: task.assigned_to,
+    }))
+    .filter(
+      (user, index, self) =>
+        user.name && // Filter out undefined or empty names
+        user.full_name && // Filter out undefined or empty full names
+        index === self.findIndex((t) => t.name === user.name) &&
+        (!assigneeSearch ||
+          user.full_name.toLowerCase().includes(assigneeSearch.toLowerCase()))
+    );
 
   const statusOptions: { value: string; label: string }[] =
     taskMeta?.fields
@@ -131,7 +133,7 @@ export default function FilterButtonsWithComboboxes({
     onFiltersChange,
   ]);
 
-  const isLoading = isTaskMetaLoading || isUsersLoading;
+  const isLoading = isTaskMetaLoading;
 
   if (isLoading) {
     return (
@@ -219,7 +221,7 @@ export default function FilterButtonsWithComboboxes({
               onValueChange={setAssigneeSearch}
             />
             <CommandList>
-              {isUsersLoading ? (
+              {isLoading ? (
                 <CommandEmpty>Loading...</CommandEmpty>
               ) : users.length === 0 ? (
                 <CommandEmpty>No assignee found.</CommandEmpty>
@@ -240,7 +242,7 @@ export default function FilterButtonsWithComboboxes({
                       <Check
                         className={cn(
                           "mr-2 h-4 w-4",
-                          assigneeValues.includes(user.name)
+                          assigneeValues.includes(user.name!)
                             ? "opacity-100"
                             : "opacity-0"
                         )}

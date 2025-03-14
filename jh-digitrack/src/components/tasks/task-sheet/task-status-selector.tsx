@@ -12,11 +12,13 @@ import {
 interface TaskStatusSelectorProps {
   currentStatus: string;
   handleStatusChange: (status: string) => void;
+  hideClosed?: boolean;
 }
 
 export function TaskStatusSelector({
   currentStatus,
   handleStatusChange,
+  hideClosed = false,
 }: TaskStatusSelectorProps) {
   const { data, isLoading } = useDocTypeMeta("JH Tasks Master");
 
@@ -39,19 +41,21 @@ export function TaskStatusSelector({
         <SelectValue placeholder="Select status" />
       </SelectTrigger>
       <SelectContent>
-        {statusOptions.map((status: string) => (
-          <SelectItem key={status} value={status}>
-            <div className="flex items-center gap-2">
-              <div
-                className={cn(
-                  "w-2 h-2 rounded-full",
-                  statusColorMap[status.toLocaleLowerCase()] ?? "bg-gray-400"
-                )}
-              ></div>
-              <span>{status}</span>
-            </div>
-          </SelectItem>
-        ))}
+        {statusOptions
+          .filter((status: string) => !hideClosed || status !== "Closed")
+          .map((status: string) => (
+            <SelectItem key={status} value={status}>
+              <div className="flex items-center gap-2">
+                <div
+                  className={cn(
+                    "w-2 h-2 rounded-full",
+                    statusColorMap[status.toLocaleLowerCase()] ?? "bg-gray-400"
+                  )}
+                ></div>
+                <span>{status}</span>
+              </div>
+            </SelectItem>
+          ))}
       </SelectContent>
     </Select>
   );

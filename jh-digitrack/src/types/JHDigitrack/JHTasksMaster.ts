@@ -15,6 +15,7 @@ export interface JHTasksMaster {
   description?: string;
   /**	Assigned To : Link - JH User Master	*/
   assigned_to?: string;
+  assigned_to_id?: string;
   /**	Status : Select	*/
   status?: "Open" | "In progress" | "Canceled" | "completed" | "closed";
   /**	Due Date : Date	*/
@@ -45,4 +46,5 @@ export interface JHTasksMaster {
   task_pic_by_assignee?: string;
   /** Name of Assigned User: will return in assigned_to key*/
   "assigned_to.full_name as assigned_to": string;
+  "assigned_to.name as assigned_to_id": string;
 }
