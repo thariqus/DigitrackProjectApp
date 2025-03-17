@@ -80,6 +80,7 @@ export const TaskTable = ({ activeFilter }: TaskTableProps) => {
       "assigned_to.name as assigned_to_id",
       "created_by",
       "created_by.full_name as created_by",
+      "created_by.name as created_by_id",
       "owner",
     ],
     orderBy: {
@@ -175,6 +176,7 @@ export const TaskTable = ({ activeFilter }: TaskTableProps) => {
         tasks={tasks}
         onFiltersChange={handleFiltersChange}
         showPrivateTaskToggle={activeFilter === "my-tasks"}
+        showCreatedByFilter={activeFilter === "my-tasks"}
       />
 
       {tasks.length > 0 ? (

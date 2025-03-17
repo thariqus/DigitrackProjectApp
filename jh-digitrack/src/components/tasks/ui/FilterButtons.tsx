@@ -36,22 +36,31 @@ interface FilterButtonsProps {
   onFiltersChange: (filters: TaskFilter[]) => void;
   showPrivateTaskToggle?: boolean;
   tasks?: JHTasksMaster[];
+  showCreatedByFilter?: boolean;
 }
 
 export default function FilterButtonsWithComboboxes({
   onFiltersChange,
   tasks = [],
   showPrivateTaskToggle = false,
+  showCreatedByFilter = false,
 }: FilterButtonsProps) {
   const { data: taskMeta, isLoading: isTaskMetaLoading } =
     useDocTypeMeta("JH Tasks Master");
 
   const [assigneeSearch, setAssigneeSearch] = useState("");
 
+  console.log(
+    tasks.map((task) => ({
+      name: task[showCreatedByFilter ? "created_by_id" : "assigned_to_id"],
+      full_name: task[showCreatedByFilter ? "created_by" : "assigned_to"],
+    }))
+  );
+
   const users = tasks
     .map((task) => ({
-      name: task.assigned_to_id,
-      full_name: task.assigned_to,
+      name: task[showCreatedByFilter ? "created_by_id" : "assigned_to_id"],
+      full_name: task[showCreatedByFilter ? "created_by" : "assigned_to"],
     }))
     .filter(
       (user, index, self) =>
@@ -109,7 +118,11 @@ export default function FilterButtonsWithComboboxes({
 
     // Add multiple assignee filters
     if (assigneeValues.length > 0)
-      activeFilters.push(["assigned_to", "in", assigneeValues]);
+      activeFilters.push([
+        showCreatedByFilter ? "created_by" : "assigned_to",
+        "in",
+        assigneeValues,
+      ]);
 
     if (date) {
       activeFilters.push([
@@ -131,6 +144,7 @@ export default function FilterButtonsWithComboboxes({
     dateOperator,
     showPrivateTasks,
     onFiltersChange,
+    showCreatedByFilter,
   ]);
 
   const isLoading = isTaskMetaLoading;
@@ -205,7 +219,7 @@ export default function FilterButtonsWithComboboxes({
             className="h-10 border-dashed border-[#E2E8F0] bg-transparent hover:bg-transparent hover:text-[#64748B]"
           >
             <Plus className="mr-2 h-4 w-4" />
-            Assignee
+            {showCreatedByFilter ? "Created By" : "Assignee"}
             {assigneeValues.length > 0 && (
               <Badge variant="secondary" className="ml-2 rounded-full">
                 {assigneeValues.length}
@@ -224,7 +238,11 @@ export default function FilterButtonsWithComboboxes({
               {isLoading ? (
                 <CommandEmpty>Loading...</CommandEmpty>
               ) : users.length === 0 ? (
-                <CommandEmpty>No assignee found.</CommandEmpty>
+                <CommandEmpty>
+                  {showCreatedByFilter
+                    ? "No created by found."
+                    : "No assignee found."}
+                </CommandEmpty>
               ) : (
                 <CommandGroup>
                   {users.map((user) => (
