@@ -16,6 +16,8 @@ export interface JHTasksMaster {
   /**	Assigned To : Link - JH User Master	*/
   assigned_to?: string;
   assigned_to_id?: string;
+  /**	Created By : Link - JH User Master	*/
+  created_by?: string;
   /**	Status : Select	*/
   status?: "Open" | "In progress" | "Canceled" | "completed" | "closed";
   /**	Due Date : Date	*/
@@ -47,4 +49,11 @@ export interface JHTasksMaster {
   /** Name of Assigned User: will return in assigned_to key*/
   "assigned_to.full_name as assigned_to": string;
   "assigned_to.name as assigned_to_id": string;
+  "created_by.full_name as created_by": string;
+  remarks?: {
+    comment: string;
+    creator: string;
+    type: string;
+    creation: string;
+  }[];
 }

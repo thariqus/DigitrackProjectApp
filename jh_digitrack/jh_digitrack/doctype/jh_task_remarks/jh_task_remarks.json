@@ -1,0 +1,45 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-03-16 17:21:45.167772",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "comment",
+  "creator",
+  "type"
+ ],
+ "fields": [
+  {
+   "fieldname": "comment",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "comment"
+  },
+  {
+   "fieldname": "creator",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "creator",
+   "options": "JH User Master"
+  },
+  {
+   "fieldname": "type",
+   "fieldtype": "Data",
+   "label": "type"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-03-16 17:38:34.283574",
+ "modified_by": "Administrator",
+ "module": "JH Digitrack",
+ "name": "JH Task Remarks",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

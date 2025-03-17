@@ -30,7 +30,7 @@ export const TaskRow = ({
       <TableCell>{formattedDueDate}</TableCell>
       <TableCell>
         {
-          activeFilter === "my-tasks" ? task.owner : task["assigned_to"] //TODO: populate owner name
+          activeFilter === "my-tasks" ? task.created_by : task["assigned_to"] //TODO: populate owner name
         }
       </TableCell>
       <TableCell className="text-right">

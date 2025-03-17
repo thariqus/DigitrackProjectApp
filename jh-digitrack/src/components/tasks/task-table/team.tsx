@@ -18,7 +18,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { useTeamTasks } from "@/hooks/teamtasks";
+import { useTeamTasks } from "@/hooks/task";
 import { TeamMember } from "@/types/teamtasks";
 import { useCurrentJhUser } from "@/hooks/auth";
 

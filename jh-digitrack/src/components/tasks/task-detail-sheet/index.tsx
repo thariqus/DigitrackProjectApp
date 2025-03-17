@@ -65,6 +65,13 @@ export function TaskDetailSheet({
       disabled: !task?.assigned_to,
     });
 
+  const { data: createdBy, isLoading: isLoadingCreatedBy } =
+    useDoc<JHUserMaster>({
+      doctype: "JH User Master",
+      name: task?.created_by || "",
+      disabled: !task?.created_by,
+    });
+
   // Add this effect to check if description is overflowing
   useEffect(() => {
     if (descriptionRef.current) {
@@ -85,8 +92,15 @@ export function TaskDetailSheet({
   const attachments = taskDetailed?.docinfo?.attachments || [];
   const attachmentLogs = taskDetailed?.docinfo?.attachment_logs || [];
   const commentLogs = taskDetailed?.docinfo?.comments || [];
+  const remarkLogs =
+    taskDetailed?.docs[0]?.remarks?.map((remark) => ({
+      owner: remark.creator,
+      comment_type: remark.type,
+      content: remark.comment,
+      creation: remark.creation || "",
+    })) || [];
 
-  const timelineLogs = [...commentLogs].sort(
+  const timelineLogs = [...commentLogs, ...remarkLogs].sort(
     (a, b) => new Date(a.creation).getTime() - new Date(b.creation).getTime()
   );
 
@@ -141,7 +155,10 @@ export function TaskDetailSheet({
   );
 
   const isLoading =
-    isLoadingTaskInfo || isLoadingBusiness || isLoadingAssignedTo;
+    isLoadingTaskInfo ||
+    isLoadingBusiness ||
+    isLoadingAssignedTo ||
+    isLoadingCreatedBy;
 
   // Add a function to handle comment submission
   const handleAddComment = () => {
@@ -251,9 +268,12 @@ export function TaskDetailSheet({
               <div className="text-sm text-gray-500">Created by</div>
               <div className="flex items-center gap-2">
                 <Avatar className="w-5 h-5">
-                  <AvatarFallback>{task?.owner?.slice(0, 2)}</AvatarFallback>
+                  <AvatarFallback>
+                    {createdBy?.full_name?.slice(0, 2) ??
+                      task?.created_by?.slice(0, 2)}
+                  </AvatarFallback>
                 </Avatar>
-                <span>{task?.owner}</span>
+                <span>{createdBy?.full_name ?? task?.created_by}</span>
               </div>
 
               <div className="text-sm text-gray-500">Assigned to</div>

@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { Table, TableBody } from "@/components/ui/table";
-import { useDeleteDoc, useDocs } from "@/hooks/doc";
+import { useDocs, useUpdateDoc } from "@/hooks/doc";
 import { toast } from "sonner";
 import { Task, TaskTableProps } from "@/types/tasks";
 import { TaskSheet } from "../task-sheet";
@@ -14,6 +14,7 @@ import EmptyState from "../ui/EmptyState";
 import DeleteConfirmation from "../ui/DeleteConfirmation";
 import { Filter } from "frappe-js-sdk/lib/db/types";
 import { useCurrentJhUser, useCurrentUser } from "@/hooks/auth";
+import { format } from "date-fns";
 
 export const TaskTable = ({ activeFilter }: TaskTableProps) => {
   // State management
@@ -36,7 +37,10 @@ export const TaskTable = ({ activeFilter }: TaskTableProps) => {
 
   // Determine filters based on activeFilter
   const getFilters = () => {
-    const filters: TaskFilter[] = [...activeFilters];
+    const filters: TaskFilter[] = [
+      ["deleted_at", "is", "not set"],
+      ...activeFilters,
+    ];
 
     // Add search filter if search query exists
     if (searchQuery) {
@@ -74,6 +78,8 @@ export const TaskTable = ({ activeFilter }: TaskTableProps) => {
       "assigned_to",
       "assigned_to.full_name as assigned_to",
       "assigned_to.name as assigned_to_id",
+      "created_by",
+      "created_by.full_name as created_by",
       "owner",
     ],
     orderBy: {
@@ -84,7 +90,8 @@ export const TaskTable = ({ activeFilter }: TaskTableProps) => {
   });
 
   // Delete task mutation
-  const deleteTaskMutation = useDeleteDoc();
+
+  const updateDoc = useUpdateDoc();
 
   // Event handlers
   const handleCreateTask = useCallback(() => {
@@ -116,9 +123,12 @@ export const TaskTable = ({ activeFilter }: TaskTableProps) => {
     if (!taskToDelete) return;
 
     try {
-      await deleteTaskMutation.mutateAsync({
+      await updateDoc.mutateAsync({
         doctype: "JH Tasks Master",
         name: taskToDelete,
+        doc: {
+          deleted_at: format(new Date(), "yyyy-MM-dd"),
+        },
       });
       toast.success("Task deleted successfully");
       refetch();
@@ -130,7 +140,7 @@ export const TaskTable = ({ activeFilter }: TaskTableProps) => {
       setTaskToDelete(undefined);
       setTaskNameToDelete(undefined);
     }
-  }, [taskToDelete, deleteTaskMutation, refetch]);
+  }, [taskToDelete, updateDoc, refetch]);
 
   // Handle filters change from FilterButtonsWithComboboxes
   const handleFiltersChange = useCallback(

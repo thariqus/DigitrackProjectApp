@@ -32,7 +32,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-03-06 10:15:59.299522",
+ "modified": "2025-03-15 13:42:00.817348",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Division Master",
@@ -50,9 +50,21 @@
    "role": "System Manager",
    "share": 1,
    "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "JH Digitrack Member",
+   "select": 1,
+   "share": 1
   }
  ],
+ "show_title_field_in_link": 1,
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": []
+ "states": [],
+ "title_field": "division_name"
 }

@@ -1,16 +1,8 @@
-import { createContext, PropsWithChildren } from "react";
+import { PropsWithChildren } from "react";
 import { useLoggedInUser, useCurrentJhUser } from "../hooks/auth";
 import { useUser } from "../hooks/user";
-
-type User = {
-  name: string;
-  email: string;
-  full_name?: string;
-  language?: string;
-  username?: string;
-};
-
-export const AuthContext = createContext<User | null>(null);
+import { AuthContext } from "./AuthContext";
+import { Navigate } from "react-router";
 
 function AuthProvider(props: PropsWithChildren) {
   const { data: userId, isLoading } = useLoggedInUser();
@@ -21,13 +13,12 @@ function AuthProvider(props: PropsWithChildren) {
     return null;
   }
 
-  if (!isLoading && !jhUserLoading && !currentJHUser?.name) {
-    window.open(`${window.location.origin}/login`, "_self");
-    return null;
+  if (!user) {
+    return <Navigate to="/login" replace />;
   }
 
-  if (!user) {
-    return null;
+  if (!isLoading && !jhUserLoading && !currentJHUser?.name) {
+    return <Navigate to="/unauthorized" replace />;
   }
 
   return <AuthContext.Provider value={user} {...props} />;

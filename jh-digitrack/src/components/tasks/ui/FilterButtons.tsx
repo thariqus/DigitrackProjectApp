@@ -30,7 +30,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { JHTasksMaster } from "@/types/JHDigitrack/JHTasksMaster";
 
-export type TaskFilter = [string, string, string | string[]];
+export type TaskFilter = [string, string, string | string[] | null];
 
 interface FilterButtonsProps {
   onFiltersChange: (filters: TaskFilter[]) => void;

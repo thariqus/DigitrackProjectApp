@@ -17,11 +17,6 @@
   "position",
   "cost_center",
   "employee_status",
-  "active",
-  "is_admin",
-  "is_head_of_department",
-  "business",
-  "division",
   "column_break_txyx",
   "email",
   "first_name",
@@ -29,7 +24,12 @@
   "last_name",
   "full_name",
   "reporting_manager",
-  "user"
+  "business",
+  "division",
+  "user",
+  "active",
+  "is_admin",
+  "is_head_of_department"
  ],
  "fields": [
   {
@@ -39,11 +39,13 @@
    "reqd": 1
   },
   {
+   "allow_in_quick_entry": 1,
    "fieldname": "last_name",
    "fieldtype": "Data",
    "label": "Last Name"
   },
   {
+   "allow_in_quick_entry": 1,
    "fieldname": "middle_name",
    "fieldtype": "Data",
    "label": "Middle Name"
@@ -116,13 +118,16 @@
    "fieldname": "business",
    "fieldtype": "Link",
    "label": "Business",
-   "options": "JH Business Master"
+   "options": "JH Business Master",
+   "reqd": 1
   },
   {
+   "allow_in_quick_entry": 1,
    "fieldname": "division",
    "fieldtype": "Link",
    "label": "Division",
-   "options": "JH Division Master"
+   "options": "JH Division Master",
+   "read_only_depends_on": "eval:!doc.business"
   },
   {
    "fieldname": "employee_code",
@@ -163,7 +168,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-03-14 09:42:21.974030",
+ "modified": "2025-03-15 13:40:33.827008",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH User Master",
@@ -180,8 +185,19 @@
    "role": "System Manager",
    "share": 1,
    "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "JH Digitrack Member",
+   "select": 1,
+   "share": 1
   }
  ],
+ "quick_entry": 1,
  "show_title_field_in_link": 1,
  "sort_field": "modified",
  "sort_order": "DESC",

@@ -2,6 +2,17 @@
 // For license information, please see license.txt
 
 frappe.ui.form.on("JH User Master", {
+  business(frm) {
+    frm.set_value("division", null);
+    frm.set_query("division", function () {
+      return {
+        filters: {
+          business: frm.doc.business,
+        },
+      };
+    });
+  },
+
   refresh(frm) {
     if (!frm.doc.user) {
       frm.add_custom_button(__("Attach User"), () => {

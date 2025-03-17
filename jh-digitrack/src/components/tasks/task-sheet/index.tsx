@@ -18,9 +18,18 @@ import {
   SheetClose,
   SheetDescription,
 } from "@/components/ui/sheet";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -30,7 +39,13 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { useDocs, useSaveDoc, useDocDetail, useUpdateDoc } from "@/hooks/doc";
+import {
+  useDocs,
+  useSaveDoc,
+  useDocDetail,
+  useUpdateDoc,
+  useDoc,
+} from "@/hooks/doc";
 import { useFilesUpload, useFileRemove } from "@/hooks/file";
 import { JHTasksMaster } from "@/types/JHDigitrack/JHTasksMaster";
 import { toast } from "sonner";
@@ -42,6 +57,7 @@ import { useCurrentJhUser, useCurrentUser } from "@/hooks/auth";
 import { Attachment } from "@/types/doc";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TaskStatusSelector } from "./task-status-selector";
+import { useAddTaskRemark } from "@/hooks/task";
 
 // Maximum file size in bytes (10MB)
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
@@ -92,6 +108,11 @@ export function TaskSheet({
   const [loading, setLoading] = useState(false);
   const [existingFiles, setExistingFiles] = useState<Attachment[]>([]);
   const [dragActive, setDragActive] = useState(false);
+  const [statusDialogOpen, setStatusDialogOpen] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState<
+    JHTasksMaster["status"] | null
+  >(null);
+  const [statusRemark, setStatusRemark] = useState("");
 
   const uploadFiles = useFilesUpload();
   const fileRemove = useFileRemove();
@@ -154,6 +175,7 @@ export function TaskSheet({
   // save and update doc
   const saveDoc = useSaveDoc();
   const updateDoc = useUpdateDoc();
+  const addTaskRemark = useAddTaskRemark();
 
   // Reset form when task details are loaded or when switching between create/edit modes
   useEffect(() => {
@@ -192,12 +214,30 @@ export function TaskSheet({
 
   // Auto-assign current user when task is private
   const isPrivate = watch("private");
+  const assignedTo = watch("assigned_to");
+
+  const { data: assigneeJhUser } = useDoc<JHUserMaster>({
+    doctype: "JH User Master",
+    name: assignedTo,
+    disabled: !assignedTo,
+  });
 
   useEffect(() => {
     if (isPrivate && currentJhUser?.name) {
       setValue("assigned_to", currentJhUser.name, { shouldValidate: true });
     }
   }, [isPrivate, currentJhUser, setValue]);
+
+  useEffect(() => {
+    if (assignedTo) {
+      setValue("business_id", assigneeJhUser?.business, {
+        shouldValidate: true,
+      });
+      setValue("division_id", assigneeJhUser?.division, {
+        shouldValidate: true,
+      });
+    }
+  }, [assignedTo, assigneeJhUser, setValue]);
 
   // Form submission handler with improved error handling
   const onSubmit = async (data: TaskFormData) => {
@@ -220,7 +260,10 @@ export function TaskSheet({
           doctype: "JH Tasks Master",
         });
       } else {
-        const savedTask = await saveDoc.mutateAsync(doc);
+        const savedTask = await saveDoc.mutateAsync({
+          ...doc,
+          created_by: currentJhUser?.name,
+        });
         savedTaskName = savedTask.name;
       }
 
@@ -275,6 +318,21 @@ export function TaskSheet({
     }
   };
 
+  // Function to open the dialog and store the pending status
+  const openStatusChangeDialog = (newStatus: JHTasksMaster["status"]) => {
+    setPendingStatus(newStatus);
+    setStatusRemark(""); // Reset remark when opening dialog
+    setStatusDialogOpen(true);
+  };
+
+  // Function to confirm status change with remark
+  const confirmStatusChange = () => {
+    if (pendingStatus) {
+      handleStatusChange(pendingStatus);
+      setStatusDialogOpen(false);
+    }
+  };
+
   const handleStatusChange = async (newStatus: JHTasksMaster["status"]) => {
     if (!task) return;
 
@@ -284,8 +342,16 @@ export function TaskSheet({
         status: newStatus,
         doctype: "JH Tasks Master",
       });
+      await addTaskRemark.mutateAsync({
+        task_id: task.name,
+        comment: statusRemark,
+        creator: currentJhUser?.name || "",
+        type: "Status Change",
+      });
       toast.success("Status updated successfully");
       await refetchTaskDetails();
+      // Clear the remark after successful update
+      setStatusRemark("");
     } catch (error) {
       console.error(error);
       toast.error("Failed to update status");
@@ -380,12 +446,6 @@ export function TaskSheet({
     setFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // Fetch required data
-  // const { data: tasks = [] } = useDocs<JHTasksMaster>({
-  //   doctype: "JH Tasks Master",
-  //   fields: ["name", "task_name"],
-  // });
-
   const { data: businesses = [] } = useDocs<JHBusinessMaster>({
     doctype: "JH Business Master",
     fields: ["business_id", "business_name"],
@@ -440,12 +500,52 @@ export function TaskSheet({
                   <TaskStatusSelector
                     currentStatus={task.status!}
                     handleStatusChange={(value) =>
-                      handleStatusChange(value as JHTasksMaster["status"])
+                      openStatusChangeDialog(value as JHTasksMaster["status"])
                     }
                     hideClosed={currentUser !== task.owner}
                   />
                 ) : null}
               </div>
+
+              {/* Status Change Dialog */}
+              <Dialog
+                open={statusDialogOpen}
+                onOpenChange={setStatusDialogOpen}
+              >
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Add Status Remark</DialogTitle>
+                    <DialogDescription>
+                      Please provide a remark for this status change.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <Textarea
+                      placeholder="Enter your remark here..."
+                      value={statusRemark}
+                      onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                        setStatusRemark(e.target.value)
+                      }
+                      className="min-h-[100px]"
+                    />
+                  </div>
+                  <DialogFooter>
+                    <Button
+                      variant="outline"
+                      onClick={() => setStatusDialogOpen(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={confirmStatusChange}
+                      className="bg-[#972e26] hover:bg-[#972e26]/90"
+                    >
+                      Update Status
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+
               <div className="space-y-2">
                 <Label
                   htmlFor="task-name"

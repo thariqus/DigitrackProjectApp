@@ -8,7 +8,10 @@ def team_tasks(reporting_to: str):
                                         ["name", "full_name", "email"])
     
     tasks = frappe.db.get_list("JH Tasks Master", 
-                               filters={"assigned_to": ["in", [member.name for member in team_members]]} ,
+                               filters={
+                                   "assigned_to": ["in", [member.name for member in team_members]],
+                                   "deleted_at": ["is", "not set"]
+                                   } ,
                                fields=["*", "assigned_to.full_name as assigned_to","assigned_to.name as assigned_to_id"])
    
     # Restructure the data to match the desired format
@@ -41,3 +44,18 @@ def team_tasks(reporting_to: str):
         result["reportees"].append(reportee)
    
     return result
+
+@frappe.whitelist(allow_guest=True)
+def add_remark(task_id: str, comment: str, creator: str, type: str):
+
+    task = frappe.get_doc("JH Tasks Master", task_id)
+    
+    task.append("remarks", {
+        "comment": comment,
+        "creator": creator,
+        "type": type
+    })
+    print(task)
+    task.save(ignore_permissions=True)
+    
+    return "Remark added successfully"

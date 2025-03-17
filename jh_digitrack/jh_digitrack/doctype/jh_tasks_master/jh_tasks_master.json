@@ -9,25 +9,31 @@
  "field_order": [
   "task_name",
   "description",
-  "assigned_to",
+  "source_doctype",
+  "source",
+  "serial_number",
+  "start_after",
+  "private",
+  "remarks",
+  "column_break_xdas",
   "status",
+  "created_by",
+  "assigned_to",
+  "business_id",
+  "division_id",
   "due_date",
   "revised_due_date",
   "effort",
   "completion_date",
-  "source_doctype",
-  "source",
-  "business_id",
-  "division_id",
-  "serial_number",
-  "start_after",
-  "private"
+  "deleted_at"
  ],
  "fields": [
   {
    "fieldname": "task_name",
    "fieldtype": "Data",
-   "label": "Task Name"
+   "in_list_view": 1,
+   "label": "Task Name",
+   "reqd": 1
   },
   {
    "fieldname": "description",
@@ -38,13 +44,16 @@
    "fieldname": "assigned_to",
    "fieldtype": "Link",
    "label": "Assigned To",
-   "options": "JH User Master"
+   "options": "JH User Master",
+   "reqd": 1
   },
   {
+   "default": "Open",
    "fieldname": "status",
    "fieldtype": "Select",
    "label": "Status",
-   "options": "Open\nIn Progress\nCanceled\nCompleted\nClosed"
+   "options": "Open\nIn Progress\nCanceled\nCompleted\nClosed",
+   "reqd": 1
   },
   {
    "fieldname": "due_date",
@@ -82,7 +91,8 @@
    "fieldname": "business_id",
    "fieldtype": "Link",
    "label": "Business ID",
-   "options": "JH Business Master"
+   "options": "JH Business Master",
+   "reqd": 1
   },
   {
    "fieldname": "division_id",
@@ -105,11 +115,34 @@
    "fieldname": "start_after",
    "fieldtype": "Data",
    "label": "Start After"
+  },
+  {
+   "fieldname": "deleted_at",
+   "fieldtype": "Date",
+   "label": "Deleted at",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_xdas",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "created_by",
+   "fieldtype": "Link",
+   "label": "Created By",
+   "options": "JH User Master",
+   "read_only": 1
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Table",
+   "label": "Remarks",
+   "options": "JH Task Remarks"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-03-11 12:00:52.251600",
+ "modified": "2025-03-16 17:23:04.050851",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Tasks Master",
@@ -125,6 +158,18 @@
    "read": 1,
    "report": 1,
    "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "JH Digitrack Member",
+   "select": 1,
    "share": 1,
    "write": 1
   }
