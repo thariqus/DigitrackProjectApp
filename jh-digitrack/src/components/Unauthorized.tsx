@@ -1,8 +1,17 @@
 import { ShieldX, LogOut } from "lucide-react";
-import { useLogout } from "../hooks/auth";
-
+import { useLogout, useCurrentJhUser } from "../hooks/auth";
+import { Navigate } from "react-router";
 function Unauthorized() {
   const { mutate: logout } = useLogout();
+  const { data: currentJHUser, isLoading: jhUserLoading } = useCurrentJhUser();
+
+  if (jhUserLoading) {
+    return null;
+  }
+
+  if (currentJHUser?.name) {
+    return <Navigate to="/" replace />;
+  }
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[calc(90vh-4rem)]">

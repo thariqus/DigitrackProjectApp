@@ -6,10 +6,10 @@ import { Navigate } from "react-router";
 
 function AuthProvider(props: PropsWithChildren) {
   const { data: userId, isLoading } = useLoggedInUser();
-  const { data: currentJHUser } = useCurrentJhUser();
-  const { data: user, isLoading: jhUserLoading } = useUser(userId);
+  const { data: currentJHUser, isLoading: jhUserLoading } = useCurrentJhUser();
+  const { data: user, isLoading: userLoading } = useUser(userId);
 
-  if (isLoading || jhUserLoading) {
+  if (isLoading || jhUserLoading || userLoading) {
     return null;
   }
 
@@ -17,7 +17,7 @@ function AuthProvider(props: PropsWithChildren) {
     return <Navigate to="/login" replace />;
   }
 
-  if (!isLoading && !jhUserLoading && !currentJHUser?.name) {
+  if (!currentJHUser?.name) {
     return <Navigate to="/unauthorized" replace />;
   }
 
