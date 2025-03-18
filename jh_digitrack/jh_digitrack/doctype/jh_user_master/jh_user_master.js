@@ -29,7 +29,7 @@ frappe.ui.form.on("JH User Master", {
       frm.add_custom_button(__("Attach User"), () => {
         frappe.call({
           method:
-            "jh_digitrack.jh_digitrack.doctype.jh_user_master.jh_user_master.create_user",
+            "jh_digitrack.jh_digitrack.doctype.jh_user_master.jh_user_master.attach_user",
           args: {
             jh_user_id: frm.doc.name,
             email: frm.doc.email,

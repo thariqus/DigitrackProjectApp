@@ -21,8 +21,8 @@ export const DeleteConfirmation = ({
       <AlertDialogHeader>
         <AlertDialogTitle>Are you sure?</AlertDialogTitle>
         <AlertDialogDescription>
-          This will permanently delete the task "{taskName || "Unknown"}" and
-          cannot be undone.
+          This will move the task <b>{taskName || "Unknown"}</b> to the recycle
+          bin. And it will be permanently deleted after 30 days.
         </AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter>

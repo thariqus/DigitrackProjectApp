@@ -214,6 +214,8 @@ export const TaskTable = ({ activeFilter }: TaskTableProps) => {
         open={isTaskDetailOpen}
         onOpenChange={setIsTaskDetailOpen}
         taskId={selectedTaskId}
+        onEdit={handleEditTask}
+        onDelete={handleDeleteTask}
       />
 
       {/* Delete confirmation dialog */}
