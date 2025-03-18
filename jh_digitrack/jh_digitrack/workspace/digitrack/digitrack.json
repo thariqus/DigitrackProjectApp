@@ -1,6 +1,6 @@
 {
  "charts": [],
- "content": "[{\"id\":\"BKK-p8CJRn\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">JH Digitrack Masters</span>\",\"col\":12}},{\"id\":\"W-hHRY8Due\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Jh Division Master\",\"col\":3}},{\"id\":\"lKVOy2wJaP\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Jh Business Master\",\"col\":3}},{\"id\":\"sB1r4pTPzQ\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Jh User Master\",\"col\":3}},{\"id\":\"prLw3i8ENd\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Jh Tasks Master\",\"col\":3}}]",
+ "content": "[{\"id\":\"BKK-p8CJRn\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">JH Digitrack Masters</span>\",\"col\":12}},{\"id\":\"W-hHRY8Due\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Jh Division Master\",\"col\":3}},{\"id\":\"lKVOy2wJaP\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Jh Business Master\",\"col\":3}},{\"id\":\"sB1r4pTPzQ\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Jh User Master\",\"col\":3}},{\"id\":\"prLw3i8ENd\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Jh Tasks Master\",\"col\":3}},{\"id\":\"yfMGuAaSak\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"ud__qCv-ma\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Open Dashboard\",\"col\":3}}]",
  "creation": "2025-03-14 18:05:39.145654",
  "custom_blocks": [],
  "docstatus": 0,
@@ -13,8 +13,8 @@
  "is_hidden": 0,
  "label": "Digitrack",
  "links": [],
- "modified": "2025-03-14 18:08:07.621673",
- "modified_by": "Administrator",
+ "modified": "2025-03-18 09:40:44.149558",
+ "modified_by": "faris@bytsolv.com",
  "module": "JH Digitrack",
  "name": "Digitrack",
  "number_cards": [],
@@ -22,7 +22,11 @@
  "parent_page": "",
  "public": 1,
  "quick_lists": [],
- "roles": [],
+ "roles": [
+  {
+   "role": "JH Digitrack Member"
+  }
+ ],
  "sequence_id": 28.0,
  "shortcuts": [
   {
@@ -32,6 +36,13 @@
    "link_to": "JH Division Master",
    "stats_filter": "[]",
    "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Open Dashboard",
+   "type": "URL",
+   "url": "/jh-digitrack"
   },
   {
    "color": "Grey",

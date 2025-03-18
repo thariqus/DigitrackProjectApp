@@ -58,6 +58,7 @@ import { Attachment } from "@/types/doc";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TaskStatusSelector } from "./task-status-selector";
 import { useAddTaskRemark } from "@/hooks/task";
+import { queryClient } from "@/utils/query-client";
 
 // Maximum file size in bytes (10MB)
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
@@ -71,11 +72,11 @@ const taskSchema = z
     business_id: z.string().optional(),
     division_id: z.string().optional(),
     assigned_to: z.string().min(1, "Assignee is required"),
-    due_date: z.date().refine(
+    due_date: z.string().refine(
       (date) => {
         const today = new Date();
         today.setHours(0, 0, 0, 0); // Set to start of today
-        return date >= today;
+        return new Date(date) >= today;
       },
       {
         message: "Due date cannot be in the past",
@@ -290,6 +291,10 @@ export function TaskSheet({
           },
         });
       }
+
+      await queryClient.invalidateQueries({
+        queryKey: ["Docs"],
+      });
 
       // Success handling
       toast.success(
@@ -739,7 +744,7 @@ export function TaskSheet({
                         onChange={(e) =>
                           field.onChange(
                             e.target.value
-                              ? new Date(e.target.value)
+                              ? format(new Date(e.target.value), "yyyy-MM-dd")
                               : undefined
                           )
                         }
