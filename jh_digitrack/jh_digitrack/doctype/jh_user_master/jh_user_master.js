@@ -14,6 +14,17 @@ frappe.ui.form.on("JH User Master", {
   },
 
   refresh(frm) {
+    frm.set_query("reporting_manager", function () {
+      const disallow_list = [frm.doc.full_name];
+      if (frappe.user.name !== "Administrator") {
+        disallow_list.push("JH Admin");
+      }
+      return {
+        filters: {
+          full_name: ["not in", disallow_list],
+        },
+      };
+    });
     if (!frm.doc.user) {
       frm.add_custom_button(__("Attach User"), () => {
         frappe.call({

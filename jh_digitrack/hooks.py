@@ -79,6 +79,8 @@ add_to_apps_screen = [
 # 	"filters": "jh_digitrack.utils.jinja_filters"
 # }
 
+after_migrate="jh_digitrack.setup.create_jh_admin.run"
+
 # Installation
 # ------------
 
