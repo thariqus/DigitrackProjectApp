@@ -38,7 +38,7 @@
   },
   {
    "fieldname": "description",
-   "fieldtype": "Text",
+   "fieldtype": "Long Text",
    "label": "Description"
   },
   {
@@ -147,7 +147,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-03-17 10:38:01.590324",
+ "modified": "2025-03-19 13:17:10.953621",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Tasks Master",

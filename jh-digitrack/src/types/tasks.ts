@@ -44,6 +44,8 @@ export interface TaskRowProps {
   onRowClick: (taskId: string) => void;
   onEdit: (taskId: string) => void;
   onDelete: (taskId: string) => void;
+  hideAssignedTo?: boolean;
+  hideDelete?: boolean;
 }
 
 export interface DeleteConfirmationProps {
@@ -58,6 +60,7 @@ export interface TaskActionsProps {
   task: Task;
   onEdit: (taskId: string) => void;
   onDelete: (taskId: string) => void;
+  hideDelete?: boolean;
 }
 
 // Team task types

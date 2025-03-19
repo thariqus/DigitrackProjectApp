@@ -6,7 +6,8 @@ const frappe = new FrappeApp(import.meta.env.VITE_FRAPPE_API_URL);
 
 // Show the error message
 frappe.axios.interceptors.response.use(undefined, function (error) {
-  const errors = JSON.parse(error.response.data._server_messages) || [];
+  const errors =
+    JSON.parse(error?.response?.data?._server_messages || "[]") || [];
   const err = errors.at(-1);
 
   // If the error is not a validation error, return the error

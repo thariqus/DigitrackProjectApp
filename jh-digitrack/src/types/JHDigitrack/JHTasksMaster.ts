@@ -20,7 +20,7 @@ export interface JHTasksMaster {
   created_by?: string;
   created_by_id?: string;
   /**	Status : Select	*/
-  status?: "Open" | "In progress" | "Canceled" | "completed" | "closed";
+  status?: "Open" | "In Progress" | "Canceled" | "Completed" | "Closed";
   /**	Due Date : Date	*/
   due_date?: string;
   /**	Revised Due Date : Date	*/

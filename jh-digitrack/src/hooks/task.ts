@@ -16,6 +16,17 @@ export const useTeamTasks = (reporting_to?: string) => {
   });
 };
 
+export const useTaskRemarks = (task_id?: string) => {
+  return useQuery({
+    queryKey: ["task-remarks", task_id],
+    queryFn: () =>
+      frappe.api.get(`jh_digitrack.api.tasks.get_remarks`, {
+        task_id,
+      }),
+    enabled: Boolean(task_id),
+  });
+};
+
 export const useAddTaskRemark = () => {
   return useMutation({
     mutationFn: (data: {

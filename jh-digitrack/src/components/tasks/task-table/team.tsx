@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { ChevronDown, ChevronRight, Users } from "lucide-react";
 import {
   Table,
@@ -9,7 +9,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -21,48 +20,10 @@ import {
 import { useTeamTasks } from "@/hooks/task";
 import { TeamMember } from "@/types/teamtasks";
 import { useCurrentJhUser } from "@/hooks/auth";
-
-// Component: StatusBadge
-const StatusBadge = ({ status }: { status: string }) => {
-  const statusConfig = {
-    "In Progress": {
-      className: "bg-[#FFEDD5] text-[#9A3412] hover:bg-[#FFEDD5]",
-      text: "In Progress",
-    },
-    Open: {
-      className: "bg-green-400 text-white hover:bg-green-400",
-      text: "Open",
-    },
-    Completed: {
-      className: "bg-blue-400 text-white hover:bg-blue-400",
-      text: "Completed",
-    },
-    Canceled: {
-      className: "bg-red-400 text-white hover:bg-red-400",
-      text: "Cancelled",
-    },
-    Closed: {
-      className: "bg-gray-400 text-white hover:bg-gray-400",
-      text: "Closed",
-    },
-    Pending: {
-      className: "bg-yellow-400 text-white hover:bg-yellow-400",
-      text: "Pending",
-    },
-  };
-
-  return (
-    <Badge
-      variant="outline"
-      className={
-        statusConfig[status as keyof typeof statusConfig]?.className ??
-        "bg-gray-400 text-white hover:bg-gray-400"
-      }
-    >
-      {statusConfig[status as keyof typeof statusConfig]?.text ?? status}
-    </Badge>
-  );
-};
+import TaskRow from "../ui/TaskRow";
+import { TaskSheet } from "../task-sheet";
+import { TaskDetailSheet } from "../task-detail-sheet";
+import { cn } from "@/lib/utils";
 
 // Component: TeamMemberRow
 const TeamMemberRow = ({
@@ -70,29 +31,34 @@ const TeamMemberRow = ({
   isExpanded,
   onToggleExpand,
   onNavigate,
+  handleRowClick,
+  handleEditTask,
 }: {
   member: TeamMember;
   isExpanded: boolean;
   onToggleExpand: () => void;
   onNavigate: () => void;
+  handleRowClick: (taskId: string) => void;
+  handleEditTask: (taskId: string) => void;
+  handleDeleteTask?: (taskId: string) => void;
 }) => {
-  console.log({
-    member,
-  });
   return (
     <>
       <TableRow className="hover:bg-[#F8FAFC] border-t border-[#E2E8F0]">
         <TableCell className="font-medium">
           <div
-            className="flex items-center cursor-pointer"
+            className={cn(
+              "flex items-center",
+              isExpanded && "text-primary",
+              member?.tasks?.length > 0 && "cursor-pointer"
+            )}
             onClick={onToggleExpand}
           >
-            {member?.tasks?.length > 0 &&
-              (isExpanded ? (
-                <ChevronDown className="h-4 w-4 mr-2 flex-shrink-0" />
-              ) : (
-                <ChevronRight className="h-4 w-4 mr-2 flex-shrink-0" />
-              ))}
+            {isExpanded ? (
+              <ChevronDown className="h-4 w-4 mr-2 flex-shrink-0" />
+            ) : (
+              <ChevronRight className="h-4 w-4 mr-2 flex-shrink-0" />
+            )}
             {member.full_name}
           </div>
         </TableCell>
@@ -134,6 +100,9 @@ const TeamMemberRow = ({
                   <TableHeader>
                     <TableRow className="hover:bg-transparent">
                       <TableHead className="font-medium text-[#64748B] py-4">
+                        #
+                      </TableHead>
+                      <TableHead className="font-medium text-[#64748B] py-4">
                         Task
                       </TableHead>
                       <TableHead className="font-medium text-[#64748B] py-4">
@@ -142,22 +111,24 @@ const TeamMemberRow = ({
                       <TableHead className="font-medium text-[#64748B] py-4">
                         Due Date
                       </TableHead>
+                      <TableHead className="font-medium text-center text-[#64748B] py-4">
+                        Actions
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {member.tasks.map((task) => (
-                      <TableRow
+                    {member.tasks.map((task, index) => (
+                      <TaskRow
                         key={task.name}
-                        className="hover:bg-[#F8FAFC] border-t border-[#E2E8F0]"
-                      >
-                        <TableCell className="font-medium py-4">
-                          {task.task_name}
-                        </TableCell>
-                        <TableCell className="py-4">
-                          <StatusBadge status={task.status!} />
-                        </TableCell>
-                        <TableCell className="py-4">{task.due_date}</TableCell>
-                      </TableRow>
+                        task={task}
+                        index={index}
+                        activeFilter="created-by-me"
+                        onRowClick={handleRowClick}
+                        onEdit={handleEditTask}
+                        onDelete={() => {}}
+                        hideAssignedTo={true}
+                        hideDelete={true}
+                      />
                     ))}
                   </TableBody>
                 </Table>
@@ -281,6 +252,39 @@ export const TeamTasksTable = () => {
   // Make sure we're safely accessing the reportees
   const reportees = teamTasks?.message?.reportees || [];
 
+  const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | undefined>(
+    undefined
+  );
+  const [isTaskDetailOpen, setIsTaskDetailOpen] = useState(false);
+  // const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  // const [taskToDelete, setTaskToDelete] = useState<string | undefined>(
+  //   undefined
+  // );
+  // const [taskNameToDelete, setTaskNameToDelete] = useState<string | undefined>(
+  //   undefined
+  // );
+
+  const handleRowClick = useCallback((taskId: string) => {
+    setSelectedTaskId(taskId);
+    setIsTaskDetailOpen(true);
+  }, []);
+
+  const handleEditTask = useCallback((taskId: string) => {
+    setSelectedTaskId(taskId);
+    setIsCreateTaskOpen(true);
+  }, []);
+
+  // const handleDeleteTask = useCallback(
+  //   (taskId: string) => {
+  //     const task = tasks.find((task) => task.name === taskId);
+  //     setTaskToDelete(taskId);
+  //     setTaskNameToDelete(task?.task_name || "");
+  //     setIsDeleteDialogOpen(true);
+  //   },
+  //   [tasks]
+  // );
+
   // If team data is not yet loaded, show a loading state
   if (!teamTasks) {
     return <div>Loading team data...</div>;
@@ -331,6 +335,8 @@ export const TeamTasksTable = () => {
                       : null
                   }
                   onNavigate={() => navigateToMember(reportee)}
+                  handleRowClick={handleRowClick}
+                  handleEditTask={handleEditTask}
                 />
               ))}
             </TableBody>
@@ -346,6 +352,22 @@ export const TeamTasksTable = () => {
           }}
         />
       )}
+
+      {/* Task creation/edit sheet */}
+      <TaskSheet
+        open={isCreateTaskOpen}
+        onOpenChange={setIsCreateTaskOpen}
+        taskId={selectedTaskId}
+      />
+
+      {/* Task detail sheet */}
+      <TaskDetailSheet
+        open={isTaskDetailOpen}
+        onOpenChange={setIsTaskDetailOpen}
+        taskId={selectedTaskId}
+        onEdit={handleEditTask}
+        // onDelete={handleDeleteTask}
+      />
     </div>
   );
 };

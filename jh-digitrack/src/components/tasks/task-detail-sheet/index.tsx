@@ -16,6 +16,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { useTaskRemarks } from "@/hooks/task";
+import { format, formatDistanceToNow } from "date-fns";
 interface TaskDetailSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -93,17 +95,26 @@ export function TaskDetailSheet({
     if (taskId && onDelete) onDelete(taskId);
   };
 
+  const { data: remarks = [], isLoading: isLoadingRemarks } =
+    useTaskRemarks(taskId);
   // get attachments and attachment logs from task detailed
   const attachments = taskDetailed?.docinfo?.attachments || [];
   const attachmentLogs = taskDetailed?.docinfo?.attachment_logs || [];
   const commentLogs = taskDetailed?.docinfo?.comments || [];
   const remarkLogs =
-    taskDetailed?.docs[0]?.remarks?.map((remark) => ({
-      owner: remark.creator,
-      comment_type: remark.type,
-      content: remark.comment,
-      creation: remark.creation || "",
-    })) || [];
+    remarks?.message?.map(
+      (remark: {
+        comment: string;
+        creator: string;
+        type: string;
+        commented_at: string;
+      }) => ({
+        owner: remark.creator,
+        comment_type: remark.type,
+        content: remark.comment,
+        creation: remark.commented_at || "",
+      })
+    ) || [];
 
   const timelineLogs = [...commentLogs, ...remarkLogs].sort(
     (a, b) => new Date(a.creation).getTime() - new Date(b.creation).getTime()
@@ -136,14 +147,20 @@ export function TaskDetailSheet({
           }`}
         >
           <span className="text-xl">
-            {attachment.file_name.match(/\.(jpg|jpeg|png)$/i)
-              ? "🖼️"
-              : attachment.file_name.match(/\.pdf$/i)
-              ? "PDF"
-              : "📄"}
+            {attachment.file_name.match(/\.(jpg|jpeg|png)$/i) ? (
+              <img
+                src={attachment.file_url}
+                alt={attachment.file_name}
+                className="w-full h-full object-cover"
+              />
+            ) : attachment.file_name.match(/\.pdf$/i) ? (
+              "PDF"
+            ) : (
+              "📄"
+            )}
           </span>
         </div>
-        <span className="text-xs text-center mt-1 truncate w-full">
+        <span className="text-xs text-center mt-1 truncate w-full block overflow-hidden">
           {attachment.file_name}
         </span>
       </a>
@@ -163,7 +180,8 @@ export function TaskDetailSheet({
     isLoadingTaskInfo ||
     isLoadingBusiness ||
     isLoadingAssignedTo ||
-    isLoadingCreatedBy;
+    isLoadingCreatedBy ||
+    isLoadingRemarks;
 
   // Add a function to handle comment submission
   const handleAddComment = () => {
@@ -326,7 +344,11 @@ export function TaskDetailSheet({
               <div className="text-sm text-gray-500">Due Date</div>
               <div className="flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-red-500" />
-                <span className="text-red-500">{task?.due_date || "—"}</span>
+                <span>
+                  {task?.due_date
+                    ? format(new Date(task?.due_date), "dd MMM yyyy")
+                    : "—"}
+                </span>
                 <span className="text-sm text-gray-500">
                   {task?.due_date &&
                     (() => {
@@ -337,8 +359,10 @@ export function TaskDetailSheet({
                         difference / (1000 * 60 * 60 * 24)
                       );
                       return differenceInDays > 0
-                        ? `in ${differenceInDays} days`
-                        : `${Math.abs(differenceInDays)} days ago`;
+                        ? `(in ${differenceInDays} days)`
+                        : differenceInDays === 0
+                        ? "(today)"
+                        : `(${Math.abs(differenceInDays)} days ago)`;
                     })()}
                 </span>
               </div>
@@ -346,17 +370,25 @@ export function TaskDetailSheet({
               <div className="text-sm text-gray-500">Revised Due Date</div>
               <div className="flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-gray-400" />
-                <span>{task?.revised_due_date || "—"}</span>
+                <span>
+                  {task?.revised_due_date
+                    ? format(new Date(task?.revised_due_date), "dd MMM yyyy")
+                    : "—"}
+                </span>
               </div>
 
               <div className="text-sm text-gray-500">Completion Date</div>
               <div className="flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-gray-400" />
-                <span>{task?.completion_date || "—"}</span>
+                <span>
+                  {task?.completion_date
+                    ? format(new Date(task?.completion_date), "dd MMM yyyy")
+                    : "—"}
+                </span>
               </div>
 
-              <div className="text-sm text-gray-500">Effort In</div>
-              <div>{task?.effort || "—"}</div>
+              <div className="text-sm text-gray-500">Effort</div>
+              <div>{task?.effort ? `${task?.effort} hrs` : "—"}</div>
 
               <div className="text-sm text-gray-500">Description</div>
               <div>
@@ -456,7 +488,11 @@ export function TaskDetailSheet({
                           </Avatar>
                           <span className="font-medium">{log.owner}</span>
                           <span className="text-xs text-gray-500">
-                            {new Date(log.creation).toLocaleString()}
+                            {log.creation
+                              ? formatDistanceToNow(new Date(log.creation), {
+                                  addSuffix: true,
+                                })
+                              : "—"}
                           </span>
                         </div>
                         <div className="text-xs text-gray-500">

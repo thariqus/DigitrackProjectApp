@@ -45,6 +45,7 @@ import {
   useDocDetail,
   useUpdateDoc,
   useDoc,
+  DocFilters,
 } from "@/hooks/doc";
 import { useFilesUpload, useFileRemove } from "@/hooks/file";
 import { JHTasksMaster } from "@/types/JHDigitrack/JHTasksMaster";
@@ -64,33 +65,6 @@ import { queryClient } from "@/utils/query-client";
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const MAX_FILES = 5;
 
-const taskSchema = z
-  .object({
-    start_after: z.string(),
-    task_name: z.string().min(1, "Task name is required"),
-    private: z.boolean(),
-    business_id: z.string().optional(),
-    division_id: z.string().optional(),
-    assigned_to: z.string().min(1, "Assignee is required"),
-    due_date: z.string().refine(
-      (date) => {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0); // Set to start of today
-        return new Date(date) >= today;
-      },
-      {
-        message: "Due date cannot be in the past",
-      }
-    ),
-    description: z.string().optional(),
-  })
-  .transform((arg) => ({
-    ...arg,
-    due_date: format(arg.due_date, "yyyy-MM-dd"), // Use date-fns for consistent formatting
-  }));
-
-type TaskFormData = z.infer<typeof taskSchema>;
-
 interface TaskSheetProps {
   open: boolean;
   taskId?: string;
@@ -105,6 +79,37 @@ export function TaskSheet({
   refetch,
 }: TaskSheetProps) {
   const isEdit = Boolean(taskId);
+
+  const taskSchema = z
+    .object({
+      start_after: z.string(),
+      task_name: z.string().min(1, "Task name is required"),
+      private: z.boolean(),
+      business_id: z.string().optional(),
+      division_id: z.string().optional(),
+      assigned_to: z.string().min(1, "Assignee is required"),
+      effort: z.string().optional(),
+      revised_due_date: z.string().optional(),
+      due_date: z.string().refine(
+        (date) => {
+          if (isEdit) return true;
+          const today = new Date();
+          today.setHours(0, 0, 0, 0); // Set to start of today
+          return new Date(date) >= today;
+        },
+        {
+          message: "Due date cannot be in the past",
+        }
+      ),
+      description: z.string().optional(),
+    })
+    .transform((arg) => ({
+      ...arg,
+      due_date: format(arg.due_date, "yyyy-MM-dd"), // Use date-fns for consistent formatting
+    }));
+
+  type TaskFormData = z.infer<typeof taskSchema>;
+
   const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
   const [existingFiles, setExistingFiles] = useState<Attachment[]>([]);
@@ -144,6 +149,8 @@ export function TaskSheet({
       assigned_to: "",
       due_date: format(new Date(), "yyyy-MM-dd"), // Format as string to match schema
       description: "",
+      effort: "",
+      revised_due_date: "",
     }),
     []
   );
@@ -190,6 +197,8 @@ export function TaskSheet({
         assigned_to: task.assigned_to || "",
         due_date: task.due_date || format(new Date(), "yyyy-MM-dd"),
         description: task.description || "",
+        effort: task.effort || "",
+        revised_due_date: task.revised_due_date || "",
       });
 
       // Set existing files when task is loaded
@@ -295,6 +304,15 @@ export function TaskSheet({
       await queryClient.invalidateQueries({
         queryKey: ["Docs"],
       });
+      await queryClient.invalidateQueries({
+        queryKey: [
+          "DocInfo",
+          {
+            doctype: "JH Tasks Master",
+            name: taskId,
+          },
+        ],
+      });
 
       // Success handling
       toast.success(
@@ -342,11 +360,17 @@ export function TaskSheet({
     if (!task) return;
 
     try {
-      await saveDoc.mutateAsync({
+      const updatedTask = {
         ...task,
         status: newStatus,
         doctype: "JH Tasks Master",
-      });
+      };
+
+      if (newStatus === "Completed") {
+        updatedTask.completion_date = format(new Date(), "yyyy-MM-dd");
+      }
+
+      await saveDoc.mutateAsync(updatedTask);
       await addTaskRemark.mutateAsync({
         task_id: task.name,
         comment: statusRemark,
@@ -357,6 +381,12 @@ export function TaskSheet({
       await refetchTaskDetails();
       // Clear the remark after successful update
       setStatusRemark("");
+      await queryClient.invalidateQueries({
+        queryKey: ["Docs"],
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ["task-remarks", task.name],
+      });
     } catch (error) {
       console.error(error);
       toast.error("Failed to update status");
@@ -459,11 +489,25 @@ export function TaskSheet({
   const { data: divisions = [] } = useDocs<JHDivisionMaster>({
     doctype: "JH Division Master",
     fields: ["division_id", "division_name"],
+    filters: watch("business_id")
+      ? [["business", "=", watch("business_id")!]]
+      : undefined,
   });
+
+  const selectedBusiness = watch("business_id");
+  const selectedDivision = watch("division_id");
+
+  const usersFilters = useMemo(() => {
+    const arr = [];
+    if (selectedBusiness) arr.push(["business", "=", selectedBusiness]);
+    if (selectedDivision) arr.push(["division", "=", selectedDivision]);
+    return arr;
+  }, [selectedBusiness, selectedDivision]);
 
   const { data: users = [] } = useDocs<JHUserMaster>({
     doctype: "JH User Master",
     fields: ["full_name", "name"],
+    filters: usersFilters as DocFilters<JHUserMaster>,
   });
 
   // Add loading state for initial task fetch
@@ -511,7 +555,6 @@ export function TaskSheet({
                   />
                 ) : null}
               </div>
-
               {/* Status Change Dialog */}
               <Dialog
                 open={statusDialogOpen}
@@ -532,6 +575,12 @@ export function TaskSheet({
                         setStatusRemark(e.target.value)
                       }
                       className="min-h-[100px]"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                          e.preventDefault();
+                          confirmStatusChange();
+                        }
+                      }}
                     />
                   </div>
                   <DialogFooter>
@@ -550,7 +599,6 @@ export function TaskSheet({
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
-
               <div className="space-y-2">
                 <Label
                   htmlFor="task-name"
@@ -580,13 +628,13 @@ export function TaskSheet({
                   </p>
                 )}
               </div>
-
               <div className="flex items-center space-x-2">
                 <Controller
                   name="private"
                   control={control}
                   render={({ field }) => (
                     <Switch
+                      disabled={isEdit}
                       checked={field.value}
                       onCheckedChange={field.onChange}
                       id="private-task"
@@ -596,84 +644,84 @@ export function TaskSheet({
                 <Label htmlFor="private-task">Private task</Label>
               </div>
 
-              {!isPrivate && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="business">Business</Label>
-                    <Controller
-                      name="business_id"
-                      control={control}
-                      render={({ field }) => (
-                        <Select
-                          onValueChange={(value) =>
-                            field.onChange(value === "placeholder" ? "" : value)
-                          }
-                          value={field.value || "placeholder"}
-                        >
-                          <SelectTrigger id="business">
-                            <SelectValue placeholder="Select business" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="placeholder">
-                              Select business
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="business">Business</Label>
+                  <Controller
+                    name="business_id"
+                    control={control}
+                    render={({ field }) => (
+                      <Select
+                        onValueChange={(value) =>
+                          field.onChange(value === "placeholder" ? "" : value)
+                        }
+                        value={field.value || "placeholder"}
+                        disabled={isPrivate}
+                      >
+                        <SelectTrigger id="business">
+                          <SelectValue placeholder="Select business" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="placeholder">
+                            Select business
+                          </SelectItem>
+                          {businesses.map((business) => (
+                            <SelectItem
+                              key={business.business_id || business.name}
+                              value={business.business_id || ""}
+                            >
+                              {business.business_name}
                             </SelectItem>
-                            {businesses.map((business) => (
-                              <SelectItem
-                                key={business.business_id || business.name}
-                                value={business.business_id || ""}
-                              >
-                                {business.business_name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      )}
-                    />
-                    {errors.business_id && (
-                      <p className="text-red-500 text-sm">
-                        {errors.business_id.message}
-                      </p>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="division">Division</Label>
-                    <Controller
-                      name="division_id"
-                      control={control}
-                      render={({ field }) => (
-                        <Select
-                          onValueChange={(value) =>
-                            field.onChange(value === "placeholder" ? "" : value)
-                          }
-                          value={field.value || "placeholder"}
-                        >
-                          <SelectTrigger id="division">
-                            <SelectValue placeholder="Select business division" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="placeholder">
-                              Select business division
-                            </SelectItem>
-                            {divisions.map((division) => (
-                              <SelectItem
-                                key={division.division_id || division.name}
-                                value={division.division_id || ""}
-                              >
-                                {division.division_name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      )}
-                    />
-                    {errors.division_id && (
-                      <p className="text-red-500 text-sm">
-                        {errors.division_id.message}
-                      </p>
-                    )}
-                  </div>
+                  />
+                  {errors.business_id && (
+                    <p className="text-red-500 text-sm">
+                      {errors.business_id.message}
+                    </p>
+                  )}
                 </div>
-              )}
+                <div className="space-y-2">
+                  <Label htmlFor="division">Division</Label>
+                  <Controller
+                    name="division_id"
+                    control={control}
+                    render={({ field }) => (
+                      <Select
+                        disabled={isPrivate}
+                        onValueChange={(value) =>
+                          field.onChange(value === "placeholder" ? "" : value)
+                        }
+                        value={field.value || "placeholder"}
+                      >
+                        <SelectTrigger id="division">
+                          <SelectValue placeholder="Select business division" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="placeholder">
+                            Select business division
+                          </SelectItem>
+                          {divisions.map((division) => (
+                            <SelectItem
+                              key={division.division_id || division.name}
+                              value={division.division_id || ""}
+                            >
+                              {division.division_name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                  {errors.division_id && (
+                    <p className="text-red-500 text-sm">
+                      {errors.division_id.message}
+                    </p>
+                  )}
+                </div>
+              </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -734,6 +782,8 @@ export function TaskSheet({
                     control={control}
                     render={({ field }) => (
                       <input
+                        min={format(new Date(), "yyyy-MM-dd")}
+                        disabled={isEdit}
                         type="date"
                         id="due_date"
                         value={
@@ -765,6 +815,90 @@ export function TaskSheet({
                     </p>
                   )}
                 </div>
+                {isEdit && (
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="revised_due_date"
+                      className="after:content-['*'] after:text-[#972e26] after:ml-0.5"
+                    >
+                      Revised Due Date
+                    </Label>
+                    <Controller
+                      name="revised_due_date"
+                      control={control}
+                      render={({ field }) => (
+                        <input
+                          min={format(new Date(), "yyyy-MM-dd")}
+                          type="date"
+                          id="revised_due_date"
+                          value={
+                            field.value
+                              ? format(new Date(field.value), "yyyy-MM-dd")
+                              : ""
+                          }
+                          onChange={(e) =>
+                            field.onChange(
+                              e.target.value
+                                ? format(new Date(e.target.value), "yyyy-MM-dd")
+                                : undefined
+                            )
+                          }
+                          className={cn(
+                            "pl-3 text-left font-normal w-full h-9 border rounded-sm",
+                            !field.value && "text-muted-foreground"
+                          )}
+                          aria-invalid={
+                            errors.revised_due_date ? "true" : "false"
+                          }
+                          aria-describedby={
+                            errors.revised_due_date
+                              ? "revised-due-date-error"
+                              : undefined
+                          }
+                        />
+                      )}
+                    />
+                    {errors.revised_due_date && (
+                      <p
+                        className="text-red-500 text-sm"
+                        id="revised-due-date-error"
+                      >
+                        {errors.revised_due_date.message}
+                      </p>
+                    )}
+                  </div>
+                )}
+                {isEdit && (
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="effort"
+                      className="after:content-['*'] after:text-[#972e26] after:ml-0.5"
+                    >
+                      Effort (In Hrs)
+                    </Label>
+                    <Controller
+                      name="effort"
+                      control={control}
+                      render={({ field }) => (
+                        <Input
+                          id="effort"
+                          placeholder="Enter effort in hours"
+                          autoComplete="off"
+                          aria-invalid={errors.effort ? "true" : "false"}
+                          aria-describedby={
+                            errors.effort ? "effort-error" : undefined
+                          }
+                          {...field}
+                        />
+                      )}
+                    />
+                    {errors.effort && (
+                      <p className="text-red-500 text-sm" id="effort-error">
+                        {errors.effort.message}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2 pb-10">
@@ -789,7 +923,6 @@ export function TaskSheet({
                   </p>
                 )}
               </div>
-
               <div className="space-y-2 pb-28">
                 <Label>Attachments</Label>
                 <div className="flex space-x-4 mt-2 max-w-2xl overflow-x-auto shadow-sm">
@@ -904,14 +1037,13 @@ export function TaskSheet({
                         browse
                       </span>
                     </div>
-                    <div className="text-xs text-[#94a3b8] mt-2">
+                    {/* <div className="text-xs text-[#94a3b8] mt-2">
                       You can upload up to {MAX_FILES} files, with a maximum
                       size of 10 MB each.
-                    </div>
+                    </div> */}
                   </label>
                 </div>
               </div>
-
               <SheetFooter className="flex-col absolute bottom-0 w-full bg-white">
                 <Separator className="my-4" />
                 <div className="flex w-full">

@@ -11,6 +11,8 @@ export const TaskRow = ({
   onRowClick,
   onEdit,
   onDelete,
+  hideAssignedTo = false,
+  hideDelete = false,
 }: TaskRowProps) => {
   const formattedDueDate = task.due_date
     ? format(new Date(task.due_date), "MMM dd, yyyy")
@@ -28,13 +30,18 @@ export const TaskRow = ({
         <StatusBadge status={task.status} />
       </TableCell>
       <TableCell>{formattedDueDate}</TableCell>
-      <TableCell>
-        {
-          activeFilter === "my-tasks" ? task.created_by : task["assigned_to"] //TODO: populate owner name
-        }
-      </TableCell>
+      {!hideAssignedTo && (
+        <TableCell>
+          {activeFilter === "my-tasks" ? task.created_by : task.assigned_to}
+        </TableCell>
+      )}
       <TableCell className="text-right">
-        <TaskActions task={task} onEdit={onEdit} onDelete={onDelete} />
+        <TaskActions
+          task={task}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          hideDelete={hideDelete}
+        />
       </TableCell>
     </TableRow>
   );

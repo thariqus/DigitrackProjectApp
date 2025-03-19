@@ -10,7 +10,7 @@ export const TaskTableHeader = ({ activeFilter }: { activeFilter: string }) => (
       <TableHead className="w-[150px]">
         {activeFilter === "my-tasks" ? "Created By" : "Assigned To"}
       </TableHead>
-      <TableHead className="w-[100px] text-right">Actions</TableHead>
+      <TableHead className="w-[100px] text-center">Actions</TableHead>
     </TableRow>
   </TableHeader>
 );

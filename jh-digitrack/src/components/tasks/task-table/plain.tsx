@@ -36,15 +36,15 @@ export const TaskTable = ({ activeFilter }: TaskTableProps) => {
   const { data: currentUser } = useCurrentUser();
 
   // Determine filters based on activeFilter
-  const getFilters = () => {
-    const filters: TaskFilter[] = [
-      ["deleted_at", "is", "not set"],
-      ...activeFilters,
-    ];
+  const getFilters = (onlyActiveFilter = false) => {
+    const filters: TaskFilter[] = [["deleted_at", "is", "not set"]];
+    if (!onlyActiveFilter) {
+      filters.push(...activeFilters);
 
-    // Add search filter if search query exists
-    if (searchQuery) {
-      filters.push(["task_name", "like", `%${searchQuery}%`]);
+      // Add search filter if search query exists
+      if (searchQuery) {
+        filters.push(["task_name", "like", `%${searchQuery}%`]);
+      }
     }
 
     // Add filter based on activeFilter
@@ -65,7 +65,7 @@ export const TaskTable = ({ activeFilter }: TaskTableProps) => {
 
   // Fetch tasks data with server-side filtering
   const {
-    data: tasks = [],
+    data: tasks,
     isLoading,
     refetch,
   } = useDocs<Task>({
@@ -88,6 +88,29 @@ export const TaskTable = ({ activeFilter }: TaskTableProps) => {
       order: "desc",
     },
     filters: getFilters() as Filter<Task>[],
+  });
+
+  // Fetch tasks data with server-side filtering
+  const { data: tasksWithoutfilters } = useDocs<Task>({
+    doctype: "JH Tasks Master",
+    fields: [
+      "name",
+      "task_name",
+      "status",
+      "due_date",
+      "assigned_to",
+      "assigned_to.full_name as assigned_to",
+      "assigned_to.name as assigned_to_id",
+      "created_by",
+      "created_by.full_name as created_by",
+      "created_by.name as created_by_id",
+      "owner",
+    ],
+    orderBy: {
+      field: "`tabJH Tasks Master`.modified",
+      order: "desc",
+    },
+    filters: getFilters(true) as Filter<Task>[],
   });
 
   // Delete task mutation
@@ -172,12 +195,14 @@ export const TaskTable = ({ activeFilter }: TaskTableProps) => {
         <ActionButtons onCreateTask={handleCreateTask} />
       </div>
 
-      <FilterButtonsWithComboboxes
-        tasks={tasks}
-        onFiltersChange={handleFiltersChange}
-        showPrivateTaskToggle={activeFilter === "my-tasks"}
-        showCreatedByFilter={activeFilter === "my-tasks"}
-      />
+      {tasksWithoutfilters.length > 0 && (
+        <FilterButtonsWithComboboxes
+          tasks={tasksWithoutfilters}
+          onFiltersChange={handleFiltersChange}
+          showPrivateTaskToggle={activeFilter === "my-tasks"}
+          showCreatedByFilter={activeFilter === "my-tasks"}
+        />
+      )}
 
       {tasks.length > 0 ? (
         <div className="rounded-md border">

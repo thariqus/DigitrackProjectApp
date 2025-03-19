@@ -28,9 +28,9 @@ export function TaskStatusSelector({
     .options.split("\n");
 
   const statusColorMap: Record<string, string> = {
-    open: "bg-green-400",
+    open: "bg-blue-400",
     "in progress": "bg-yellow-400",
-    completed: "bg-blue-400",
+    completed: "bg-green-400",
     cancelled: "bg-red-400",
     closed: "bg-gray-400",
   };

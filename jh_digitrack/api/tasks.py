@@ -45,7 +45,7 @@ def team_tasks(reporting_to: str):
    
     return result
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def add_remark(task_id: str, comment: str, creator: str, type: str):
 
     task = frappe.get_doc("JH Tasks Master", task_id)
@@ -53,9 +53,21 @@ def add_remark(task_id: str, comment: str, creator: str, type: str):
     task.append("remarks", {
         "comment": comment,
         "creator": creator,
-        "type": type
+        "type": type,
+        "commented_at": frappe.utils.now()
     })
     print(task)
     task.save(ignore_permissions=True)
     
     return "Remark added successfully"
+
+@frappe.whitelist()
+def get_remarks(task_id: str):
+    remarks = frappe.db.get_list(
+        "JH Task Remarks", 
+        filters={"parent": task_id},
+        fields=["*", "creator.full_name as creator", "creator.name as creator_id"],
+        ignore_permissions=True,
+        order_by="commented_at desc"
+    )
+    return remarks

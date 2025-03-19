@@ -87,7 +87,7 @@ export default function FilterButtonsWithComboboxes({
   const [statusValues, setStatusValues] = useState<string[]>([]);
   const [assigneeValues, setAssigneeValues] = useState<string[]>([]);
   const [date, setDate] = useState<Date | undefined>(undefined);
-  const [dateOperator, setDateOperator] = useState("=");
+  const [dateOperator, setDateOperator] = useState(">=");
   const [showPrivateTasks, setShowPrivateTasks] = useState(false);
 
   const [openStatus, setOpenStatus] = useState(false);
