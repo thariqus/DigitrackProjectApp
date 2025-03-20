@@ -10,7 +10,8 @@ def team_tasks(reporting_to: str):
     tasks = frappe.db.get_list("JH Tasks Master", 
                                filters={
                                    "assigned_to": ["in", [member.name for member in team_members]],
-                                   "deleted_at": ["is", "not set"]
+                                   "deleted_at": ["is", "not set"],
+                                   "private": ["=", 0]
                                    } ,
                                fields=["*", "assigned_to.full_name as assigned_to","assigned_to.name as assigned_to_id"])
    

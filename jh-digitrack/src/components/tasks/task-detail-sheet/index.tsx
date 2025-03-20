@@ -1,7 +1,6 @@
 import { Sheet, SheetClose, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Calendar, Edit, Mail, Send, Trash2, XIcon } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { useState, useRef, useEffect } from "react";
 import { JHTasksMaster } from "@/types/JHDigitrack/JHTasksMaster";
@@ -18,6 +17,20 @@ import {
 } from "@/components/ui/popover";
 import { useTaskRemarks } from "@/hooks/task";
 import { format, formatDistanceToNow } from "date-fns";
+import StatusBadge from "../ui/StatusBadge";
+
+const getDateDistance = (date: string) => {
+  const dueDate = new Date(date);
+  const today = new Date();
+  const difference = dueDate.getTime() - today.getTime();
+  const differenceInDays = Math.ceil(difference / (1000 * 60 * 60 * 24));
+  return differenceInDays > 0
+    ? `(in ${differenceInDays} days)`
+    : differenceInDays === 0
+    ? "(today)"
+    : `(${Math.abs(differenceInDays)} days ago)`;
+};
+
 interface TaskDetailSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -221,33 +234,37 @@ export function TaskDetailSheet({
         <div className="flex flex-col h-full">
           {/* Header with status and actions */}
           <div className="flex items-center justify-between p-4 border-b">
-            <div className="flex items-center"></div>
+            <div className="flex items-center">
+              <StatusBadge status={task?.status} />
+            </div>
             <div className="flex items-center gap-2 mr-5">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="ghost" size="icon">
-                    <Mail className="w-5 h-5" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-48">
-                  <div className="flex flex-col space-y-2">
-                    <Button
-                      variant="ghost"
-                      className="justify-start"
-                      onClick={() => console.log("remind")}
-                    >
-                      Remind
+              {task?.assigned_to !== currentJhUser?.name && (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="ghost" size="icon">
+                      <Mail className="w-5 h-5" />
                     </Button>
-                    <Button
-                      variant="ghost"
-                      className="justify-start"
-                      onClick={() => console.log("escalate")}
-                    >
-                      Escalate
-                    </Button>
-                  </div>
-                </PopoverContent>
-              </Popover>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-48">
+                    <div className="flex flex-col space-y-2">
+                      <Button
+                        variant="ghost"
+                        className="justify-start"
+                        onClick={() => console.log("remind")}
+                      >
+                        Remind
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        className="justify-start"
+                        onClick={() => console.log("escalate")}
+                      >
+                        Escalate
+                      </Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              )}
               <Button variant="ghost" size="icon" onClick={handleEdit}>
                 <Edit className="w-5 h-5" />
               </Button>
@@ -315,12 +332,6 @@ export function TaskDetailSheet({
 
               <div className="text-sm text-gray-500">Created by</div>
               <div className="flex items-center gap-2">
-                <Avatar className="w-5 h-5">
-                  <AvatarFallback>
-                    {createdBy?.full_name?.slice(0, 2) ??
-                      task?.created_by?.slice(0, 2)}
-                  </AvatarFallback>
-                </Avatar>
                 <span>{createdBy?.full_name ?? task?.created_by}</span>
               </div>
 
@@ -332,11 +343,6 @@ export function TaskDetailSheet({
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
-                  <Avatar className="w-5 h-5">
-                    <AvatarFallback>
-                      {assignedTo?.full_name?.slice(0, 2)}
-                    </AvatarFallback>
-                  </Avatar>
                   <span>{assignedTo?.full_name}</span>
                 </div>
               )}
@@ -350,20 +356,7 @@ export function TaskDetailSheet({
                     : "—"}
                 </span>
                 <span className="text-sm text-gray-500">
-                  {task?.due_date &&
-                    (() => {
-                      const dueDate = new Date(task?.due_date);
-                      const today = new Date();
-                      const difference = dueDate.getTime() - today.getTime();
-                      const differenceInDays = Math.ceil(
-                        difference / (1000 * 60 * 60 * 24)
-                      );
-                      return differenceInDays > 0
-                        ? `(in ${differenceInDays} days)`
-                        : differenceInDays === 0
-                        ? "(today)"
-                        : `(${Math.abs(differenceInDays)} days ago)`;
-                    })()}
+                  {task?.due_date && getDateDistance(task?.due_date)}
                 </span>
               </div>
 
@@ -374,6 +367,10 @@ export function TaskDetailSheet({
                   {task?.revised_due_date
                     ? format(new Date(task?.revised_due_date), "dd MMM yyyy")
                     : "—"}
+                </span>
+                <span className="text-sm text-gray-500">
+                  {task?.revised_due_date &&
+                    getDateDistance(task?.revised_due_date)}
                 </span>
               </div>
 
@@ -481,11 +478,6 @@ export function TaskDetailSheet({
                     <div key={index} className="border rounded-md p-4">
                       <div className="flex justify-between mb-2">
                         <div className="flex items-center gap-2">
-                          <Avatar className="w-5 h-5">
-                            <AvatarFallback>
-                              {log.owner?.slice(0, 2)?.toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
                           <span className="font-medium">{log.owner}</span>
                           <span className="text-xs text-gray-500">
                             {log.creation

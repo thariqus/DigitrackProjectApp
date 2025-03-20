@@ -88,7 +88,22 @@ export function TaskSheet({
       business_id: z.string().optional(),
       division_id: z.string().optional(),
       assigned_to: z.string().min(1, "Assignee is required"),
-      effort: z.string().optional(),
+      effort: z
+        .string()
+        .optional()
+        .refine(
+          (val) => {
+            if (!val) return true;
+            const num = parseFloat(val);
+            if (val && !/^\d*\.?\d*$/.test(val)) {
+              return false;
+            }
+            return !isNaN(num) && num >= 0;
+          },
+          {
+            message: "Effort must be a non-negative number",
+          }
+        ),
       revised_due_date: z.string().optional(),
       due_date: z.string().refine(
         (date) => {
@@ -150,7 +165,7 @@ export function TaskSheet({
       due_date: format(new Date(), "yyyy-MM-dd"), // Format as string to match schema
       description: "",
       effort: "",
-      revised_due_date: "",
+      revised_due_date: format(new Date(), "yyyy-MM-dd"),
     }),
     []
   );
@@ -198,7 +213,8 @@ export function TaskSheet({
         due_date: task.due_date || format(new Date(), "yyyy-MM-dd"),
         description: task.description || "",
         effort: task.effort || "",
-        revised_due_date: task.revised_due_date || "",
+        revised_due_date:
+          task.revised_due_date || format(new Date(), "yyyy-MM-dd"),
       });
 
       // Set existing files when task is loaded
@@ -817,12 +833,7 @@ export function TaskSheet({
                 </div>
                 {isEdit && (
                   <div className="space-y-2">
-                    <Label
-                      htmlFor="revised_due_date"
-                      className="after:content-['*'] after:text-[#972e26] after:ml-0.5"
-                    >
-                      Revised Due Date
-                    </Label>
+                    <Label htmlFor="revised_due_date">Revised Due Date</Label>
                     <Controller
                       name="revised_due_date"
                       control={control}
@@ -870,12 +881,7 @@ export function TaskSheet({
                 )}
                 {isEdit && (
                   <div className="space-y-2">
-                    <Label
-                      htmlFor="effort"
-                      className="after:content-['*'] after:text-[#972e26] after:ml-0.5"
-                    >
-                      Effort (In Hrs)
-                    </Label>
+                    <Label htmlFor="effort">Effort (In Hrs)</Label>
                     <Controller
                       name="effort"
                       control={control}

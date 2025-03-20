@@ -195,14 +195,12 @@ export const TaskTable = ({ activeFilter }: TaskTableProps) => {
         <ActionButtons onCreateTask={handleCreateTask} />
       </div>
 
-      {tasksWithoutfilters.length > 0 && (
-        <FilterButtonsWithComboboxes
-          tasks={tasksWithoutfilters}
-          onFiltersChange={handleFiltersChange}
-          showPrivateTaskToggle={activeFilter === "my-tasks"}
-          showCreatedByFilter={activeFilter === "my-tasks"}
-        />
-      )}
+      <FilterButtonsWithComboboxes
+        tasks={tasksWithoutfilters.length > 0 ? tasksWithoutfilters : []}
+        onFiltersChange={handleFiltersChange}
+        showPrivateTaskToggle={activeFilter === "my-tasks"}
+        showCreatedByFilter={activeFilter === "my-tasks"}
+      />
 
       {tasks.length > 0 ? (
         <div className="rounded-md border">

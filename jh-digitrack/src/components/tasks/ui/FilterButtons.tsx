@@ -29,6 +29,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { JHTasksMaster } from "@/types/JHDigitrack/JHTasksMaster";
+import { useCurrentJhUser } from "@/hooks/auth";
 
 export type TaskFilter = [string, string, string | string[] | null];
 
@@ -87,12 +88,13 @@ export default function FilterButtonsWithComboboxes({
   const [statusValues, setStatusValues] = useState<string[]>([]);
   const [assigneeValues, setAssigneeValues] = useState<string[]>([]);
   const [date, setDate] = useState<Date | undefined>(undefined);
-  const [dateOperator, setDateOperator] = useState(">=");
+  const [dateOperator, setDateOperator] = useState("<=");
   const [showPrivateTasks, setShowPrivateTasks] = useState(false);
 
   const [openStatus, setOpenStatus] = useState(false);
   const [openAssignee, setOpenAssignee] = useState(false);
   const [openCalendar, setOpenCalendar] = useState(false);
+  const { data: currentJhUser } = useCurrentJhUser();
   // Check if any filters are active
   const hasActiveFilters =
     statusValues.length > 0 ||
@@ -134,6 +136,7 @@ export default function FilterButtonsWithComboboxes({
 
     if (showPrivateTasks) {
       activeFilters.push(["private", "=", "1"]);
+      activeFilters.push(["assigned_to", "=", currentJhUser?.name || ""]);
     }
 
     onFiltersChange(activeFilters);
