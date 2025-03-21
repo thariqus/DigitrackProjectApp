@@ -5,5 +5,5 @@
 from frappe.model.document import Document
 
 
-class JHTaskRemarks(Document):
+class JHChangeLog(Document):
 	pass

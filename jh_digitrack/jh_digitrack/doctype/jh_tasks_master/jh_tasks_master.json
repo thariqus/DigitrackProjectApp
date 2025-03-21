@@ -1,186 +1,186 @@
 {
- "actions": [],
- "allow_import": 1,
- "allow_rename": 1,
- "autoname": "format:TASK{####}",
- "creation": "2025-02-19 15:59:33.344239",
- "doctype": "DocType",
- "engine": "InnoDB",
- "field_order": [
-  "task_name",
-  "description",
-  "source_doctype",
-  "source",
-  "serial_number",
-  "start_after",
-  "private",
-  "column_break_xdas",
-  "status",
-  "created_by",
-  "assigned_to",
-  "business_id",
-  "division_id",
-  "due_date",
-  "revised_due_date",
-  "effort",
-  "completion_date",
-  "deleted_at",
-  "section_break_ygcl",
-  "remarks"
- ],
- "fields": [
-  {
-   "fieldname": "task_name",
-   "fieldtype": "Data",
-   "in_list_view": 1,
-   "label": "Task Name",
-   "reqd": 1
-  },
-  {
-   "fieldname": "description",
-   "fieldtype": "Long Text",
-   "label": "Description"
-  },
-  {
-   "fieldname": "assigned_to",
-   "fieldtype": "Link",
-   "label": "Assigned To",
-   "options": "JH User Master",
-   "reqd": 1
-  },
-  {
-   "default": "Open",
-   "fieldname": "status",
-   "fieldtype": "Select",
-   "label": "Status",
-   "options": "Open\nIn Progress\nCanceled\nCompleted\nClosed",
-   "reqd": 1
-  },
-  {
-   "fieldname": "due_date",
-   "fieldtype": "Date",
-   "label": "Due Date"
-  },
-  {
-   "fieldname": "revised_due_date",
-   "fieldtype": "Date",
-   "label": "Revised Due Date"
-  },
-  {
-   "fieldname": "effort",
-   "fieldtype": "Data",
-   "label": "Effort (In Hrs)"
-  },
-  {
-   "fieldname": "completion_date",
-   "fieldtype": "Date",
-   "label": "Completion Date"
-  },
-  {
-   "fieldname": "source_doctype",
-   "fieldtype": "Link",
-   "label": "Source Doctype",
-   "options": "DocType"
-  },
-  {
-   "fieldname": "source",
-   "fieldtype": "Dynamic Link",
-   "label": "Source",
-   "options": "source_doctype"
-  },
-  {
-   "fieldname": "business_id",
-   "fieldtype": "Link",
-   "label": "Business ID",
-   "options": "JH Business Master",
-   "reqd": 1
-  },
-  {
-   "fieldname": "division_id",
-   "fieldtype": "Link",
-   "label": "Division ID",
-   "options": "JH Division Master"
-  },
-  {
-   "fieldname": "serial_number",
-   "fieldtype": "Data",
-   "label": "Serial Number"
-  },
-  {
-   "default": "0",
-   "fieldname": "private",
-   "fieldtype": "Check",
-   "label": "Private?"
-  },
-  {
-   "fieldname": "start_after",
-   "fieldtype": "Data",
-   "label": "Start After"
-  },
-  {
-   "fieldname": "deleted_at",
-   "fieldtype": "Date",
-   "label": "Deleted at",
-   "read_only": 1
-  },
-  {
-   "fieldname": "column_break_xdas",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "created_by",
-   "fieldtype": "Link",
-   "label": "Created By",
-   "options": "JH User Master",
-   "read_only": 1
-  },
-  {
-   "fieldname": "remarks",
-   "fieldtype": "Table",
-   "label": "Remarks",
-   "options": "JH Task Remarks"
-  },
-  {
-   "fieldname": "section_break_ygcl",
-   "fieldtype": "Section Break"
-  }
- ],
- "index_web_pages_for_search": 1,
- "links": [],
- "modified": "2025-03-19 13:17:10.953621",
- "modified_by": "Administrator",
- "module": "JH Digitrack",
- "name": "JH Tasks Master",
- "naming_rule": "Expression",
- "owner": "Administrator",
- "permissions": [
-  {
-   "create": 1,
-   "delete": 1,
-   "email": 1,
-   "export": 1,
-   "print": 1,
-   "read": 1,
-   "report": 1,
-   "role": "System Manager",
-   "share": 1,
-   "write": 1
-  },
-  {
-   "create": 1,
-   "email": 1,
-   "export": 1,
-   "print": 1,
-   "read": 1,
-   "report": 1,
-   "role": "JH Digitrack Member",
-   "select": 1,
-   "share": 1,
-   "write": 1
-  }
- ],
- "sort_field": "modified",
- "sort_order": "DESC",
- "states": [],
- "track_changes": 1
+  "actions": [],
+  "allow_import": 1,
+  "allow_rename": 1,
+  "autoname": "format:TASK{####}",
+  "creation": "2025-02-19 15:59:33.344239",
+  "doctype": "DocType",
+  "engine": "InnoDB",
+  "field_order": [
+    "task_name",
+    "description",
+    "source_doctype",
+    "source",
+    "serial_number",
+    "start_after",
+    "private",
+    "column_break_xdas",
+    "status",
+    "created_by",
+    "assigned_to",
+    "business_id",
+    "division_id",
+    "due_date",
+    "revised_due_date",
+    "effort",
+    "completion_date",
+    "deleted_at",
+    "section_break_ygcl",
+    "remarks"
+  ],
+  "fields": [
+    {
+      "fieldname": "task_name",
+      "fieldtype": "Data",
+      "in_list_view": 1,
+      "label": "Task Name",
+      "reqd": 1
+    },
+    {
+      "fieldname": "description",
+      "fieldtype": "Long Text",
+      "label": "Description"
+    },
+    {
+      "fieldname": "assigned_to",
+      "fieldtype": "Link",
+      "label": "Assigned To",
+      "options": "JH User Master",
+      "reqd": 1
+    },
+    {
+      "default": "Open",
+      "fieldname": "status",
+      "fieldtype": "Select",
+      "label": "Status",
+      "options": "Open\nIn Progress\nCanceled\nCompleted\nClosed",
+      "reqd": 1
+    },
+    {
+      "fieldname": "due_date",
+      "fieldtype": "Date",
+      "label": "Due Date"
+    },
+    {
+      "fieldname": "revised_due_date",
+      "fieldtype": "Date",
+      "label": "Revised Due Date"
+    },
+    {
+      "fieldname": "effort",
+      "fieldtype": "Data",
+      "label": "Effort (In Hrs)"
+    },
+    {
+      "fieldname": "completion_date",
+      "fieldtype": "Date",
+      "label": "Completion Date"
+    },
+    {
+      "fieldname": "source_doctype",
+      "fieldtype": "Link",
+      "label": "Source Doctype",
+      "options": "DocType"
+    },
+    {
+      "fieldname": "source",
+      "fieldtype": "Dynamic Link",
+      "label": "Source",
+      "options": "source_doctype"
+    },
+    {
+      "fieldname": "business_id",
+      "fieldtype": "Link",
+      "label": "Business ID",
+      "options": "JH Business Master",
+      "reqd": 1
+    },
+    {
+      "fieldname": "division_id",
+      "fieldtype": "Link",
+      "label": "Division ID",
+      "options": "JH Division Master"
+    },
+    {
+      "fieldname": "serial_number",
+      "fieldtype": "Data",
+      "label": "Serial Number"
+    },
+    {
+      "default": "0",
+      "fieldname": "private",
+      "fieldtype": "Check",
+      "label": "Private?"
+    },
+    {
+      "fieldname": "start_after",
+      "fieldtype": "Data",
+      "label": "Start After"
+    },
+    {
+      "fieldname": "deleted_at",
+      "fieldtype": "Date",
+      "label": "Deleted at",
+      "read_only": 1
+    },
+    {
+      "fieldname": "column_break_xdas",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "created_by",
+      "fieldtype": "Link",
+      "label": "Created By",
+      "options": "JH User Master",
+      "read_only": 1
+    },
+    {
+      "fieldname": "remarks",
+      "fieldtype": "Table",
+      "label": "Remarks",
+      "options": "JH Change Log"
+    },
+    {
+      "fieldname": "section_break_ygcl",
+      "fieldtype": "Section Break"
+    }
+  ],
+  "index_web_pages_for_search": 1,
+  "links": [],
+  "modified": "2025-03-19 13:17:10.953621",
+  "modified_by": "Administrator",
+  "module": "JH Digitrack",
+  "name": "JH Tasks Master",
+  "naming_rule": "Expression",
+  "owner": "Administrator",
+  "permissions": [
+    {
+      "create": 1,
+      "delete": 1,
+      "email": 1,
+      "export": 1,
+      "print": 1,
+      "read": 1,
+      "report": 1,
+      "role": "System Manager",
+      "share": 1,
+      "write": 1
+    },
+    {
+      "create": 1,
+      "email": 1,
+      "export": 1,
+      "print": 1,
+      "read": 1,
+      "report": 1,
+      "role": "JH Digitrack Member",
+      "select": 1,
+      "share": 1,
+      "write": 1
+    }
+  ],
+  "sort_field": "modified",
+  "sort_order": "DESC",
+  "states": [],
+  "track_changes": 1
 }
