@@ -60,6 +60,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { TaskStatusSelector } from "./task-status-selector";
 import { useAddTaskRemark } from "@/hooks/task";
 import { queryClient } from "@/utils/query-client";
+import TaskTimeline from "../ui/TaskTimeline";
 
 // Maximum file size in bytes (10MB)
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
@@ -1049,6 +1050,7 @@ export function TaskSheet({
                     </div> */}
                   </label>
                 </div>
+                <TaskTimeline taskId={taskId!} />
               </div>
               <SheetFooter className="flex-col absolute bottom-0 w-full bg-white">
                 <Separator className="my-4" />
