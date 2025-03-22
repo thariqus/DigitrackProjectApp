@@ -68,13 +68,15 @@ export function MainNav() {
                 </div>
               </div>
               <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => {
-                  window.location.href = "/app";
-                }}
-              >
-                <span>Switch To Desk</span>
-              </DropdownMenuItem>
+              {currentJhUser?.is_head_of_department ? (
+                <DropdownMenuItem
+                  onClick={() => {
+                    window.location.href = "/app";
+                  }}
+                >
+                  <span>Switch To Desk</span>
+                </DropdownMenuItem>
+              ) : null}
 
               <DropdownMenuItem onClick={() => logout()}>
                 <span>Log out</span>
