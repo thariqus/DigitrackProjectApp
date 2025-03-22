@@ -11,7 +11,7 @@ export const TaskActions = ({
 }: TaskActionsProps) => {
   const taskId = task.name;
   const { data: currentUser } = useCurrentUser();
-  const isMyUser = currentUser === task.owner;
+  const isMyTask = currentUser === task.owner;
   return (
     <div className="flex justify-center">
       <Button
@@ -24,7 +24,7 @@ export const TaskActions = ({
       >
         <FileEdit className="h-4 w-4" />
       </Button>
-      {isMyUser && !hideDelete && (
+      {isMyTask && !hideDelete && (
         <Button
           variant="ghost"
           size="icon"

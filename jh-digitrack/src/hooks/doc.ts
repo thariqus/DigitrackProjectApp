@@ -23,6 +23,8 @@ export function useDocs<T>(args: {
    */
   fields?: GetDocListArgs<T>["fields"];
   orderBy?: GetDocListArgs<T>["orderBy"];
+  limit?: number;
+  page?: number;
 }) {
   return useQuery({
     queryKey: ["Docs", args],
@@ -40,6 +42,8 @@ export function useDocs<T>(args: {
           field: "modified",
           order: "desc",
         },
+        limit: args.limit ?? 10,
+        limit_start: args.page ? (args.page - 1) * (args.limit ?? 10) : 0,
       });
     },
     initialData: [],

@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { Table, TableBody } from "@/components/ui/table";
+import { Table, TableBody, TableFooter } from "@/components/ui/table";
 import { useDocs, useUpdateDoc } from "@/hooks/doc";
 import { toast } from "sonner";
 import { Task, TaskTableProps } from "@/types/tasks";
@@ -15,10 +15,22 @@ import DeleteConfirmation from "../ui/DeleteConfirmation";
 import { Filter } from "frappe-js-sdk/lib/db/types";
 import { useCurrentJhUser, useCurrentUser } from "@/hooks/auth";
 import { format } from "date-fns";
+import TablePagination from "../ui/TablePagination";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectValue,
+} from "@/components/ui/select";
+import { SelectTrigger } from "@/components/ui/select";
+
+const TASKS_PER_PAGE = 10;
 
 export const TaskTable = ({ activeFilter }: TaskTableProps) => {
   // State management
   const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [tasksPerPage, setTasksPerPage] = useState(TASKS_PER_PAGE);
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | undefined>(
     undefined
@@ -82,13 +94,26 @@ export const TaskTable = ({ activeFilter }: TaskTableProps) => {
       "created_by.full_name as created_by",
       "created_by.name as created_by_id",
       "owner",
+      "creation",
+      "modified",
     ],
     orderBy: {
       field: "`tabJH Tasks Master`.modified",
       order: "desc",
     },
+    limit: tasksPerPage,
+    page: currentPage,
     filters: getFilters() as Filter<Task>[],
   });
+
+  const { data: taskCounter } = useDocs<Task>({
+    doctype: "JH Tasks Master",
+    fields: ["name"],
+    limit: 100,
+    filters: getFilters() as Filter<Task>[],
+  });
+
+  const totalPages = Math.ceil(taskCounter?.length / TASKS_PER_PAGE);
 
   // Fetch tasks data with server-side filtering
   const { data: tasksWithoutfilters } = useDocs<Task>({
@@ -216,9 +241,33 @@ export const TaskTable = ({ activeFilter }: TaskTableProps) => {
                   onRowClick={handleRowClick}
                   onEdit={handleEditTask}
                   onDelete={handleDeleteTask}
+                  hideDelete={task.creation !== task.modified}
                 />
               ))}
             </TableBody>
+            <TableFooter>
+              <div className="flex items-center justify-end">
+                <Select
+                  value={tasksPerPage.toString()}
+                  onValueChange={(value) => setTasksPerPage(Number(value))}
+                >
+                  <SelectTrigger className="bg-transparent border-none">
+                    <SelectValue placeholder="10" />
+                    <SelectContent>
+                      <SelectItem value="10">10</SelectItem>
+                      <SelectItem value="20">20</SelectItem>
+                      <SelectItem value="50">50</SelectItem>
+                      <SelectItem value="100">100</SelectItem>
+                    </SelectContent>
+                  </SelectTrigger>
+                </Select>
+                <TablePagination
+                  totalPages={totalPages}
+                  initialPage={currentPage}
+                  onPageChange={(page) => setCurrentPage(page)}
+                />
+              </div>
+            </TableFooter>
           </Table>
         </div>
       ) : (

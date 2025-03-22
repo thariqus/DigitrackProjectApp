@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { format } from "date-fns";
-import { Cloud, File, X, XIcon } from "lucide-react";
+import { AlertCircle, Cloud, File, X, XIcon } from "lucide-react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -57,10 +57,11 @@ import { cn } from "@/lib/utils";
 import { useCurrentJhUser, useCurrentUser } from "@/hooks/auth";
 import { Attachment } from "@/types/doc";
 import { Skeleton } from "@/components/ui/skeleton";
-import { TaskStatusSelector } from "./task-status-selector";
+import { TaskStatusSelector } from "../ui/TaskStatusSelector";
 import { useAddTaskRemark } from "@/hooks/task";
 import { queryClient } from "@/utils/query-client";
 import TaskTimeline from "../ui/TaskTimeline";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 // Maximum file size in bytes (10MB)
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
@@ -153,6 +154,8 @@ export function TaskSheet({
 
   // get the doc from the docDetails - use optional chaining to prevent errors
   const task = taskDetails?.docs?.[0];
+  const isClosed = task?.status === "Closed";
+  const isOwner = task?.owner === currentUser;
 
   // Function to get default form values - memoized to avoid unnecessary recalculations
   const getDefaultValues = useCallback(
@@ -556,6 +559,14 @@ export function TaskSheet({
             </SheetClose>
           </div>
         </SheetHeader>
+        {isClosed && (
+          <Alert variant={"destructive"}>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              This task is closed. You cannot edit it.
+            </AlertDescription>
+          </Alert>
+        )}
 
         <ScrollArea className="max-h-screen">
           <SheetDescription className="h-[calc(100vh-100px)]">
@@ -565,11 +576,10 @@ export function TaskSheet({
                   <Skeleton className="w-[180px] h-10" />
                 ) : task ? (
                   <TaskStatusSelector
-                    currentStatus={task.status!}
+                    task={task!}
                     handleStatusChange={(value) =>
                       openStatusChangeDialog(value as JHTasksMaster["status"])
                     }
-                    hideClosed={currentUser !== task.owner}
                   />
                 ) : null}
               </div>
@@ -629,6 +639,7 @@ export function TaskSheet({
                   control={control}
                   render={({ field }) => (
                     <Input
+                      disabled={isClosed || (isEdit && !isOwner)}
                       id="task-name"
                       placeholder="Enter task name"
                       autoComplete="off"
@@ -674,7 +685,7 @@ export function TaskSheet({
                           field.onChange(value === "placeholder" ? "" : value)
                         }
                         value={field.value || "placeholder"}
-                        disabled={isPrivate}
+                        disabled={isPrivate || isClosed}
                       >
                         <SelectTrigger id="business">
                           <SelectValue placeholder="Select business" />
@@ -708,7 +719,7 @@ export function TaskSheet({
                     control={control}
                     render={({ field }) => (
                       <Select
-                        disabled={isPrivate}
+                        disabled={isPrivate || isClosed}
                         onValueChange={(value) =>
                           field.onChange(value === "placeholder" ? "" : value)
                         }
@@ -758,7 +769,7 @@ export function TaskSheet({
                           field.onChange(value === "placeholder" ? "" : value)
                         }
                         value={field.value || "placeholder"}
-                        disabled={isPrivate}
+                        disabled={isPrivate || isClosed}
                       >
                         <SelectTrigger
                           id="assignee"
@@ -801,7 +812,7 @@ export function TaskSheet({
                     render={({ field }) => (
                       <input
                         min={format(new Date(), "yyyy-MM-dd")}
-                        disabled={isEdit}
+                        disabled={isEdit || isClosed}
                         type="date"
                         id="due_date"
                         value={
@@ -844,6 +855,7 @@ export function TaskSheet({
                           min={format(new Date(), "yyyy-MM-dd")}
                           type="date"
                           id="revised_due_date"
+                          disabled={isClosed}
                           value={
                             field.value
                               ? format(new Date(field.value), "yyyy-MM-dd")
@@ -889,6 +901,7 @@ export function TaskSheet({
                       control={control}
                       render={({ field }) => (
                         <Input
+                          disabled={isClosed}
                           id="effort"
                           placeholder="Enter effort in hours"
                           autoComplete="off"
@@ -916,6 +929,7 @@ export function TaskSheet({
                   control={control}
                   render={({ field }) => (
                     <ReactQuill
+                      readOnly={isClosed}
                       id="description"
                       className="h-[150px] max-h-[150px]"
                       placeholder="Enter task description"
@@ -966,7 +980,7 @@ export function TaskSheet({
                           className="p-0 h-min"
                           style={{ paddingInline: 0 }}
                           onClick={() => handleRemoveExistingFile(file)}
-                          disabled={fileRemove.isPending}
+                          disabled={fileRemove.isPending || isClosed}
                           aria-label={`Remove file ${file.file_name}`}
                         >
                           <X className="h-4 w-4" />
@@ -1003,6 +1017,7 @@ export function TaskSheet({
                           {file.name}
                         </div>
                         <Button
+                          disabled={isClosed}
                           type="button"
                           variant="link"
                           className="p-0 h-min"
@@ -1030,6 +1045,7 @@ export function TaskSheet({
                   aria-label="File upload area"
                 >
                   <input
+                    disabled={isClosed}
                     type="file"
                     multiple
                     className="hidden"
@@ -1051,7 +1067,9 @@ export function TaskSheet({
                     </div> */}
                   </label>
                 </div>
-                <TaskTimeline taskId={taskId!} />
+                <div className="mt-6">
+                  <TaskTimeline taskId={taskId!} />
+                </div>
               </div>
               <SheetFooter className="flex-col absolute bottom-0 w-full bg-white">
                 <Separator className="my-4" />

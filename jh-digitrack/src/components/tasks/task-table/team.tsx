@@ -65,24 +65,22 @@ const TeamMemberRow = ({
         <TableCell>
           <div className="flex space-x-2">
             <span>{member.tasks.length} direct tasks</span>
-            {member?.reportees?.length > 0 && (
-              <span className="text-[#94A3B8]">
-                • {countTotalTasks(member) - member.tasks.length} team tasks
-              </span>
-            )}
           </div>
         </TableCell>
-        <TableCell className="text-right">
+        <TableCell className="text-left">
           {member.reportee_count && member.reportee_count > 0 ? (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onNavigate}
-              className="cursor-pointer"
-              title="View Team"
-            >
-              <Users className="h-4 w-4 text-[#94A3B8]" />
-            </Button>
+            <div>
+              <span>{member.reportee_count} team members</span>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onNavigate}
+                className="cursor-pointer"
+                title="View Team"
+              >
+                <Users className="h-4 w-4 text-[#94A3B8]" />
+              </Button>
+            </div>
           ) : null}
         </TableCell>
       </TableRow>
@@ -150,17 +148,6 @@ const EmptyTeam = ({ member }: { member: TeamMember }) => (
     </p>
   </div>
 );
-
-// Utility function: Count total tasks
-const countTotalTasks = (member: TeamMember): number => {
-  let count = member.tasks.length;
-
-  member.reportees.forEach((reportee) => {
-    count += countTotalTasks(reportee);
-  });
-
-  return count;
-};
 
 export const TeamTasksTable = () => {
   const { data: currentJhUser } = useCurrentJhUser();
@@ -320,7 +307,7 @@ export const TeamTasksTable = () => {
               <TableRow>
                 <TableHead>Team Member</TableHead>
                 <TableHead>Tasks</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="text-left">Team</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
