@@ -26,6 +26,18 @@ export const useCurrentUser = () => {
   });
 };
 
+export const useJhUser = (user_id?: string) => {
+  return useQuery({
+    queryKey: ["jh-user"],
+    queryFn: async () =>
+      frappe.db.getLastDoc<JHUserMaster>("JH User Master", {
+        filters: [["user", "=", user_id!]],
+      }),
+    staleTime: 1000 * 60 * 60,
+    enabled: !!user_id,
+  });
+};
+
 export const useCurrentJhUser = () => {
   return useQuery({
     queryKey: ["current-jh-user"],

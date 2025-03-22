@@ -134,7 +134,7 @@ export function TaskSheet({
   const [pendingStatus, setPendingStatus] = useState<
     JHTasksMaster["status"] | null
   >(null);
-  const [statusRemark, setStatusRemark] = useState("");
+  const [changelogComment, setChangelogComment] = useState("");
 
   const uploadFiles = useFilesUpload();
   const fileRemove = useFileRemove();
@@ -361,7 +361,7 @@ export function TaskSheet({
   // Function to open the dialog and store the pending status
   const openStatusChangeDialog = (newStatus: JHTasksMaster["status"]) => {
     setPendingStatus(newStatus);
-    setStatusRemark(""); // Reset remark when opening dialog
+    setChangelogComment(""); // Reset remark when opening dialog
     setStatusDialogOpen(true);
   };
 
@@ -390,19 +390,20 @@ export function TaskSheet({
       await saveDoc.mutateAsync(updatedTask);
       await addTaskRemark.mutateAsync({
         task_id: task.name,
-        comment: statusRemark,
+        comment: changelogComment,
         creator: currentJhUser?.name || "",
         type: "Status Change",
+        remark: `changed status from ${task.status} to ${newStatus}`,
       });
       toast.success("Status updated successfully");
       await refetchTaskDetails();
       // Clear the remark after successful update
-      setStatusRemark("");
+      setChangelogComment("");
       await queryClient.invalidateQueries({
         queryKey: ["Docs"],
       });
       await queryClient.invalidateQueries({
-        queryKey: ["task-remarks", task.name],
+        queryKey: ["task-change-logs", task.name],
       });
     } catch (error) {
       console.error(error);
@@ -587,9 +588,9 @@ export function TaskSheet({
                   <div className="space-y-4 py-4">
                     <Textarea
                       placeholder="Enter your remark here..."
-                      value={statusRemark}
+                      value={changelogComment}
                       onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
-                        setStatusRemark(e.target.value)
+                        setChangelogComment(e.target.value)
                       }
                       className="min-h-[100px]"
                       onKeyDown={(e) => {

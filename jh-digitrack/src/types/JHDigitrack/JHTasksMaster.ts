@@ -52,10 +52,11 @@ export interface JHTasksMaster {
   "assigned_to.name as assigned_to_id": string;
   "created_by.full_name as created_by": string;
   "created_by.name as created_by_id": string;
-  remarks?: {
+  changelog?: {
     comment: string;
     creator: string;
     type: string;
     creation: string;
+    remark: string;
   }[];
 }
