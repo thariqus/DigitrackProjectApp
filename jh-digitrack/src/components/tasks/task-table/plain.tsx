@@ -24,13 +24,11 @@ import {
 } from "@/components/ui/select";
 import { SelectTrigger } from "@/components/ui/select";
 
-const TASKS_PER_PAGE = 10;
-
 export const TaskTable = ({ activeFilter }: TaskTableProps) => {
   // State management
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [tasksPerPage, setTasksPerPage] = useState(TASKS_PER_PAGE);
+  const [tasksPerPage, setTasksPerPage] = useState(10);
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | undefined>(
     undefined
@@ -113,7 +111,7 @@ export const TaskTable = ({ activeFilter }: TaskTableProps) => {
     filters: getFilters() as Filter<Task>[],
   });
 
-  const totalPages = Math.ceil(taskCounter?.length / TASKS_PER_PAGE);
+  const totalPages = Math.ceil(taskCounter?.length / tasksPerPage);
 
   // Fetch tasks data with server-side filtering
   const { data: tasksWithoutfilters } = useDocs<Task>({
@@ -246,26 +244,37 @@ export const TaskTable = ({ activeFilter }: TaskTableProps) => {
               ))}
             </TableBody>
             <TableFooter>
-              <div className="flex items-center justify-end">
-                <Select
-                  value={tasksPerPage.toString()}
-                  onValueChange={(value) => setTasksPerPage(Number(value))}
-                >
-                  <SelectTrigger className="bg-transparent border-none">
-                    <SelectValue placeholder="10" />
-                    <SelectContent>
-                      <SelectItem value="10">10</SelectItem>
-                      <SelectItem value="20">20</SelectItem>
-                      <SelectItem value="50">50</SelectItem>
-                      <SelectItem value="100">100</SelectItem>
-                    </SelectContent>
-                  </SelectTrigger>
-                </Select>
-                <TablePagination
-                  totalPages={totalPages}
-                  initialPage={currentPage}
-                  onPageChange={(page) => setCurrentPage(page)}
-                />
+              <div className="flex flex-col sm:flex-row items-center justify-between w-full px-2 py-4 bg-white">
+                <div className="flex items-center space-x-6">
+                  <div className="flex items-center space-x-2">
+                    <label
+                      htmlFor="tasksPerPage"
+                      className="text-sm text-muted-foreground"
+                    >
+                      Show
+                    </label>
+                    <Select
+                      value={tasksPerPage.toString()}
+                      onValueChange={(value) => setTasksPerPage(Number(value))}
+                    >
+                      <SelectTrigger id="tasksPerPage" className="h-8 w-[70px]">
+                        <SelectValue placeholder="10" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="10">10</SelectItem>
+                        <SelectItem value="20">20</SelectItem>
+                        <SelectItem value="50">50</SelectItem>
+                        <SelectItem value="100">100</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <TablePagination
+                    totalPages={totalPages}
+                    initialPage={currentPage}
+                    onPageChange={(page) => setCurrentPage(page)}
+                  />
+                </div>
               </div>
             </TableFooter>
           </Table>

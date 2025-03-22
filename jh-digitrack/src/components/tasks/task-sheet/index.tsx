@@ -67,6 +67,60 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const MAX_FILES = 5;
 
+const ChangelogRemarkDialog = ({
+  open,
+  onOpenChange,
+  changelogComment,
+  setChangelogComment,
+  confirmChangelogRemark,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  changelogComment: string;
+  setChangelogComment: (comment: string) => void;
+  confirmChangelogRemark: () => void;
+}) => {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Add Remark</DialogTitle>
+          <DialogDescription>
+            Please provide a comment for this change.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <Textarea
+            placeholder="Enter your remark here..."
+            value={changelogComment}
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+              setChangelogComment(e.target.value)
+            }
+            className="min-h-[100px]"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                e.preventDefault();
+                confirmChangelogRemark();
+              }
+            }}
+          />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button
+            onClick={confirmChangelogRemark}
+            className="bg-[#972e26] hover:bg-[#972e26]/90"
+          >
+            Update Status
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 interface TaskSheetProps {
   open: boolean;
   taskId?: string;
@@ -131,7 +185,11 @@ export function TaskSheet({
   const [loading, setLoading] = useState(false);
   const [existingFiles, setExistingFiles] = useState<Attachment[]>([]);
   const [dragActive, setDragActive] = useState(false);
-  const [statusDialogOpen, setStatusDialogOpen] = useState(false);
+  const [dataToSave, setDataToSave] = useState<TaskFormData | null>(null);
+  const [changelogDialogOpen, setChangelogDialogOpen] = useState(false);
+  const [changelogType, setChangelogType] = useState<
+    "Status Change" | "Reassign" | null
+  >(null);
   const [pendingStatus, setPendingStatus] = useState<
     JHTasksMaster["status"] | null
   >(null);
@@ -139,8 +197,10 @@ export function TaskSheet({
 
   const uploadFiles = useFilesUpload();
   const fileRemove = useFileRemove();
-  const { data: currentJhUser } = useCurrentJhUser();
-  const { data: currentUser } = useCurrentUser();
+  const { data: currentJhUser, isLoading: isCurrentJhUserLoading } =
+    useCurrentJhUser();
+  const { data: currentUser, isLoading: isCurrentUserLoading } =
+    useCurrentUser();
 
   const {
     data: taskDetails,
@@ -256,7 +316,7 @@ export function TaskSheet({
     if (isPrivate && currentJhUser?.name) {
       setValue("assigned_to", currentJhUser.name, { shouldValidate: true });
     }
-  }, [isPrivate, currentJhUser, setValue]);
+  }, [isPrivate, currentJhUser, setValue, assignedTo]);
 
   useEffect(() => {
     if (assignedTo) {
@@ -269,8 +329,7 @@ export function TaskSheet({
     }
   }, [assignedTo, assigneeJhUser, setValue]);
 
-  // Form submission handler with improved error handling
-  const onSubmit = async (data: TaskFormData) => {
+  const saveTask = async (data: TaskFormData) => {
     try {
       setLoading(true);
 
@@ -360,19 +419,34 @@ export function TaskSheet({
       setLoading(false);
     }
   };
+  // Form submission handler with improved error handling
+  const onSubmit = async (data: TaskFormData) => {
+    if (!isEdit) {
+      await saveTask(data);
+    } else if (data.assigned_to !== task?.assigned_to) {
+      setChangelogDialogOpen(true);
+      setChangelogComment("");
+      setChangelogType("Reassign");
+      setDataToSave(data);
+    } else {
+      await saveTask(data);
+    }
+  };
 
   // Function to open the dialog and store the pending status
   const openStatusChangeDialog = (newStatus: JHTasksMaster["status"]) => {
     setPendingStatus(newStatus);
     setChangelogComment(""); // Reset remark when opening dialog
-    setStatusDialogOpen(true);
+    setChangelogDialogOpen(true);
+    setChangelogType("Status Change");
   };
 
   // Function to confirm status change with remark
   const confirmStatusChange = () => {
     if (pendingStatus) {
       handleStatusChange(pendingStatus);
-      setStatusDialogOpen(false);
+      setChangelogDialogOpen(false);
+      setChangelogType(null);
     }
   };
 
@@ -412,6 +486,36 @@ export function TaskSheet({
       console.error(error);
       toast.error("Failed to update status");
     }
+  };
+
+  const handleReassignTask = async () => {
+    if (!task) return;
+    if (task.assigned_to === dataToSave?.assigned_to) return;
+
+    setChangelogDialogOpen(false);
+    await saveTask(dataToSave!);
+    const fromAssignee = users.find((user) => user.name === task.assigned_to);
+    const toAssignee = users.find(
+      (user) => user.name === dataToSave?.assigned_to
+    );
+    await addTaskRemark.mutateAsync({
+      task_id: task.name,
+      comment: changelogComment,
+      creator: currentJhUser?.name || "",
+      type: "Reassign",
+      remark: `reassigned from ${fromAssignee?.full_name} to ${toAssignee?.full_name}`,
+    });
+
+    await refetchTaskDetails();
+    // Clear the remark after successful update
+    setChangelogComment("");
+    await queryClient.invalidateQueries({
+      queryKey: ["Docs"],
+    });
+    await queryClient.invalidateQueries({
+      queryKey: ["task-change-logs", task.name],
+    });
+    setChangelogType(null);
   };
 
   // File handling with validation
@@ -502,18 +606,20 @@ export function TaskSheet({
     setFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const { data: businesses = [] } = useDocs<JHBusinessMaster>({
-    doctype: "JH Business Master",
-    fields: ["business_id", "business_name"],
-  });
+  const { data: businesses = [], isLoading: isBusinessesLoading } =
+    useDocs<JHBusinessMaster>({
+      doctype: "JH Business Master",
+      fields: ["business_id", "business_name"],
+    });
 
-  const { data: divisions = [] } = useDocs<JHDivisionMaster>({
-    doctype: "JH Division Master",
-    fields: ["division_id", "division_name"],
-    filters: watch("business_id")
-      ? [["business", "=", watch("business_id")!]]
-      : undefined,
-  });
+  const { data: divisions = [], isLoading: isDivisionsLoading } =
+    useDocs<JHDivisionMaster>({
+      doctype: "JH Division Master",
+      fields: ["division_id", "division_name"],
+      filters: watch("business_id")
+        ? [["business", "=", watch("business_id")!]]
+        : undefined,
+    });
 
   const selectedBusiness = watch("business_id");
   const selectedDivision = watch("division_id");
@@ -525,14 +631,24 @@ export function TaskSheet({
     return arr;
   }, [selectedBusiness, selectedDivision]);
 
-  const { data: users = [] } = useDocs<JHUserMaster>({
-    doctype: "JH User Master",
-    fields: ["full_name", "name"],
-    filters: usersFilters as DocFilters<JHUserMaster>,
-  });
+  const { data: users = [], isLoading: isUsersLoading } = useDocs<JHUserMaster>(
+    {
+      doctype: "JH User Master",
+      fields: ["full_name", "name"],
+      filters: usersFilters as DocFilters<JHUserMaster>,
+    }
+  );
 
   // Add loading state for initial task fetch
-  if (isEdit && isTaskLoading) {
+  if (
+    isEdit &&
+    isTaskLoading &&
+    isUsersLoading &&
+    isBusinessesLoading &&
+    isDivisionsLoading &&
+    isCurrentJhUserLoading &&
+    isCurrentUserLoading
+  ) {
     return (
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent className="sm:max-w-3xl px-5">
@@ -583,50 +699,17 @@ export function TaskSheet({
                   />
                 ) : null}
               </div>
-              {/* Status Change Dialog */}
-              <Dialog
-                open={statusDialogOpen}
-                onOpenChange={setStatusDialogOpen}
-              >
-                <DialogContent className="sm:max-w-md">
-                  <DialogHeader>
-                    <DialogTitle>Add Status Remark</DialogTitle>
-                    <DialogDescription>
-                      Please provide a remark for this status change.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4 py-4">
-                    <Textarea
-                      placeholder="Enter your remark here..."
-                      value={changelogComment}
-                      onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
-                        setChangelogComment(e.target.value)
-                      }
-                      className="min-h-[100px]"
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-                          e.preventDefault();
-                          confirmStatusChange();
-                        }
-                      }}
-                    />
-                  </div>
-                  <DialogFooter>
-                    <Button
-                      variant="outline"
-                      onClick={() => setStatusDialogOpen(false)}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      onClick={confirmStatusChange}
-                      className="bg-[#972e26] hover:bg-[#972e26]/90"
-                    >
-                      Update Status
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
+              <ChangelogRemarkDialog
+                open={changelogDialogOpen}
+                onOpenChange={setChangelogDialogOpen}
+                changelogComment={changelogComment}
+                setChangelogComment={setChangelogComment}
+                confirmChangelogRemark={
+                  changelogType === "Status Change"
+                    ? confirmStatusChange
+                    : handleReassignTask
+                }
+              />
               <div className="space-y-2">
                 <Label
                   htmlFor="task-name"
@@ -1068,7 +1151,7 @@ export function TaskSheet({
                   </label>
                 </div>
                 <div className="mt-6">
-                  <TaskTimeline taskId={taskId!} />
+                  {isEdit && <TaskTimeline taskId={taskId!} />}
                 </div>
               </div>
               <SheetFooter className="flex-col absolute bottom-0 w-full bg-white">

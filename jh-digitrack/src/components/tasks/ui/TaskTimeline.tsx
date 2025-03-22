@@ -59,7 +59,8 @@ export default function TaskTimeline({ taskId }: TaskTimelineProps) {
   );
 
   const activityLogs = timelineLogs.filter(
-    (log) => log.comment_type === "Status Change"
+    (log) =>
+      log.comment_type === "Status Change" || log.comment_type === "Reassign"
   );
 
   const handleAddComment = () => {
@@ -106,6 +107,7 @@ export default function TaskTimeline({ taskId }: TaskTimelineProps) {
     };
   }) => {
     const { data: owner } = useJhUser(log.owner_user_id);
+
     return (
       <div className="relative pl-6 pb-6">
         {/* Bullet point */}
@@ -118,7 +120,10 @@ export default function TaskTimeline({ taskId }: TaskTimelineProps) {
               {log.owner_user_id ? owner?.full_name : log.owner}
             </span>
             <span className="text-sm text-gray-500">
-              {log.comment_type === "Status Change" ? log.remark : "commented"}
+              {log.comment_type === "Status Change" ||
+              log.comment_type === "Reassign"
+                ? log.remark
+                : "commented"}
             </span>
             <span className="text-xs text-gray-400">
               {log.creation
