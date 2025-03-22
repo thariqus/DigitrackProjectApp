@@ -227,7 +227,7 @@ export const TaskTable = ({ activeFilter }: TaskTableProps) => {
 
       {tasks.length > 0 ? (
         <div className="rounded-md border">
-          <Table>
+          <Table className="w-full table-fixed">
             <TaskTableHeader activeFilter={activeFilter} />
             <TableBody>
               {tasks.map((task, index) => (
