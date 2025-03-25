@@ -1,3 +1,7 @@
+"use client";
+
+import type React from "react";
+
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { format } from "date-fns";
 import { AlertCircle, Cloud, File, X, XIcon } from "lucide-react";
@@ -7,6 +11,7 @@ import * as z from "zod";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
 import "./quill.css";
+import { Combobox } from "@/components/ui/combobox";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -30,13 +35,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import {
@@ -45,17 +43,17 @@ import {
   useDocDetail,
   useUpdateDoc,
   useDoc,
-  DocFilters,
+  type DocFilters,
 } from "@/hooks/doc";
 import { useFilesUpload, useFileRemove } from "@/hooks/file";
-import { JHTasksMaster } from "@/types/JHDigitrack/JHTasksMaster";
+import type { JHTasksMaster } from "@/types/JHDigitrack/JHTasksMaster";
 import { toast } from "sonner";
-import { JHBusinessMaster } from "@/types/JHDigitrack/JHBusinessMaster";
-import { JHDivisionMaster } from "@/types/JHDigitrack/JHDivisionMaster";
-import { JHUserMaster } from "@/types/JHDigitrack/JHUserMaster";
+import type { JHBusinessMaster } from "@/types/JHDigitrack/JHBusinessMaster";
+import type { JHDivisionMaster } from "@/types/JHDigitrack/JHDivisionMaster";
+import type { JHUserMaster } from "@/types/JHDigitrack/JHUserMaster";
 import { cn } from "@/lib/utils";
 import { useCurrentJhUser, useCurrentUser } from "@/hooks/auth";
-import { Attachment } from "@/types/doc";
+import type { Attachment } from "@/types/doc";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TaskStatusSelector } from "../ui/TaskStatusSelector";
 import { useAddTaskRemark } from "@/hooks/task";
@@ -150,7 +148,7 @@ export function TaskSheet({
         .refine(
           (val) => {
             if (!val) return true;
-            const num = parseFloat(val);
+            const num = Number.parseFloat(val);
             if (val && !/^\d*\.?\d*$/.test(val)) {
               return false;
             }
@@ -194,6 +192,9 @@ export function TaskSheet({
     JHTasksMaster["status"] | null
   >(null);
   const [changelogComment, setChangelogComment] = useState("");
+  const [assigneeSearch, setAssigneeSearch] = useState("");
+  const [businessSearch, setBusinessSearch] = useState("");
+  const [divisionSearch, setDivisionSearch] = useState("");
 
   const uploadFiles = useFilesUpload();
   const fileRemove = useFileRemove();
@@ -610,32 +611,67 @@ export function TaskSheet({
     useDocs<JHBusinessMaster>({
       doctype: "JH Business Master",
       fields: ["business_id", "business_name"],
+      filters: businessSearch
+        ? [["business_name", "like", `%${businessSearch}%`]]
+        : undefined,
+      orderBy: {
+        field: "business_name",
+        order: "asc",
+      },
     });
 
   const { data: divisions = [], isLoading: isDivisionsLoading } =
     useDocs<JHDivisionMaster>({
       doctype: "JH Division Master",
       fields: ["division_id", "division_name"],
-      filters: watch("business_id")
-        ? [["business", "=", watch("business_id")!]]
-        : undefined,
+
+      filters: [
+        ...(watch("business_id")
+          ? [["business", "=", watch("business_id")!]]
+          : []),
+        ...(divisionSearch
+          ? [["division_name", "like", `%${divisionSearch}%`]]
+          : []),
+      ] as DocFilters<JHDivisionMaster>,
+      enabled: !!watch("business_id"),
+      orderBy: {
+        field: "division_name",
+        order: "asc",
+      },
     });
 
   const selectedBusiness = watch("business_id");
   const selectedDivision = watch("division_id");
 
   const usersFilters = useMemo(() => {
-    const arr = [];
-    if (selectedBusiness) arr.push(["business", "=", selectedBusiness]);
-    if (selectedDivision) arr.push(["division", "=", selectedDivision]);
-    return arr;
-  }, [selectedBusiness, selectedDivision]);
+    const filters: Array<[string, string, string]> = [
+      ["full_name", "!=", "JH Admin"],
+    ];
+
+    if (selectedBusiness) {
+      filters.push(["business", "=", selectedBusiness]);
+    }
+
+    if (selectedDivision && selectedBusiness) {
+      filters.push(["division", "=", selectedDivision]);
+    }
+
+    if (assigneeSearch) {
+      filters.push(["full_name", "like", `%${assigneeSearch}%`]);
+    }
+
+    return filters;
+  }, [selectedBusiness, selectedDivision, assigneeSearch]);
 
   const { data: users = [], isLoading: isUsersLoading } = useDocs<JHUserMaster>(
     {
       doctype: "JH User Master",
       fields: ["full_name", "name"],
       filters: usersFilters as DocFilters<JHUserMaster>,
+      orderBy: {
+        field: "full_name",
+        order: "asc",
+      },
     }
   );
 
@@ -763,30 +799,19 @@ export function TaskSheet({
                     name="business_id"
                     control={control}
                     render={({ field }) => (
-                      <Select
-                        onValueChange={(value) =>
-                          field.onChange(value === "placeholder" ? "" : value)
-                        }
-                        value={field.value || "placeholder"}
+                      <Combobox
+                        options={businesses.map((business) => ({
+                          value: business.business_id || "",
+                          label: business.business_name || "",
+                        }))}
+                        value={field.value || ""}
+                        onChange={(value) => field.onChange(value)}
+                        onSearch={setBusinessSearch}
+                        searchKeyword={businessSearch}
+                        placeholder="Select business"
                         disabled={isPrivate || isClosed}
-                      >
-                        <SelectTrigger id="business">
-                          <SelectValue placeholder="Select business" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="placeholder">
-                            Select business
-                          </SelectItem>
-                          {businesses.map((business) => (
-                            <SelectItem
-                              key={business.business_id || business.name}
-                              value={business.business_id || ""}
-                            >
-                              {business.business_name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        className={errors.business_id ? "border-red-500" : ""}
+                      />
                     )}
                   />
                   {errors.business_id && (
@@ -801,30 +826,24 @@ export function TaskSheet({
                     name="division_id"
                     control={control}
                     render={({ field }) => (
-                      <Select
-                        disabled={isPrivate || isClosed}
-                        onValueChange={(value) =>
-                          field.onChange(value === "placeholder" ? "" : value)
+                      <Combobox
+                        options={divisions.map((division) => ({
+                          value: division.division_id || "",
+                          label: division.division_name || "",
+                        }))}
+                        value={field.value || ""}
+                        onChange={(value) => field.onChange(value)}
+                        onSearch={setDivisionSearch}
+                        searchKeyword={divisionSearch}
+                        placeholder="Select business division"
+                        emptyMessage={
+                          watch("business_id")
+                            ? "No divisions found"
+                            : "Select business first"
                         }
-                        value={field.value || "placeholder"}
-                      >
-                        <SelectTrigger id="division">
-                          <SelectValue placeholder="Select business division" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="placeholder">
-                            Select business division
-                          </SelectItem>
-                          {divisions.map((division) => (
-                            <SelectItem
-                              key={division.division_id || division.name}
-                              value={division.division_id || ""}
-                            >
-                              {division.division_name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        disabled={isPrivate || isClosed}
+                        className={errors.division_id ? "border-red-500" : ""}
+                      />
                     )}
                   />
                   {errors.division_id && (
@@ -847,33 +866,19 @@ export function TaskSheet({
                     name="assigned_to"
                     control={control}
                     render={({ field }) => (
-                      <Select
-                        onValueChange={(value) =>
-                          field.onChange(value === "placeholder" ? "" : value)
-                        }
-                        value={field.value || "placeholder"}
+                      <Combobox
+                        options={users.map((user) => ({
+                          value: user.name!,
+                          label: user.full_name!,
+                        }))}
+                        value={field.value || ""}
+                        onChange={(value) => field.onChange(value)}
+                        onSearch={setAssigneeSearch}
+                        searchKeyword={assigneeSearch}
+                        placeholder="Select assignee"
                         disabled={isPrivate || isClosed}
-                      >
-                        <SelectTrigger
-                          id="assignee"
-                          aria-invalid={errors.assigned_to ? "true" : "false"}
-                          aria-describedby={
-                            errors.assigned_to ? "assignee-error" : undefined
-                          }
-                        >
-                          <SelectValue placeholder="Select assignee" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="placeholder">
-                            Select assignee
-                          </SelectItem>
-                          {users.map((user) => (
-                            <SelectItem key={user.name} value={user.name}>
-                              {user.full_name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        className={errors.assigned_to ? "border-red-500" : ""}
+                      />
                     )}
                   />
                   {errors.assigned_to && (
@@ -1040,7 +1045,7 @@ export function TaskSheet({
                         {file.file_url &&
                         file.file_url.match(/\.(jpg|jpeg|png|gif)$/i) ? (
                           <img
-                            src={file.file_url}
+                            src={file.file_url || "/placeholder.svg"}
                             alt={file.file_name}
                             className="w-full h-full object-cover rounded-md"
                           />
@@ -1079,7 +1084,9 @@ export function TaskSheet({
                       <div className="w-full h-24 border rounded-md">
                         {file.type.startsWith("image/") ? (
                           <img
-                            src={URL.createObjectURL(file)}
+                            src={
+                              URL.createObjectURL(file) || "/placeholder.svg"
+                            }
                             alt={file.name}
                             className="w-full h-full object-cover rounded-md"
                             onLoad={() =>

@@ -25,7 +25,9 @@ export function useDocs<T>(args: {
   orderBy?: GetDocListArgs<T>["orderBy"];
   limit?: number;
   page?: number;
+  enabled?: boolean;
 }) {
+  const { enabled = true } = args;
   return useQuery({
     queryKey: ["Docs", args],
     queryFn: () => {
@@ -47,6 +49,7 @@ export function useDocs<T>(args: {
       });
     },
     initialData: [],
+    enabled,
   });
 }
 

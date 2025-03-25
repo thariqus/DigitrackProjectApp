@@ -4,12 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCurrentJhUser, useJhUser } from "@/hooks/auth";
-import { useAddComment, useDocDetail } from "@/hooks/doc";
+import { useAddComment, useDocDetail, useDocTypeMeta } from "@/hooks/doc";
 import { useTaskChangeLog } from "@/hooks/task";
 import type { JHTasksMaster } from "@/types/JHDigitrack/JHTasksMaster";
 import { queryClient } from "@/utils/query-client";
 import { formatDistanceToNow } from "date-fns";
-import { Send } from "lucide-react";
+import { MessageSquare, Send } from "lucide-react";
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -29,6 +29,9 @@ export default function TaskTimeline({ taskId }: TaskTimelineProps) {
       disabled: !taskId,
     });
 
+  const { data: taskMeta, isLoading: isTaskMetaLoading } =
+    useDocTypeMeta("JH Tasks Master");
+
   const { data: changelog = [], isLoading: isLoadingChangelog } =
     useTaskChangeLog(taskId);
 
@@ -37,6 +40,34 @@ export default function TaskTimeline({ taskId }: TaskTimelineProps) {
       ...log,
       owner_user_id: log.owner,
     })) || [];
+
+  const versionLogs = [];
+  if (!isTaskMetaLoading && !isLoadingTaskInfo) {
+    const docChanges =
+      taskDetailed?.docinfo?.versions
+        ?.map((log) => ({
+          ...log,
+          owner_user_id: log.owner,
+          data: JSON.parse(log.data),
+        }))
+        .filter((log) => log.data.changed.length > 0) || [];
+
+    //TODO Complete this
+    for (const log of docChanges) {
+      const changelog = log.data.changed;
+      for (const clog of changelog) {
+        const field = taskMeta?.fields?.find(
+          (field: { fieldname: string }) => field.fieldname === clog[0]
+        );
+        versionLogs.push({
+          ...log,
+          comment_type: "Version Change",
+          content: `changed <b>${field?.label}</b> from ${clog[1]} to ${clog[2]}`,
+        });
+      }
+    }
+  }
+
   const changelogs =
     changelog?.message?.map(
       (remark: {
@@ -58,9 +89,8 @@ export default function TaskTimeline({ taskId }: TaskTimelineProps) {
     (a, b) => new Date(a.creation).getTime() - new Date(b.creation).getTime()
   );
 
-  const activityLogs = timelineLogs.filter(
-    (log) =>
-      log.comment_type === "Status Change" || log.comment_type === "Reassign"
+  const activityLogs = timelineLogs.filter((log) =>
+    ["Status Change", "Reassign", "Version Change"].includes(log.comment_type)
   );
 
   const handleAddComment = () => {
@@ -117,11 +147,12 @@ export default function TaskTimeline({ taskId }: TaskTimelineProps) {
         <div className="flex flex-col">
           <div className="flex items-baseline gap-2">
             <span className="font-medium">
-              {log.owner_user_id ? owner?.full_name : log.owner}
+              {owner?.full_name ? owner?.full_name : log.owner}
             </span>
             <span className="text-sm text-gray-500">
-              {log.comment_type === "Status Change" ||
-              log.comment_type === "Reassign"
+              {["Status Change", "Reassign", "Version Change"].includes(
+                log.comment_type
+              )
                 ? log.remark
                 : "commented"}
             </span>
@@ -160,12 +191,15 @@ export default function TaskTimeline({ taskId }: TaskTimelineProps) {
                 : "—"}
             </span>
           </div>
-          <p
-            className="text-sm text-gray-600 mt-1"
-            dangerouslySetInnerHTML={{
-              __html: log.content,
-            }}
-          ></p>
+          <div className="flex items-center gap-2 mt-1">
+            <MessageSquare className="h-4 w-4 text-gray-400 mt-0.5" />
+            <p
+              className="text-sm text-gray-600"
+              dangerouslySetInnerHTML={{
+                __html: log.content,
+              }}
+            ></p>
+          </div>
         </div>
       </div>
     );
@@ -191,8 +225,8 @@ export default function TaskTimeline({ taskId }: TaskTimelineProps) {
     <div className="space-y-4">
       <Tabs defaultValue="all" className="w-full">
         <div className="flex justify-between items-center mb-4">
-          <div className="text-sm font-medium">Timeline</div>
-          <TabsList>
+          <div className="text-md font-bold">Timeline</div>
+          <TabsList className="bg-rose-50">
             <TabsTrigger value="all">All</TabsTrigger>
             <TabsTrigger value="activity">Activity</TabsTrigger>
             <TabsTrigger value="comments">Comments</TabsTrigger>
@@ -200,43 +234,55 @@ export default function TaskTimeline({ taskId }: TaskTimelineProps) {
         </div>
 
         <TabsContent value="all" className="mt-0">
-          {isLoadingTaskInfo || isLoadingChangelog ? (
+          {isLoadingTaskInfo || isLoadingChangelog || isTaskMetaLoading ? (
             <div className="space-y-2">
               {[...Array(3)].map((_, i) => renderSkeletonItem(i))}
             </div>
           ) : (
             <div>
-              {timelineLogs.map((log, index) => (
-                <TimelineItem key={index} log={log} />
-              ))}
+              {timelineLogs.length > 0 ? (
+                timelineLogs.map((log, index) => (
+                  <TimelineItem key={index} log={log} />
+                ))
+              ) : (
+                <div className="text-center text-gray-500">No activity</div>
+              )}
             </div>
           )}
         </TabsContent>
 
         <TabsContent value="activity" className="mt-0">
-          {isLoadingTaskInfo || isLoadingChangelog ? (
+          {isLoadingTaskInfo || isLoadingChangelog || isTaskMetaLoading ? (
             <div className="space-y-2">
               {[...Array(2)].map((_, i) => renderSkeletonItem(i))}
             </div>
           ) : (
             <div>
-              {activityLogs.map((log, index) => (
-                <TimelineItem key={index} log={log} />
-              ))}
+              {activityLogs.length > 0 ? (
+                activityLogs.map((log, index) => (
+                  <TimelineItem key={index} log={log} />
+                ))
+              ) : (
+                <div className="text-center text-gray-500">No activity</div>
+              )}
             </div>
           )}
         </TabsContent>
 
         <TabsContent value="comments" className="mt-0">
-          {isLoadingTaskInfo || isLoadingChangelog ? (
+          {isLoadingTaskInfo || isLoadingChangelog || isTaskMetaLoading ? (
             <div className="space-y-2">
               {[...Array(2)].map((_, i) => renderSkeletonItem(i))}
             </div>
           ) : (
             <div>
-              {commentLogs.map((log, index) => (
-                <TimelineItem key={index} log={log} />
-              ))}
+              {commentLogs.length > 0 ? (
+                commentLogs.map((log, index) => (
+                  <TimelineItem key={index} log={log} />
+                ))
+              ) : (
+                <div className="text-center text-gray-500">No comments</div>
+              )}
             </div>
           )}
         </TabsContent>
