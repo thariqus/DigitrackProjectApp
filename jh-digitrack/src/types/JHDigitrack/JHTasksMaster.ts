@@ -2,6 +2,7 @@ export interface JHTasksMaster {
   name: string;
   creation: string;
   modified: string;
+  deleted_at: string;
   owner: string;
   modified_by: string;
   docstatus: 0 | 1 | 2;

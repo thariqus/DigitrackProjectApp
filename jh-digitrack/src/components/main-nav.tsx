@@ -77,8 +77,12 @@ export function MainNav() {
                   <span>Switch To Desk</span>
                 </DropdownMenuItem>
               ) : null}
-
-              <DropdownMenuItem onClick={() => logout()}>
+              <DropdownMenuItem asChild>
+                <Link to="/jh-digitrack/recycle-bin" className="w-full">
+                  <span>Recycle Bin</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem className="w-full" onClick={() => logout()}>
                 <span>Log out</span>
               </DropdownMenuItem>
             </DropdownMenuContent>

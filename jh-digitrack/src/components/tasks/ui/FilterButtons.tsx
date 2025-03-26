@@ -51,13 +51,6 @@ export default function FilterButtonsWithComboboxes({
 
   const [assigneeSearch, setAssigneeSearch] = useState("");
 
-  console.log(
-    tasks.map((task) => ({
-      name: task[showCreatedByFilter ? "created_by_id" : "assigned_to_id"],
-      full_name: task[showCreatedByFilter ? "created_by" : "assigned_to"],
-    }))
-  );
-
   const users = tasks
     .map((task) => ({
       name: task[showCreatedByFilter ? "created_by_id" : "assigned_to_id"],
@@ -141,6 +134,7 @@ export default function FilterButtonsWithComboboxes({
 
     onFiltersChange(activeFilters);
   }, [
+    currentJhUser?.name,
     statusValues,
     assigneeValues,
     date,

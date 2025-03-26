@@ -16,6 +16,7 @@ import {
 import { format } from "date-fns";
 import StatusBadge from "../ui/StatusBadge";
 import TaskTimeline from "../ui/TaskTimeline";
+import { Badge } from "@/components/ui/badge";
 
 const getDateDistance = (date: string) => {
   const dueDate = new Date(date);
@@ -170,6 +171,9 @@ export function TaskDetailSheet({
     isLoadingAssignedTo ||
     isLoadingCreatedBy;
 
+  const showDeleteButton =
+    task?.owner === currentUser && task?.creation === task?.modified;
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="sm:max-w-[700px] p-0 overflow-y-auto">
@@ -210,7 +214,7 @@ export function TaskDetailSheet({
               <Button variant="ghost" size="icon" onClick={handleEdit}>
                 <Edit className="w-5 h-5" />
               </Button>
-              {task?.owner === currentUser && (
+              {showDeleteButton && (
                 <Button variant="ghost" size="icon" onClick={handleDelete}>
                   <Trash2 className="w-5 h-5" />
                 </Button>
@@ -234,7 +238,15 @@ export function TaskDetailSheet({
                 </>
               ) : (
                 <>
-                  <div className="text-sm text-gray-500">{task?.name}</div>
+                  <div className="text-sm text-gray-500 flex items-center gap-2">
+                    {task?.name}
+
+                    {task?.private === 1 && (
+                      <Badge className="text-xs" variant="outline">
+                        Private
+                      </Badge>
+                    )}
+                  </div>
                   <h2 className="text-2xl font-bold mt-1">{task?.task_name}</h2>
                 </>
               )}

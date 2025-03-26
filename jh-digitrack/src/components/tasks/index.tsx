@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useEffect } from "react";
 import { TaskFilters } from "./ui/task-filters";
 import { TaskTable, TeamTasksTable } from "./task-table";

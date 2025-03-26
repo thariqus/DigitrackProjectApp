@@ -24,7 +24,12 @@ import {
 } from "@/components/ui/select";
 import { SelectTrigger } from "@/components/ui/select";
 
-export const TaskTable = ({ activeFilter }: TaskTableProps) => {
+export const TaskTable = ({
+  activeFilter,
+  hideFilters,
+  hideSearchBar,
+  hideCreateTask,
+}: TaskTableProps) => {
   // State management
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -68,6 +73,14 @@ export const TaskTable = ({ activeFilter }: TaskTableProps) => {
       filters.push(["owner", "=", currentUser]);
       if (!filters.some((filter) => filter[0] === "status"))
         filters.push(["status", "not in", ["Closed", "Cancelled"]]);
+    } else if (activeFilter === "deleted-tasks") {
+      const deletedFilter = filters.find(
+        (filter) => filter[0] === "deleted_at"
+      );
+      if (deletedFilter) {
+        deletedFilter[2] = "set";
+        if (currentUser) filters.push(["owner", "=", currentUser]);
+      }
     }
 
     return filters;
@@ -86,6 +99,7 @@ export const TaskTable = ({ activeFilter }: TaskTableProps) => {
       "status",
       "due_date",
       "assigned_to",
+      "private",
       "assigned_to.full_name as assigned_to",
       "assigned_to.name as assigned_to_id",
       "created_by",
@@ -117,17 +131,12 @@ export const TaskTable = ({ activeFilter }: TaskTableProps) => {
   const { data: tasksWithoutfilters } = useDocs<Task>({
     doctype: "JH Tasks Master",
     fields: [
-      "name",
-      "task_name",
-      "status",
-      "due_date",
       "assigned_to",
       "assigned_to.full_name as assigned_to",
       "assigned_to.name as assigned_to_id",
       "created_by",
       "created_by.full_name as created_by",
       "created_by.name as created_by_id",
-      "owner",
     ],
     orderBy: {
       field: "`tabJH Tasks Master`.modified",
@@ -214,16 +223,19 @@ export const TaskTable = ({ activeFilter }: TaskTableProps) => {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <SearchBar value={searchQuery} onChange={handleSearchChange} />
-        <ActionButtons onCreateTask={handleCreateTask} />
+        {!hideSearchBar && (
+          <SearchBar value={searchQuery} onChange={handleSearchChange} />
+        )}
+        {!hideCreateTask && <ActionButtons onCreateTask={handleCreateTask} />}
       </div>
-
-      <FilterButtonsWithComboboxes
-        tasks={tasksWithoutfilters.length > 0 ? tasksWithoutfilters : []}
-        onFiltersChange={handleFiltersChange}
-        showPrivateTaskToggle={activeFilter === "my-tasks"}
-        showCreatedByFilter={activeFilter === "my-tasks"}
-      />
+      {!hideFilters && (
+        <FilterButtonsWithComboboxes
+          tasks={tasksWithoutfilters.length > 0 ? tasksWithoutfilters : []}
+          onFiltersChange={handleFiltersChange}
+          showPrivateTaskToggle={activeFilter === "my-tasks"}
+          showCreatedByFilter={activeFilter === "my-tasks"}
+        />
+      )}
 
       {tasks.length > 0 ? (
         <div className="rounded-md border">
@@ -239,7 +251,8 @@ export const TaskTable = ({ activeFilter }: TaskTableProps) => {
                   onRowClick={handleRowClick}
                   onEdit={handleEditTask}
                   onDelete={handleDeleteTask}
-                  hideDelete={task.creation !== task.modified}
+                  currentPage={currentPage}
+                  perPage={tasksPerPage}
                 />
               ))}
             </TableBody>
@@ -280,7 +293,13 @@ export const TaskTable = ({ activeFilter }: TaskTableProps) => {
           </Table>
         </div>
       ) : (
-        <EmptyState />
+        <EmptyState
+          title={
+            activeFilter === "deleted-tasks"
+              ? "No deleted tasks found"
+              : "No tasks found"
+          }
+        />
       )}
 
       {/* Task creation/edit sheet */}

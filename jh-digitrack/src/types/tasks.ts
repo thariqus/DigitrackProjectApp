@@ -26,6 +26,9 @@ export interface TaskFilter {
 export interface TaskTableProps {
   activeFilter: string;
   currentUser?: string;
+  hideFilters?: boolean;
+  hideSearchBar?: boolean;
+  hideCreateTask?: boolean;
 }
 
 export interface SearchBarProps {
@@ -46,6 +49,8 @@ export interface TaskRowProps {
   onDelete: (taskId: string) => void;
   hideAssignedTo?: boolean;
   hideDelete?: boolean;
+  currentPage?: number;
+  perPage?: number;
 }
 
 export interface DeleteConfirmationProps {
@@ -61,6 +66,7 @@ export interface TaskActionsProps {
   onEdit: (taskId: string) => void;
   onDelete: (taskId: string) => void;
   hideDelete?: boolean;
+  showRestore?: boolean;
 }
 
 // Team task types

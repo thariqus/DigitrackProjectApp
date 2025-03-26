@@ -1,10 +1,7 @@
-"use client";
-
-import type React from "react";
-
 import { useEffect, useState, useCallback, useMemo } from "react";
+
 import { format } from "date-fns";
-import { AlertCircle, Cloud, File, X, XIcon } from "lucide-react";
+import { AlertCircle, XIcon } from "lucide-react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -23,20 +20,11 @@ import {
   SheetClose,
   SheetDescription,
 } from "@/components/ui/sheet";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   useDocs,
   useSaveDoc,
@@ -60,65 +48,12 @@ import { useAddTaskRemark } from "@/hooks/task";
 import { queryClient } from "@/utils/query-client";
 import TaskTimeline from "../ui/TaskTimeline";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import ChangelogRemarkDialog from "./ChangeLogRemarkDialog";
+import FileAttachmentHandler from "./FileAttachmentHandler";
 
-// Maximum file size in bytes (10MB)
-const MAX_FILE_SIZE = 10 * 1024 * 1024;
-const MAX_FILES = 5;
-
-const ChangelogRemarkDialog = ({
-  open,
-  onOpenChange,
-  changelogComment,
-  setChangelogComment,
-  confirmChangelogRemark,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  changelogComment: string;
-  setChangelogComment: (comment: string) => void;
-  confirmChangelogRemark: () => void;
-}) => {
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Add Remark</DialogTitle>
-          <DialogDescription>
-            Please provide a comment for this change.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-4 py-4">
-          <Textarea
-            placeholder="Enter your remark here..."
-            value={changelogComment}
-            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
-              setChangelogComment(e.target.value)
-            }
-            className="min-h-[100px]"
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-                e.preventDefault();
-                confirmChangelogRemark();
-              }
-            }}
-          />
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button
-            onClick={confirmChangelogRemark}
-            className="bg-[#972e26] hover:bg-[#972e26]/90"
-          >
-            Update Status
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-};
-
+// ==========================================
+// COMPONENT PROPS INTERFACE
+// ==========================================
 interface TaskSheetProps {
   open: boolean;
   taskId?: string;
@@ -134,11 +69,21 @@ export function TaskSheet({
 }: TaskSheetProps) {
   const isEdit = Boolean(taskId);
 
+  // ==========================================
+  // FORM VALIDATION SCHEMA
+  // ==========================================
+  /**
+   * Task form validation schema
+   * Validates all form inputs before submission
+   */
   const taskSchema = z
     .object({
-      start_after: z.string(),
-      task_name: z.string().min(1, "Task name is required"),
-      private: z.boolean(),
+      start_after: z.string().optional(),
+      task_name: z
+        .string()
+        .min(1, "Task name is required")
+        .max(140, "Task name cannot be longer than 140 characters"),
+      private: z.boolean().default(false),
       business_id: z.string().optional(),
       division_id: z.string().optional(),
       assigned_to: z.string().min(1, "Assignee is required"),
@@ -177,25 +122,39 @@ export function TaskSheet({
       due_date: format(arg.due_date, "yyyy-MM-dd"), // Use date-fns for consistent formatting
     }));
 
+  /**
+   * Type definition for the task form data
+   */
   type TaskFormData = z.infer<typeof taskSchema>;
 
-  const [files, setFiles] = useState<File[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [existingFiles, setExistingFiles] = useState<Attachment[]>([]);
-  const [dragActive, setDragActive] = useState(false);
-  const [dataToSave, setDataToSave] = useState<TaskFormData | null>(null);
-  const [changelogDialogOpen, setChangelogDialogOpen] = useState(false);
-  const [changelogType, setChangelogType] = useState<
-    "Status Change" | "Reassign" | null
-  >(null);
-  const [pendingStatus, setPendingStatus] = useState<
-    JHTasksMaster["status"] | null
-  >(null);
-  const [changelogComment, setChangelogComment] = useState("");
-  const [assigneeSearch, setAssigneeSearch] = useState("");
-  const [businessSearch, setBusinessSearch] = useState("");
-  const [divisionSearch, setDivisionSearch] = useState("");
+  // ==========================================
+  // STATE MANAGEMENT
+  // ==========================================
+  const [fileState, setFileState] = useState({
+    files: [] as File[],
+    existingFiles: [] as Attachment[],
+  });
 
+  const [searchState, setSearchState] = useState({
+    assigneeSearch: "",
+    businessSearch: "",
+    divisionSearch: "",
+  });
+
+  const [changelogState, setChangelogState] = useState({
+    dialogOpen: false,
+    type: null as "Status Change" | "Reassign" | null,
+    pendingStatus: null as JHTasksMaster["status"] | null,
+    comment: "",
+    completionDate: format(new Date(), "yyyy-MM-dd"),
+  });
+
+  const [loading, setLoading] = useState(false);
+  const [dataToSave, setDataToSave] = useState<TaskFormData | null>(null);
+
+  // ==========================================
+  // API HOOKS
+  // ==========================================
   const uploadFiles = useFilesUpload();
   const fileRemove = useFileRemove();
   const { data: currentJhUser, isLoading: isCurrentJhUserLoading } =
@@ -213,9 +172,13 @@ export function TaskSheet({
     disabled: !taskId,
   });
 
+  // ==========================================
+  // DERIVED STATE & COMPUTATIONS
+  // ==========================================
   // get the doc from the docDetails - use optional chaining to prevent errors
   const task = taskDetails?.docs?.[0];
   const isClosed = task?.status === "Closed";
+  const isDeleted = Boolean(task?.deleted_at);
   const isOwner = task?.owner === currentUser;
 
   // Function to get default form values - memoized to avoid unnecessary recalculations
@@ -235,17 +198,22 @@ export function TaskSheet({
     []
   );
 
+  // ==========================================
+  // FORM SETUP
+  // ==========================================
   // form
   const form = useForm<TaskFormData>({
     resolver: zodResolver(taskSchema),
     defaultValues: getDefaultValues(),
+    mode: "onBlur", // Validate fields when they lose focus for better UX
+    reValidateMode: "onChange", // Re-validate when the user makes changes
   });
 
   // form control
   const {
     control,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isDirty, isValid },
     setValue,
     watch,
     reset,
@@ -254,17 +222,34 @@ export function TaskSheet({
   // Compute button text based on state rather than using a separate state variable
   const buttonText = useMemo(() => {
     if (loading) {
-      if (files.length > 0) return "Uploading Attachments";
+      if (fileState.files.length > 0) return "Uploading Attachments";
       return isEdit ? "Saving Task" : "Creating Task";
     }
     return isEdit ? "Save Task" : "Create Task";
-  }, [loading, isEdit, files.length]);
+  }, [loading, isEdit, fileState.files.length]);
 
+  // ==========================================
+  // API MUTATIONS
+  // ==========================================
   // save and update doc
   const saveDoc = useSaveDoc();
   const updateDoc = useUpdateDoc();
   const addTaskRemark = useAddTaskRemark();
 
+  // ==========================================
+  // HELPER FUNCTIONS
+  // ==========================================
+  // Update search state setters
+  const updateSearchState = (
+    field: keyof typeof searchState,
+    value: string
+  ) => {
+    setSearchState((prev) => ({ ...prev, [field]: value }));
+  };
+
+  // ==========================================
+  // EFFECTS
+  // ==========================================
   // Reset form when task details are loaded or when switching between create/edit modes
   useEffect(() => {
     if (task) {
@@ -284,13 +269,18 @@ export function TaskSheet({
 
       // Set existing files when task is loaded
       if (taskDetails?.docinfo?.attachments) {
-        setExistingFiles(taskDetails.docinfo.attachments);
+        setFileState((prev) => ({
+          ...prev,
+          existingFiles: taskDetails.docinfo.attachments,
+        }));
       }
     } else if (open && !taskId) {
       // Reset form when opening in create mode
       reset(getDefaultValues());
-      setFiles([]);
-      setExistingFiles([]);
+      setFileState({
+        files: [],
+        existingFiles: [],
+      });
     }
   }, [task, taskDetails, open, taskId, reset, getDefaultValues]);
 
@@ -298,8 +288,10 @@ export function TaskSheet({
   useEffect(() => {
     if (!open) {
       reset(getDefaultValues());
-      setFiles([]);
-      setExistingFiles([]);
+      setFileState({
+        files: [],
+        existingFiles: [],
+      });
     }
   }, [open, reset, getDefaultValues]);
 
@@ -330,319 +322,195 @@ export function TaskSheet({
     }
   }, [assignedTo, assigneeJhUser, setValue]);
 
-  const saveTask = async (data: TaskFormData) => {
-    try {
-      setLoading(true);
+  // ==========================================
+  // DATA SAVING FUNCTIONS
+  // ==========================================
+  /**
+   * Handles the task saving process, including file uploads
+   * @param data Form data to save
+   * @returns Promise that resolves when the task is saved
+   */
+  const saveTask = useCallback(
+    async (data: TaskFormData) => {
+      try {
+        setLoading(true);
 
-      // Create document object
-      const doc = {
-        ...data,
-        doctype: "JH Tasks Master",
-        ...(taskId && { name: taskId }),
-      };
-
-      // Save or update the task
-      let savedTaskName = taskId;
-      if (isEdit && taskId) {
-        await updateDoc.mutateAsync({
-          doc,
-          name: taskId,
+        // Create document object
+        const doc = {
+          ...data,
           doctype: "JH Tasks Master",
-        });
-      } else {
-        const savedTask = await saveDoc.mutateAsync({
-          ...doc,
-          created_by: currentJhUser?.name,
-        });
-        savedTaskName = savedTask.name;
-      }
+          ...(taskId && { name: taskId }),
+        };
 
-      // Upload files if any
-      if (files.length > 0 && savedTaskName) {
-        await uploadFiles.mutateAsync({
-          files,
-          docname: savedTaskName,
-          doctype: "JH Tasks Master",
-          onProgress: (progress) =>
-            console.log(`Upload progress: ${progress}%`),
-          onComplete: (status) => {
-            if (status) {
-              toast.success("Files uploaded successfully");
-            } else {
-              toast.error("Error uploading files");
-            }
-          },
-          onError: (error) => {
-            console.error("File upload error:", error);
-            toast.error(
-              `Error uploading files: ${error?.message || "Unknown error"}`
-            );
-          },
-        });
-      }
-
-      await queryClient.invalidateQueries({
-        queryKey: ["Docs"],
-      });
-      await queryClient.invalidateQueries({
-        queryKey: [
-          "DocInfo",
-          {
-            doctype: "JH Tasks Master",
+        // Save or update the task
+        let savedTaskName = taskId;
+        if (isEdit && taskId) {
+          await updateDoc.mutateAsync({
+            doc,
             name: taskId,
-          },
-        ],
-      });
+            doctype: "JH Tasks Master",
+          });
+        } else {
+          const savedTask = await saveDoc.mutateAsync({
+            ...doc,
+            created_by: currentJhUser?.name,
+          });
+          savedTaskName = savedTask.name;
+        }
 
-      // Success handling
-      toast.success(
-        isEdit ? "Task updated successfully" : "Task created successfully"
-      );
-      onOpenChange(false);
-      await refetch?.();
+        // Upload files if any
+        if (fileState.files.length > 0 && savedTaskName) {
+          await uploadFiles.mutateAsync({
+            files: fileState.files,
+            docname: savedTaskName,
+            doctype: "JH Tasks Master",
+            onProgress: (progress) =>
+              console.log(`Upload progress: ${progress}%`),
+            onComplete: (status) => {
+              if (status) {
+                toast.success("Files uploaded successfully");
+              } else {
+                toast.error("Error uploading files");
+              }
+            },
+            onError: (error) => {
+              console.error("File upload error:", error);
+              toast.error(
+                `Error uploading files: ${error?.message || "Unknown error"}`
+              );
+            },
+          });
+        }
 
-      // Reset state after successful submission
-      reset(getDefaultValues());
-      setFiles([]);
-      setExistingFiles([]);
-    } catch (error) {
-      console.error("Task submission error:", error);
-      toast.error(
-        isEdit
-          ? `Error updating task: ${
-              (error as Error)?.message || "Unknown error"
-            }`
-          : `Error creating task: ${
-              (error as Error)?.message || "Unknown error"
-            }`
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+        await queryClient.invalidateQueries({
+          queryKey: ["Docs"],
+        });
+        await queryClient.invalidateQueries({
+          queryKey: [
+            "DocInfo",
+            {
+              doctype: "JH Tasks Master",
+              name: taskId,
+            },
+          ],
+        });
+
+        // Success handling
+        toast.success(
+          isEdit ? "Task updated successfully" : "Task created successfully"
+        );
+        onOpenChange(false);
+        await refetch?.();
+
+        // Reset state after successful submission
+        reset(getDefaultValues());
+        setFileState({
+          files: [],
+          existingFiles: [],
+        });
+      } catch (error) {
+        console.error("Task submission error:", error);
+        toast.error(
+          isEdit
+            ? `Error updating task: ${
+                (error as Error)?.message || "Unknown error"
+              }`
+            : `Error creating task: ${
+                (error as Error)?.message || "Unknown error"
+              }`
+        );
+      } finally {
+        setLoading(false);
+      }
+    },
+    [
+      currentJhUser?.name,
+      fileState.files,
+      getDefaultValues,
+      isEdit,
+      onOpenChange,
+      refetch,
+      reset,
+      saveDoc,
+      taskId,
+      updateDoc,
+      uploadFiles,
+    ]
+  );
+
   // Form submission handler with improved error handling
-  const onSubmit = async (data: TaskFormData) => {
-    if (!isEdit) {
-      await saveTask(data);
-    } else if (data.assigned_to !== task?.assigned_to) {
-      setChangelogDialogOpen(true);
-      setChangelogComment("");
-      setChangelogType("Reassign");
-      setDataToSave(data);
-    } else {
-      await saveTask(data);
-    }
-  };
+  const onSubmit = useCallback(
+    async (data: TaskFormData) => {
+      if (!isEdit) {
+        await saveTask(data);
+      } else if (data.assigned_to !== task?.assigned_to) {
+        setChangelogState({
+          dialogOpen: true,
+          type: "Reassign",
+          pendingStatus: null,
+          comment: "",
+          completionDate: format(new Date(), "yyyy-MM-dd"),
+        });
+        setDataToSave(data);
+      } else {
+        await saveTask(data);
+      }
+    },
+    [isEdit, saveTask, task?.assigned_to, setChangelogState, setDataToSave]
+  );
 
+  // ==========================================
+  // STATUS MANAGEMENT FUNCTIONS
+  // ==========================================
   // Function to open the dialog and store the pending status
-  const openStatusChangeDialog = (newStatus: JHTasksMaster["status"]) => {
-    setPendingStatus(newStatus);
-    setChangelogComment(""); // Reset remark when opening dialog
-    setChangelogDialogOpen(true);
-    setChangelogType("Status Change");
-  };
-
-  // Function to confirm status change with remark
-  const confirmStatusChange = () => {
-    if (pendingStatus) {
-      handleStatusChange(pendingStatus);
-      setChangelogDialogOpen(false);
-      setChangelogType(null);
-    }
-  };
-
-  const handleStatusChange = async (newStatus: JHTasksMaster["status"]) => {
-    if (!task) return;
-
-    try {
-      const updatedTask = {
-        ...task,
-        status: newStatus,
-        doctype: "JH Tasks Master",
-      };
-
-      if (newStatus === "Completed") {
-        updatedTask.completion_date = format(new Date(), "yyyy-MM-dd");
-      }
-
-      await saveDoc.mutateAsync(updatedTask);
-      await addTaskRemark.mutateAsync({
-        task_id: task.name,
-        comment: changelogComment,
-        creator: currentJhUser?.name || "",
+  const openStatusChangeDialog = useCallback(
+    (newStatus: JHTasksMaster["status"]) => {
+      setChangelogState({
+        dialogOpen: true,
         type: "Status Change",
-        remark: `changed status from ${task.status} to ${newStatus}`,
+        pendingStatus: newStatus,
+        comment: "",
+        completionDate: format(new Date(), "yyyy-MM-dd"),
       });
-      toast.success("Status updated successfully");
-      await refetchTaskDetails();
-      // Clear the remark after successful update
-      setChangelogComment("");
-      await queryClient.invalidateQueries({
-        queryKey: ["Docs"],
-      });
-      await queryClient.invalidateQueries({
-        queryKey: ["task-change-logs", task.name],
-      });
-    } catch (error) {
-      console.error(error);
-      toast.error("Failed to update status");
-    }
-  };
+    },
+    []
+  );
 
-  const handleReassignTask = async () => {
-    if (!task) return;
-    if (task.assigned_to === dataToSave?.assigned_to) return;
-
-    setChangelogDialogOpen(false);
-    await saveTask(dataToSave!);
-    const fromAssignee = users.find((user) => user.name === task.assigned_to);
-    const toAssignee = users.find(
-      (user) => user.name === dataToSave?.assigned_to
-    );
-    await addTaskRemark.mutateAsync({
-      task_id: task.name,
-      comment: changelogComment,
-      creator: currentJhUser?.name || "",
-      type: "Reassign",
-      remark: `reassigned from ${fromAssignee?.full_name} to ${toAssignee?.full_name}`,
-    });
-
-    await refetchTaskDetails();
-    // Clear the remark after successful update
-    setChangelogComment("");
-    await queryClient.invalidateQueries({
-      queryKey: ["Docs"],
-    });
-    await queryClient.invalidateQueries({
-      queryKey: ["task-change-logs", task.name],
-    });
-    setChangelogType(null);
-  };
-
-  // File handling with validation
-  const validateFile = (file: File): boolean => {
-    if (file.size > MAX_FILE_SIZE) {
-      toast.error(`File ${file.name} exceeds the maximum file size of 10MB`);
-      return false;
-    }
-    return true;
-  };
-
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files) {
-      const fileList = Array.from(event.target.files);
-
-      // Validate files
-      const validFiles = fileList.filter(validateFile);
-
-      // Check total number of files
-      if (files.length + validFiles.length > MAX_FILES) {
-        toast.error(`You can upload a maximum of ${MAX_FILES} files`);
-        return;
-      }
-
-      setFiles((prev) => [...prev, ...validFiles]);
-    }
-  };
-
-  // Improved drag and drop handling
-  const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-  };
-
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-  };
-
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-
-    if (e.dataTransfer.files) {
-      const fileList = Array.from(e.dataTransfer.files);
-
-      // Validate files
-      const validFiles = fileList.filter(validateFile);
-
-      // Check total number of files
-      if (files.length + validFiles.length > MAX_FILES) {
-        toast.error(`You can upload a maximum of ${MAX_FILES} files`);
-        return;
-      }
-
-      setFiles((prev) => [...prev, ...validFiles]);
-    }
-  };
-
-  const handleRemoveExistingFile = async (file: Attachment) => {
-    if (!taskId) return;
-
-    try {
-      await fileRemove.mutateAsync({
-        fid: file.name,
-        dt: "JH Tasks Master",
-        dn: taskId,
-      });
-      setExistingFiles((prev) => prev.filter((f) => f.name !== file.name));
-      toast.success(`File ${file.file_name} removed successfully`);
-    } catch (error) {
-      console.error("Error removing file:", error);
-      toast.error(
-        `Error removing file: ${(error as Error)?.message || "Unknown error"}`
-      );
-    }
-  };
-
-  const handleRemoveNewFile = (index: number) => {
-    setFiles((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const { data: businesses = [], isLoading: isBusinessesLoading } =
-    useDocs<JHBusinessMaster>({
-      doctype: "JH Business Master",
-      fields: ["business_id", "business_name"],
-      filters: businessSearch
-        ? [["business_name", "like", `%${businessSearch}%`]]
-        : undefined,
-      orderBy: {
-        field: "business_name",
-        order: "asc",
-      },
-    });
-
-  const { data: divisions = [], isLoading: isDivisionsLoading } =
-    useDocs<JHDivisionMaster>({
-      doctype: "JH Division Master",
-      fields: ["division_id", "division_name"],
-
-      filters: [
-        ...(watch("business_id")
-          ? [["business", "=", watch("business_id")!]]
-          : []),
-        ...(divisionSearch
-          ? [["division_name", "like", `%${divisionSearch}%`]]
-          : []),
-      ] as DocFilters<JHDivisionMaster>,
-      enabled: !!watch("business_id"),
-      orderBy: {
-        field: "division_name",
-        order: "asc",
-      },
-    });
-
+  // ==========================================
+  // DATA FILTERING & QUERYING
+  // ==========================================
+  // Read selected values from form for memoized filters
   const selectedBusiness = watch("business_id");
   const selectedDivision = watch("division_id");
 
+  // Create memoized business filters
+  const businessFilters = useMemo(() => {
+    if (!searchState.businessSearch) return undefined;
+    return [
+      ["business_name", "like", `%${searchState.businessSearch}%`],
+    ] as DocFilters<JHBusinessMaster>;
+  }, [searchState.businessSearch]);
+
+  // Create memoized division filters
+  const divisionFilters = useMemo(() => {
+    const filters: Array<[string, string, string]> = [];
+
+    if (selectedBusiness) {
+      filters.push(["business", "=", selectedBusiness]);
+    }
+
+    if (searchState.divisionSearch) {
+      filters.push([
+        "division_name",
+        "like",
+        `%${searchState.divisionSearch}%`,
+      ]);
+    }
+
+    return filters as DocFilters<JHDivisionMaster>;
+  }, [selectedBusiness, searchState.divisionSearch]);
+
+  // Memoize user filters for better performance
   const usersFilters = useMemo(() => {
     const filters: Array<[string, string, string]> = [
       ["full_name", "!=", "JH Admin"],
@@ -656,18 +524,47 @@ export function TaskSheet({
       filters.push(["division", "=", selectedDivision]);
     }
 
-    if (assigneeSearch) {
-      filters.push(["full_name", "like", `%${assigneeSearch}%`]);
+    if (searchState.assigneeSearch) {
+      filters.push(["full_name", "like", `%${searchState.assigneeSearch}%`]);
     }
 
-    return filters;
-  }, [selectedBusiness, selectedDivision, assigneeSearch]);
+    return filters as DocFilters<JHUserMaster>;
+  }, [selectedBusiness, selectedDivision, searchState.assigneeSearch]);
 
+  // ==========================================
+  // DATA FETCHING
+  // ==========================================
+  // Get businesses with memoized filters
+  const { data: businesses = [], isLoading: isBusinessesLoading } =
+    useDocs<JHBusinessMaster>({
+      doctype: "JH Business Master",
+      fields: ["business_id", "business_name"],
+      filters: businessFilters,
+      orderBy: {
+        field: "business_name",
+        order: "asc",
+      },
+    });
+
+  // Get divisions with memoized filters
+  const { data: divisions = [], isLoading: isDivisionsLoading } =
+    useDocs<JHDivisionMaster>({
+      doctype: "JH Division Master",
+      fields: ["division_id", "division_name"],
+      filters: divisionFilters,
+      enabled: !!selectedBusiness,
+      orderBy: {
+        field: "division_name",
+        order: "asc",
+      },
+    });
+
+  // Get users with memoized filters
   const { data: users = [], isLoading: isUsersLoading } = useDocs<JHUserMaster>(
     {
       doctype: "JH User Master",
       fields: ["full_name", "name"],
-      filters: usersFilters as DocFilters<JHUserMaster>,
+      filters: usersFilters,
       orderBy: {
         field: "full_name",
         order: "asc",
@@ -675,6 +572,184 @@ export function TaskSheet({
     }
   );
 
+  // ==========================================
+  // STATUS CHANGE HANDLERS
+  // ==========================================
+  const handleStatusChange = useCallback(
+    async (newStatus: JHTasksMaster["status"]) => {
+      if (!task) return;
+
+      try {
+        const updatedTask = {
+          ...task,
+          status: newStatus,
+          doctype: "JH Tasks Master",
+        };
+
+        if (newStatus === "Completed") {
+          updatedTask.completion_date = format(
+            changelogState.completionDate,
+            "yyyy-MM-dd"
+          );
+        }
+
+        await saveDoc.mutateAsync(updatedTask);
+        await addTaskRemark.mutateAsync({
+          task_id: task.name,
+          comment: changelogState.comment,
+          creator: currentJhUser?.name || "",
+          type: "Status Change",
+          remark: `changed status from ${task.status} to ${newStatus}`,
+        });
+
+        toast.success("Status updated successfully");
+        await refetchTaskDetails();
+
+        // Clear the remark after successful update
+        setChangelogState((prev) => ({
+          ...prev,
+          comment: "",
+          completionDate: format(new Date(), "yyyy-MM-dd"),
+        }));
+
+        await queryClient.invalidateQueries({
+          queryKey: ["Docs"],
+        });
+        await queryClient.invalidateQueries({
+          queryKey: ["task-change-logs", task.name],
+        });
+      } catch (error) {
+        console.error(error);
+        toast.error("Failed to update status");
+      }
+    },
+    [
+      task,
+      changelogState.completionDate,
+      changelogState.comment,
+      saveDoc,
+      addTaskRemark,
+      currentJhUser?.name,
+      refetchTaskDetails,
+    ]
+  );
+
+  // Function to confirm status change with remark
+  const confirmStatusChange = useCallback(() => {
+    if (changelogState.pendingStatus) {
+      handleStatusChange(changelogState.pendingStatus);
+      setChangelogState((prev) => ({
+        ...prev,
+        dialogOpen: false,
+        type: null,
+      }));
+    }
+  }, [changelogState.pendingStatus, handleStatusChange]);
+
+  // ==========================================
+  // TASK REASSIGNMENT HANDLER
+  // ==========================================
+  const handleReassignTask = useCallback(async () => {
+    if (!task) return;
+    if (task.assigned_to === dataToSave?.assigned_to) return;
+
+    setChangelogState((prev) => ({
+      ...prev,
+      dialogOpen: false,
+    }));
+
+    await saveTask(dataToSave!);
+
+    const fromAssignee = users.find((user) => user.name === task.assigned_to);
+    const toAssignee = users.find(
+      (user) => user.name === dataToSave?.assigned_to
+    );
+
+    await addTaskRemark.mutateAsync({
+      task_id: task.name,
+      comment: changelogState.comment,
+      creator: currentJhUser?.name || "",
+      type: "Reassign",
+      remark: `reassigned from ${fromAssignee?.full_name} to ${toAssignee?.full_name}`,
+    });
+
+    await refetchTaskDetails();
+
+    // Clear the remark after successful update
+    setChangelogState((prev) => ({
+      ...prev,
+      comment: "",
+      type: null,
+    }));
+
+    await queryClient.invalidateQueries({
+      queryKey: ["Docs"],
+    });
+    await queryClient.invalidateQueries({
+      queryKey: ["task-change-logs", task.name],
+    });
+  }, [
+    task,
+    dataToSave,
+    saveTask,
+    users,
+    addTaskRemark,
+    changelogState.comment,
+    currentJhUser?.name,
+    refetchTaskDetails,
+  ]);
+
+  // ==========================================
+  // FILE HANDLING FUNCTIONS
+  // ==========================================
+  // Handle file changes from the FileAttachmentHandler component
+  const handleFilesChange = useCallback((newFiles: File[]) => {
+    setFileState((prev) => ({
+      ...prev,
+      files: newFiles,
+    }));
+  }, []);
+
+  // Handle existing file removal
+  const handleRemoveExistingFile = useCallback(
+    async (file: Attachment) => {
+      if (!taskId) return;
+
+      try {
+        await fileRemove.mutateAsync({
+          fid: file.name,
+          dt: "JH Tasks Master",
+          dn: taskId,
+        });
+
+        setFileState((prev) => ({
+          ...prev,
+          existingFiles: prev.existingFiles.filter((f) => f.name !== file.name),
+        }));
+
+        toast.success(`File ${file.file_name} removed successfully`);
+        await queryClient.invalidateQueries({
+          queryKey: [
+            "DocInfo",
+            {
+              doctype: "JH Tasks Master",
+              name: taskId,
+            },
+          ],
+        });
+      } catch (error) {
+        console.error("Error removing file:", error);
+        toast.error(
+          `Error removing file: ${(error as Error)?.message || "Unknown error"}`
+        );
+      }
+    },
+    [fileRemove, taskId]
+  );
+
+  // ==========================================
+  // LOADING STATE HANDLING
+  // ==========================================
   // Add loading state for initial task fetch
   if (
     isEdit &&
@@ -687,7 +762,7 @@ export function TaskSheet({
   ) {
     return (
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent className="sm:max-w-3xl px-5">
+        <SheetContent className="sm:max-h-3xl px-5">
           <div className="flex items-center justify-center h-full">
             <p>Loading task details...</p>
           </div>
@@ -696,6 +771,22 @@ export function TaskSheet({
     );
   }
 
+  // ==========================================
+  // UTILITY FUNCTIONS
+  // ==========================================
+  const attachmentLogs = taskDetails?.docinfo?.attachment_logs || [];
+
+  // get attachment owner from attachment logs by matching file name with content :check docInfo api response
+  const getAttachmentOwner = (fileName: string) => {
+    const log = attachmentLogs.find((log) => log.content.includes(fileName));
+    return log?.owner;
+  };
+
+  const isAlreadyEdited = task?.creation !== task?.modified;
+
+  // ==========================================
+  // COMPONENT RENDER
+  // ==========================================
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="sm:max-w-3xl px-5">
@@ -711,11 +802,13 @@ export function TaskSheet({
             </SheetClose>
           </div>
         </SheetHeader>
-        {isClosed && (
+        {(isClosed || isDeleted) && (
           <Alert variant={"destructive"}>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              This task is closed. You cannot edit it.
+              {`This task is ${
+                isClosed ? "closed" : "in the recycle bin"
+              }. You cannot edit it.`}
             </AlertDescription>
           </Alert>
         )}
@@ -736,14 +829,30 @@ export function TaskSheet({
                 ) : null}
               </div>
               <ChangelogRemarkDialog
-                open={changelogDialogOpen}
-                onOpenChange={setChangelogDialogOpen}
-                changelogComment={changelogComment}
-                setChangelogComment={setChangelogComment}
+                showCompletionDatePicker={
+                  changelogState.pendingStatus == "Completed"
+                }
+                completionDate={changelogState.completionDate}
+                setCompletionDate={(date) =>
+                  setChangelogState((prev) => ({
+                    ...prev,
+                    completionDate: date,
+                  }))
+                }
+                open={changelogState.dialogOpen}
+                onOpenChange={(open) =>
+                  setChangelogState((prev) => ({ ...prev, dialogOpen: open }))
+                }
+                changelogComment={changelogState.comment}
+                setChangelogComment={(comment) =>
+                  setChangelogState((prev) => ({ ...prev, comment: comment }))
+                }
                 confirmChangelogRemark={
-                  changelogType === "Status Change"
+                  changelogState.type === "Status Change"
                     ? confirmStatusChange
-                    : handleReassignTask
+                    : changelogState.type === "Reassign"
+                    ? handleReassignTask
+                    : () => {}
                 }
               />
               <div className="space-y-2">
@@ -758,7 +867,12 @@ export function TaskSheet({
                   control={control}
                   render={({ field }) => (
                     <Input
-                      disabled={isClosed || (isEdit && !isOwner)}
+                      disabled={
+                        isClosed ||
+                        isDeleted ||
+                        (isEdit && !isOwner) ||
+                        (isEdit && isAlreadyEdited)
+                      }
                       id="task-name"
                       placeholder="Enter task name"
                       autoComplete="off"
@@ -806,10 +920,12 @@ export function TaskSheet({
                         }))}
                         value={field.value || ""}
                         onChange={(value) => field.onChange(value)}
-                        onSearch={setBusinessSearch}
-                        searchKeyword={businessSearch}
+                        onSearch={(value) =>
+                          updateSearchState("businessSearch", value)
+                        }
+                        searchKeyword={searchState.businessSearch}
                         placeholder="Select business"
-                        disabled={isPrivate || isClosed}
+                        disabled={isPrivate || isClosed || isDeleted}
                         className={errors.business_id ? "border-red-500" : ""}
                       />
                     )}
@@ -833,15 +949,17 @@ export function TaskSheet({
                         }))}
                         value={field.value || ""}
                         onChange={(value) => field.onChange(value)}
-                        onSearch={setDivisionSearch}
-                        searchKeyword={divisionSearch}
+                        onSearch={(value) =>
+                          updateSearchState("divisionSearch", value)
+                        }
+                        searchKeyword={searchState.divisionSearch}
                         placeholder="Select business division"
                         emptyMessage={
                           watch("business_id")
                             ? "No divisions found"
                             : "Select business first"
                         }
-                        disabled={isPrivate || isClosed}
+                        disabled={isPrivate || isClosed || isDeleted}
                         className={errors.division_id ? "border-red-500" : ""}
                       />
                     )}
@@ -873,10 +991,12 @@ export function TaskSheet({
                         }))}
                         value={field.value || ""}
                         onChange={(value) => field.onChange(value)}
-                        onSearch={setAssigneeSearch}
-                        searchKeyword={assigneeSearch}
+                        onSearch={(value) =>
+                          updateSearchState("assigneeSearch", value)
+                        }
+                        searchKeyword={searchState.assigneeSearch}
                         placeholder="Select assignee"
-                        disabled={isPrivate || isClosed}
+                        disabled={isPrivate || isClosed || isDeleted}
                         className={errors.assigned_to ? "border-red-500" : ""}
                       />
                     )}
@@ -900,7 +1020,7 @@ export function TaskSheet({
                     render={({ field }) => (
                       <input
                         min={format(new Date(), "yyyy-MM-dd")}
-                        disabled={isEdit || isClosed}
+                        disabled={isEdit || isClosed || isDeleted}
                         type="date"
                         id="due_date"
                         value={
@@ -943,7 +1063,7 @@ export function TaskSheet({
                           min={format(new Date(), "yyyy-MM-dd")}
                           type="date"
                           id="revised_due_date"
-                          disabled={isClosed}
+                          disabled={isClosed || isDeleted}
                           value={
                             field.value
                               ? format(new Date(field.value), "yyyy-MM-dd")
@@ -989,7 +1109,7 @@ export function TaskSheet({
                       control={control}
                       render={({ field }) => (
                         <Input
-                          disabled={isClosed}
+                          disabled={isClosed || isDeleted}
                           id="effort"
                           placeholder="Enter effort in hours"
                           autoComplete="off"
@@ -1017,7 +1137,12 @@ export function TaskSheet({
                   control={control}
                   render={({ field }) => (
                     <ReactQuill
-                      readOnly={isClosed}
+                      readOnly={
+                        isClosed ||
+                        isDeleted ||
+                        (isEdit && !isOwner) ||
+                        (isEdit && isAlreadyEdited)
+                      }
                       id="description"
                       className="h-[150px] max-h-[150px]"
                       placeholder="Enter task description"
@@ -1034,129 +1159,15 @@ export function TaskSheet({
                 )}
               </div>
               <div className="space-y-2 pb-28">
-                <Label>Attachments</Label>
-                <div className="flex space-x-4 mt-2 max-w-2xl overflow-x-auto shadow-sm">
-                  {existingFiles.map((file) => (
-                    <div
-                      key={file.name}
-                      className="flex flex-col items-center gap-1 w-36"
-                    >
-                      <div className="w-full h-24 border rounded-md">
-                        {file.file_url &&
-                        file.file_url.match(/\.(jpg|jpeg|png|gif)$/i) ? (
-                          <img
-                            src={file.file_url || "/placeholder.svg"}
-                            alt={file.file_name}
-                            className="w-full h-full object-cover rounded-md"
-                          />
-                        ) : (
-                          <div className="flex items-center justify-center h-full">
-                            <File className="h-8 w-8" />
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex justify-between w-full items-center">
-                        <div
-                          className="text-sm text-gray-500 truncate px-1 w-full"
-                          title={file.file_name}
-                        >
-                          {file.file_name}
-                        </div>
-                        <Button
-                          type="button"
-                          variant="link"
-                          className="p-0 h-min"
-                          style={{ paddingInline: 0 }}
-                          onClick={() => handleRemoveExistingFile(file)}
-                          disabled={fileRemove.isPending || isClosed}
-                          aria-label={`Remove file ${file.file_name}`}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                  {files.map((file, index) => (
-                    <div
-                      key={index}
-                      className="flex flex-col items-center gap-1 w-36"
-                    >
-                      <div className="w-full h-24 border rounded-md">
-                        {file.type.startsWith("image/") ? (
-                          <img
-                            src={
-                              URL.createObjectURL(file) || "/placeholder.svg"
-                            }
-                            alt={file.name}
-                            className="w-full h-full object-cover rounded-md"
-                            onLoad={() =>
-                              URL.revokeObjectURL(URL.createObjectURL(file))
-                            }
-                          />
-                        ) : (
-                          <div className="flex items-center justify-center h-full">
-                            <File className="h-8 w-8" />
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex justify-between w-full items-center">
-                        <div
-                          className="text-sm text-gray-500 truncate px-1 w-full"
-                          title={file.name}
-                        >
-                          {file.name}
-                        </div>
-                        <Button
-                          disabled={isClosed}
-                          type="button"
-                          variant="link"
-                          className="p-0 h-min"
-                          style={{ paddingInline: 0 }}
-                          onClick={() => handleRemoveNewFile(index)}
-                          aria-label={`Remove file ${file.name}`}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                  <ScrollBar orientation="horizontal" />
-                </div>
-
-                <div
-                  className={cn(
-                    "border-2 border-dashed border-[#cbd5e1] rounded-md p-8 text-center transition-colors",
-                    dragActive && "border-[#972e26] bg-[#972e26]/5"
-                  )}
-                  onDrop={handleDrop}
-                  onDragOver={handleDragOver}
-                  onDragEnter={handleDragEnter}
-                  onDragLeave={handleDragLeave}
-                  aria-label="File upload area"
-                >
-                  <input
-                    disabled={isClosed}
-                    type="file"
-                    multiple
-                    className="hidden"
-                    id="file-upload"
-                    onChange={handleFileChange}
-                    accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
-                  />
-                  <label htmlFor="file-upload" className="cursor-pointer">
-                    <Cloud className="h-10 w-10 mx-auto mb-2 text-[#94a3b8]" />
-                    <div className="text-sm text-[#64748b]">
-                      Drag your file(s) or{" "}
-                      <span className="text-[#972e26] cursor-pointer">
-                        browse
-                      </span>
-                    </div>
-                    {/* <div className="text-xs text-[#94a3b8] mt-2">
-                      You can upload up to {MAX_FILES} files, with a maximum
-                      size of 10 MB each.
-                    </div> */}
-                  </label>
-                </div>
+                <FileAttachmentHandler
+                  existingFiles={fileState.existingFiles}
+                  disabled={isClosed || isDeleted}
+                  onFilesChange={handleFilesChange}
+                  onExistingFileRemove={handleRemoveExistingFile}
+                  getAttachmentOwner={getAttachmentOwner}
+                  currentUser={currentUser}
+                  taskOwner={task?.owner}
+                />
                 <div className="mt-6">
                   {isEdit && <TaskTimeline taskId={taskId!} />}
                 </div>
@@ -1170,8 +1181,10 @@ export function TaskSheet({
                       className="mr-2 w-full"
                       onClick={() => {
                         reset(getDefaultValues());
-                        setFiles([]);
-                        setExistingFiles([]);
+                        setFileState({
+                          files: [],
+                          existingFiles: [],
+                        });
                       }}
                       type="button"
                     >
@@ -1181,7 +1194,11 @@ export function TaskSheet({
                   <Button
                     type="submit"
                     className="bg-[#972e26] hover:bg-[#972e26]/90 w-full"
-                    disabled={loading || isSubmitting}
+                    disabled={
+                      loading ||
+                      isSubmitting ||
+                      (!isEdit && (!isDirty || !isValid))
+                    }
                   >
                     {loading || isSubmitting ? (
                       <span className="flex items-center justify-center">

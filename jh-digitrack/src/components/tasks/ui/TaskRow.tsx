@@ -4,6 +4,10 @@ import { TaskRowProps } from "@/types/tasks";
 import { StatusBadge } from "./StatusBadge";
 import { TaskActions } from "./TaskActions";
 
+const formatDueDate = (dueDate?: string) => {
+  return dueDate ? format(new Date(dueDate), "MMM dd, yyyy") : "No due date";
+};
+
 export const TaskRow = ({
   task,
   index,
@@ -12,11 +16,13 @@ export const TaskRow = ({
   onEdit,
   onDelete,
   hideAssignedTo = false,
-  hideDelete = false,
+  currentPage = 1,
+  perPage = 10,
 }: TaskRowProps) => {
-  const formattedDueDate = task.due_date
-    ? format(new Date(task.due_date), "MMM dd, yyyy")
-    : "No due date";
+  const formattedDueDate = formatDueDate(task.due_date);
+
+  const isEdited = task.creation != task.modified;
+  const isPrivate = task.private;
 
   return (
     <TableRow
@@ -24,7 +30,7 @@ export const TaskRow = ({
       onClick={() => onRowClick(task.name)}
       key={task.name}
     >
-      <TableCell>{index + 1}</TableCell>
+      <TableCell>{index + 1 + (currentPage - 1) * perPage}</TableCell>
       <TableCell className="font-medium">{task.task_name}</TableCell>
       <TableCell>
         <StatusBadge status={task.status} />
@@ -40,7 +46,8 @@ export const TaskRow = ({
           task={task}
           onEdit={onEdit}
           onDelete={onDelete}
-          hideDelete={hideDelete}
+          hideDelete={isEdited && !isPrivate}
+          showRestore={activeFilter === "deleted-tasks"}
         />
       </TableCell>
     </TableRow>
