@@ -108,6 +108,7 @@ export const TaskTable = ({
       "owner",
       "creation",
       "modified",
+      "deleted_at",
     ],
     orderBy: {
       field: "`tabJH Tasks Master`.modified",

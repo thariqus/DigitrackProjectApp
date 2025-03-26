@@ -23,6 +23,7 @@ export const TaskRow = ({
 
   const isEdited = task.creation != task.modified;
   const isPrivate = task.private;
+  const isInRecycleBin = Boolean(task.deleted_at);
 
   return (
     <TableRow
@@ -46,7 +47,7 @@ export const TaskRow = ({
           task={task}
           onEdit={onEdit}
           onDelete={onDelete}
-          hideDelete={isEdited && !isPrivate}
+          hideDelete={(isEdited && !isPrivate) || isInRecycleBin}
           showRestore={activeFilter === "deleted-tasks"}
         />
       </TableCell>
