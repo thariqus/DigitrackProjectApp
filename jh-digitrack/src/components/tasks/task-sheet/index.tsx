@@ -50,6 +50,7 @@ import TaskTimeline from "../ui/TaskTimeline";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import ChangelogRemarkDialog from "./ChangeLogRemarkDialog";
 import FileAttachmentHandler from "./FileAttachmentHandler";
+import frappeClient from "@/utils/frappe-client";
 
 // ==========================================
 // COMPONENT PROPS INTERFACE
@@ -635,9 +636,9 @@ export function TaskSheet({
   );
 
   // Function to confirm status change with remark
-  const confirmStatusChange = useCallback(() => {
+  const confirmStatusChange = useCallback(async () => {
     if (changelogState.pendingStatus) {
-      handleStatusChange(changelogState.pendingStatus);
+      await handleStatusChange(changelogState.pendingStatus);
       setChangelogState((prev) => ({
         ...prev,
         dialogOpen: false,
@@ -653,17 +654,26 @@ export function TaskSheet({
     if (!task) return;
     if (task.assigned_to === dataToSave?.assigned_to) return;
 
-    setChangelogState((prev) => ({
-      ...prev,
-      dialogOpen: false,
-    }));
-
     await saveTask(dataToSave!);
 
-    const fromAssignee = users.find((user) => user.name === task.assigned_to);
-    const toAssignee = users.find(
-      (user) => user.name === dataToSave?.assigned_to
+    console.log(task.assigned_to, dataToSave?.assigned_to);
+
+    if (!task.assigned_to || !dataToSave?.assigned_to) return;
+    const fromAssignee = await frappeClient.db.getLastDoc<JHUserMaster>(
+      "JH User Master",
+      {
+        filters: [["name", "=", task.assigned_to!]],
+      }
     );
+
+    const toAssignee = await frappeClient.db.getLastDoc<JHUserMaster>(
+      "JH User Master",
+      {
+        filters: [["name", "=", dataToSave.assigned_to]],
+      }
+    );
+
+    console.log(fromAssignee, toAssignee);
 
     await addTaskRemark.mutateAsync({
       task_id: task.name,
@@ -672,7 +682,6 @@ export function TaskSheet({
       type: "Reassign",
       remark: `reassigned from ${fromAssignee?.full_name} to ${toAssignee?.full_name}`,
     });
-
     await refetchTaskDetails();
 
     // Clear the remark after successful update
@@ -688,11 +697,15 @@ export function TaskSheet({
     await queryClient.invalidateQueries({
       queryKey: ["task-change-logs", task.name],
     });
+
+    setChangelogState((prev) => ({
+      ...prev,
+      dialogOpen: false,
+    }));
   }, [
     task,
     dataToSave,
     saveTask,
-    users,
     addTaskRemark,
     changelogState.comment,
     currentJhUser?.name,
@@ -852,7 +865,7 @@ export function TaskSheet({
                     ? confirmStatusChange
                     : changelogState.type === "Reassign"
                     ? handleReassignTask
-                    : () => {}
+                    : () => Promise.resolve()
                 }
               />
               <div className="space-y-2">

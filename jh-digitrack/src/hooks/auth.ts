@@ -28,7 +28,7 @@ export const useCurrentUser = () => {
 
 export const useJhUser = (user_id?: string) => {
   return useQuery({
-    queryKey: ["jh-user"],
+    queryKey: ["jh-user", user_id],
     queryFn: async () =>
       frappe.db.getLastDoc<JHUserMaster>("JH User Master", {
         filters: [["user", "=", user_id!]],

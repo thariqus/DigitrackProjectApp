@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
+import { useState } from "react";
 
 interface ChangelogRemarkDialogProps {
   open: boolean;
@@ -25,7 +26,7 @@ interface ChangelogRemarkDialogProps {
   setChangelogComment: (comment: string) => void;
   setCompletionDate?: (date: string) => void;
   completionDate?: string;
-  confirmChangelogRemark: () => void;
+  confirmChangelogRemark: () => Promise<void>;
 }
 
 const ChangelogRemarkDialog = ({
@@ -38,6 +39,7 @@ const ChangelogRemarkDialog = ({
   setCompletionDate,
   completionDate,
 }: ChangelogRemarkDialogProps) => {
+  const [textAreaError, setTextAreaError] = useState(false);
   const renderCompletionDatePicker =
     showCompletionDatePicker && setCompletionDate && completionDate;
 
@@ -57,14 +59,17 @@ const ChangelogRemarkDialog = ({
             onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
               setChangelogComment(e.target.value)
             }
-            className="min-h-[100px]"
-            onKeyDown={(e) => {
+            className={cn("min-h-[100px]", textAreaError && "border-red-500")}
+            onKeyDown={async (e) => {
               if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
                 e.preventDefault();
-                confirmChangelogRemark();
+                await confirmChangelogRemark();
               }
             }}
           />
+          {textAreaError && (
+            <p className="text-red-500 text-sm">Please enter a remark</p>
+          )}
         </div>
         {renderCompletionDatePicker && (
           <div className="pb-4 mb-1">
@@ -109,7 +114,14 @@ const ChangelogRemarkDialog = ({
             Cancel
           </Button>
           <Button
-            onClick={confirmChangelogRemark}
+            onClick={async () => {
+              if (changelogComment.trim() === "") {
+                setTextAreaError(true);
+                return;
+              } else {
+                await confirmChangelogRemark();
+              }
+            }}
             className="bg-[#972e26] hover:bg-[#972e26]/90"
           >
             Update Status
