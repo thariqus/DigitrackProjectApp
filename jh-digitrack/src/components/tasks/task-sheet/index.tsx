@@ -1133,6 +1133,27 @@ export function TaskSheet({
                           aria-describedby={
                             errors.effort ? "effort-error" : undefined
                           }
+                          onKeyDown={(e) => {
+                            // Allow: backspace, delete, tab, escape, enter, decimal point
+                            if (
+                              [46, 8, 9, 27, 13, 110, 190].indexOf(
+                                e.keyCode
+                              ) !== -1 ||
+                              // Allow: Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
+                              (e.keyCode >= 65 &&
+                                e.keyCode <= 90 &&
+                                e.ctrlKey === true) ||
+                              // Allow: home, end, left, right
+                              (e.keyCode >= 35 && e.keyCode <= 39) ||
+                              // Allow: numbers
+                              (e.keyCode >= 48 && e.keyCode <= 57) ||
+                              (e.keyCode >= 96 && e.keyCode <= 105)
+                            ) {
+                              return;
+                            }
+                            // Stop keypress
+                            e.preventDefault();
+                          }}
                           {...field}
                         />
                       )}
