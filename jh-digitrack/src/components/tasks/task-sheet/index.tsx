@@ -1124,6 +1124,9 @@ export function TaskSheet({
                         <Input
                           disabled={isClosed || isDeleted}
                           id="effort"
+                          type="number"
+                          min="0"
+                          step="0.01"
                           placeholder="Enter effort in hours"
                           autoComplete="off"
                           aria-invalid={errors.effort ? "true" : "false"}
