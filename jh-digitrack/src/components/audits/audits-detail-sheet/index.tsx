@@ -1,6 +1,6 @@
 import { Sheet, SheetClose, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Calendar, Edit, Trash2, XIcon } from "lucide-react";
+import { Calendar, Trash2, XIcon } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useDoc, useDocDetail } from "@/hooks/doc";
 import { JHBusinessMaster } from "@/types/JHDigitrack/JHBusinessMaster";
@@ -17,7 +17,6 @@ interface AuditDetailSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   auditId?: string;
-  onEdit?: (auditId: string) => void;
   onDelete?: (auditId: string) => void;
 }
 
@@ -30,7 +29,6 @@ export function AuditDetailSheet({
   open,
   onOpenChange,
   auditId,
-  onEdit,
   onDelete,
 }: AuditDetailSheetProps) {
   console.log(auditId);
@@ -78,9 +76,9 @@ export function AuditDetailSheet({
     }
   }, [audit?.audit_description]);
 
-  const handleEdit = () => {
-    if (auditId && onEdit) onEdit(auditId);
-  };
+  // const handleEdit = () => {
+  //   if (auditId && onEdit) onEdit(auditId);
+  // };
 
   const handleDelete = () => {
     if (auditId && onDelete) onDelete(auditId);
@@ -161,9 +159,9 @@ export function AuditDetailSheet({
               <StatusBadge status={audit?.status} />
             </div>
             <div className="flex items-center gap-2 mr-5">
-              <Button variant="ghost" size="icon" onClick={handleEdit}>
+              {/* <Button variant="ghost" size="icon" onClick={handleEdit}>
                 <Edit className="w-5 h-5" />
-              </Button>
+              </Button> */}
               {showDeleteButton && (
                 <Button variant="ghost" size="icon" onClick={handleDelete}>
                   <Trash2 className="w-5 h-5" />
@@ -216,6 +214,14 @@ export function AuditDetailSheet({
                   <span>{division?.division_name || "—"}</span>
                 </div>
               )}
+              <div className="text-sm text-gray-500">Folder Name</div>
+              <div className="flex items-center">
+                <span>{audit?.folder_name || "—"}</span>
+              </div>
+              <div className="text-sm text-gray-500">File Name</div>
+              <div className="flex items-center">
+                <span>{audit?.file_name || "—"}</span>
+              </div>
               <div className="text-sm text-gray-500">Created by</div>
               <div className="flex items-center gap-2">
                 <span>{createdBy?.full_name ?? audit?.created_by}</span>

@@ -17,11 +17,11 @@ import { useCurrentJhUser, useCurrentUser } from "@/hooks/auth";
 import { format } from "date-fns";
 import { PaginationControls } from "./pagination-controls";
 import { useTaskFilters } from "./hooks/useTaskFilters";
-import { useParams } from "react-router";
+import { useNavigate, useParams } from "react-router";
 import { JHAudits } from "@/types/JHDigitrack/JHAudits";
 import StatusBadge from "../ui/StatusBadge";
 import { Button } from "@/components/ui/button";
-import { Eye } from "lucide-react";
+import { ArrowLeft, Eye } from "lucide-react";
 import { AuditDetailSheet } from "@/components/audits/audits-detail-sheet";
 
 export const TaskTable = () => {
@@ -198,6 +198,7 @@ export const TaskTable = () => {
     [refetch]
   );
 
+  const navigate = useNavigate();
   // Handle search query change
   const handleSearchChange = useCallback(
     (value: string) => {
@@ -214,6 +215,9 @@ export const TaskTable = () => {
   return (
     <div className="space-y-6">
       <div>
+        <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+          <ArrowLeft className="h-6 w-6" />
+        </Button>
         <h1 className="text-2xl font-semibold tracking-tight mb-4">
           {audit?.audit_name}
         </h1>
@@ -296,7 +300,6 @@ export const TaskTable = () => {
           open={isAuditDetailOpen}
           onOpenChange={setIsAuditDetailOpen}
           auditId={auditId}
-          onEdit={handleEditTask}
           onDelete={handleDeleteTask}
         />
 

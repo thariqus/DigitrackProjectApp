@@ -66,12 +66,12 @@ export function TaskDetailSheet({
 
   const task = taskDetailed?.docs[0];
 
-  // const { data: taskAfter, isLoading: isLoadingTaskAfter } =
-  //   useDoc<JHTasksMaster>({
-  //     doctype: "JH Tasks Master",
-  //     name: task?.start_after || "",
-  //     disabled: !task?.start_after,
-  //   });
+  const { data: taskAfter, isLoading: isLoadingTaskAfter } =
+    useDoc<JHTasksMaster>({
+      doctype: "JH Tasks Master",
+      name: task?.start_after || "",
+      disabled: !task?.start_after,
+    });
 
   const { data: business, isLoading: isLoadingBusiness } =
     useDoc<JHBusinessMaster>({
@@ -173,7 +173,8 @@ export function TaskDetailSheet({
     isLoadingTaskInfo ||
     isLoadingBusiness ||
     isLoadingAssignedTo ||
-    isLoadingCreatedBy;
+    isLoadingCreatedBy ||
+    isLoadingTaskAfter;
 
   const showDeleteButton =
     task?.owner === currentUser && task?.creation === task?.modified;
@@ -268,20 +269,26 @@ export function TaskDetailSheet({
               ) : (
                 <div>{task?.serial_number || "—"}</div>
               )}
-
+ */}
               <div className="text-sm text-gray-500">Start after</div>
               {isLoadingTaskAfter ? (
                 <Skeleton className="h-5 w-48" />
-              ) : (
+              ) : task?.start_after ? (
                 <div className="flex items-center">
                   <span className="font-medium">
-                    {task?.start_after || "—"}
+                    {task?.source
+                      ? `${task?.source}#${task?.serial_number}`
+                      : "—"}
                   </span>
                   <span className="ml-1 truncate">
                     {taskAfter?.task_name || ""}
                   </span>
                 </div>
-              )} */}
+              ) : (
+                <div className="flex items-center">
+                  <span className="font-medium">—</span>
+                </div>
+              )}
 
               <div className="text-sm text-gray-500">Business</div>
               {isLoadingBusiness ? (

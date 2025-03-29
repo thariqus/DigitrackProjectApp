@@ -80,10 +80,13 @@ export function AuditSheet({
         .min(1, "Audit name is required")
         .max(140, "Audit name cannot be longer than 140 characters"),
       audit_description: z.string().optional(),
+      additional_comments: z.string().optional(),
       business: z.string().optional(),
       division: z.string().optional(),
       start_date: z.string().optional(),
       completion_date: z.string().optional(),
+      file_name: z.string().optional(),
+      folder_name: z.string().optional(),
     })
     .transform((arg) => ({
       ...arg,
@@ -153,11 +156,13 @@ export function AuditSheet({
     () => ({
       audit_name: "",
       audit_description: "",
+      additional_comments: "",
       business: "",
       division: "",
       start_date: format(new Date(), "yyyy-MM-dd"),
       completion_date: format(new Date(), "yyyy-MM-dd"),
-      status: "",
+      file_name: "",
+      folder_name: "",
     }),
     []
   );
@@ -219,11 +224,14 @@ export function AuditSheet({
       reset({
         audit_name: audit.audit_name || "",
         audit_description: audit.audit_description || "",
+        additional_comments: audit.additional_comments || "",
         business: audit.business || "",
         division: audit.division || "",
         start_date: audit.start_date || format(new Date(), "yyyy-MM-dd"),
         completion_date:
           audit.completion_date || format(new Date(), "yyyy-MM-dd"),
+        file_name: audit.file_name || "",
+        folder_name: audit.folder_name || "",
       });
 
       // Set existing files when audit is loaded
@@ -787,6 +795,58 @@ export function AuditSheet({
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="folder_name">Folder Name</Label>
+                  <Controller
+                    name="folder_name"
+                    control={control}
+                    render={({ field }) => (
+                      <Input
+                        disabled={isClosed || (isEdit && !isOwner)}
+                        id="folder_name"
+                        placeholder="Enter folder name"
+                        autoComplete="off"
+                        aria-invalid={errors.folder_name ? "true" : "false"}
+                        aria-describedby={
+                          errors.folder_name ? "folder-name-error" : undefined
+                        }
+                        {...field}
+                      />
+                    )}
+                  />
+                  {errors.folder_name && (
+                    <p className="text-red-500 text-sm">
+                      {errors.folder_name.message}
+                    </p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="file_name">File Name</Label>
+                  <Controller
+                    name="file_name"
+                    control={control}
+                    render={({ field }) => (
+                      <Input
+                        disabled={isClosed || (isEdit && !isOwner)}
+                        id="file_name"
+                        placeholder="Enter file name"
+                        autoComplete="off"
+                        aria-invalid={errors.file_name ? "true" : "false"}
+                        aria-describedby={
+                          errors.file_name ? "file-name-error" : undefined
+                        }
+                        {...field}
+                      />
+                    )}
+                  />
+                  {errors.file_name && (
+                    <p className="text-red-500 text-sm">
+                      {errors.file_name.message}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {isEdit && (
                   <div className="space-y-2">
                     <Label htmlFor="completion_date">Completion Date</Label>
@@ -865,6 +925,33 @@ export function AuditSheet({
                   </p>
                 )}
               </div>
+              {isEdit && (
+                <div className="space-y-2 pb-10">
+                  <Label htmlFor="additional_comments">
+                    Additional Comments
+                  </Label>
+                  <Controller
+                    name="additional_comments"
+                    control={control}
+                    render={({ field }) => (
+                      <ReactQuill
+                        readOnly={isClosed || (isEdit && !isOwner)}
+                        id="additional_comments"
+                        className="h-[150px] max-h-[150px]"
+                        placeholder="Enter additional comments"
+                        theme="snow"
+                        value={field.value || ""}
+                        onChange={field.onChange}
+                      />
+                    )}
+                  />
+                  {errors.additional_comments && (
+                    <p className="text-red-500 text-sm">
+                      {errors.additional_comments.message}
+                    </p>
+                  )}
+                </div>
+              )}
               <div className="space-y-2 pb-28">
                 <FileAttachmentHandler
                   existingFiles={fileState.existingFiles}

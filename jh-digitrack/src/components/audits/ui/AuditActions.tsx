@@ -1,6 +1,5 @@
 import { Button } from "@/components/ui/button";
 import { FileEdit, Trash2, ArchiveRestore } from "lucide-react";
-import { useCurrentUser } from "@/hooks/auth";
 import { useUpdateDoc } from "@/hooks/doc";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -24,8 +23,6 @@ export const AuditActions = ({
   const updateDoc = useUpdateDoc();
   const queryClient = useQueryClient();
   const taskId = audit.name;
-  const { data: currentUser } = useCurrentUser();
-  const isMyTask = currentUser === audit.owner;
 
   const handleRestore = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
@@ -55,7 +52,7 @@ export const AuditActions = ({
       >
         <FileEdit className="h-4 w-4" />
       </Button>
-      {isMyTask && !hideDelete && (
+      {!hideDelete && (
         <Button
           variant="ghost"
           size="icon"

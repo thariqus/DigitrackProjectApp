@@ -3,6 +3,8 @@ import { format } from "date-fns";
 import { StatusBadge } from "./StatusBadge";
 import { AuditActions } from "./AuditActions";
 import { JHAudits } from "@/types/JHDigitrack/JHAudits";
+import { useDocs } from "@/hooks/doc";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const formatDueDate = (dueDate?: string) => {
   return dueDate ? format(new Date(dueDate), "MMM dd, yyyy") : "No due date";
@@ -31,9 +33,26 @@ export const AuditRow = ({
   perPage = 10,
 }: AuditRowProps) => {
   const formattedDueDate = formatDueDate(audit.start_date);
-  const isEdited = audit.creation != audit.modified;
 
-  console.log(audit);
+  const { data: taskCounter, isLoading: isLoadingTaskCounter } = useDocs({
+    doctype: "JH Tasks Master",
+    fields: ["name"],
+    limit: 100,
+    filters: [
+      ["source_doctype", "=", "JH Audits"],
+      ["source", "=", audit.name],
+    ],
+  });
+
+  if (isLoadingTaskCounter) {
+    return (
+      <TableRow>
+        <TableCell>
+          <Skeleton className="h-4 w-4" />
+        </TableCell>
+      </TableRow>
+    );
+  }
 
   return (
     <TableRow
@@ -53,7 +72,7 @@ export const AuditRow = ({
           audit={audit}
           onEdit={onEdit}
           onDelete={onDelete}
-          hideDelete={isEdited}
+          hideDelete={taskCounter?.length > 0}
           showRestore={false}
         />
       </TableCell>

@@ -240,7 +240,6 @@ export const AuditsTable = ({
         open={isAuditDetailOpen}
         onOpenChange={setIsAuditDetailOpen}
         auditId={selectedAuditId}
-        onEdit={handleEditTask}
         onDelete={handleDeleteTask}
       />
 
