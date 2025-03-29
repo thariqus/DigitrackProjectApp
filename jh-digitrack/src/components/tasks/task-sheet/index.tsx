@@ -60,6 +60,8 @@ interface TaskSheetProps {
   taskId?: string;
   onOpenChange: (open: boolean) => void;
   refetch?: () => Promise<unknown>;
+  source?: string;
+  sourceDocType?: "JH Audits" | "JH TS Projects";
 }
 
 export function TaskSheet({
@@ -67,6 +69,8 @@ export function TaskSheet({
   taskId,
   onOpenChange,
   refetch,
+  source,
+  sourceDocType,
 }: TaskSheetProps) {
   const isEdit = Boolean(taskId);
 
@@ -140,6 +144,7 @@ export function TaskSheet({
     assigneeSearch: "",
     businessSearch: "",
     divisionSearch: "",
+    startAfterSearch: "",
   });
 
   const [changelogState, setChangelogState] = useState({
@@ -181,6 +186,7 @@ export function TaskSheet({
   const isClosed = task?.status === "Closed";
   const isDeleted = Boolean(task?.deleted_at);
   const isOwner = task?.owner === currentUser;
+  const showStartAfter = source && sourceDocType === "JH Audits";
 
   // Function to get default form values - memoized to avoid unnecessary recalculations
   const getDefaultValues = useCallback(
@@ -355,6 +361,8 @@ export function TaskSheet({
           const savedTask = await saveDoc.mutateAsync({
             ...doc,
             created_by: currentJhUser?.name,
+            source: source,
+            source_doctype: sourceDocType,
           });
           savedTaskName = savedTask.name;
         }
@@ -433,6 +441,8 @@ export function TaskSheet({
       refetch,
       reset,
       saveDoc,
+      source,
+      sourceDocType,
       taskId,
       updateDoc,
       uploadFiles,
@@ -556,6 +566,22 @@ export function TaskSheet({
       enabled: !!selectedBusiness,
       orderBy: {
         field: "division_name",
+        order: "asc",
+      },
+    });
+
+  const { data: startAfterTasks = [], isLoading: isStartAfterLoading } =
+    useDocs<JHTasksMaster>({
+      doctype: "JH Tasks Master",
+      fields: ["name", "task_name"],
+      filters: [
+        ["source_doctype", "=", sourceDocType!],
+        ["source", "=", source!],
+        ["task_name", "like", `%${searchState.startAfterSearch}%`],
+      ],
+      enabled: !!source && !!sourceDocType,
+      orderBy: {
+        field: "serial_number",
         order: "asc",
       },
     });
@@ -770,6 +796,7 @@ export function TaskSheet({
     isUsersLoading &&
     isBusinessesLoading &&
     isDivisionsLoading &&
+    isStartAfterLoading &&
     isCurrentJhUserLoading &&
     isCurrentUserLoading
   ) {
@@ -903,13 +930,46 @@ export function TaskSheet({
                   </p>
                 )}
               </div>
+              {showStartAfter && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="business">Start After</Label>
+                    <Controller
+                      name="start_after"
+                      control={control}
+                      render={({ field }) => (
+                        <Combobox
+                          options={startAfterTasks.map((task) => ({
+                            value: task.name || "",
+                            label: task.task_name || "",
+                          }))}
+                          value={field.value || ""}
+                          onChange={(value) => field.onChange(value)}
+                          onSearch={(value) =>
+                            updateSearchState("startAfterSearch", value)
+                          }
+                          searchKeyword={searchState.startAfterSearch}
+                          placeholder="Select task"
+                          disabled={isPrivate || isClosed || isDeleted}
+                          className={errors.start_after ? "border-red-500" : ""}
+                        />
+                      )}
+                    />
+                    {errors.start_after && (
+                      <p className="text-red-500 text-sm">
+                        {errors.start_after.message}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
               <div className="flex items-center space-x-2">
                 <Controller
                   name="private"
                   control={control}
                   render={({ field }) => (
                     <Switch
-                      disabled={isEdit}
+                      disabled={isEdit || Boolean(source)}
                       checked={field.value}
                       onCheckedChange={field.onChange}
                       id="private-task"

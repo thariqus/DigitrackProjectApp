@@ -43,7 +43,7 @@ export interface ActionButtonsProps {
 export interface TaskRowProps {
   task: Task;
   index: number;
-  activeFilter: string;
+  activeFilter?: string;
   onRowClick: (taskId: string) => void;
   onEdit: (taskId: string) => void;
   onDelete: (taskId: string) => void;

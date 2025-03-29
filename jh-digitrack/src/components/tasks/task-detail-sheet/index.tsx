@@ -38,6 +38,11 @@ interface TaskDetailSheetProps {
   onDelete?: (taskId: string) => void;
 }
 
+interface Attachment {
+  file_name: string;
+  file_url: string;
+}
+
 export function TaskDetailSheet({
   open,
   onOpenChange,
@@ -116,8 +121,7 @@ export function TaskDetailSheet({
   };
 
   const renderAttachment = (
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    attachment: any,
+    attachment: Attachment,
     index: number,
     keyPrefix: string
   ) => (
@@ -239,7 +243,11 @@ export function TaskDetailSheet({
               ) : (
                 <>
                   <div className="text-sm text-gray-500 flex items-center gap-2">
-                    {task?.name}
+                    {task?.source ? (
+                      <span>{`${task?.source}#${task?.serial_number}`}</span>
+                    ) : (
+                      <span>{task?.name}</span>
+                    )}
 
                     {task?.private === 1 && (
                       <Badge className="text-xs" variant="outline">

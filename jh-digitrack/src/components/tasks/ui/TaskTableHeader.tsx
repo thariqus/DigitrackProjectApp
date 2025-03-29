@@ -1,6 +1,10 @@
 import { TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
-export const TaskTableHeader = ({ activeFilter }: { activeFilter: string }) => (
+export const TaskTableHeader = ({
+  activeFilter,
+}: {
+  activeFilter?: string;
+}) => (
   <TableHeader>
     <TableRow>
       <TableHead className="w-[50px]">#</TableHead>

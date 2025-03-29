@@ -25,6 +25,11 @@ export const TaskRow = ({
   const isPrivate = task.private;
   const isInRecycleBin = Boolean(task.deleted_at);
 
+  let taskName = task.task_name;
+  if (task.source) {
+    taskName = `${task.source}#${task.serial_number} ${task.task_name}`;
+  }
+
   return (
     <TableRow
       className="cursor-pointer"
@@ -32,7 +37,7 @@ export const TaskRow = ({
       key={task.name}
     >
       <TableCell>{index + 1 + (currentPage - 1) * perPage}</TableCell>
-      <TableCell className="font-medium">{task.task_name}</TableCell>
+      <TableCell className="font-medium">{taskName}</TableCell>
       <TableCell>
         <StatusBadge status={task.status} />
       </TableCell>

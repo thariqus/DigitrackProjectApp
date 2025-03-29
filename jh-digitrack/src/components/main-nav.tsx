@@ -1,5 +1,12 @@
 import { cn } from "@/lib/utils";
-import { ListTodo, FolderKanban, Calendar, User } from "lucide-react";
+import {
+  ListTodo,
+  Calendar,
+  User,
+  FolderKanban,
+  ClipboardCheck,
+  FolderOpenDot,
+} from "lucide-react";
 import { Link, useLocation } from "react-router";
 import JHLogo from "@/assets/digitrack-logo.png";
 import {
@@ -10,6 +17,12 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { useCurrentJhUser, useLogout } from "@/hooks/auth";
+import {
+  NavigationMenuItem,
+  NavigationMenuTrigger,
+  NavigationMenuContent,
+  NavigationMenu,
+} from "./ui/navigation-menu";
 
 export function MainNav() {
   const { pathname } = useLocation();
@@ -39,10 +52,42 @@ export function MainNav() {
             <ListTodo className="h-5 w-5" />
             <span>Tasks</span>
           </Link>
-          <Link to="projects" className={className("/projects")}>
-            <FolderKanban className="h-5 w-5" />
-            <span>Projects</span>
-          </Link>
+          <NavigationMenu>
+            <NavigationMenuItem className="list-none">
+              <NavigationMenuTrigger>
+                <div className="flex items-center gap-2">
+                  <FolderOpenDot className="h-5 w-5" />
+                  Projects
+                </div>
+              </NavigationMenuTrigger>
+
+              <NavigationMenuContent>
+                <ul className="flex flex-col w-[200px] gap-3 p-4 sm:w-[250px] md:w-[300px]">
+                  <Link
+                    to="projects"
+                    className={cn(
+                      className("/projects"),
+                      "opacity-50 pointer-events-none"
+                    )}
+                    aria-disabled="true"
+                  >
+                    <FolderKanban className="h-5 w-5" />
+                    <span className="flex items-center gap-2">
+                      TS Projects
+                      <span className="inline-flex items-center rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-800">
+                        Coming Soon
+                      </span>
+                    </span>
+                  </Link>
+                  <Link to="audits" className={className("/audits")}>
+                    <ClipboardCheck className="h-5 w-5" />
+                    <span>Audits</span>
+                  </Link>
+                </ul>
+              </NavigationMenuContent>
+            </NavigationMenuItem>
+          </NavigationMenu>
+
           <Link to="meetings" className={className("/meetings")}>
             <Calendar className="h-5 w-5" />
             <span>Meetings</span>

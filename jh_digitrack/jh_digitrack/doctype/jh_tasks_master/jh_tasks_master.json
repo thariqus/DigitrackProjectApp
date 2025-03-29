@@ -80,6 +80,7 @@
    "fieldname": "source_doctype",
    "fieldtype": "Link",
    "label": "Source Doctype",
+   "link_filters": "[[\"DocType\",\"name\",\"in\",[\"JH Audits\",\"JH TS Projects\"]]]",
    "options": "DocType"
   },
   {
@@ -147,7 +148,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-03-22 00:05:14.594297",
+ "modified": "2025-03-28 23:11:58.885907",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Tasks Master",

@@ -10,7 +10,9 @@ import Tasks from "@/components/tasks";
 import Projects from "@/components/projects";
 import Meetings from "@/components/meetings";
 import Unauthorized from "./components/Unauthorized";
+import Audits from "./components/audits";
 import RecycleBin from "./components/recycle-bin";
+import AuditTasks from "./components/tasks/task-table/audit-tasks";
 
 function App() {
   return (
@@ -31,6 +33,8 @@ function App() {
                 <Route path="tasks" element={<Tasks />} />
                 <Route path="projects" element={<Projects />} />
                 <Route path="meetings" element={<Meetings />} />
+                <Route path="audits" element={<Audits />} />
+                <Route path="audits/:auditId" element={<AuditTasks />} />
                 <Route path="recycle-bin" element={<RecycleBin />} />
               </Route>
             </Routes>

@@ -15,14 +15,8 @@ import DeleteConfirmation from "../ui/DeleteConfirmation";
 import { Filter } from "frappe-js-sdk/lib/db/types";
 import { useCurrentJhUser, useCurrentUser } from "@/hooks/auth";
 import { format } from "date-fns";
-import TablePagination from "../ui/TablePagination";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectValue,
-} from "@/components/ui/select";
-import { SelectTrigger } from "@/components/ui/select";
+import { PaginationControls } from "./pagination-controls";
+import { useTaskFilters } from "./hooks/useTaskFilters";
 
 export const TaskTable = ({
   activeFilter,
@@ -50,41 +44,14 @@ export const TaskTable = ({
   const { data: currentJHUser } = useCurrentJhUser();
   const { data: currentUser } = useCurrentUser();
 
-  // Determine filters based on activeFilter
-  const getFilters = (onlyActiveFilter = false) => {
-    const filters: TaskFilter[] = [["deleted_at", "is", "not set"]];
-    if (!onlyActiveFilter) {
-      filters.push(...activeFilters);
-
-      // Add search filter if search query exists
-      if (searchQuery) {
-        filters.push(["task_name", "like", `%${searchQuery}%`]);
-      }
-    }
-
-    // Add filter based on activeFilter
-    if (activeFilter === "my-tasks" && currentJHUser) {
-      filters.push(["assigned_to", "=", currentJHUser.name]);
-      if (!filters.some((filter) => filter[0] === "status"))
-        filters.push(["status", "in", ["Open", "In Progress"]]);
-      if (!filters.some((filter) => filter[0] === "private"))
-        filters.push(["private", "=", "0"]);
-    } else if (activeFilter === "created-by-me" && currentUser) {
-      filters.push(["owner", "=", currentUser]);
-      if (!filters.some((filter) => filter[0] === "status"))
-        filters.push(["status", "not in", ["Closed", "Cancelled"]]);
-    } else if (activeFilter === "deleted-tasks") {
-      const deletedFilter = filters.find(
-        (filter) => filter[0] === "deleted_at"
-      );
-      if (deletedFilter) {
-        deletedFilter[2] = "set";
-        if (currentUser) filters.push(["owner", "=", currentUser]);
-      }
-    }
-
-    return filters;
-  };
+  // Use the new hook for filter logic
+  const { getFilters } = useTaskFilters({
+    searchQuery,
+    activeFilters,
+    activeFilter,
+    currentJHUser,
+    currentUser,
+  });
 
   // Fetch tasks data with server-side filtering
   const {
@@ -258,38 +225,13 @@ export const TaskTable = ({
               ))}
             </TableBody>
             <TableFooter>
-              <div className="flex flex-col sm:flex-row items-center justify-between w-full px-2 py-4 bg-white">
-                <div className="flex items-center space-x-6">
-                  <div className="flex items-center space-x-2">
-                    <label
-                      htmlFor="tasksPerPage"
-                      className="text-sm text-muted-foreground"
-                    >
-                      Show
-                    </label>
-                    <Select
-                      value={tasksPerPage.toString()}
-                      onValueChange={(value) => setTasksPerPage(Number(value))}
-                    >
-                      <SelectTrigger id="tasksPerPage" className="h-8 w-[70px]">
-                        <SelectValue placeholder="10" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="10">10</SelectItem>
-                        <SelectItem value="20">20</SelectItem>
-                        <SelectItem value="50">50</SelectItem>
-                        <SelectItem value="100">100</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <TablePagination
-                    totalPages={totalPages}
-                    initialPage={currentPage}
-                    onPageChange={(page) => setCurrentPage(page)}
-                  />
-                </div>
-              </div>
+              <PaginationControls
+                tasksPerPage={tasksPerPage}
+                setTasksPerPage={setTasksPerPage}
+                totalPages={totalPages}
+                currentPage={currentPage}
+                setCurrentPage={setCurrentPage}
+              />
             </TableFooter>
           </Table>
         </div>

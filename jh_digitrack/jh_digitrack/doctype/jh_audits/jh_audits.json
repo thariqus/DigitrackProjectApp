@@ -1,0 +1,138 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:AUDIT{####}",
+ "creation": "2025-03-24 00:49:58.384786",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "audit_name",
+  "audit_description",
+  "additional_comments",
+  "column_break_agsd",
+  "status",
+  "created_by",
+  "start_date",
+  "completion_date",
+  "folder_name",
+  "file_name",
+  "business",
+  "division",
+  "remarks"
+ ],
+ "fields": [
+  {
+   "fieldname": "audit_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Audit Name",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "column_break_agsd",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "created_by",
+   "fieldtype": "Link",
+   "label": "Created By",
+   "options": "JH User Master",
+   "reqd": 1
+  },
+  {
+   "fieldname": "audit_description",
+   "fieldtype": "Long Text",
+   "label": "Audit Description"
+  },
+  {
+   "fieldname": "start_date",
+   "fieldtype": "Datetime",
+   "label": "Start Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "completion_date",
+   "fieldtype": "Datetime",
+   "label": "Completion Date"
+  },
+  {
+   "default": "Open",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Open\nCompleted",
+   "reqd": 1
+  },
+  {
+   "fieldname": "additional_comments",
+   "fieldtype": "Long Text",
+   "label": "Additional Comments"
+  },
+  {
+   "fieldname": "file_name",
+   "fieldtype": "Data",
+   "label": "File Name"
+  },
+  {
+   "fieldname": "folder_name",
+   "fieldtype": "Data",
+   "label": "Folder Name"
+  },
+  {
+   "fieldname": "business",
+   "fieldtype": "Link",
+   "label": "Business",
+   "options": "JH Business Master"
+  },
+  {
+   "fieldname": "division",
+   "fieldtype": "Link",
+   "label": "Division",
+   "options": "JH Division Master"
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Long Text",
+   "label": "Remarks"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-03-29 10:28:55.244708",
+ "modified_by": "Administrator",
+ "module": "JH Digitrack",
+ "name": "JH Audits",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "JH Digitrack Member",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "audit_name"
+}
