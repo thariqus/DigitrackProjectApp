@@ -38,7 +38,7 @@ export function AuditDetailSheet({
   const [isDescriptionOverflowing, setIsDescriptionOverflowing] =
     useState(false);
 
-  const { data: auditDetails, isLoading: isLoadingTaskInfo } =
+  const { data: auditDetails, isLoading: isLoadingAuditInfo } =
     useDocDetail<JHAudits>({
       doctype: "JH Audits",
       name: auditId || "",
@@ -84,7 +84,7 @@ export function AuditDetailSheet({
     if (auditId && onDelete) onDelete(auditId);
   };
 
-  // get attachments and attachment logs from task detailed
+  // get attachments and attachment logs from audit detailed
   const attachments = auditDetails?.docinfo?.attachments || [];
   const attachmentLogs = auditDetails?.docinfo?.attachment_logs || [];
 
@@ -144,7 +144,7 @@ export function AuditDetailSheet({
   );
 
   const isLoading =
-    isLoadingTaskInfo || isLoadingBusiness || isLoadingCreatedBy;
+    isLoadingAuditInfo || isLoadingBusiness || isLoadingCreatedBy;
 
   const showDeleteButton =
     audit?.owner === currentUser && audit?.creation === audit?.modified;
@@ -175,9 +175,9 @@ export function AuditDetailSheet({
             </div>
           </div>
 
-          {/* Task content */}
+          {/* Audit content */}
           <div className="p-6 space-y-6">
-            {/* Task ID and Title */}
+            {/* Audit ID and Title */}
             <div>
               {isLoading ? (
                 <>
@@ -196,7 +196,7 @@ export function AuditDetailSheet({
               )}
             </div>
 
-            {/* Task details grid */}
+            {/* Audit details grid */}
             <div className="grid grid-cols-[140px_1fr] gap-y-6">
               <div className="text-sm text-gray-500">Business</div>
               {isLoadingBusiness ? (

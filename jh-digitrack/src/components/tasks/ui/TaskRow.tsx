@@ -3,6 +3,9 @@ import { format } from "date-fns";
 import { TaskRowProps } from "@/types/tasks";
 import { StatusBadge } from "./StatusBadge";
 import { TaskActions } from "./TaskActions";
+import { Link } from "react-router";
+import { useDocDetail } from "@/hooks/doc";
+import { JHTasksMaster } from "@/types/JHDigitrack/JHTasksMaster";
 
 const formatDueDate = (dueDate?: string) => {
   return dueDate ? format(new Date(dueDate), "MMM dd, yyyy") : "No due date";
@@ -21,13 +24,28 @@ export const TaskRow = ({
 }: TaskRowProps) => {
   const formattedDueDate = formatDueDate(task.due_date);
 
-  const isEdited = task.creation != task.modified;
+  const { data: taskDetails } = useDocDetail<JHTasksMaster>({
+    doctype: "JH Tasks Master",
+    name: task.name || "",
+    disabled: !task.name,
+  });
+
+  const isEdited = taskDetails?.docinfo.versions.some(
+    (version) => version.owner !== task.owner
+  );
   const isPrivate = task.private;
   const isInRecycleBin = Boolean(task.deleted_at);
 
-  let taskName = task.task_name;
+  let taskName = <span>{task.task_name}</span>;
   if (task.source) {
-    taskName = `${task.source}#${task.serial_number} ${task.task_name}`;
+    taskName = (
+      <div>
+        <Link className="underline" to={`/jh-digitrack/audits/${task.source}`}>
+          {`${task.source}#${task.serial_number}`}
+        </Link>{" "}
+        | <span>{task.task_name}</span>
+      </div>
+    );
   }
 
   return (

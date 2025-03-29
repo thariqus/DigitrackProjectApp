@@ -52,6 +52,10 @@ export function MainNav() {
             <ListTodo className="h-5 w-5" />
             <span>Tasks</span>
           </Link>
+          <Link to="audits" className={className("/audits")}>
+            <ClipboardCheck className="h-5 w-5" />
+            <span>Audits</span>
+          </Link>
           <NavigationMenu>
             <NavigationMenuItem className="list-none">
               <NavigationMenuTrigger>
@@ -78,10 +82,6 @@ export function MainNav() {
                         Coming Soon
                       </span>
                     </span>
-                  </Link>
-                  <Link to="audits" className={className("/audits")}>
-                    <ClipboardCheck className="h-5 w-5" />
-                    <span>Audits</span>
                   </Link>
                 </ul>
               </NavigationMenuContent>

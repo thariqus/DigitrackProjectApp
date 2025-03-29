@@ -4,7 +4,7 @@ export const AuditsTableHeader = () => (
   <TableHeader>
     <TableRow>
       <TableHead className="w-[50px]">#</TableHead>
-      <TableHead>Task</TableHead>
+      <TableHead>Audit Name</TableHead>
       <TableHead className="w-[150px]">Status</TableHead>
       <TableHead className="w-[150px]">Due Date</TableHead>
       <TableHead className="w-[150px]">Created By</TableHead>

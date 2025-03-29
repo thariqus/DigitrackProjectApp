@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { Table, TableBody, TableFooter } from "@/components/ui/table";
-import { useDocs, useUpdateDoc } from "@/hooks/doc";
+import { useUpdateDoc } from "@/hooks/doc";
 import { toast } from "sonner";
 import { AuditSheet } from "../audits-sheet";
 import { AuditDetailSheet } from "../audits-detail-sheet";
@@ -15,8 +15,9 @@ import DeleteConfirmation from "../ui/DeleteConfirmation";
 import { format } from "date-fns";
 import { PaginationControls } from "./pagination-controls";
 // import { useAuditsFilters } from "./hooks/useTaskFilters";
-import { JHAudits } from "@/types/JHDigitrack/JHAudits";
 import { useNavigate } from "react-router";
+import { useTeamAudits } from "@/hooks/audits";
+import { useCurrentJhUser } from "@/hooks/auth";
 interface AuditsTableProps {
   hideFilters?: boolean;
   hideSearchBar?: boolean;
@@ -28,10 +29,11 @@ export const AuditsTable = ({
   hideCreateTask,
 }: AuditsTableProps) => {
   const navigate = useNavigate();
+  const { data: currentJhUser } = useCurrentJhUser();
   // State management
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [tasksPerPage, setTasksPerPage] = useState(10);
+  const [auditsPerPage, setAuditsPerPage] = useState(10);
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
   const [selectedAuditId, setSelectedAuditId] = useState<string | undefined>(
     undefined
@@ -54,37 +56,21 @@ export const AuditsTable = ({
 
   // Fetch tasks data with server-side filtering
   const {
-    data: audits,
+    data: auditsResponse,
     isLoading,
     refetch,
-  } = useDocs<JHAudits>({
-    doctype: "JH Audits",
-    fields: [
-      "name",
-      "audit_name",
-      "audit_description",
-      "status",
-      "start_date",
-      "created_by.full_name as created_by",
-      "created_by.name as created_by_id",
-    ],
-    orderBy: {
-      field: "`tabJH Audits`.modified",
-      order: "desc",
-    },
-    limit: tasksPerPage,
-    page: currentPage,
-    // filters: getFilters() as Filter<JHAudits>[],
-  });
+  } = useTeamAudits(
+    currentJhUser?.name,
+    currentPage,
+    auditsPerPage,
+    searchQuery
+  );
 
-  const { data: taskCounter } = useDocs<JHAudits>({
-    doctype: "JH Audits",
-    fields: ["name"],
-    limit: 100,
-    // filters: getFilters() as Filter<JHAudits>[],
-  });
+  const audits = auditsResponse?.message?.data;
 
-  const totalPages = Math.ceil(taskCounter?.length / tasksPerPage);
+  const totalAudits = auditsResponse?.message?.total || 0;
+
+  const totalPages = Math.ceil(totalAudits / auditsPerPage);
 
   // Fetch tasks data with server-side filtering
   // const { data: tasksWithoutfilters } = useDocs<JHAudits>({
@@ -127,7 +113,7 @@ export const AuditsTable = ({
 
   const handleDeleteTask = useCallback(
     (auditId: string) => {
-      const audit = audits.find((audit) => audit.name === auditId);
+      const audit = audits?.find((audit) => audit.name === auditId);
       setTaskToDelete(auditId);
       setTaskNameToDelete(audit?.name || "");
       setIsDeleteDialogOpen(true);
@@ -195,12 +181,12 @@ export const AuditsTable = ({
           />
         )} */}
 
-      {audits.length > 0 ? (
+      {audits?.length && audits?.length > 0 ? (
         <div className="rounded-md border">
           <Table className="w-full table-fixed">
             <AuditsTableHeader />
             <TableBody>
-              {audits.map((task, index) => (
+              {audits?.map((task, index) => (
                 <AuditRow
                   key={task.name}
                   audit={task}
@@ -209,14 +195,14 @@ export const AuditsTable = ({
                   onEdit={handleEditTask}
                   onDelete={handleDeleteTask}
                   currentPage={currentPage}
-                  perPage={tasksPerPage}
+                  perPage={auditsPerPage}
                 />
               ))}
             </TableBody>
             <TableFooter>
               <PaginationControls
-                tasksPerPage={tasksPerPage}
-                setTasksPerPage={setTasksPerPage}
+                tasksPerPage={auditsPerPage}
+                setTasksPerPage={setAuditsPerPage}
                 totalPages={totalPages}
                 currentPage={currentPage}
                 setCurrentPage={setCurrentPage}

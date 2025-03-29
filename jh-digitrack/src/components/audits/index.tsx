@@ -1,6 +1,6 @@
 import AuditsTable from "./audits-table";
 
-function Tasks() {
+function Audits() {
   return (
     <div className="space-y-6">
       <div>
@@ -14,4 +14,4 @@ function Tasks() {
   );
 }
 
-export default Tasks;
+export default Audits;
