@@ -18,7 +18,9 @@
   "file_name",
   "business",
   "division",
-  "remarks"
+  "remarks",
+  "section_break_nchk",
+  "changelog"
  ],
  "fields": [
   {
@@ -95,11 +97,21 @@
    "fieldname": "remarks",
    "fieldtype": "Long Text",
    "label": "Remarks"
+  },
+  {
+   "fieldname": "section_break_nchk",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "changelog",
+   "fieldtype": "Table",
+   "label": "Changelog",
+   "options": "JH Change Log"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-03-29 10:28:55.244708",
+ "modified": "2025-03-30 11:15:53.095237",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Audits",

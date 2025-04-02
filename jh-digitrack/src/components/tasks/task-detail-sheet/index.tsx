@@ -276,8 +276,8 @@ export function TaskDetailSheet({
               ) : task?.start_after ? (
                 <div className="flex items-center">
                   <span className="font-medium">
-                    {task?.source
-                      ? `${task?.source}#${task?.serial_number}`
+                    {task?.start_after
+                      ? `${taskAfter?.source}#${taskAfter?.serial_number}`
                       : "—"}
                   </span>
                   <span className="ml-1 truncate">

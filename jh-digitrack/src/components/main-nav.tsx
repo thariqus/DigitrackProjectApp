@@ -29,11 +29,15 @@ export function MainNav() {
   const { data: currentJhUser } = useCurrentJhUser();
   const { mutate: logout } = useLogout();
 
-  const className = (path: string) =>
-    cn(
+  const className = (path: string[]) => {
+    console.log(pathname.split("/").pop(), path);
+    return cn(
       "flex items-center gap-2 hover:text-primary",
-      pathname !== path ? "text-gray-600" : "font-medium text-primary"
+      path?.some((p) => p === pathname.split("/").pop())
+        ? "font-medium text-primary"
+        : "text-gray-600"
     );
+  };
 
   return (
     <header className="border-b">
@@ -48,11 +52,11 @@ export function MainNav() {
           />
         </Link>
         <nav className="ml-auto flex items-center gap-4 md:gap-6">
-          <Link to="tasks" className={className("/tasks")}>
+          <Link to="tasks" className={className(["tasks", "jh-digitrack"])}>
             <ListTodo className="h-5 w-5" />
             <span>Tasks</span>
           </Link>
-          <Link to="audits" className={className("/audits")}>
+          <Link to="audits" className={className(["audits"])}>
             <ClipboardCheck className="h-5 w-5" />
             <span>Audits</span>
           </Link>
@@ -70,7 +74,7 @@ export function MainNav() {
                   <Link
                     to="projects"
                     className={cn(
-                      className("/projects"),
+                      className(["projects"]),
                       "opacity-50 pointer-events-none"
                     )}
                     aria-disabled="true"
@@ -88,7 +92,7 @@ export function MainNav() {
             </NavigationMenuItem>
           </NavigationMenu>
 
-          <Link to="meetings" className={className("/meetings")}>
+          <Link to="meetings" className={className(["meetings"])}>
             <Calendar className="h-5 w-5" />
             <span>Meetings</span>
           </Link>

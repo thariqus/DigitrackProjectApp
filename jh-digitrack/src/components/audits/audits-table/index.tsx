@@ -1,20 +1,16 @@
 import { useState, useCallback } from "react";
 import { Table, TableBody, TableFooter } from "@/components/ui/table";
-import { useUpdateDoc } from "@/hooks/doc";
+import { useDeleteDoc } from "@/hooks/doc";
 import { toast } from "sonner";
 import { AuditSheet } from "../audits-sheet";
 import { AuditDetailSheet } from "../audits-detail-sheet";
-// import { TaskFilter } from "../ui/FilterButtons";
 import SearchBar from "../ui/SearchBar";
 import ActionButtons from "../ui/ActionButtons";
 import AuditsTableHeader from "../ui/AuditsTableHeader";
 import AuditRow from "../ui/AuditRow";
 import EmptyState from "../ui/EmptyState";
 import DeleteConfirmation from "../ui/DeleteConfirmation";
-// import { Filter } from "frappe-js-sdk/lib/db/types";
-import { format } from "date-fns";
 import { PaginationControls } from "./pagination-controls";
-// import { useAuditsFilters } from "./hooks/useTaskFilters";
 import { useNavigate } from "react-router";
 import { useTeamAudits } from "@/hooks/audits";
 import { useCurrentJhUser } from "@/hooks/auth";
@@ -46,14 +42,6 @@ export const AuditsTable = ({
   const [taskNameToDelete, setTaskNameToDelete] = useState<string | undefined>(
     undefined
   );
-  // const [activeFilters] = useState<TaskFilter[]>([]);
-
-  // Use the new hook for filter logic
-  // const { getFilters } = useAuditsFilters({
-  //   searchQuery,
-  //   activeFilters,
-  // });
-
   // Fetch tasks data with server-side filtering
   const {
     data: auditsResponse,
@@ -89,7 +77,7 @@ export const AuditsTable = ({
 
   // Delete task mutation
 
-  const updateDoc = useUpdateDoc();
+  const deleteDoc = useDeleteDoc();
 
   // Event handlers
   const handleCreateTask = useCallback(() => {
@@ -115,7 +103,7 @@ export const AuditsTable = ({
     (auditId: string) => {
       const audit = audits?.find((audit) => audit.name === auditId);
       setTaskToDelete(auditId);
-      setTaskNameToDelete(audit?.name || "");
+      setTaskNameToDelete(audit?.audit_name || "");
       setIsDeleteDialogOpen(true);
     },
     [audits]
@@ -125,24 +113,21 @@ export const AuditsTable = ({
     if (!taskToDelete) return;
 
     try {
-      await updateDoc.mutateAsync({
-        doctype: "JH Tasks Master",
+      await deleteDoc.mutateAsync({
+        doctype: "JH Audits",
         name: taskToDelete,
-        doc: {
-          deleted_at: format(new Date(), "yyyy-MM-dd"),
-        },
       });
-      toast.success("Task deleted successfully");
+      toast.success("Audit deleted successfully");
       refetch();
     } catch (error) {
-      toast.error("Failed to delete task");
+      toast.error("Failed to delete audit");
       console.error(error);
     } finally {
       setIsDeleteDialogOpen(false);
       setTaskToDelete(undefined);
       setTaskNameToDelete(undefined);
     }
-  }, [taskToDelete, updateDoc, refetch]);
+  }, [taskToDelete, deleteDoc, refetch]);
 
   // Handle filters change from FilterButtonsWithComboboxes
   // const handleFiltersChange = useCallback(

@@ -235,7 +235,10 @@ export const TaskTable = () => {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <SearchBar value={searchQuery} onChange={handleSearchChange} />
-          <ActionButtons onCreateTask={handleCreateTask} />
+          <ActionButtons
+            onCreateTask={handleCreateTask}
+            disabled={audit?.status === "Completed"}
+          />
         </div>
         <FilterButtonsWithComboboxes
           tasks={tasksWithoutfilters.length > 0 ? tasksWithoutfilters : []}

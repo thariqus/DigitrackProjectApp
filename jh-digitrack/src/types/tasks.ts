@@ -38,6 +38,7 @@ export interface SearchBarProps {
 
 export interface ActionButtonsProps {
   onCreateTask: () => void;
+  disabled?: boolean;
 }
 
 export interface TaskRowProps {

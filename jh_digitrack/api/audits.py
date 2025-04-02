@@ -48,3 +48,21 @@ def team_audits(reporting_to: str, search_query: str = "", page: int = 1, page_s
         "data": audit_list,
         "total": len(total_audits)
     }
+
+
+@frappe.whitelist()
+def add_remark(audit_id: str, comment: str, creator: str, type: str, remark: str):
+
+    task = frappe.get_doc("JH Audits", audit_id)
+    
+    task.append("changelog", {
+        "comment": comment,
+        "creator": creator,
+        "type": type,
+        "commented_at": frappe.utils.now(),
+        "remark": remark
+    })
+    print(task)
+    task.save(ignore_permissions=True)
+    
+    return "Remark added successfully"

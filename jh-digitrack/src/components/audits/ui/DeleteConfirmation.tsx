@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { DeleteConfirmationProps } from "@/types/tasks";
 
-export const truncateString = (str: string, maxLength: number): string => {
+const truncateString = (str: string, maxLength: number): string => {
   if (!str) return "";
   if (str.length <= maxLength) return str;
   return `${str.substring(0, maxLength)}...`;
@@ -27,9 +27,8 @@ export const DeleteConfirmation = ({
       <AlertDialogHeader>
         <AlertDialogTitle>Are you sure?</AlertDialogTitle>
         <AlertDialogDescription>
-          This will move the task{" "}
-          <b>{truncateString(taskName || "Unknown", 20)}</b> to the recycle bin.
-          And it will be permanently deleted after 30 days.
+          This will delete the audit{" "}
+          <b>{truncateString(taskName || "Unknown", 20)}</b> permanently.
         </AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter>

@@ -40,14 +40,12 @@ import { useCurrentJhUser, useCurrentUser } from "@/hooks/auth";
 import type { Attachment } from "@/types/doc";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AuditStatusSelector } from "../ui/AuditStatusSelector";
-import { useAddTaskRemark } from "@/hooks/task";
 import { queryClient } from "@/utils/query-client";
-// import AuditTimeline from "../ui/AuditTimeline";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import ChangelogRemarkDialog from "./ChangeLogRemarkDialog";
 import FileAttachmentHandler from "./FileAttachmentHandler";
 import { JHAudits } from "@/types/JHDigitrack/JHAudits";
-
+import { useAddAuditRemark } from "@/hooks/audits";
 // ==========================================
 // COMPONENT PROPS INTERFACE
 // ==========================================
@@ -202,7 +200,7 @@ export function AuditSheet({
   // save and update doc
   const saveDoc = useSaveDoc();
   const updateDoc = useUpdateDoc();
-  const addTaskRemark = useAddTaskRemark();
+  const addAuditRemark = useAddAuditRemark();
 
   // ==========================================
   // HELPER FUNCTIONS
@@ -322,6 +320,9 @@ export function AuditSheet({
           });
         }
 
+        await queryClient.invalidateQueries({
+          queryKey: ["team-audits"],
+        });
         await queryClient.invalidateQueries({
           queryKey: ["Docs"],
         });
@@ -486,8 +487,8 @@ export function AuditSheet({
         }
 
         await saveDoc.mutateAsync(updatedAudit);
-        await addTaskRemark.mutateAsync({
-          task_id: audit.name,
+        await addAuditRemark.mutateAsync({
+          audit_id: audit.name,
           comment: changelogState.comment,
           creator: currentJhUser?.name || "",
           type: "Status Change",
@@ -505,7 +506,7 @@ export function AuditSheet({
         }));
 
         await queryClient.invalidateQueries({
-          queryKey: ["Docs"],
+          queryKey: ["team-audits"],
         });
         await queryClient.invalidateQueries({
           queryKey: ["task-change-logs", audit.name],
@@ -520,7 +521,7 @@ export function AuditSheet({
       changelogState.completionDate,
       changelogState.comment,
       saveDoc,
-      addTaskRemark,
+      addAuditRemark,
       currentJhUser?.name,
       refetchAuditDetails,
     ]
