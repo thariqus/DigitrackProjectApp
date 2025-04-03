@@ -13,6 +13,15 @@ import StatusBadge from "../ui/StatusBadge";
 import { JHAudits } from "@/types/JHDigitrack/JHAudits";
 import { JHDivisionMaster } from "@/types/JHDigitrack/JHDivisionMaster";
 
+function renderHyperlink(text: string | undefined) {
+  if (!text) return "-";
+  const isUrl = text.match(/^https?:\/\/[^\s]+$/);
+  if (isUrl) {
+    return `<a href="${text}" target="_blank" class="underline">${text}</a>`;
+  }
+  return text;
+}
+
 interface AuditDetailSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -216,11 +225,19 @@ export function AuditDetailSheet({
               )}
               <div className="text-sm text-gray-500">Folder Name</div>
               <div className="flex items-center">
-                <span>{audit?.folder_name || "—"}</span>
+                <span
+                  dangerouslySetInnerHTML={{
+                    __html: renderHyperlink(audit?.folder_name),
+                  }}
+                />
               </div>
               <div className="text-sm text-gray-500">File Name</div>
               <div className="flex items-center">
-                <span>{audit?.file_name || "—"}</span>
+                <span
+                  dangerouslySetInnerHTML={{
+                    __html: renderHyperlink(audit?.file_name),
+                  }}
+                />
               </div>
               <div className="text-sm text-gray-500">Created by</div>
               <div className="flex items-center gap-2">

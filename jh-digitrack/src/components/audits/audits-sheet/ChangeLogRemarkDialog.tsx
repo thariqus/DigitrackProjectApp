@@ -16,6 +16,9 @@ import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
+import { Task } from "@/types/tasks";
+import { useDocs } from "@/hooks/doc";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface ChangelogRemarkDialogProps {
   open: boolean;
@@ -26,6 +29,7 @@ interface ChangelogRemarkDialogProps {
   setCompletionDate?: (date: string) => void;
   completionDate?: string;
   confirmChangelogRemark: () => void;
+  auditId: string;
 }
 
 const ChangelogRemarkDialog = ({
@@ -37,10 +41,39 @@ const ChangelogRemarkDialog = ({
   showCompletionDatePicker,
   setCompletionDate,
   completionDate,
+  auditId,
 }: ChangelogRemarkDialogProps) => {
   const renderCompletionDatePicker =
     showCompletionDatePicker && setCompletionDate && completionDate;
 
+  const { data: tasks, isLoading } = useDocs<Task>({
+    doctype: "JH Tasks Master",
+    fields: ["name", "status"],
+    filters: [
+      ["source_doctype", "=", "JH Audits"],
+      ["source", "=", auditId!],
+      ["status", "!=", "Closed"],
+    ],
+  });
+
+  const canCompleteTask = tasks?.length === 0;
+
+  if (isLoading) return <Skeleton className="w-full h-[100px]" />;
+
+  if (!canCompleteTask)
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Warning</DialogTitle>
+          </DialogHeader>
+          <DialogDescription>
+            There are tasks that are not closed. Please close them before
+            completing the audit.
+          </DialogDescription>
+        </DialogContent>
+      </Dialog>
+    );
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">

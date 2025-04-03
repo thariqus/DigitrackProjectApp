@@ -670,6 +670,7 @@ export function AuditSheet({
                 ) : null}
               </div>
               <ChangelogRemarkDialog
+                auditId={auditId!}
                 showCompletionDatePicker={
                   changelogState.pendingStatus == "Completed"
                 }

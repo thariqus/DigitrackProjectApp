@@ -41,7 +41,9 @@ export const TaskRow = ({
     taskName = (
       <div>
         <Link className="underline" to={`/jh-digitrack/audits/${task.source}`}>
-          {`${task.source}#${task.serial_number}`}
+          {`${task.source}${
+            task.serial_number ? "#" + task.serial_number : ""
+          }`}
         </Link>{" "}
         | <span>{task.task_name}</span>
       </div>

@@ -24,9 +24,9 @@ export interface JHAudits{
 	start_date: string
 	/**	Completion Date : Datetime	*/
 	completion_date?: string
-	/**	Folder Name : Data	*/
+	/**	Folder Name : Long Text	*/
 	folder_name?: string
-	/**	File Name : Data	*/
+	/**	File Name : Long Text	*/
 	file_name?: string
 	/**	Business : Link - JH Business Master	*/
 	business?: string

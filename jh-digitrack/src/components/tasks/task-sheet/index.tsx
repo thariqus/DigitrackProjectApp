@@ -51,6 +51,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import ChangelogRemarkDialog from "./ChangeLogRemarkDialog";
 import FileAttachmentHandler from "./FileAttachmentHandler";
 import frappeClient from "@/utils/frappe-client";
+import { JHAudits } from "@/types/JHDigitrack/JHAudits";
 
 // ==========================================
 // COMPONENT PROPS INTERFACE
@@ -310,6 +311,12 @@ export function TaskSheet({
     doctype: "JH User Master",
     name: assignedTo,
     disabled: !assignedTo,
+  });
+
+  const { data: audit } = useDoc<JHAudits>({
+    doctype: "JH Audits",
+    name: task?.source ?? source ?? "",
+    disabled: !task?.source && !source,
   });
 
   useEffect(() => {
@@ -573,7 +580,7 @@ export function TaskSheet({
   const { data: startAfterTasks = [], isLoading: isStartAfterLoading } =
     useDocs<JHTasksMaster>({
       doctype: "JH Tasks Master",
-      fields: ["name", "task_name"],
+      fields: ["name", "task_name", "serial_number"],
       filters: [
         ["source_doctype", "=", sourceDocType!],
         ["source", "=", source!],
@@ -832,7 +839,11 @@ export function TaskSheet({
       <SheetContent className="sm:max-w-3xl px-5">
         <SheetHeader className="px-0 flex-row justify-between items-center">
           <SheetTitle className="text-2xl font-bold">
-            {isEdit ? `Edit Task: ${task?.task_name || taskId}` : "Create Task"}
+            {isEdit
+              ? `Edit Task: ${
+                  task?.serial_number ? "#" + task?.serial_number + " " : ""
+                }${task?.task_name}`
+              : "Create Task"}
           </SheetTitle>
           <div className="ml-auto">
             <SheetClose asChild>
@@ -851,6 +862,14 @@ export function TaskSheet({
               }. You cannot edit it.`}
             </AlertDescription>
           </Alert>
+        )}
+
+        {sourceDocType === "JH Audits" && (
+          <div className="space-y-2">
+            <span>
+              <b>{audit?.name}</b>: {audit?.audit_name}
+            </span>
+          </div>
         )}
 
         <ScrollArea className="max-h-screen">
@@ -939,10 +958,16 @@ export function TaskSheet({
                       control={control}
                       render={({ field }) => (
                         <Combobox
-                          options={startAfterTasks.map((task) => ({
-                            value: task.name || "",
-                            label: task.task_name || "",
-                          }))}
+                          options={startAfterTasks
+                            .filter((t) => t.name !== task?.name)
+                            .map((task) => ({
+                              value: task.name || "",
+                              label: `${
+                                task.serial_number
+                                  ? "#" + task.serial_number
+                                  : ""
+                              } ${task.task_name ?? ""}`,
+                            }))}
                           value={field.value || ""}
                           onChange={(value) => field.onChange(value)}
                           onSearch={(value) =>

@@ -253,6 +253,11 @@ export const TaskTable = ({
         open={isCreateTaskOpen}
         onOpenChange={setIsCreateTaskOpen}
         taskId={selectedTaskId}
+        source={tasks?.find((task) => task.name === selectedTaskId)?.source}
+        sourceDocType={
+          tasks?.find((task) => task.name === selectedTaskId)
+            ?.source_doctype as "JH Audits" | "JH TS Projects" | undefined
+        }
       />
 
       {/* Task detail sheet */}
