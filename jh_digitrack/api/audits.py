@@ -3,6 +3,7 @@ import csv
 import io
 from datetime import datetime
 from werkzeug.wrappers import Response
+from .helpers.clean_html import clean_html
 
 
 @frappe.whitelist()
@@ -107,15 +108,31 @@ def create_audit_csv_string(audit, tasks):
     )
     write_audit_header_row("Created by:", audit.get("created_by", "-"))
     write_audit_header_row("Audit Name :", audit.get("audit_name", "-"))
-    write_audit_header_row("Audit Description :", audit.get("audit_description", "-"))
     write_audit_header_row(
-        "Additional Comments :", audit.get("additional_comments", "-")
+        "Audit Description :", clean_html(audit.get("audit_description", "-"))
+    )
+    write_audit_header_row(
+        "Additional Comments :", clean_html(audit.get("additional_comments", "-"))
     )
     write_audit_header_row("File Name :", audit.get("file_name", "-"))
     write_audit_header_row("Folder Name :", audit.get("folder_name", "-"))
     write_audit_header_row("File Attachments")
-    write_audit_header_row("Audit Start Date :", audit.get("start_date", "-"))
-    write_audit_header_row("Audit Completion Date :", audit.get("completion_date", "-"))
+    write_audit_header_row(
+        "Audit Start Date :",
+        (
+            audit.get("start_date").strftime("%d/%m/%Y")
+            if audit.get("start_date")
+            else "-"
+        ),
+    )
+    write_audit_header_row(
+        "Audit Completion Date :",
+        (
+            audit.get("completion_date").strftime("%d/%m/%Y")
+            if audit.get("completion_date")
+            else "-"
+        ),
+    )
     write_audit_header_row("Audit Status: ", audit.get("status", "-"))
     writer.writerow(["", "", "", "", "", "", "", "", "", "", "", ""])
 
@@ -152,19 +169,34 @@ def create_audit_csv_string(audit, tasks):
                         for c in recent_comments
                     ]
                 )
-
         writer.writerow(
             [
                 task.get("name", "-"),
                 task.get("task_name", "-"),
-                task.get("description", "-"),
-                task.get("creation", "-"),
+                clean_html(task.get("description", "-")),
+                (
+                    task.get("creation").strftime("%d/%m/%Y")
+                    if task.get("creation")
+                    else "-"
+                ),
                 task.get("created_by", "-"),
                 task.get("assigned_to", "-"),
-                task.get("due_date", "-"),
-                task.get("revised_due_date", "-"),
+                (
+                    task.get("due_date").strftime("%d/%m/%Y")
+                    if task.get("due_date")
+                    else "-"
+                ),
+                (
+                    task.get("revised_due_date").strftime("%d/%m/%Y")
+                    if task.get("revised_due_date")
+                    else "-"
+                ),
                 task.get("status", "-"),
-                task.get("completion_date", "-"),
+                (
+                    task.get("completion_date").strftime("%d/%m/%Y")
+                    if task.get("completion_date")
+                    else "-"
+                ),
                 task.get("effort", "-"),
                 comments,
             ]
