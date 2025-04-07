@@ -95,7 +95,7 @@ def create_audit_csv_string(audit, tasks):
     writer = csv.writer(output)
 
     # Write the header information
-    def write_audit_header_row(label, value="", empty_cells=10):
+    def write_audit_header_row(label, value="", empty_cells=9):
         """Helper function to write a header row with consistent formatting"""
         row = [label, value]
         row.extend([""] * empty_cells)  # Add empty cells for consistent formatting
@@ -134,7 +134,7 @@ def create_audit_csv_string(audit, tasks):
         ),
     )
     write_audit_header_row("Audit Status: ", audit.get("status", "-"))
-    writer.writerow(["", "", "", "", "", "", "", "", "", "", "", ""])
+    writer.writerow(["", "", "", "", "", "", "", "", "", "", ""])
 
     # Write the task headers
     writer.writerow(
@@ -150,25 +150,25 @@ def create_audit_csv_string(audit, tasks):
             "Status",
             "Completed Date",
             "Effort (Hrs)",
-            "Comments",
         ]
     )
 
     # Write task rows
     for task in tasks:
-        # Get the last 5 comments from changelog if available
-        comments = ""
-        if task.get("changelog"):
-            changelog = task.get("changelog", [])
-            if isinstance(changelog, list) and len(changelog) > 0:
-                # Get the last 5 comments
-                recent_comments = changelog[-5:] if len(changelog) > 5 else changelog
-                comments = "; ".join(
-                    [
-                        f"{c.get('creator', '')}: {c.get('comment', '')}"
-                        for c in recent_comments
-                    ]
-                )
+        # # Get the last 5 comments from changelog if available
+        # comments = ""
+        # if task.get("changelog"):
+        #     changelog = task.get("changelog", [])
+        #     if isinstance(changelog, list) and len(changelog) > 0:
+        #         # Get the last 5 comments
+        #         recent_comments = changelog[-5:] if len(changelog) > 5 else changelog
+        #         comments = "; ".join(
+        #             [
+        #                 f"{c.get('creator', '')}: {c.get('comment', '')}"
+        #                 for c in recent_comments
+        # ]
+        # )
+
         writer.writerow(
             [
                 task.get("name", "-"),
@@ -198,7 +198,6 @@ def create_audit_csv_string(audit, tasks):
                     else "-"
                 ),
                 task.get("effort", "-"),
-                comments,
             ]
         )
 
