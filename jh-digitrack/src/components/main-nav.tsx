@@ -131,6 +131,13 @@ export function MainNav() {
                   <span>Recycle Bin</span>
                 </Link>
               </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => {
+                  window.location.href = "/me";
+                }}
+              >
+                <span>Account Settings</span>
+              </DropdownMenuItem>
               <DropdownMenuItem className="w-full" onClick={() => logout()}>
                 <span>Log out</span>
               </DropdownMenuItem>

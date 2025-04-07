@@ -25,6 +25,8 @@
   "effort",
   "completion_date",
   "deleted_at",
+  "reminded_at",
+  "escalated_at",
   "section_break_ygcl",
   "changelog"
  ],
@@ -144,11 +146,21 @@
    "fieldtype": "Table",
    "label": "Change Log",
    "options": "JH Change Log"
+  },
+  {
+   "fieldname": "reminded_at",
+   "fieldtype": "Datetime",
+   "label": "Reminded At"
+  },
+  {
+   "fieldname": "escalated_at",
+   "fieldtype": "Datetime",
+   "label": "Escalated At"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-03-28 23:11:58.885907",
+ "modified": "2025-04-04 11:29:27.297173",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Tasks Master",

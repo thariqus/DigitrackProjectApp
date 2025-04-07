@@ -88,7 +88,13 @@ export default function TaskTimeline({ taskId }: TaskTimelineProps) {
   );
 
   const activityLogs = timelineLogs.filter((log) =>
-    ["Status Change", "Reassign", "Version Change"].includes(log.comment_type)
+    [
+      "Status Change",
+      "Reassign",
+      "Version Change",
+      "Reminder",
+      "Escalation",
+    ].includes(log.comment_type)
   );
 
   const handleAddComment = () => {
@@ -152,7 +158,11 @@ export default function TaskTimeline({ taskId }: TaskTimelineProps) {
                 log.comment_type
               )
                 ? log.remark
-                : "commented"}
+                : log.comment_type === "Reminder"
+                ? "Reminder Sent"
+                : log.comment_type === "Escalation"
+                ? "Escalation Sent"
+                : "Commented"}
             </span>
             <span className="text-xs text-gray-400">
               {log.creation
@@ -189,15 +199,17 @@ export default function TaskTimeline({ taskId }: TaskTimelineProps) {
                 : "—"}
             </span>
           </div>
-          <div className="flex items-center gap-2 mt-1">
-            <MessageSquare className="h-4 w-4 text-gray-400 mt-0.5" />
-            <p
-              className="text-sm text-gray-600"
-              dangerouslySetInnerHTML={{
-                __html: log.content,
-              }}
-            ></p>
-          </div>
+          {log.content && (
+            <div className="flex items-center gap-2 mt-1">
+              <MessageSquare className="h-4 w-4 text-gray-400 mt-0.5" />
+              <p
+                className="text-sm text-gray-600"
+                dangerouslySetInnerHTML={{
+                  __html: log.content,
+                }}
+              ></p>
+            </div>
+          )}
         </div>
       </div>
     );

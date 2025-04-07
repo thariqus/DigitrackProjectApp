@@ -12,13 +12,13 @@ app_license = "unlicense"
 
 # Each item in the list will be shown as an app in the apps page
 add_to_apps_screen = [
-	{
-		"name": "jh_digitrack",
-		"logo": "/assets/jh_digitrack/images/jh-logo.png",
-		"title": "JH Digitrack",
-		"route": "/jh-digitrack",
-		"has_permission": "jh_digitrack.api.permission.has_app_permission"
-	}
+    {
+        "name": "jh_digitrack",
+        "logo": "/assets/jh_digitrack/images/jh-logo.png",
+        "title": "JH Digitrack",
+        "route": "/jh-digitrack",
+        "has_permission": "jh_digitrack.api.permission.has_app_permission",
+    }
 ]
 
 # Includes in <head>
@@ -79,7 +79,7 @@ add_to_apps_screen = [
 # 	"filters": "jh_digitrack.utils.jinja_filters"
 # }
 
-after_migrate="jh_digitrack.setup.create_jh_admin.run"
+after_migrate = "jh_digitrack.setup.create_jh_admin.run"
 
 # Installation
 # ------------
@@ -150,23 +150,21 @@ after_migrate="jh_digitrack.setup.create_jh_admin.run"
 # Scheduled Tasks
 # ---------------
 
-# scheduler_events = {
-# 	"all": [
-# 		"jh_digitrack.tasks.all"
-# 	],
-# 	"daily": [
-# 		"jh_digitrack.tasks.daily"
-# 	],
-# 	"hourly": [
-# 		"jh_digitrack.tasks.hourly"
-# 	],
-# 	"weekly": [
-# 		"jh_digitrack.tasks.weekly"
-# 	],
-# 	"monthly": [
-# 		"jh_digitrack.tasks.monthly"
-# 	],
-# }
+scheduler_events = {
+    # "all": [
+    # 	"jh_digitrack.tasks.all"
+    # ],
+    "daily": ["jh_digitrack.api.tasks.scheduled_emails"],
+    # "hourly": [
+    # 	"jh_digitrack.tasks.hourly"
+    # ],
+    # "weekly": [
+    # 	"jh_digitrack.tasks.weekly"
+    # ],
+    # "monthly": [
+    # 	"jh_digitrack.tasks.monthly"
+    # ],
+}
 
 # Testing
 # -------
@@ -245,4 +243,6 @@ after_migrate="jh_digitrack.setup.create_jh_admin.run"
 # }
 
 
-website_route_rules = [{'from_route': '/jh-digitrack/<path:app_path>', 'to_route': 'jh-digitrack'},]
+website_route_rules = [
+    {"from_route": "/jh-digitrack/<path:app_path>", "to_route": "jh-digitrack"},
+]

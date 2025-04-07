@@ -21,7 +21,7 @@ import { useNavigate, useParams } from "react-router";
 import { JHAudits } from "@/types/JHDigitrack/JHAudits";
 import StatusBadge from "../ui/StatusBadge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Eye } from "lucide-react";
+import { ArrowLeft, Download, Eye } from "lucide-react";
 import { AuditDetailSheet } from "@/components/audits/audits-detail-sheet";
 
 export const TaskTable = () => {
@@ -229,6 +229,18 @@ export const TaskTable = () => {
             onClick={() => setIsAuditDetailOpen(true)}
           >
             <Eye className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              window.open(
+                `/api/method/jh_digitrack.api.audits.download_csv?audit_id=${auditId}`,
+                "_blank"
+              );
+            }}
+          >
+            <Download className="h-4 w-4" />
           </Button>
         </div>
       </div>

@@ -17,6 +17,9 @@ import { format } from "date-fns";
 import StatusBadge from "../ui/StatusBadge";
 import TaskTimeline from "../ui/TaskTimeline";
 import { Badge } from "@/components/ui/badge";
+import { useEscalateTask } from "@/hooks/task";
+import { useRemindTask } from "@/hooks/task";
+import { toast } from "sonner";
 
 const getDateDistance = (date: string) => {
   const dueDate = new Date(date);
@@ -93,6 +96,9 @@ export function TaskDetailSheet({
       name: task?.created_by || "",
       disabled: !task?.created_by,
     });
+
+  const { mutateAsync: remindTask } = useRemindTask();
+  const { mutateAsync: escalateTask } = useEscalateTask();
 
   // Add this effect to check if description is overflowing
   useEffect(() => {
@@ -201,14 +207,20 @@ export function TaskDetailSheet({
                       <Button
                         variant="ghost"
                         className="justify-start"
-                        onClick={() => console.log("remind")}
+                        onClick={async () => {
+                          await remindTask(taskId!);
+                          toast.success("Reminder sent successfully");
+                        }}
                       >
                         Remind
                       </Button>
                       <Button
                         variant="ghost"
                         className="justify-start"
-                        onClick={() => console.log("escalate")}
+                        onClick={async () => {
+                          await escalateTask(taskId!);
+                          toast.success("Escalation sent successfully");
+                        }}
                       >
                         Escalate
                       </Button>
