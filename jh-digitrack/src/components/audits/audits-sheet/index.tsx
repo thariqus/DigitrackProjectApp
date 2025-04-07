@@ -35,7 +35,6 @@ import { useFilesUpload, useFileRemove } from "@/hooks/file";
 import { toast } from "sonner";
 import type { JHBusinessMaster } from "@/types/JHDigitrack/JHBusinessMaster";
 import type { JHDivisionMaster } from "@/types/JHDigitrack/JHDivisionMaster";
-import { cn } from "@/lib/utils";
 import { useCurrentJhUser, useCurrentUser } from "@/hooks/auth";
 import type { Attachment } from "@/types/doc";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -82,14 +81,12 @@ export function AuditSheet({
       business: z.string().optional(),
       division: z.string().optional(),
       start_date: z.string().optional(),
-      completion_date: z.string().optional(),
       file_name: z.string().optional(),
       folder_name: z.string().optional(),
     })
     .transform((arg) => ({
       ...arg,
       start_date: format(arg.start_date!, "yyyy-MM-dd"),
-      completion_date: format(arg.completion_date!, "yyyy-MM-dd"),
     }));
 
   /**
@@ -158,7 +155,6 @@ export function AuditSheet({
       business: "",
       division: "",
       start_date: format(new Date(), "yyyy-MM-dd"),
-      completion_date: format(new Date(), "yyyy-MM-dd"),
       file_name: "",
       folder_name: "",
     }),
@@ -226,8 +222,6 @@ export function AuditSheet({
         business: audit.business || "",
         division: audit.division || "",
         start_date: audit.start_date || format(new Date(), "yyyy-MM-dd"),
-        completion_date:
-          audit.completion_date || format(new Date(), "yyyy-MM-dd"),
         file_name: audit.file_name || "",
         folder_name: audit.folder_name || "",
       });
@@ -847,57 +841,6 @@ export function AuditSheet({
                     </p>
                   )}
                 </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {isEdit && (
-                  <div className="space-y-2">
-                    <Label htmlFor="completion_date">Completion Date</Label>
-                    <Controller
-                      name="completion_date"
-                      control={control}
-                      render={({ field }) => (
-                        <input
-                          min={format(new Date(), "yyyy-MM-dd")}
-                          type="date"
-                          id="completion_date"
-                          disabled={isClosed}
-                          value={
-                            field.value
-                              ? format(new Date(field.value), "yyyy-MM-dd")
-                              : ""
-                          }
-                          onChange={(e) =>
-                            field.onChange(
-                              e.target.value
-                                ? format(new Date(e.target.value), "yyyy-MM-dd")
-                                : undefined
-                            )
-                          }
-                          className={cn(
-                            "pl-3 text-left font-normal w-full h-9 border rounded-sm",
-                            !field.value && "text-muted-foreground"
-                          )}
-                          aria-invalid={
-                            errors.completion_date ? "true" : "false"
-                          }
-                          aria-describedby={
-                            errors.completion_date
-                              ? "completion-date-error"
-                              : undefined
-                          }
-                        />
-                      )}
-                    />
-                    {errors.completion_date && (
-                      <p
-                        className="text-red-500 text-sm"
-                        id="completion-date-error"
-                      >
-                        {errors.completion_date.message}
-                      </p>
-                    )}
-                  </div>
-                )}
               </div>
 
               <div className="space-y-2 pb-10">
