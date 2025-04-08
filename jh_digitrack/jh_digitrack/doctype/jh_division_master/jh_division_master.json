@@ -9,7 +9,8 @@
  "field_order": [
   "division_id",
   "division_name",
-  "business"
+  "business",
+  "sap_reference_id"
  ],
  "fields": [
   {
@@ -28,11 +29,16 @@
    "fieldname": "division_name",
    "fieldtype": "Data",
    "label": "Division Name"
+  },
+  {
+   "fieldname": "sap_reference_id",
+   "fieldtype": "Data",
+   "label": "SAP Reference ID"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-03-15 13:42:00.817348",
+ "modified": "2025-04-08 12:51:21.037593",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Division Master",

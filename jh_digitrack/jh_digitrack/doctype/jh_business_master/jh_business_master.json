@@ -8,7 +8,8 @@
  "engine": "InnoDB",
  "field_order": [
   "business_id",
-  "business_name"
+  "business_name",
+  "sap_reference_id"
  ],
  "fields": [
   {
@@ -21,11 +22,16 @@
    "fieldname": "business_name",
    "fieldtype": "Data",
    "label": "Business Name"
+  },
+  {
+   "fieldname": "sap_reference_id",
+   "fieldtype": "Data",
+   "label": "SAP Reference ID"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-03-15 13:41:13.028788",
+ "modified": "2025-04-08 12:51:30.659719",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Business Master",
