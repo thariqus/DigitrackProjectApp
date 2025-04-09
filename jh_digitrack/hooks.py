@@ -139,13 +139,11 @@ after_migrate = "jh_digitrack.setup.create_jh_admin.run"
 # ---------------
 # Hook on document methods and events
 
-# doc_events = {
-# 	"*": {
-# 		"on_update": "method",
-# 		"on_cancel": "method",
-# 		"on_trash": "method"
-# 	}
-# }
+doc_events = {
+    "User": {
+        "before_save": "jh_digitrack.setup.user_events.before_save",
+    }
+}
 
 # Scheduled Tasks
 # ---------------
