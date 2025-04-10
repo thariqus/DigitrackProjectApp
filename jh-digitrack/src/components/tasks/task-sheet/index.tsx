@@ -326,14 +326,30 @@ export function TaskSheet({
   }, [isPrivate, currentJhUser, setValue, assignedTo]);
 
   useEffect(() => {
-    if (assignedTo) {
-      setValue("business_id", assigneeJhUser?.business, {
-        shouldValidate: true,
-      });
-      setValue("division_id", assigneeJhUser?.division, {
-        shouldValidate: true,
-      });
+    async function fetchAndSetBusinessAndDivision() {
+      if (assignedTo) {
+        const business_data = await frappeClient.db.getDoc(
+          "JH Business Master",
+          assigneeJhUser?.business
+        );
+        const division_data = await frappeClient.db.getDoc(
+          "JH Division Master",
+          assigneeJhUser?.division
+        );
+        setSearchState((prev) => ({
+          ...prev,
+          businessSearch: business_data?.business_name,
+          divisionSearch: division_data?.division_name,
+        }));
+        setValue("business_id", business_data?.name, {
+          shouldValidate: true,
+        });
+        setValue("division_id", division_data?.name, {
+          shouldValidate: true,
+        });
+      }
     }
+    fetchAndSetBusinessAndDivision();
   }, [assignedTo, assigneeJhUser, setValue]);
 
   // ==========================================
