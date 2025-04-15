@@ -60,23 +60,6 @@ export const AuditsTable = ({
 
   const totalPages = Math.ceil(totalAudits / auditsPerPage);
 
-  // Fetch tasks data with server-side filtering
-  // const { data: tasksWithoutfilters } = useDocs<JHAudits>({
-  //   doctype: "JH Audits",
-  //   fields: [
-  //     "created_by",
-  //     "created_by.full_name as created_by",
-  //     "created_by.name as created_by_id",
-  //   ],
-  //   orderBy: {
-  //     field: "`tabJH Tasks Master`.modified",
-  //     order: "desc",
-  //   },
-  //   filters: getFilters(true) as Filter<Task>[],
-  // });
-
-  // Delete task mutation
-
   const deleteDoc = useDeleteDoc();
 
   // Event handlers
@@ -88,8 +71,6 @@ export const AuditsTable = ({
   const handleRowClick = useCallback(
     (auditId: string) => {
       navigate(`/jh-digitrack/audits/${auditId}`);
-      // setSelectedAuditId(auditId);
-      // setIsTaskDetailOpen(true);
     },
     [navigate]
   );
@@ -114,7 +95,7 @@ export const AuditsTable = ({
 
     try {
       await deleteDoc.mutateAsync({
-        doctype: "JH Audits",
+        doctype: "JH Audit Master",
         name: taskToDelete,
       });
       toast.success("Audit deleted successfully");
@@ -129,15 +110,6 @@ export const AuditsTable = ({
     }
   }, [taskToDelete, deleteDoc, refetch]);
 
-  // Handle filters change from FilterButtonsWithComboboxes
-  // const handleFiltersChange = useCallback(
-  //   (filters: TaskFilter[]) => {
-  //     setActiveFilters(filters);
-  //     refetch();
-  //   },
-  //   [refetch]
-  // );
-
   // Handle search query change
   const handleSearchChange = useCallback(
     (value: string) => {
@@ -147,10 +119,6 @@ export const AuditsTable = ({
     [refetch]
   );
 
-  if (isLoading) {
-    return <div>Loading...</div>;
-  }
-
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -159,14 +127,8 @@ export const AuditsTable = ({
         )}
         {!hideCreateTask && <ActionButtons onCreateTask={handleCreateTask} />}
       </div>
-      {/* {!hideFilters && (
-          <FilterButtonsWithComboboxes
-            tasks={tasksWithoutfilters.length > 0 ? tasksWithoutfilters : []}
-            onFiltersChange={handleFiltersChange}
-          />
-        )} */}
 
-      {audits?.length && audits?.length > 0 ? (
+      {!isLoading && audits?.length && audits?.length > 0 ? (
         <div className="rounded-md border">
           <Table className="w-full table-fixed">
             <AuditsTableHeader />

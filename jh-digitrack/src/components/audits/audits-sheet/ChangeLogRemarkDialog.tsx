@@ -47,10 +47,10 @@ const ChangelogRemarkDialog = ({
     showCompletionDatePicker && setCompletionDate && completionDate;
 
   const { data: tasks, isLoading } = useDocs<Task>({
-    doctype: "JH Tasks Master",
+    doctype: "JH Task Master",
     fields: ["name", "status"],
     filters: [
-      ["source_doctype", "=", "JH Audits"],
+      ["source_doctype", "=", "JH Audit Master"],
       ["source", "=", auditId!],
       ["status", "!=", "Closed"],
     ],

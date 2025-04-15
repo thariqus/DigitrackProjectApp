@@ -1,13 +1,17 @@
-import { Clock } from "lucide-react";
+import MeetingsTable from "./meetings-table";
 
 function Meetings() {
   return (
-    <div className="flex flex-col items-center justify-center min-h-[calc(90vh-4rem)]">
-      <Clock className="w-16 h-16 text-primary mb-4" />
-      <h1 className="text-4xl font-bold text-gray-900 mb-2">Meetings</h1>
-      <p className="text-xl text-gray-600">
-        This feature is coming soon. Stay tuned!
-      </p>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          Meetings / Grouped Tasks
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Meetings / Grouped Tasks you and your team have created
+        </p>
+      </div>
+      <MeetingsTable />
     </div>
   );
 }

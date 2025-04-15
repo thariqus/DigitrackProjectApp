@@ -28,15 +28,15 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { JHTasksMaster } from "@/types/JHDigitrack/JHTasksMaster";
 import { useCurrentJhUser } from "@/hooks/auth";
+import { Task } from "@/types/tasks";
 
 export type TaskFilter = [string, string, string | string[] | null];
 
 interface FilterButtonsProps {
   onFiltersChange: (filters: TaskFilter[]) => void;
   showPrivateTaskToggle?: boolean;
-  tasks?: JHTasksMaster[];
+  tasks?: Task[];
   showCreatedByFilter?: boolean;
 }
 
@@ -47,7 +47,7 @@ export default function FilterButtonsWithComboboxes({
   showCreatedByFilter = false,
 }: FilterButtonsProps) {
   const { data: taskMeta, isLoading: isTaskMetaLoading } =
-    useDocTypeMeta("JH Tasks Master");
+    useDocTypeMeta("JH Task Master");
 
   const [assigneeSearch, setAssigneeSearch] = useState("");
 

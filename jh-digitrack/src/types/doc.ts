@@ -19,6 +19,7 @@ export interface Attachment {
   file_name: string;
   file_url: string;
   is_private: number;
+  location: string;
 }
 
 export interface DocPermissions {

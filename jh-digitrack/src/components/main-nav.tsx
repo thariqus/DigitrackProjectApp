@@ -60,6 +60,10 @@ export function MainNav() {
             <ClipboardCheck className="h-5 w-5" />
             <span>Audits</span>
           </Link>
+          <Link to="meetings" className={className(["meetings"])}>
+            <Calendar className="h-5 w-5" />
+            <span>Meetings</span>
+          </Link>
           <NavigationMenu>
             <NavigationMenuItem className="list-none">
               <NavigationMenuTrigger>
@@ -91,11 +95,6 @@ export function MainNav() {
               </NavigationMenuContent>
             </NavigationMenuItem>
           </NavigationMenu>
-
-          <Link to="meetings" className={className(["meetings"])}>
-            <Calendar className="h-5 w-5" />
-            <span>Meetings</span>
-          </Link>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="ml-4" aria-label="User profile">

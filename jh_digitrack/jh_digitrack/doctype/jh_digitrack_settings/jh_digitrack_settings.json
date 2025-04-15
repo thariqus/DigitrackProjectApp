@@ -1,0 +1,49 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-04-14 10:28:29.856283",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "send_scheduled_emails",
+  "send_welcome_emails"
+ ],
+ "fields": [
+  {
+   "default": "0",
+   "fieldname": "send_scheduled_emails",
+   "fieldtype": "Check",
+   "label": "Send scheduled emails"
+  },
+  {
+   "default": "0",
+   "fieldname": "send_welcome_emails",
+   "fieldtype": "Check",
+   "label": "Send welcome emails for new users"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2025-04-15 12:47:37.628308",
+ "modified_by": "Administrator",
+ "module": "JH Digitrack",
+ "name": "JH Digitrack Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

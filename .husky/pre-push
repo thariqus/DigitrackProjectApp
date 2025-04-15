@@ -1,0 +1,15 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Get the current branch name
+current_branch=$(git symbolic-ref --short HEAD)
+
+# Only run version update on develop branch
+if [ "$current_branch" = "develop" ]; then
+    yarn update-version
+    git add jh_digitrack/__init__.py
+    # Create a commit for the version change
+    git commit -m "chore: bump version" --no-verify
+else
+    echo "Not on develop branch, skipping version update"
+fi

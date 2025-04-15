@@ -39,7 +39,7 @@ def team_audits(
         filters["audit_name"] = ["like", f"%{search_query}%"]
 
     audit_list = frappe.db.get_list(
-        "JH Audits",
+        "JH Audit Master",
         filters=filters,
         fields=[
             "*",
@@ -51,7 +51,9 @@ def team_audits(
         page_length=page_size,
     )
 
-    total_audits = frappe.db.get_list("JH Audits", filters=filters, fields=["name"])
+    total_audits = frappe.db.get_list(
+        "JH Audit Master", filters=filters, fields=["name"]
+    )
 
     return {"data": audit_list, "total": len(total_audits)}
 
@@ -59,7 +61,7 @@ def team_audits(
 @frappe.whitelist()
 def add_remark(audit_id: str, comment: str, creator: str, type: str, remark: str):
 
-    task = frappe.get_doc("JH Audits", audit_id)
+    task = frappe.get_doc("JH Audit Master", audit_id)
 
     task.append(
         "changelog",
@@ -150,6 +152,7 @@ def create_audit_csv_string(audit, tasks):
             "Status",
             "Completed Date",
             "Effort (Hrs)",
+            "Assignee Comments",
         ]
     )
 
@@ -198,6 +201,7 @@ def create_audit_csv_string(audit, tasks):
                     else "-"
                 ),
                 task.get("effort", "-"),
+                clean_html(task.get("assignee_comments", "-")),
             ]
         )
 
@@ -221,7 +225,7 @@ def download_csv(audit_id: str):
     """
     # Get audit data
     audit = frappe.db.get_value(
-        "JH Audits",
+        "JH Audit Master",
         audit_id,
         [
             "*",
@@ -235,7 +239,7 @@ def download_csv(audit_id: str):
 
     # Get tasks data
     tasks = frappe.db.get_list(
-        "JH Tasks Master",
+        "JH Task Master",
         filters={"source": audit_id},
         fields=[
             "*",

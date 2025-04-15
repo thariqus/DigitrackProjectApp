@@ -4,12 +4,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useCurrentJhUser, useJhUser } from "@/hooks/auth";
 import { useAddComment, useDocDetail, useDocTypeMeta } from "@/hooks/doc";
 import { useTaskChangeLog } from "@/hooks/task";
-import type { JHTasksMaster } from "@/types/JHDigitrack/JHTasksMaster";
 import { queryClient } from "@/utils/query-client";
 import { formatDistanceToNow } from "date-fns";
 import { MessageSquare, Send } from "lucide-react";
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Task } from "@/types/tasks";
 
 type TaskTimelineProps = {
   taskId: string;
@@ -21,14 +21,14 @@ export default function TaskTimeline({ taskId }: TaskTimelineProps) {
   const addCommentMutation = useAddComment();
 
   const { data: taskDetailed, isLoading: isLoadingTaskInfo } =
-    useDocDetail<JHTasksMaster>({
-      doctype: "JH Tasks Master",
+    useDocDetail<Task>({
+      doctype: "JH Task Master",
       name: taskId || "",
       disabled: !taskId,
     });
 
   const { data: taskMeta, isLoading: isTaskMetaLoading } =
-    useDocTypeMeta("JH Tasks Master");
+    useDocTypeMeta("JH Task Master");
 
   const { data: changelog = [], isLoading: isLoadingChangelog } =
     useTaskChangeLog(taskId);
@@ -102,7 +102,7 @@ export default function TaskTimeline({ taskId }: TaskTimelineProps) {
 
     addCommentMutation.mutate(
       {
-        reference_doctype: "JH Tasks Master",
+        reference_doctype: "JH Task Master",
         reference_name: taskId,
         content: comment,
         comment_by: currentJhUser?.full_name,
@@ -117,7 +117,7 @@ export default function TaskTimeline({ taskId }: TaskTimelineProps) {
               queryKey: [
                 "DocInfo",
                 {
-                  doctype: "JH Tasks Master",
+                  doctype: "JH Task Master",
                   name: taskId,
                 },
               ],

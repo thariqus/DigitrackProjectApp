@@ -19,7 +19,7 @@ def team_tasks(reporting_to: str):
     )
 
     tasks = frappe.db.get_list(
-        "JH Tasks Master",
+        "JH Task Master",
         filters={
             "assigned_to": ["in", [member.name for member in team_members]],
             "deleted_at": ["is", "not set"],
@@ -69,7 +69,7 @@ def team_tasks(reporting_to: str):
 @frappe.whitelist()
 def add_remark(task_id: str, comment: str, creator: str, type: str, remark: str):
 
-    task = frappe.get_doc("JH Tasks Master", task_id)
+    task = frappe.get_doc("JH Task Master", task_id)
 
     task.append(
         "changelog",
@@ -111,7 +111,7 @@ def should_send_email(date: datetime):
 def remind(task_id: str):
 
     task_list = frappe.db.get_list(
-        "JH Tasks Master",
+        "JH Task Master",
         filters={"name": task_id},
         fields=[
             "*",
@@ -138,7 +138,7 @@ def remind(task_id: str):
 
     current_jh_user = frappe.get_doc("JH User Master", {"email": frappe.session.user})
 
-    task_doc = frappe.get_doc("JH Tasks Master", task_id)
+    task_doc = frappe.get_doc("JH Task Master", task_id)
     task_doc.reminded_at = frappe.utils.now()
     task_doc.append(
         "changelog",
@@ -157,7 +157,7 @@ def remind(task_id: str):
 def escalate(task_id: str):
 
     task_list = frappe.db.get_list(
-        "JH Tasks Master",
+        "JH Task Master",
         filters={"name": task_id},
         fields=[
             "*",
@@ -189,7 +189,7 @@ def escalate(task_id: str):
 
     current_jh_user = frappe.get_doc("JH User Master", {"email": frappe.session.user})
 
-    task_doc = frappe.get_doc("JH Tasks Master", task_id)
+    task_doc = frappe.get_doc("JH Task Master", task_id)
     task_doc.reminded_at = frappe.utils.now()
     task_doc.append(
         "changelog",
@@ -227,8 +227,14 @@ def scheduled_emails():
 
     Optimized for scalability with large datasets.
     """
-    # Define DocType for JH Tasks Master
-    tasks = frappe.qb.DocType("JH Tasks Master")
+
+    jh_digitrack_settings = frappe.get_doc("JH Digitrack Settings")
+
+    if not jh_digitrack_settings.send_scheduled_emails:
+        return "Scheduled emails are disabled"
+
+    # Define DocType for JH Task Master
+    tasks = frappe.qb.DocType("JH Task Master")
     assigned_to = frappe.qb.DocType("JH User Master").as_("assigned_to")
     creator = frappe.qb.DocType("JH User Master").as_("creator")
 
@@ -351,3 +357,4 @@ def scheduled_emails():
                     subject="DigiTrack: Task List - Pending / Upcoming ",
                     message=generate_task_reminder_email(tasks=tasks, type="scheduled"),
                 )
+    return "Scheduled emails sent successfully"

@@ -7,7 +7,7 @@ import { useDocs } from "@/hooks/doc";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const formatDueDate = (dueDate?: string) => {
-  return dueDate ? format(new Date(dueDate), "MMM dd, yyyy") : "No due date";
+  return dueDate ? format(new Date(dueDate), "MMM dd, yyyy") : "No Start Date";
 };
 
 export interface AuditRowProps {
@@ -35,11 +35,11 @@ export const AuditRow = ({
   const formattedDueDate = formatDueDate(audit.start_date);
 
   const { data: taskCounter, isLoading: isLoadingTaskCounter } = useDocs({
-    doctype: "JH Tasks Master",
+    doctype: "JH Task Master",
     fields: ["name"],
     limit: 100,
     filters: [
-      ["source_doctype", "=", "JH Audits"],
+      ["source_doctype", "=", "JH Audit Master"],
       ["source", "=", audit.name],
     ],
   });

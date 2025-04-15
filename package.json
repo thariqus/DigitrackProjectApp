@@ -7,9 +7,14 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "postinstall": "cd jh-digitrack && yarn install",
     "dev": "cd jh-digitrack && yarn dev",
-    "build": "cd jh-digitrack && yarn build"
+    "build": "cd jh-digitrack && yarn build",
+    "prepare": "husky install && chmod +x .husky/*",
+    "update-version": "node scripts/update-version.js"
   },
   "keywords": [],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "husky": "^8.0.0"
+  }
 }

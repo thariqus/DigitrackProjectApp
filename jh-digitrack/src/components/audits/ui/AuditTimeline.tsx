@@ -4,12 +4,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useCurrentJhUser, useJhUser } from "@/hooks/auth";
 import { useAddComment, useDocDetail, useDocTypeMeta } from "@/hooks/doc";
 import { useTaskChangeLog } from "@/hooks/task";
-import type { JHTasksMaster } from "@/types/JHDigitrack/JHTasksMaster";
 import { queryClient } from "@/utils/query-client";
 import { formatDistanceToNow } from "date-fns";
 import { MessageSquare, Send } from "lucide-react";
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Task } from "@/types/tasks";
 
 type AuditTimelineProps = {
   auditId: string;
@@ -21,14 +21,14 @@ export default function AuditTimeline({ auditId }: AuditTimelineProps) {
   const addCommentMutation = useAddComment();
 
   const { data: taskDetailed, isLoading: isLoadingTaskInfo } =
-    useDocDetail<JHTasksMaster>({
-      doctype: "JH Tasks Master",
+    useDocDetail<Task>({
+      doctype: "JH Task Master",
       name: auditId || "",
       disabled: !auditId,
     });
 
   const { data: taskMeta, isLoading: isTaskMetaLoading } =
-    useDocTypeMeta("JH Tasks Master");
+    useDocTypeMeta("JH Task Master");
 
   const { data: changelog = [], isLoading: isLoadingChangelog } =
     useTaskChangeLog(auditId);
@@ -96,7 +96,7 @@ export default function AuditTimeline({ auditId }: AuditTimelineProps) {
 
     addCommentMutation.mutate(
       {
-        reference_doctype: "JH Audits",
+        reference_doctype: "JH Audit Master",
         reference_name: auditId,
         content: comment,
         comment_by: currentJhUser?.full_name,
@@ -111,7 +111,7 @@ export default function AuditTimeline({ auditId }: AuditTimelineProps) {
               queryKey: [
                 "DocInfo",
                 {
-                  doctype: "JH Audits",
+                  doctype: "JH Audit Master",
                   name: auditId,
                 },
               ],

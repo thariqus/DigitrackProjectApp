@@ -1,7 +1,14 @@
-import type { JHTasksMaster } from "./JHDigitrack/JHTasksMaster";
+import type { JHTaskMaster } from "./JHDigitrack/JHTaskMaster";
 
 // Re-export the JHTasksMaster type as Task for better naming
-export type Task = JHTasksMaster;
+export type Task = JHTaskMaster & {
+  "assigned_to.full_name as assigned_to": string;
+  "assigned_to.name as assigned_to_id": string;
+  "created_by.full_name as created_by": string;
+  "created_by.name as created_by_id": string;
+  assigned_to_id: string;
+  created_by_id: string;
+};
 
 // Status types with consistent naming
 export type TaskStatus =

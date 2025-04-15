@@ -49,7 +49,7 @@ export function AuditDetailSheet({
 
   const { data: auditDetails, isLoading: isLoadingAuditInfo } =
     useDocDetail<JHAudits>({
-      doctype: "JH Audits",
+      doctype: "JH Audit Master",
       name: auditId || "",
       disabled: !auditId,
     });
@@ -79,8 +79,8 @@ export function AuditDetailSheet({
 
   // Add this effect to check if description is overflowing
   useEffect(() => {
-    if (descriptionRef.current) {
-      const isOverflowing = descriptionRef.current.scrollHeight > 200; // 200px height limit
+    if (audit?.audit_description) {
+      const isOverflowing = audit?.audit_description.length > 350;
       setIsDescriptionOverflowing(isOverflowing);
     }
   }, [audit?.audit_description]);

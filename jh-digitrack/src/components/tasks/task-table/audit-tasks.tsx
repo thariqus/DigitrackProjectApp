@@ -24,7 +24,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Download, Eye } from "lucide-react";
 import { AuditDetailSheet } from "@/components/audits/audits-detail-sheet";
 
-export const TaskTable = () => {
+export const AuditTasks = () => {
   const { auditId } = useParams();
   // State management
   const [searchQuery, setSearchQuery] = useState("");
@@ -59,7 +59,7 @@ export const TaskTable = () => {
   // Fetch tasks data with server-side filtering
 
   const { data: audit } = useDoc<JHAudits>({
-    doctype: "JH Audits",
+    doctype: "JH Audit Master",
     name: auditId!,
   });
 
@@ -68,7 +68,7 @@ export const TaskTable = () => {
     isLoading,
     refetch,
   } = useDocs<Task>({
-    doctype: "JH Tasks Master",
+    doctype: "JH Task Master",
     fields: [
       "name",
       "task_name",
@@ -89,24 +89,24 @@ export const TaskTable = () => {
       "deleted_at",
     ],
     orderBy: {
-      field: "`tabJH Tasks Master`.modified",
+      field: "`tabJH Task Master`.modified",
       order: "desc",
     },
     limit: tasksPerPage,
     page: currentPage,
     filters: [
-      ["source_doctype", "=", "JH Audits"],
+      ["source_doctype", "=", "JH Audit Master"],
       ["source", "=", auditId!],
       ...(getFilters() as Filter<Task>[]),
     ],
   });
 
   const { data: taskCounter } = useDocs<Task>({
-    doctype: "JH Tasks Master",
+    doctype: "JH Task Master",
     fields: ["name"],
     limit: 100,
     filters: [
-      ["source_doctype", "=", "JH Audits"],
+      ["source_doctype", "=", "JH Audit Master"],
       ["source", "=", auditId!],
       ...(getFilters() as Filter<Task>[]),
     ],
@@ -116,7 +116,7 @@ export const TaskTable = () => {
 
   // Fetch tasks data with server-side filtering
   const { data: tasksWithoutfilters } = useDocs<Task>({
-    doctype: "JH Tasks Master",
+    doctype: "JH Task Master",
     fields: [
       "assigned_to",
       "assigned_to.full_name as assigned_to",
@@ -126,11 +126,11 @@ export const TaskTable = () => {
       "created_by.name as created_by_id",
     ],
     orderBy: {
-      field: "`tabJH Tasks Master`.modified",
+      field: "`tabJH Task Master`.modified",
       order: "desc",
     },
     filters: [
-      ["source_doctype", "=", "JH Audits"],
+      ["source_doctype", "=", "JH Audit Master"],
       ["source", "=", auditId!],
       ...(getFilters(true) as Filter<Task>[]),
     ],
@@ -171,7 +171,7 @@ export const TaskTable = () => {
 
     try {
       await updateDoc.mutateAsync({
-        doctype: "JH Tasks Master",
+        doctype: "JH Task Master",
         name: taskToDelete,
         doc: {
           deleted_at: format(new Date(), "yyyy-MM-dd"),
@@ -298,7 +298,7 @@ export const TaskTable = () => {
           onOpenChange={setIsCreateTaskOpen}
           taskId={selectedTaskId}
           source={auditId}
-          sourceDocType="JH Audits"
+          sourceDocType="JH Audit Master"
         />
 
         {/* Task detail sheet */}
@@ -330,4 +330,4 @@ export const TaskTable = () => {
   );
 };
 
-export default TaskTable;
+export default AuditTasks;

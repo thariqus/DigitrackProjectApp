@@ -133,7 +133,7 @@ export function AuditSheet({
     isLoading: isAuditLoading,
     refetch: refetchAuditDetails,
   } = useDocDetail<JHAudits>({
-    doctype: "JH Audits",
+    doctype: "JH Audit Master",
     name: auditId || "",
     disabled: !auditId,
   });
@@ -270,7 +270,7 @@ export function AuditSheet({
         // Create document object
         const doc = {
           ...data,
-          doctype: "JH Audits",
+          doctype: "JH Audit Master",
           ...(auditId && { name: auditId }),
         };
 
@@ -280,7 +280,7 @@ export function AuditSheet({
           await updateDoc.mutateAsync({
             doc,
             name: auditId,
-            doctype: "JH Audits",
+            doctype: "JH Audit Master",
           });
         } else {
           const savedAudit = await saveDoc.mutateAsync({
@@ -295,7 +295,7 @@ export function AuditSheet({
           await uploadFiles.mutateAsync({
             files: fileState.files,
             docname: savedAuditName,
-            doctype: "JH Audits",
+            doctype: "JH Audit Master",
             onProgress: (progress) =>
               console.log(`Upload progress: ${progress}%`),
             onComplete: (status) => {
@@ -324,7 +324,7 @@ export function AuditSheet({
           queryKey: [
             "DocInfo",
             {
-              doctype: "JH Audits",
+              doctype: "JH Audit Master",
               name: auditId,
             },
           ],
@@ -470,7 +470,7 @@ export function AuditSheet({
         const updatedAudit = {
           ...audit,
           status: newStatus,
-          doctype: "JH Audits",
+          doctype: "JH Audit Master",
         };
 
         if (newStatus === "Completed") {
@@ -552,7 +552,7 @@ export function AuditSheet({
       try {
         await fileRemove.mutateAsync({
           fid: file.name,
-          dt: "JH Audits",
+          dt: "JH Audit Master",
           dn: auditId,
         });
 
@@ -566,7 +566,7 @@ export function AuditSheet({
           queryKey: [
             "DocInfo",
             {
-              doctype: "JH Audits",
+              doctype: "JH Audit Master",
               name: auditId,
             },
           ],

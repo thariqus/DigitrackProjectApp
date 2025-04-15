@@ -2,7 +2,6 @@ import { Sheet, SheetClose, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Calendar, Edit, Mail, Trash2, XIcon } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
-import { JHTasksMaster } from "@/types/JHDigitrack/JHTasksMaster";
 import { useDoc, useDocDetail } from "@/hooks/doc";
 import { JHBusinessMaster } from "@/types/JHDigitrack/JHBusinessMaster";
 import { JHUserMaster } from "@/types/JHDigitrack/JHUserMaster";
@@ -20,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { useEscalateTask } from "@/hooks/task";
 import { useRemindTask } from "@/hooks/task";
 import { toast } from "sonner";
+import { Task } from "@/types/tasks";
 
 const getDateDistance = (date: string) => {
   const dueDate = new Date(date);
@@ -60,21 +60,26 @@ export function TaskDetailSheet({
   const [isDescriptionOverflowing, setIsDescriptionOverflowing] =
     useState(false);
 
+  const [showFullAssigneeComments, setShowFullAssigneeComments] =
+    useState(false);
+  const assigneeCommentsRef = useRef<HTMLDivElement>(null);
+  const [isAssigneeCommentsOverflowing, setIsAssigneeCommentsOverflowing] =
+    useState(false);
+
   const { data: taskDetailed, isLoading: isLoadingTaskInfo } =
-    useDocDetail<JHTasksMaster>({
-      doctype: "JH Tasks Master",
+    useDocDetail<Task>({
+      doctype: "JH Task Master",
       name: taskId || "",
       disabled: !taskId,
     });
 
   const task = taskDetailed?.docs[0];
 
-  const { data: taskAfter, isLoading: isLoadingTaskAfter } =
-    useDoc<JHTasksMaster>({
-      doctype: "JH Tasks Master",
-      name: task?.start_after || "",
-      disabled: !task?.start_after,
-    });
+  const { data: taskAfter, isLoading: isLoadingTaskAfter } = useDoc<Task>({
+    doctype: "JH Task Master",
+    name: task?.start_after || "",
+    disabled: !task?.start_after,
+  });
 
   const { data: business, isLoading: isLoadingBusiness } =
     useDoc<JHBusinessMaster>({
@@ -102,11 +107,24 @@ export function TaskDetailSheet({
 
   // Add this effect to check if description is overflowing
   useEffect(() => {
-    if (descriptionRef.current) {
-      const isOverflowing = descriptionRef.current.scrollHeight > 200; // 200px height limit
+    if (task?.description) {
+      const isOverflowing = task?.description.length > 350;
       setIsDescriptionOverflowing(isOverflowing);
     }
   }, [task?.description]);
+
+  useEffect(() => {
+    const checkCommentsOverflow = () => {
+      if (assigneeCommentsRef.current) {
+        const isOverflowing = assigneeCommentsRef.current.scrollHeight > 200; // 200px height limit
+        setIsAssigneeCommentsOverflowing(isOverflowing);
+      }
+    };
+
+    // Add a small delay to ensure the ref is attached and content is rendered
+    const timer = setTimeout(checkCommentsOverflow, 100);
+    return () => clearTimeout(timer);
+  }, [task?.assignee_comments]);
 
   const handleEdit = () => {
     if (taskId && onEdit) onEdit(taskId);
@@ -396,6 +414,41 @@ export function TaskDetailSheet({
                     onClick={() => setShowFullDescription(!showFullDescription)}
                   >
                     {showFullDescription ? "Show less" : "See full description"}
+                  </Button>
+                )}
+              </div>
+              <div className="text-sm text-gray-500">Assignee Comments</div>
+              <div>
+                {isLoading ? (
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-[90%]" />
+                    <Skeleton className="h-4 w-[80%]" />
+                  </div>
+                ) : (
+                  <div
+                    ref={assigneeCommentsRef}
+                    className={`bg-gray-50 p-4 rounded-md ${
+                      !showFullAssigneeComments
+                        ? "max-h-[200px] overflow-hidden"
+                        : ""
+                    }`}
+                    dangerouslySetInnerHTML={{
+                      __html: task?.assignee_comments || "",
+                    }}
+                  />
+                )}
+                {isAssigneeCommentsOverflowing && (
+                  <Button
+                    variant="ghost"
+                    className="text-gray-500 mt-2 h-auto p-0 text-sm"
+                    onClick={() =>
+                      setShowFullAssigneeComments(!showFullAssigneeComments)
+                    }
+                  >
+                    {showFullAssigneeComments
+                      ? "Show less"
+                      : "See full assignee comments"}
                   </Button>
                 )}
               </div>

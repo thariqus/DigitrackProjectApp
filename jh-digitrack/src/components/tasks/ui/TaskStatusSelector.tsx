@@ -29,7 +29,7 @@ export function TaskStatusSelector({
   handleStatusChange,
 }: TaskStatusSelectorProps) {
   const { data: taskMetadata, isLoading: isTaskMetadataLoading } =
-    useDocTypeMeta("JH Tasks Master");
+    useDocTypeMeta("JH Task Master");
   const { data: currentUser, isLoading: isCurrentUserLoading } =
     useCurrentUser();
 

@@ -1,3 +1,5 @@
+from . import __version__ as app_version
+
 app_name = "jh_digitrack"
 app_title = "JH Digitrack"
 app_publisher = "Bytsolv"

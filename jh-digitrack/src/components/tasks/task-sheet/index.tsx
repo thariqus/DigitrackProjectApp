@@ -34,7 +34,6 @@ import {
   type DocFilters,
 } from "@/hooks/doc";
 import { useFilesUpload, useFileRemove } from "@/hooks/file";
-import type { JHTasksMaster } from "@/types/JHDigitrack/JHTasksMaster";
 import { toast } from "sonner";
 import type { JHBusinessMaster } from "@/types/JHDigitrack/JHBusinessMaster";
 import type { JHDivisionMaster } from "@/types/JHDigitrack/JHDivisionMaster";
@@ -52,6 +51,8 @@ import ChangelogRemarkDialog from "./ChangeLogRemarkDialog";
 import FileAttachmentHandler from "./FileAttachmentHandler";
 import frappeClient from "@/utils/frappe-client";
 import { JHAudits } from "@/types/JHDigitrack/JHAudits";
+import { JHGroupedTaskMaster } from "@/types/JHDigitrack/JHGroupedTaskMaster";
+import { Task } from "@/types/tasks";
 
 // ==========================================
 // COMPONENT PROPS INTERFACE
@@ -62,7 +63,10 @@ interface TaskSheetProps {
   onOpenChange: (open: boolean) => void;
   refetch?: () => Promise<unknown>;
   source?: string;
-  sourceDocType?: "JH Audits" | "JH TS Projects";
+  sourceDocType?:
+    | "JH Audit Master"
+    | "JH TS Projects"
+    | "JH Grouped Task Master";
 }
 
 export function TaskSheet({
@@ -122,6 +126,7 @@ export function TaskSheet({
         }
       ),
       description: z.string().optional(),
+      assignee_comments: z.string().optional(),
     })
     .transform((arg) => ({
       ...arg,
@@ -151,7 +156,7 @@ export function TaskSheet({
   const [changelogState, setChangelogState] = useState({
     dialogOpen: false,
     type: null as "Status Change" | "Reassign" | null,
-    pendingStatus: null as JHTasksMaster["status"] | null,
+    pendingStatus: null as Task["status"] | null,
     comment: "",
     completionDate: format(new Date(), "yyyy-MM-dd"),
   });
@@ -173,8 +178,8 @@ export function TaskSheet({
     data: taskDetails,
     isLoading: isTaskLoading,
     refetch: refetchTaskDetails,
-  } = useDocDetail<JHTasksMaster>({
-    doctype: "JH Tasks Master",
+  } = useDocDetail<Task>({
+    doctype: "JH Task Master",
     name: taskId || "",
     disabled: !taskId,
   });
@@ -187,7 +192,10 @@ export function TaskSheet({
   const isClosed = task?.status === "Closed";
   const isDeleted = Boolean(task?.deleted_at);
   const isOwner = task?.owner === currentUser;
-  const showStartAfter = source && sourceDocType === "JH Audits";
+  const showStartAfter =
+    source &&
+    (sourceDocType === "JH Audit Master" ||
+      sourceDocType === "JH Grouped Task Master");
 
   // Function to get default form values - memoized to avoid unnecessary recalculations
   const getDefaultValues = useCallback(
@@ -200,6 +208,7 @@ export function TaskSheet({
       assigned_to: "",
       due_date: format(new Date(), "yyyy-MM-dd"), // Format as string to match schema
       description: "",
+      assignee_comments: "",
       effort: "",
       revised_due_date: format(new Date(), "yyyy-MM-dd"),
     }),
@@ -270,6 +279,7 @@ export function TaskSheet({
         assigned_to: task.assigned_to || "",
         due_date: task.due_date || format(new Date(), "yyyy-MM-dd"),
         description: task.description || "",
+        assignee_comments: task.assignee_comments || "",
         effort: task.effort || "",
         revised_due_date:
           task.revised_due_date || format(new Date(), "yyyy-MM-dd"),
@@ -314,10 +324,19 @@ export function TaskSheet({
   });
 
   const { data: audit } = useDoc<JHAudits>({
-    doctype: "JH Audits",
+    doctype: "JH Audit Master",
     name: task?.source ?? source ?? "",
-    disabled: !task?.source && !source,
+    disabled: (!task?.source && !source) || sourceDocType !== "JH Audit Master",
   });
+
+  const { data: groupedTask } = useDoc<JHGroupedTaskMaster>({
+    doctype: "JH Grouped Task Master",
+    name: task?.source ?? source ?? "",
+    disabled:
+      (!task?.source && !source) || sourceDocType !== "JH Grouped Task Master",
+  });
+
+  const sourceData = audit || groupedTask;
 
   useEffect(() => {
     if (isPrivate && currentJhUser?.name) {
@@ -368,7 +387,7 @@ export function TaskSheet({
         // Create document object
         const doc = {
           ...data,
-          doctype: "JH Tasks Master",
+          doctype: "JH Task Master",
           ...(taskId && { name: taskId }),
         };
 
@@ -378,7 +397,7 @@ export function TaskSheet({
           await updateDoc.mutateAsync({
             doc,
             name: taskId,
-            doctype: "JH Tasks Master",
+            doctype: "JH Task Master",
           });
         } else {
           const savedTask = await saveDoc.mutateAsync({
@@ -395,7 +414,7 @@ export function TaskSheet({
           await uploadFiles.mutateAsync({
             files: fileState.files,
             docname: savedTaskName,
-            doctype: "JH Tasks Master",
+            doctype: "JH Task Master",
             onProgress: (progress) =>
               console.log(`Upload progress: ${progress}%`),
             onComplete: (status) => {
@@ -421,7 +440,7 @@ export function TaskSheet({
           queryKey: [
             "DocInfo",
             {
-              doctype: "JH Tasks Master",
+              doctype: "JH Task Master",
               name: taskId,
             },
           ],
@@ -497,18 +516,15 @@ export function TaskSheet({
   // STATUS MANAGEMENT FUNCTIONS
   // ==========================================
   // Function to open the dialog and store the pending status
-  const openStatusChangeDialog = useCallback(
-    (newStatus: JHTasksMaster["status"]) => {
-      setChangelogState({
-        dialogOpen: true,
-        type: "Status Change",
-        pendingStatus: newStatus,
-        comment: "",
-        completionDate: format(new Date(), "yyyy-MM-dd"),
-      });
-    },
-    []
-  );
+  const openStatusChangeDialog = useCallback((newStatus: Task["status"]) => {
+    setChangelogState({
+      dialogOpen: true,
+      type: "Status Change",
+      pendingStatus: newStatus,
+      comment: "",
+      completionDate: format(new Date(), "yyyy-MM-dd"),
+    });
+  }, []);
 
   // ==========================================
   // DATA FILTERING & QUERYING
@@ -594,8 +610,8 @@ export function TaskSheet({
     });
 
   const { data: startAfterTasks = [], isLoading: isStartAfterLoading } =
-    useDocs<JHTasksMaster>({
-      doctype: "JH Tasks Master",
+    useDocs<Task>({
+      doctype: "JH Task Master",
       fields: ["name", "task_name", "serial_number"],
       filters: [
         ["source_doctype", "=", sourceDocType!],
@@ -626,14 +642,14 @@ export function TaskSheet({
   // STATUS CHANGE HANDLERS
   // ==========================================
   const handleStatusChange = useCallback(
-    async (newStatus: JHTasksMaster["status"]) => {
+    async (newStatus: Task["status"]) => {
       if (!task) return;
 
       try {
         const updatedTask = {
           ...task,
           status: newStatus,
-          doctype: "JH Tasks Master",
+          doctype: "JH Task Master",
         };
 
         if (newStatus === "Completed") {
@@ -780,7 +796,7 @@ export function TaskSheet({
       try {
         await fileRemove.mutateAsync({
           fid: file.name,
-          dt: "JH Tasks Master",
+          dt: "JH Task Master",
           dn: taskId,
         });
 
@@ -794,7 +810,7 @@ export function TaskSheet({
           queryKey: [
             "DocInfo",
             {
-              doctype: "JH Tasks Master",
+              doctype: "JH Task Master",
               name: taskId,
             },
           ],
@@ -880,10 +896,15 @@ export function TaskSheet({
           </Alert>
         )}
 
-        {sourceDocType === "JH Audits" && (
+        {["JH Audit Master", "JH Grouped Task Master"].includes(
+          sourceDocType!
+        ) && (
           <div className="space-y-2">
             <span>
-              <b>{audit?.name}</b>: {audit?.audit_name}
+              <b>{sourceData?.name}</b>:{" "}
+              {sourceDocType === "JH Audit Master"
+                ? (sourceData as JHAudits)?.audit_name
+                : (sourceData as JHGroupedTaskMaster)?.title}
             </span>
           </div>
         )}
@@ -898,7 +919,7 @@ export function TaskSheet({
                   <TaskStatusSelector
                     task={task!}
                     handleStatusChange={(value) =>
-                      openStatusChangeDialog(value as JHTasksMaster["status"])
+                      openStatusChangeDialog(value as Task["status"])
                     }
                   />
                 ) : null}
@@ -1296,6 +1317,31 @@ export function TaskSheet({
                   </p>
                 )}
               </div>
+              {isEdit && (
+                <div className="space-y-2 pb-10">
+                  <Label htmlFor="assignee_comments">Assignee Comments</Label>
+                  <Controller
+                    name="assignee_comments"
+                    control={control}
+                    render={({ field }) => (
+                      <ReactQuill
+                        readOnly={isOwner}
+                        id="assignee_comments"
+                        className="h-[150px] max-h-[150px]"
+                        placeholder="Enter assignee comments"
+                        theme="snow"
+                        value={field.value || ""}
+                        onChange={field.onChange}
+                      />
+                    )}
+                  />
+                  {errors.assignee_comments && (
+                    <p className="text-red-500 text-sm">
+                      {errors.assignee_comments.message}
+                    </p>
+                  )}
+                </div>
+              )}
               <div className="space-y-2 pb-28">
                 <FileAttachmentHandler
                   existingFiles={fileState.existingFiles}

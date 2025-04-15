@@ -1,11 +1,10 @@
 import { TableCell, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
-import { TaskRowProps } from "@/types/tasks";
+import { Task, TaskRowProps } from "@/types/tasks";
 import { StatusBadge } from "./StatusBadge";
 import { TaskActions } from "./TaskActions";
 import { Link } from "react-router";
 import { useDocDetail } from "@/hooks/doc";
-import { JHTasksMaster } from "@/types/JHDigitrack/JHTasksMaster";
 
 const formatDueDate = (dueDate?: string) => {
   return dueDate ? format(new Date(dueDate), "MMM dd, yyyy") : "No due date";
@@ -24,8 +23,8 @@ export const TaskRow = ({
 }: TaskRowProps) => {
   const formattedDueDate = formatDueDate(task.due_date);
 
-  const { data: taskDetails } = useDocDetail<JHTasksMaster>({
-    doctype: "JH Tasks Master",
+  const { data: taskDetails } = useDocDetail<Task>({
+    doctype: "JH Task Master",
     name: task.name || "",
     disabled: !task.name,
   });
@@ -37,15 +36,25 @@ export const TaskRow = ({
   const isInRecycleBin = Boolean(task.deleted_at);
 
   let taskName = <span>{task.task_name}</span>;
+  const sourceDocType = task.source_doctype;
+  const sourceName = task.source;
+  let to = "";
+
+  if (sourceDocType === "JH Audit Master") {
+    to = `/jh-digitrack/audits/${sourceName}`;
+  } else if (sourceDocType === "JH Grouped Task Master") {
+    to = `/jh-digitrack/meetings/${sourceName}`;
+  }
+
   if (task.source) {
     taskName = (
-      <div>
-        <Link className="underline" to={`/jh-digitrack/audits/${task.source}`}>
+      <div className="flex flex-col gap-1">
+        <span>{task.task_name}</span>
+        <Link className="underline font-normal text-xs text-gray-500" to={to}>
           {`${task.source}${
             task.serial_number ? "#" + task.serial_number : ""
           }`}
-        </Link>{" "}
-        | <span>{task.task_name}</span>
+        </Link>
       </div>
     );
   }

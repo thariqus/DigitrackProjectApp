@@ -31,7 +31,7 @@ export const AuditActions = ({
         deleted_at: null,
       },
       name: taskId,
-      doctype: "JH Tasks Master",
+      doctype: "JH Task Master",
     });
 
     await queryClient.invalidateQueries({

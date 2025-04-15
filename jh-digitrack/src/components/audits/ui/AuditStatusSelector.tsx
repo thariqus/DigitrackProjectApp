@@ -26,7 +26,7 @@ export function AuditStatusSelector({
   handleStatusChange,
 }: AuditStatusSelectorProps) {
   const { data: auditMetadata, isLoading: isAuditMetadataLoading } =
-    useDocTypeMeta("JH Audits");
+    useDocTypeMeta("JH Audit Master");
   const { data: currentUser, isLoading: isCurrentUserLoading } =
     useCurrentUser();
 

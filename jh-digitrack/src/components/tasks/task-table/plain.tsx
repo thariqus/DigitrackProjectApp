@@ -59,7 +59,7 @@ export const TaskTable = ({
     isLoading,
     refetch,
   } = useDocs<Task>({
-    doctype: "JH Tasks Master",
+    doctype: "JH Task Master",
     fields: [
       "name",
       "task_name",
@@ -81,7 +81,7 @@ export const TaskTable = ({
       "deleted_at",
     ],
     orderBy: {
-      field: "`tabJH Tasks Master`.modified",
+      field: "`tabJH Task Master`.modified",
       order: "desc",
     },
     limit: tasksPerPage,
@@ -90,7 +90,7 @@ export const TaskTable = ({
   });
 
   const { data: taskCounter } = useDocs<Task>({
-    doctype: "JH Tasks Master",
+    doctype: "JH Task Master",
     fields: ["name"],
     limit: 100,
     filters: getFilters() as Filter<Task>[],
@@ -100,7 +100,7 @@ export const TaskTable = ({
 
   // Fetch tasks data with server-side filtering
   const { data: tasksWithoutfilters } = useDocs<Task>({
-    doctype: "JH Tasks Master",
+    doctype: "JH Task Master",
     fields: [
       "assigned_to",
       "assigned_to.full_name as assigned_to",
@@ -110,7 +110,7 @@ export const TaskTable = ({
       "created_by.name as created_by_id",
     ],
     orderBy: {
-      field: "`tabJH Tasks Master`.modified",
+      field: "`tabJH Task Master`.modified",
       order: "desc",
     },
     filters: getFilters(true) as Filter<Task>[],
@@ -151,7 +151,7 @@ export const TaskTable = ({
 
     try {
       await updateDoc.mutateAsync({
-        doctype: "JH Tasks Master",
+        doctype: "JH Task Master",
         name: taskToDelete,
         doc: {
           deleted_at: format(new Date(), "yyyy-MM-dd"),
@@ -256,7 +256,11 @@ export const TaskTable = ({
         source={tasks?.find((task) => task.name === selectedTaskId)?.source}
         sourceDocType={
           tasks?.find((task) => task.name === selectedTaskId)
-            ?.source_doctype as "JH Audits" | "JH TS Projects" | undefined
+            ?.source_doctype as
+            | "JH Audit Master"
+            | "JH TS Projects"
+            | "JH Grouped Task Master"
+            | undefined
         }
       />
 
