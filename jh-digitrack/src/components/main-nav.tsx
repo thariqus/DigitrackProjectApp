@@ -135,7 +135,12 @@ export function MainNav() {
                 <span>Log out</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <div className="p-2 text-xs text-center text-gray-400">
+              <div
+                className="p-2 text-xs text-center text-gray-400 cursor-default"
+                onClick={() => {
+                  navigator.clipboard.writeText(appVersion);
+                }}
+              >
                 <span className="font-semibold">Version: </span>
                 {appVersion}
               </div>
