@@ -17,16 +17,13 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { useCurrentJhUser, useLogout } from "@/hooks/auth";
-import {
-  NavigationMenuItem,
-  NavigationMenuTrigger,
-  NavigationMenuContent,
-  NavigationMenu,
-} from "./ui/navigation-menu";
+import { useAppVersion } from "@/hooks/system";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 
 export function MainNav() {
   const { pathname } = useLocation();
   const { data: currentJhUser } = useCurrentJhUser();
+  const { data: appVersion } = useAppVersion();
   const { mutate: logout } = useLogout();
 
   const className = (path: string[]) => {
@@ -64,37 +61,34 @@ export function MainNav() {
             <Calendar className="h-5 w-5" />
             <span>Meetings</span>
           </Link>
-          <NavigationMenu>
-            <NavigationMenuItem className="list-none">
-              <NavigationMenuTrigger>
-                <div className="flex items-center gap-2">
-                  <FolderOpenDot className="h-5 w-5" />
-                  Projects
-                </div>
-              </NavigationMenuTrigger>
-
-              <NavigationMenuContent>
-                <ul className="flex flex-col w-[200px] gap-3 p-4 sm:w-[250px] md:w-[300px]">
-                  <Link
-                    to="projects"
-                    className={cn(
-                      className(["projects"]),
-                      "opacity-50 pointer-events-none"
-                    )}
-                    aria-disabled="true"
-                  >
-                    <FolderKanban className="h-5 w-5" />
-                    <span className="flex items-center gap-2">
-                      TS Projects
-                      <span className="inline-flex items-center rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-800">
-                        Coming Soon
-                      </span>
+          <Popover>
+            <PopoverTrigger asChild>
+              <div className="flex items-center gap-2 hover:text-primary cursor-pointer">
+                <FolderOpenDot className="!size-5" />
+                Projects
+              </div>
+            </PopoverTrigger>
+            <PopoverContent className="w-[300px] p-0" align="end">
+              <div className="flex flex-col w-full gap-3 p-4">
+                <Link
+                  to="projects"
+                  className={cn(
+                    className(["projects"]),
+                    "opacity-50 pointer-events-none"
+                  )}
+                  aria-disabled="true"
+                >
+                  <FolderKanban className="h-5 w-5" />
+                  <span className="flex items-center gap-2">
+                    TS Projects
+                    <span className="inline-flex items-center rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-800">
+                      Coming Soon
                     </span>
-                  </Link>
-                </ul>
-              </NavigationMenuContent>
-            </NavigationMenuItem>
-          </NavigationMenu>
+                  </span>
+                </Link>
+              </div>
+            </PopoverContent>
+          </Popover>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="ml-4" aria-label="User profile">
@@ -125,11 +119,11 @@ export function MainNav() {
                   <span>Switch To Desk</span>
                 </DropdownMenuItem>
               ) : null}
-              <DropdownMenuItem asChild>
+              {/* <DropdownMenuItem asChild>
                 <Link to="/jh-digitrack/recycle-bin" className="w-full">
                   <span>Recycle Bin</span>
                 </Link>
-              </DropdownMenuItem>
+              </DropdownMenuItem> */}
               <DropdownMenuItem
                 onClick={() => {
                   window.location.href = "/me";
@@ -140,6 +134,11 @@ export function MainNav() {
               <DropdownMenuItem className="w-full" onClick={() => logout()}>
                 <span>Log out</span>
               </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <div className="p-2 text-xs text-center text-gray-400">
+                <span className="font-semibold">Version: </span>
+                {appVersion}
+              </div>
             </DropdownMenuContent>
           </DropdownMenu>
         </nav>

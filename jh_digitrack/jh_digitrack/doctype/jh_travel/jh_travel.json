@@ -1,0 +1,70 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-04-16 11:51:27.767286",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "source_city",
+  "destination_city",
+  "start_date",
+  "end_date",
+  "description"
+ ],
+ "fields": [
+  {
+   "fieldname": "source_city",
+   "fieldtype": "Data",
+   "label": "Source City"
+  },
+  {
+   "fieldname": "destination_city",
+   "fieldtype": "Data",
+   "label": "Destination City"
+  },
+  {
+   "fieldname": "start_date",
+   "fieldtype": "Date",
+   "label": "Start Date"
+  },
+  {
+   "fieldname": "end_date",
+   "fieldtype": "Date",
+   "label": "End Date"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Long Text",
+   "label": "Description"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [
+  {
+   "link_doctype": "JH Travel Request",
+   "link_fieldname": "travel"
+  }
+ ],
+ "modified": "2025-04-16 14:28:02.905917",
+ "modified_by": "Administrator",
+ "module": "JH Digitrack",
+ "name": "JH Travel",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

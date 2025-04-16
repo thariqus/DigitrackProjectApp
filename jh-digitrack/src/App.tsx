@@ -11,7 +11,7 @@ import Projects from "@/components/projects";
 import Meetings from "@/components/meetings";
 import Unauthorized from "./components/Unauthorized";
 import Audits from "./components/audits";
-import RecycleBin from "./components/recycle-bin";
+// import RecycleBin from "./components/recycle-bin";
 import AuditTasks from "./components/tasks/task-table/audit-tasks";
 import MeetingTasks from "./components/tasks/task-table/meeting-tasks";
 
@@ -37,8 +37,12 @@ function App() {
                 <Route path="meetings/:meetingId" element={<MeetingTasks />} />
                 <Route path="audits" element={<Audits />} />
                 <Route path="audits/:auditId" element={<AuditTasks />} />
-                <Route path="recycle-bin" element={<RecycleBin />} />
+                {/* <Route path="recycle-bin" element={<RecycleBin />} /> */}
               </Route>
+              <Route
+                path="*"
+                element={<Navigate to="/jh-digitrack/tasks" replace />}
+              />
             </Routes>
           </Suspense>
           <Toaster position="top-right" closeButton />
