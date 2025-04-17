@@ -48,7 +48,7 @@ const ChangelogRemarkDialog = ({
 
   const { data: tasks, isLoading } = useDocs<Task>({
     doctype: "JH Task Master",
-    fields: ["name", "status"],
+    fields: ["name", "status", "deleted_at"],
     filters: [
       ["source_doctype", "=", "JH Audit Master"],
       ["source", "=", auditId!],
@@ -56,7 +56,14 @@ const ChangelogRemarkDialog = ({
     ],
   });
 
-  const canCompleteTask = tasks?.length === 0;
+  const canCompleteTask =
+    tasks?.filter(
+      (t) =>
+        t.deleted_at === null ||
+        t.deleted_at === undefined ||
+        t.deleted_at === "" ||
+        !t.deleted_at
+    ).length === 0;
 
   if (isLoading) return <Skeleton className="w-full h-[100px]" />;
 

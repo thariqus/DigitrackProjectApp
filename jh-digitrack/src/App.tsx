@@ -2,6 +2,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/utils/query-client";
 import { Toaster } from "@/components/toaster";
 import { Navigate, Route, Routes, BrowserRouter } from "react-router";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { Suspense } from "react";
 import AuthProvider from "@/components/auth";
 import SplashScreen from "@/components/splash-screen";
@@ -48,6 +49,7 @@ function App() {
           <Toaster position="top-right" closeButton />
         </AuthProvider>
       </BrowserRouter>
+      <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   );
 }

@@ -612,7 +612,7 @@ export function TaskSheet({
   const { data: startAfterTasks = [], isLoading: isStartAfterLoading } =
     useDocs<Task>({
       doctype: "JH Task Master",
-      fields: ["name", "task_name", "serial_number"],
+      fields: ["name", "task_name", "serial_number", "deleted_at"],
       filters: [
         ["source_doctype", "=", sourceDocType!],
         ["source", "=", source!],
@@ -996,6 +996,13 @@ export function TaskSheet({
                       render={({ field }) => (
                         <Combobox
                           options={startAfterTasks
+                            .filter(
+                              (t) =>
+                                t.deleted_at === null ||
+                                t.deleted_at === undefined ||
+                                t.deleted_at === "" ||
+                                !t.deleted_at
+                            )
                             .filter((t) => t.name !== task?.name)
                             .map((task) => ({
                               value: task.name || "",

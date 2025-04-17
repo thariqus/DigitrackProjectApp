@@ -23,6 +23,7 @@ import StatusBadge from "../ui/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Download, Eye } from "lucide-react";
 import { AuditDetailSheet } from "@/components/audits/audits-detail-sheet";
+import { queryClient } from "@/utils/query-client";
 
 export const AuditTasks = () => {
   const { auditId } = useParams();
@@ -176,6 +177,10 @@ export const AuditTasks = () => {
         doc: {
           deleted_at: format(new Date(), "yyyy-MM-dd"),
         },
+      });
+
+      await queryClient.invalidateQueries({
+        queryKey: ["Docs"],
       });
       toast.success("Task deleted successfully");
       refetch();

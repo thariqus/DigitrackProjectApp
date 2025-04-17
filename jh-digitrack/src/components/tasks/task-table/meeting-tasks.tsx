@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Eye } from "lucide-react";
 import { JHGroupedTaskMaster } from "@/types/JHDigitrack/JHGroupedTaskMaster";
 import { MeetingDetailSheet } from "@/components/meetings/meetings-detail-sheet";
+import { queryClient } from "@/utils/query-client";
 
 export const MeetingTasks = () => {
   const { meetingId } = useParams();
@@ -176,6 +177,10 @@ export const MeetingTasks = () => {
         doc: {
           deleted_at: format(new Date(), "yyyy-MM-dd"),
         },
+      });
+
+      await queryClient.invalidateQueries({
+        queryKey: ["Docs"],
       });
       toast.success("Task deleted successfully");
       refetch();

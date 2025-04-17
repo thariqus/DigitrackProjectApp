@@ -17,6 +17,7 @@ import { useCurrentJhUser, useCurrentUser } from "@/hooks/auth";
 import { format } from "date-fns";
 import { PaginationControls } from "./pagination-controls";
 import { useTaskFilters } from "./hooks/useTaskFilters";
+import { queryClient } from "@/utils/query-client";
 
 export const TaskTable = ({
   activeFilter,
@@ -156,6 +157,9 @@ export const TaskTable = ({
         doc: {
           deleted_at: format(new Date(), "yyyy-MM-dd"),
         },
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ["Docs"],
       });
       toast.success("Task deleted successfully");
       refetch();

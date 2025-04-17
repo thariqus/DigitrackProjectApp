@@ -236,7 +236,7 @@ export function MeetingDetailSheet({
               </div>
               <div className="text-sm text-gray-500">Duration</div>
               <div className="flex items-center gap-2">
-                <span>{meeting?.duration} hrs</span>
+                <span>{meeting?.duration} mins</span>
               </div>
               <div className="text-sm text-gray-500">Completion Date</div>
               <div className="flex items-center gap-2">
