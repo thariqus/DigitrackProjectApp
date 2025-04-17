@@ -143,7 +143,7 @@ export function AuditSheet({
   // ==========================================
   // get the doc from the docDetails - use optional chaining to prevent errors
   const audit = auditDetails?.docs?.[0];
-  const isClosed = audit?.status === "Completed";
+  const isCompleted = audit?.status === "Completed";
   const isOwner = audit?.owner === currentUser;
 
   // Function to get default form values - memoized to avoid unnecessary recalculations
@@ -637,12 +637,12 @@ export function AuditSheet({
             </SheetClose>
           </div>
         </SheetHeader>
-        {isClosed && (
+        {isCompleted && (
           <Alert variant={"destructive"}>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
               {`This audit is ${
-                isClosed ? "closed" : "in the recycle bin"
+                isCompleted ? "completed" : "in the recycle bin"
               }. You cannot edit it.`}
             </AlertDescription>
           </Alert>
@@ -702,7 +702,7 @@ export function AuditSheet({
                   render={({ field }) => (
                     <Input
                       disabled={
-                        isClosed ||
+                        isCompleted ||
                         (isEdit && !isOwner) ||
                         (isEdit && isAlreadyEdited)
                       }
@@ -743,7 +743,7 @@ export function AuditSheet({
                         }
                         searchKeyword={searchState.businessSearch}
                         placeholder="Select business"
-                        disabled={isClosed}
+                        disabled={isCompleted}
                         className={errors.business ? "border-red-500" : ""}
                       />
                     )}
@@ -777,7 +777,7 @@ export function AuditSheet({
                             ? "No divisions found"
                             : "Select business first"
                         }
-                        disabled={isClosed}
+                        disabled={isCompleted}
                         className={errors.division ? "border-red-500" : ""}
                       />
                     )}
@@ -798,7 +798,7 @@ export function AuditSheet({
                     control={control}
                     render={({ field }) => (
                       <Input
-                        disabled={isClosed || (isEdit && !isOwner)}
+                        disabled={isCompleted || (isEdit && !isOwner)}
                         id="folder_name"
                         placeholder="Enter folder name"
                         autoComplete="off"
@@ -823,7 +823,7 @@ export function AuditSheet({
                     control={control}
                     render={({ field }) => (
                       <Input
-                        disabled={isClosed || (isEdit && !isOwner)}
+                        disabled={isCompleted || (isEdit && !isOwner)}
                         id="file_name"
                         placeholder="Enter file name"
                         autoComplete="off"
@@ -851,7 +851,7 @@ export function AuditSheet({
                   render={({ field }) => (
                     <ReactQuill
                       readOnly={
-                        isClosed ||
+                        isCompleted ||
                         (isEdit && !isOwner) ||
                         (isEdit && isAlreadyEdited)
                       }
@@ -880,7 +880,7 @@ export function AuditSheet({
                     control={control}
                     render={({ field }) => (
                       <ReactQuill
-                        readOnly={isClosed || (isEdit && !isOwner)}
+                        readOnly={isCompleted || (isEdit && !isOwner)}
                         id="additional_comments"
                         className="h-[150px] max-h-[150px]"
                         placeholder="Enter additional comments"
@@ -900,7 +900,7 @@ export function AuditSheet({
               <div className="space-y-2 pb-28">
                 <FileAttachmentHandler
                   existingFiles={fileState.existingFiles}
-                  disabled={isClosed}
+                  disabled={isCompleted}
                   onFilesChange={handleFilesChange}
                   onExistingFileRemove={handleRemoveExistingFile}
                   getAttachmentOwner={getAttachmentOwner}

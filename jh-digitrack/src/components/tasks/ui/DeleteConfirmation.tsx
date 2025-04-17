@@ -27,9 +27,8 @@ export const DeleteConfirmation = ({
       <AlertDialogHeader>
         <AlertDialogTitle>Are you sure?</AlertDialogTitle>
         <AlertDialogDescription>
-          This will move the task{" "}
-          <b>{truncateString(taskName || "Unknown", 20)}</b> to the recycle bin.
-          And it will be permanently deleted after 30 days.
+          This action will permanently delete the task{" "}
+          <b>{truncateString(taskName || "Unknown", 20)}</b>.
         </AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter>

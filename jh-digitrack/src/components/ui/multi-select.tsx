@@ -64,10 +64,8 @@ export function MultiSelectCombobox({
     }
   };
 
-  console.log(options);
-
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={setOpen} modal>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
@@ -94,6 +92,7 @@ export function MultiSelectCombobox({
                     {option?.label}
                     <button
                       className="ml-1 rounded-full outline-none ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                      type="button"
                       onKeyDown={(e) => {
                         if (e.key === "Enter") {
                           handleUnselect(item);

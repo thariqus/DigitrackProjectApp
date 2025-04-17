@@ -58,7 +58,14 @@ const ChangelogRemarkDialog = ({
     ],
   });
 
-  const canCompleteTask = tasks?.length === 0;
+  const canCompleteTask =
+    tasks?.filter(
+      (t) =>
+        t.deleted_at === null ||
+        t.deleted_at === undefined ||
+        t.deleted_at === "" ||
+        !t.deleted_at
+    ).length === 0;
 
   if (isLoading) return <Skeleton className="w-full h-[100px]" />;
 

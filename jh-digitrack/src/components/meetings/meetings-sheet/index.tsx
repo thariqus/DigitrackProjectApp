@@ -159,7 +159,7 @@ export function MeetingSheet({
   // ==========================================
   // get the doc from the docDetails - use optional chaining to prevent errors
   const meeting = meetingDetails?.docs?.[0];
-  const isClosed = meeting?.status === "Completed";
+  const isCompleted = meeting?.status === "Completed";
   const isOwner = meeting?.owner === currentUser;
 
   // Function to get default form values - memoized to avoid unnecessary recalculations
@@ -191,13 +191,8 @@ export function MeetingSheet({
   });
 
   // form control
-  const {
-    control,
-    handleSubmit,
-    formState: { errors, isSubmitting, isDirty, isValid },
-    reset,
-    watch,
-  } = form;
+  const { control, handleSubmit, formState, reset, watch } = form;
+  const { errors, isSubmitting, isDirty, isValid } = formState;
 
   // Compute button text based on state rather than using a separate state variable
   const buttonText = useMemo(() => {
@@ -639,12 +634,12 @@ export function MeetingSheet({
             </SheetClose>
           </div>
         </SheetHeader>
-        {isClosed && (
+        {isCompleted && (
           <Alert variant={"destructive"}>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
               {`This meeting / grouped task is ${
-                isClosed ? "closed" : "in the recycle bin"
+                isCompleted ? "completed" : "in the recycle bin"
               }. You cannot edit it.`}
             </AlertDescription>
           </Alert>
@@ -707,7 +702,7 @@ export function MeetingSheet({
                   render={({ field }) => (
                     <Input
                       disabled={
-                        isClosed ||
+                        isCompleted ||
                         (isEdit && !isOwner) ||
                         (isEdit && isAlreadyEdited)
                       }
@@ -760,7 +755,7 @@ export function MeetingSheet({
                         min={format(new Date(), "yyyy-MM-dd")}
                         type="date"
                         id="meeting_date"
-                        disabled={isClosed}
+                        disabled={isCompleted}
                         value={
                           field.value
                             ? format(new Date(field.value), "yyyy-MM-dd")
@@ -799,7 +794,7 @@ export function MeetingSheet({
                     control={control}
                     render={({ field }) => (
                       <Input
-                        disabled={isClosed || (isEdit && !isOwner)}
+                        disabled={isCompleted || (isEdit && !isOwner)}
                         id="duration"
                         placeholder="Enter Duration"
                         type="number"
@@ -847,7 +842,7 @@ export function MeetingSheet({
                     control={control}
                     render={({ field }) => (
                       <Input
-                        disabled={isClosed || (isEdit && !isOwner)}
+                        disabled={isCompleted || (isEdit && !isOwner)}
                         id="location"
                         placeholder="Enter Location"
                         autoComplete="off"
@@ -891,7 +886,7 @@ export function MeetingSheet({
                         }
                         searchKeyword={searchState.organizerSearch!}
                         placeholder="Select organizer"
-                        disabled={isClosed || (isEdit && !isOwner)}
+                        disabled={isCompleted || (isEdit && !isOwner)}
                         className={errors.organizer ? "border-red-500" : ""}
                       />
                     )}
@@ -963,7 +958,7 @@ export function MeetingSheet({
                   render={({ field }) => (
                     <ReactQuill
                       readOnly={
-                        isClosed ||
+                        isCompleted ||
                         (isEdit && !isOwner) ||
                         (isEdit && isAlreadyEdited)
                       }
@@ -990,7 +985,7 @@ export function MeetingSheet({
                   control={control}
                   render={({ field }) => (
                     <ReactQuill
-                      readOnly={isClosed || (isEdit && !isOwner)}
+                      readOnly={isCompleted || (isEdit && !isOwner)}
                       id="remarks"
                       className="h-[150px] max-h-[150px]"
                       placeholder="Enter Remarks"
@@ -1009,7 +1004,7 @@ export function MeetingSheet({
               <div className="space-y-2 pb-28">
                 <FileAttachmentHandler
                   existingFiles={fileState.existingFiles}
-                  disabled={isClosed}
+                  disabled={isCompleted}
                   onFilesChange={handleFilesChange}
                   onExistingFileRemove={handleRemoveExistingFile}
                   getAttachmentOwner={getAttachmentOwner}
