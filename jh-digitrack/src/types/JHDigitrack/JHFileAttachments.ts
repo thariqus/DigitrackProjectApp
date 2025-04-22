@@ -12,4 +12,6 @@ export interface JHFileAttachments{
 	idx?: number
 	/**	File : Attach	*/
 	file: string
+	/**	Created By : Link - JH User Master	*/
+	created_by?: string
 }

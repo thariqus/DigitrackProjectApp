@@ -532,6 +532,13 @@ export function TaskSheet({
   // Read selected values from form for memoized filters
   const selectedBusiness = watch("business_id");
   const selectedDivision = watch("division_id");
+  const dueDate = watch("due_date");
+
+  useEffect(() => {
+    if (!isEdit) {
+      if (dueDate) setValue("revised_due_date", dueDate);
+    }
+  }, [isEdit, dueDate, setValue]);
 
   // Create memoized business filters
   const businessFilters = useMemo(() => {
@@ -683,6 +690,9 @@ export function TaskSheet({
         });
         await queryClient.invalidateQueries({
           queryKey: ["task-change-logs", task.name],
+        });
+        await queryClient.invalidateQueries({
+          queryKey: ["team-tasks"],
         });
       } catch (error) {
         console.error(error);

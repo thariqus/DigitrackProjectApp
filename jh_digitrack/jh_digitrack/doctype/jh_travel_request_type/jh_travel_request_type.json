@@ -1,0 +1,77 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:label",
+ "creation": "2025-04-17 16:24:08.627398",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "label",
+  "article_code"
+ ],
+ "fields": [
+  {
+   "fieldname": "label",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Label",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "article_code",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Article Code"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-04-18 11:19:24.556822",
+ "modified_by": "Administrator",
+ "module": "JH Digitrack",
+ "name": "JH Travel Request Type",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "JH Digitrack Member",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "JH Credit Card Holder",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

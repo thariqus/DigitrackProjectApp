@@ -81,7 +81,7 @@ add_to_apps_screen = [
 # 	"filters": "jh_digitrack.utils.jinja_filters"
 # }
 
-after_migrate = "jh_digitrack.setup.create_jh_admin.run"
+after_migrate = "jh_digitrack.setup.after_migrate.run"
 
 # Installation
 # ------------
@@ -121,9 +121,9 @@ after_migrate = "jh_digitrack.setup.create_jh_admin.run"
 # -----------
 # Permissions evaluated in scripted ways
 
-# permission_query_conditions = {
-# 	"Event": "frappe.desk.doctype.event.event.get_permission_query_conditions",
-# }
+permission_query_conditions = {
+    "JH Travel Request": "jh_digitrack.permissions.travel_request_query",
+}
 #
 # has_permission = {
 # 	"Event": "frappe.desk.doctype.event.event.has_permission",

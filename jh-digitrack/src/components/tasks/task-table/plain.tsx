@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { Table, TableBody, TableFooter } from "@/components/ui/table";
-import { useDocs, useUpdateDoc } from "@/hooks/doc";
+import { useDeleteDoc, useDocs } from "@/hooks/doc";
 import { toast } from "sonner";
 import { Task, TaskTableProps } from "@/types/tasks";
 import { TaskSheet } from "../task-sheet";
@@ -14,7 +14,6 @@ import EmptyState from "../ui/EmptyState";
 import DeleteConfirmation from "../ui/DeleteConfirmation";
 import { Filter } from "frappe-js-sdk/lib/db/types";
 import { useCurrentJhUser, useCurrentUser } from "@/hooks/auth";
-import { format } from "date-fns";
 import { PaginationControls } from "./pagination-controls";
 import { useTaskFilters } from "./hooks/useTaskFilters";
 import { queryClient } from "@/utils/query-client";
@@ -119,7 +118,7 @@ export const TaskTable = ({
 
   // Delete task mutation
 
-  const updateDoc = useUpdateDoc();
+  const deleteDoc = useDeleteDoc();
 
   // Event handlers
   const handleCreateTask = useCallback(() => {
@@ -151,12 +150,17 @@ export const TaskTable = ({
     if (!taskToDelete) return;
 
     try {
-      await updateDoc.mutateAsync({
+      // await updateDoc.mutateAsync({
+      //   doctype: "JH Task Master",
+      //   name: taskToDelete,
+      //   doc: {
+      //     deleted_at: format(new Date(), "yyyy-MM-dd"),
+      //   },
+      // });
+
+      await deleteDoc.mutateAsync({
         doctype: "JH Task Master",
         name: taskToDelete,
-        doc: {
-          deleted_at: format(new Date(), "yyyy-MM-dd"),
-        },
       });
       await queryClient.invalidateQueries({
         queryKey: ["Docs"],
@@ -171,7 +175,7 @@ export const TaskTable = ({
       setTaskToDelete(undefined);
       setTaskNameToDelete(undefined);
     }
-  }, [taskToDelete, updateDoc, refetch]);
+  }, [taskToDelete, deleteDoc, refetch]);
 
   // Handle filters change from FilterButtonsWithComboboxes
   const handleFiltersChange = useCallback(
@@ -207,7 +211,7 @@ export const TaskTable = ({
         <FilterButtonsWithComboboxes
           tasks={tasksWithoutfilters.length > 0 ? tasksWithoutfilters : []}
           onFiltersChange={handleFiltersChange}
-          showPrivateTaskToggle={activeFilter === "my-tasks"}
+          showPrivateTaskToggle={activeFilter !== "team-tasks"}
           showCreatedByFilter={activeFilter === "my-tasks"}
         />
       )}

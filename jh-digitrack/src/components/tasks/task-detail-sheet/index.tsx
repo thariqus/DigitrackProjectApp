@@ -114,16 +114,10 @@ export function TaskDetailSheet({
   }, [task?.description]);
 
   useEffect(() => {
-    const checkCommentsOverflow = () => {
-      if (assigneeCommentsRef.current) {
-        const isOverflowing = assigneeCommentsRef.current.scrollHeight > 200; // 200px height limit
-        setIsAssigneeCommentsOverflowing(isOverflowing);
-      }
-    };
-
-    // Add a small delay to ensure the ref is attached and content is rendered
-    const timer = setTimeout(checkCommentsOverflow, 100);
-    return () => clearTimeout(timer);
+    if (task?.assignee_comments) {
+      const isOverflowing = task?.assignee_comments.length > 350;
+      setIsAssigneeCommentsOverflowing(isOverflowing);
+    }
   }, [task?.assignee_comments]);
 
   const handleEdit = () => {
@@ -403,7 +397,8 @@ export function TaskDetailSheet({
                         : ""
                     }`}
                     dangerouslySetInnerHTML={{
-                      __html: task?.description || "",
+                      __html:
+                        task?.description?.replace(/\n+/g, "<br />") || "",
                     }}
                   />
                 )}
@@ -434,7 +429,9 @@ export function TaskDetailSheet({
                         : ""
                     }`}
                     dangerouslySetInnerHTML={{
-                      __html: task?.assignee_comments || "",
+                      __html:
+                        task?.assignee_comments?.replace(/\n+/g, "<br />") ||
+                        "",
                     }}
                   />
                 )}

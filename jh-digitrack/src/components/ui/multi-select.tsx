@@ -28,6 +28,7 @@ export type Option = {
 interface MultiSelectProps {
   options: Option[];
   selected: string[];
+  selectedOptions: Option[];
   onChange: (selected: string[]) => void;
   placeholder?: string;
   className?: string;
@@ -40,6 +41,7 @@ interface MultiSelectProps {
 
 export function MultiSelectCombobox({
   options,
+  selectedOptions,
   selected,
   onChange,
   placeholder = "Select options",
@@ -82,12 +84,17 @@ export function MultiSelectCombobox({
           <div className="flex flex-wrap gap-1">
             {selected.length > 0 ? (
               selected.map((item) => {
-                const option = options.find((option) => option.value === item);
+                const option = selectedOptions.find(
+                  (option) => option.value === item
+                );
                 return (
                   <Badge
-                    key={item}
+                    key={option?.value}
                     variant="secondary"
-                    className={cn("mr-1 mb-1 gap-1 px-2 py-0", badgeClassName)}
+                    className={cn(
+                      "mr-1 animate-in duration-200 fade-in-0 mb-1 gap-1 px-2 py-0",
+                      badgeClassName
+                    )}
                   >
                     {option?.label}
                     <button

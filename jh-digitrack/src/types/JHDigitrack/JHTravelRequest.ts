@@ -11,16 +11,46 @@ export interface JHTravelRequest{
 	parentfield?: string
 	parenttype?: string
 	idx?: number
-	/**	Travel : Link - JH Travel	*/
-	travel: string
-	/**	Request Type : Select	*/
-	request_type?: "Hotel" | "Flight" | "Other"
-	/**	Description : Long Text	*/
+	/**	Request Type : Link - JH Travel Request Type - If 'Other', manually enter the article code.	*/
+	request_type?: string
+	/**	Article Code : Data	*/
+	article_code?: string
+	/**	Is Urgent : Check - If checked, the request will directly reach the credit card holder. Your manager can still see your request.	*/
+	is_urgent?: 0 | 1
+	/**	Request Status : Select - Check request status to see if your manager or credit card holder has engaged with your request.	*/
+	request_status?: "Approval Pending" | "Approved" | "Denied" | "Completed" | "Urgent"
+	/**	Requested By : Link - JH User Master	*/
+	requested_by?: string
+	/**	From City : Data	*/
+	from_city?: string
+	/**	To City : Data	*/
+	to_city?: string
+	/**	From Date : Date	*/
+	from_date?: string
+	/**	To Date : Date	*/
+	to_date?: string
+	/**	Location : Data	*/
+	location?: string
+	/**	Preferred Hotel : Data - Name and location of the preferred hotel.	*/
+	preferred_hotel?: string
+	/**	Preferred Flight : Data - Name of the preferred airlines.	*/
+	preferred_flight?: string
+	/**	Description : Long Text - Include any additional information like explanation, links or points.
+
+	*/
 	description?: string
-	/**	Urgent : Check	*/
-	urgent?: 0 | 1
-	/**	Request Status : Select	*/
-	request_status?: "Aproval Pending" | "Approved" | "Denied" | "Completed"
 	/**	Attachments : Table - JH File Attachments	*/
 	attachments?: JHFileAttachments[]
+	/**	Company Code : Data	*/
+	company_code?: string
+	/**	Plant : Data	*/
+	plant?: string
+	/**	Assignment : Data	*/
+	assignment?: string
+	/**	Cost Center : Data	*/
+	cost_center?: string
+	/**	Qty : Data	*/
+	qty?: string
+	/**	GL : Data	*/
+	gl?: string
 }

@@ -10,6 +10,9 @@ if [ "$current_branch" = "develop" ]; then
     git add jh_digitrack/__init__.py
     # Create a commit for the version change
     git commit -m "chore: bump version" --no-verify
+    git push --no-verify -f
+    echo "✅ Pushed version bump along with original changes, ignore the error"
+    exit 1
 else
     echo "Not on develop branch, skipping version update"
 fi

@@ -278,7 +278,9 @@ export function AuditDetailSheet({
                         : ""
                     }`}
                     dangerouslySetInnerHTML={{
-                      __html: audit?.audit_description || "",
+                      __html:
+                        audit?.audit_description?.replace(/\n+/g, "<br />") ||
+                        "",
                     }}
                   />
                 )}
