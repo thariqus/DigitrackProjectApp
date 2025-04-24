@@ -22,6 +22,14 @@ const REQUEST_STATUS = [
     label: "Urgent",
     color: "orange",
   },
+  {
+    label: "Reconfirmation Pending",
+    color: "yellow",
+  },
+  {
+    label: "Reconfirmed",
+    color: "blue",
+  },
 ];
 
 frappe.ui.form.on("JH Travel Request", {
@@ -42,22 +50,41 @@ frappe.ui.form.on("JH Travel Request", {
         .then((r) => {
           const role = r?.message.role;
           console.log(role);
-          // roles: cc_holder, travel_request_owner, reporting_manager
-          if (
-            role === "cc_holder" &&
-            ["Approved", "Urgent"].includes(frm.doc.request_status)
-          ) {
-            // If request is approved by Reporting Manager and role is cc_holder, add a button to complete the request
-            frm.add_custom_button(__("Complete"), function () {
-              frm.set_value("request_status", "Completed");
-              frm.save();
-            });
+          if (role === "cc_holder") {
+            // role is cc_holder
+            if (
+              ["Approved", "Urgent", "Reconfirmed"].includes(
+                frm.doc.request_status
+              )
+            ) {
+              // if request is approved or urgent,check if reconfirmation is required
+              if (
+                frm.doc.request_status !== "Reconfirmed" &&
+                frm.doc.reconfirmation_required
+              ) {
+                // if reconfirmation is required, add a button to reconfirm with initiator
+                frm.add_custom_button(
+                  __("Reconfirm with Initiator"),
+                  function () {
+                    frm.set_value("request_status", "Reconfirmation Pending");
+                    frm.save();
+                  }
+                );
+              } else {
+                // if reconfirmation is not required, add a button to complete the request
+                frm.add_custom_button(__("Complete"), function () {
+                  frm.set_value("request_status", "Completed");
+                  frm.save();
+                });
+              }
+            }
           }
           if (
             role === "reporting_manager" &&
             frm.doc.request_status === "Approval Pending"
           ) {
-            // If request is approved by Reporting Manager and role is cc_holder, add a button to complete the request
+            // role is reporting_manager
+            // if request is approval pending, add a button to approve or deny the request
             frm.add_custom_button(__("Approve"), function () {
               frm.set_value("request_status", "Approved");
               frm.save();
@@ -67,15 +94,16 @@ frappe.ui.form.on("JH Travel Request", {
               frm.save();
             });
           }
-          if (
-            role === "travel_request_owner" &&
-            frm.doc.request_status === "Denied"
-          ) {
-            // If request is approved by Reporting Manager and role is cc_holder, add a button to complete the request
-            frm.add_custom_button(__("Re Request"), function () {
-              frm.set_value("request_status", "Approval Pending");
-              frm.save();
-            });
+          if (role === "travel_request_owner") {
+            // role is travel_request_owner
+            // if request is denied, add a button to re-request the request
+            if (frm.doc.request_status === "Denied") {
+              frm.add_custom_button(__("Re Request"), function () {
+                frm.set_value("request_status", "Approval Pending");
+                frm.save();
+              });
+            }
+            // if request is reconfirmation pending, add a button to reconfirm the request
           }
         });
     }

@@ -17,8 +17,10 @@ export interface JHTravelRequest{
 	article_code?: string
 	/**	Is Urgent : Check - If checked, the request will directly reach the credit card holder. Your manager can still see your request.	*/
 	is_urgent?: 0 | 1
+	/**	Reconfirmation Required : Check	*/
+	reconfirmation_required?: 0 | 1
 	/**	Request Status : Select - Check request status to see if your manager or credit card holder has engaged with your request.	*/
-	request_status?: "Approval Pending" | "Approved" | "Denied" | "Completed" | "Urgent"
+	request_status?: "Approval Pending" | "Approved" | "Denied" | "Completed" | "Urgent" | "Reconfirmation Pending" | "Reconfirmed"
 	/**	Requested By : Link - JH User Master	*/
 	requested_by?: string
 	/**	From City : Data	*/
@@ -29,6 +31,12 @@ export interface JHTravelRequest{
 	from_date?: string
 	/**	To Date : Date	*/
 	to_date?: string
+	/**	Travel Date : Date	*/
+	travel_date?: string
+	/**	Round Trip : Check	*/
+	round_trip?: 0 | 1
+	/**	Return date : Date	*/
+	return_date?: string
 	/**	Location : Data	*/
 	location?: string
 	/**	Preferred Hotel : Data - Name and location of the preferred hotel.	*/
@@ -39,18 +47,20 @@ export interface JHTravelRequest{
 
 	*/
 	description?: string
+	/**	Contact Number : Data	*/
+	contact_number?: string
 	/**	Attachments : Table - JH File Attachments	*/
 	attachments?: JHFileAttachments[]
 	/**	Company Code : Data	*/
-	company_code?: string
+	company_code: string
 	/**	Plant : Data	*/
-	plant?: string
+	plant: string
 	/**	Assignment : Data	*/
-	assignment?: string
+	assignment: string
 	/**	Cost Center : Data	*/
-	cost_center?: string
+	cost_center: string
 	/**	Qty : Data	*/
-	qty?: string
+	qty: string
 	/**	GL : Data	*/
-	gl?: string
+	gl: string
 }

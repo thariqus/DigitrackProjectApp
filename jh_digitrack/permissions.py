@@ -14,7 +14,7 @@ def travel_request_query(user):
         # List all the requests that are approved or urgent if the user is a credit card holder
         # also list my requests
         return f"""
-            (`tabJH Travel Request`.request_status in ('Approved', 'Urgent', 'Completed')) or 
+            (`tabJH Travel Request`.request_status in ('Approved', 'Urgent', 'Completed', 'Reconfirmation Pending', 'Reconfirmed')) or 
             (`tabJH Travel Request`.owner = {frappe.db.escape(user)})
         """
 
@@ -25,7 +25,7 @@ def travel_request_query(user):
     )
     reportees = [user["user"] for user in reportees]
     if len(reportees) > 0:
-        # List all my reportees requests that are approval pending or urgent
+        # List all my reportees requests that are not denied
         # also list my requests
         return f"""
         ((`tabJH Travel Request`.owner in ('{("', '".join(reportees))}') and 

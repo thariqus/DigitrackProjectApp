@@ -15,6 +15,8 @@ class JHTravelRequest(Document):
         self.requested_by = jh_user
         if self.is_urgent and self.request_status == "Approval Pending":
             self.request_status = "Urgent"
+        if "JH Credit Card Holder" in frappe.get_roles():
+            self.request_status = "Approved"
 
     def before_save(self):
         for attachment in self.attachments:

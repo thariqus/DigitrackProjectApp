@@ -10,6 +10,7 @@
   "request_type",
   "article_code",
   "is_urgent",
+  "reconfirmation_required",
   "request_status",
   "requested_by",
   "column_break_npsz",
@@ -17,10 +18,14 @@
   "to_city",
   "from_date",
   "to_date",
+  "travel_date",
+  "round_trip",
+  "return_date",
   "location",
   "preferred_hotel",
   "preferred_flight",
   "description",
+  "contact_number",
   "attachments_section",
   "attachments",
   "section_break_vwcd",
@@ -58,7 +63,7 @@
    "fieldtype": "Select",
    "in_standard_filter": 1,
    "label": "Request Status",
-   "options": "Approval Pending\nApproved\nDenied\nCompleted\nUrgent",
+   "options": "Approval Pending\nApproved\nDenied\nCompleted\nUrgent\nReconfirmation Pending\nReconfirmed",
    "read_only": 1
   },
   {
@@ -85,13 +90,13 @@
    "label": "More Details"
   },
   {
-   "depends_on": "eval:doc.request_type === \"Hotel\" || doc.request_type === \"Flight\"",
+   "depends_on": "eval:doc.request_type === \"Hotel\"",
    "fieldname": "from_date",
    "fieldtype": "Date",
    "label": "From Date"
   },
   {
-   "depends_on": "eval:doc.request_type === \"Hotel\" || doc.request_type === \"Flight\"",
+   "depends_on": "eval:doc.request_type === \"Hotel\"",
    "fieldname": "to_date",
    "fieldtype": "Date",
    "label": "To Date"
@@ -113,12 +118,14 @@
   {
    "fieldname": "company_code",
    "fieldtype": "Data",
-   "label": "Company Code"
+   "label": "Company Code",
+   "reqd": 1
   },
   {
    "fieldname": "plant",
    "fieldtype": "Data",
-   "label": "Plant"
+   "label": "Plant",
+   "reqd": 1
   },
   {
    "fieldname": "column_break_udnk",
@@ -127,12 +134,14 @@
   {
    "fieldname": "assignment",
    "fieldtype": "Data",
-   "label": "Assignment"
+   "label": "Assignment",
+   "reqd": 1
   },
   {
    "fieldname": "cost_center",
    "fieldtype": "Data",
-   "label": "Cost Center"
+   "label": "Cost Center",
+   "reqd": 1
   },
   {
    "fetch_from": "request_type.article_code",
@@ -145,12 +154,14 @@
   {
    "fieldname": "qty",
    "fieldtype": "Data",
-   "label": "Qty"
+   "label": "Qty",
+   "reqd": 1
   },
   {
    "fieldname": "gl",
    "fieldtype": "Data",
-   "label": "GL"
+   "label": "GL",
+   "reqd": 1
   },
   {
    "fieldname": "requested_by",
@@ -166,7 +177,8 @@
    "description": "If checked, the request will directly reach the credit card holder. Your manager can still see your request.",
    "fieldname": "is_urgent",
    "fieldtype": "Check",
-   "label": "Is Urgent"
+   "label": "Is Urgent",
+   "set_only_once": 1
   },
   {
    "fieldname": "request_information_section",
@@ -183,11 +195,43 @@
    "fieldname": "location",
    "fieldtype": "Data",
    "label": "Location"
+  },
+  {
+   "depends_on": "eval:doc.request_type === \"Flight\"",
+   "fieldname": "travel_date",
+   "fieldtype": "Date",
+   "label": "Travel Date"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.request_type === \"Flight\"",
+   "fieldname": "round_trip",
+   "fieldtype": "Check",
+   "label": "Round Trip"
+  },
+  {
+   "depends_on": "eval:doc.request_type === \"Flight\" &&  doc.round_trip",
+   "fieldname": "return_date",
+   "fieldtype": "Date",
+   "label": "Return date"
+  },
+  {
+   "depends_on": "eval:doc.request_type === \"Flight\" || doc.request_type === \"Hotel\"",
+   "fieldname": "contact_number",
+   "fieldtype": "Data",
+   "label": "Contact Number"
+  },
+  {
+   "default": "0",
+   "fieldname": "reconfirmation_required",
+   "fieldtype": "Check",
+   "label": "Reconfirmation Required",
+   "set_only_once": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-04-20 19:59:24.450045",
+ "modified": "2025-04-23 19:50:36.444698",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Travel Request",

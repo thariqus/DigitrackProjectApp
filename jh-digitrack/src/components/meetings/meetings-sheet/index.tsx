@@ -559,8 +559,8 @@ export function MeetingSheet({
   const { data: organizerUserList } = useDocs<JHUserMaster>({
     doctype: "JH User Master",
     fields: ["full_name", "name"],
-    filters: searchState.internalParticipantsSearch
-      ? [["full_name", "like", `%${searchState.internalParticipantsSearch}%`]]
+    filters: searchState.organizerSearch
+      ? [["full_name", "like", `%${searchState.organizerSearch}%`]]
       : [],
     orderBy: {
       field: "full_name",

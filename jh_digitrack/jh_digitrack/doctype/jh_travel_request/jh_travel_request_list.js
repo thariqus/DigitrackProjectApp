@@ -22,8 +22,15 @@ const REQUEST_STATUS = [
     label: "Urgent",
     color: "orange",
   },
+  {
+    label: "Reconfirmation Pending",
+    color: "yellow",
+  },
+  {
+    label: "Reconfirmed",
+    color: "blue",
+  },
 ];
-
 frappe.listview_settings["JH Travel Request"] = {
   add_fields: ["request_status"],
   get_indicator(doc) {
