@@ -104,6 +104,12 @@ frappe.ui.form.on("JH Travel Request", {
               });
             }
             // if request is reconfirmation pending, add a button to reconfirm the request
+            if (frm.doc.request_status === "Reconfirmation Pending") {
+              frm.add_custom_button(__("Reconfirm"), function () {
+                frm.set_value("request_status", "Reconfirmed");
+                frm.save();
+              });
+            }
           }
         });
     }

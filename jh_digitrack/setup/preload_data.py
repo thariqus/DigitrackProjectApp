@@ -20,7 +20,10 @@ def preload_jh_travel_request_type():
     for item in JH_TRAVEL_REQUEST_TYPE:
         if not frappe.db.exists("JH Travel Request Type", item["label"]):
             print(f"Creating {item['label']}")
-            frappe.new_doc("JH Travel Request Type").insert(item)
+            new_type = frappe.new_doc("JH Travel Request Type")
+            new_type.label = item["label"]
+            new_type.article_code = item["article_code"]
+            new_type.insert()
         else:
             print(f"{item['label']} already exists, updating article code")
             frappe.db.set_value(
