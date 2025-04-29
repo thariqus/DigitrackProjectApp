@@ -20,6 +20,7 @@ export const TaskRow = ({
   hideAssignedTo = false,
   currentPage = 1,
   perPage = 10,
+  hideDelete = false,
 }: TaskRowProps) => {
   const formattedDueDate = formatDueDate(task.due_date);
 
@@ -81,7 +82,7 @@ export const TaskRow = ({
           task={task}
           onEdit={onEdit}
           onDelete={onDelete}
-          hideDelete={(isEdited && !isPrivate) || isInRecycleBin}
+          hideDelete={(isEdited && !isPrivate) || isInRecycleBin || hideDelete}
           showRestore={activeFilter === "deleted-tasks"}
         />
       </TableCell>

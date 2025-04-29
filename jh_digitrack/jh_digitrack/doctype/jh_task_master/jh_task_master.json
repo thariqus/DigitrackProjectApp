@@ -171,7 +171,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-04-14 09:46:37.010565",
+ "modified": "2025-04-23 14:41:10.403794",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Task Master",
@@ -192,6 +192,7 @@
   },
   {
    "create": 1,
+   "delete": 1,
    "email": 1,
    "export": 1,
    "print": 1,

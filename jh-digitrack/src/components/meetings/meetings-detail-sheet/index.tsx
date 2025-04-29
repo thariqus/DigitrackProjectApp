@@ -59,6 +59,7 @@ export function MeetingDetailSheet({
     isLoading: isLoadingInternalParticipants,
   } = useDocs<JHUserMaster>({
     doctype: "JH User Master",
+    fields: ["full_name"],
     filters: [
       [
         "name",
@@ -68,6 +69,7 @@ export function MeetingDetailSheet({
         ) ?? [],
       ],
     ],
+    limit: 100,
   });
 
   // Add this effect to check if description is overflowing
@@ -262,7 +264,7 @@ export function MeetingDetailSheet({
                       !showFullAgenda ? "max-h-[200px] overflow-hidden" : ""
                     }`}
                     dangerouslySetInnerHTML={{
-                      __html: meeting?.agenda || "",
+                      __html: meeting?.agenda?.replace(/\n+/g, "<br />") || "",
                     }}
                   />
                 )}
@@ -291,7 +293,7 @@ export function MeetingDetailSheet({
                       !showFullRemarks ? "max-h-[200px] overflow-hidden" : ""
                     }`}
                     dangerouslySetInnerHTML={{
-                      __html: meeting?.remarks || "",
+                      __html: meeting?.remarks?.replace(/\n+/g, "<br />") || "",
                     }}
                   />
                 )}

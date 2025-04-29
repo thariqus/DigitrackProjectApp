@@ -319,7 +319,7 @@ export function MeetingSheet({
             internal_participants: doc?.internal_participants?.map(
               (participant) => ({ user: participant })
             ),
-            naming_series: doc.type === "meeting" ? "MEETING-" : "GROUP_TASK-",
+            naming_series: doc.type === "meeting" ? "MTG" : "GPT",
           });
           savedMeetingName = savedMeeting.name;
         }
@@ -559,8 +559,8 @@ export function MeetingSheet({
   const { data: organizerUserList } = useDocs<JHUserMaster>({
     doctype: "JH User Master",
     fields: ["full_name", "name"],
-    filters: searchState.internalParticipantsSearch
-      ? [["full_name", "like", `%${searchState.internalParticipantsSearch}%`]]
+    filters: searchState.organizerSearch
+      ? [["full_name", "like", `%${searchState.organizerSearch}%`]]
       : [],
     orderBy: {
       field: "full_name",
@@ -578,6 +578,19 @@ export function MeetingSheet({
       field: "full_name",
       order: "asc",
     },
+  });
+
+  const { data: selectedInternalParticipantsUserList } = useDocs<JHUserMaster>({
+    doctype: "JH User Master",
+    fields: ["full_name", "name"],
+    filters: watch("internal_participants")
+      ? [["name", "in", watch("internal_participants")!]]
+      : [],
+    orderBy: {
+      field: "full_name",
+      order: "asc",
+    },
+    limit: 100,
   });
 
   // ==========================================
@@ -909,6 +922,12 @@ export function MeetingSheet({
                     control={control}
                     render={({ field }) => (
                       <MultiSelectCombobox
+                        selectedOptions={selectedInternalParticipantsUserList.map(
+                          (user) => ({
+                            value: user.name!,
+                            label: user.full_name!,
+                          })
+                        )}
                         options={internalParticipantsUserList.map((user) => ({
                           value: user.name!,
                           label: user.full_name!,

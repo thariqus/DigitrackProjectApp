@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { Table, TableBody, TableFooter } from "@/components/ui/table";
-import { useDoc, useDocs, useUpdateDoc } from "@/hooks/doc";
+import { useDeleteDoc, useDoc, useDocs } from "@/hooks/doc";
 import { toast } from "sonner";
 import { Task } from "@/types/tasks";
 import { TaskSheet } from "../task-sheet";
@@ -14,7 +14,6 @@ import EmptyState from "../ui/EmptyState";
 import DeleteConfirmation from "../ui/DeleteConfirmation";
 import { Filter } from "frappe-js-sdk/lib/db/types";
 import { useCurrentJhUser, useCurrentUser } from "@/hooks/auth";
-import { format } from "date-fns";
 import { PaginationControls } from "./pagination-controls";
 import { useTaskFilters } from "./hooks/useTaskFilters";
 import { useNavigate, useParams } from "react-router";
@@ -139,7 +138,7 @@ export const MeetingTasks = () => {
 
   // Delete task mutation
 
-  const updateDoc = useUpdateDoc();
+  const deleteDoc = useDeleteDoc();
 
   // Event handlers
   const handleCreateTask = useCallback(() => {
@@ -171,12 +170,17 @@ export const MeetingTasks = () => {
     if (!taskToDelete) return;
 
     try {
-      await updateDoc.mutateAsync({
+      // await updateDoc.mutateAsync({
+      //   doctype: "JH Task Master",
+      //   name: taskToDelete,
+      //   doc: {
+      //     deleted_at: format(new Date(), "yyyy-MM-dd"),
+      //   },
+      // });
+
+      await deleteDoc.mutateAsync({
         doctype: "JH Task Master",
         name: taskToDelete,
-        doc: {
-          deleted_at: format(new Date(), "yyyy-MM-dd"),
-        },
       });
 
       await queryClient.invalidateQueries({
@@ -192,7 +196,7 @@ export const MeetingTasks = () => {
       setTaskToDelete(undefined);
       setTaskNameToDelete(undefined);
     }
-  }, [taskToDelete, updateDoc, refetch]);
+  }, [taskToDelete, deleteDoc, refetch]);
 
   // Handle filters change from FilterButtonsWithComboboxes
   const handleFiltersChange = useCallback(

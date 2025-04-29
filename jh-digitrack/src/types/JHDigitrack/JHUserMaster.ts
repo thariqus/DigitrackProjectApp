@@ -11,17 +11,7 @@ export interface JHUserMaster{
 	parenttype?: string
 	idx?: number
 	/**	Employee Code : Data	*/
-	employee_code?: string
-	/**	First Name : Data	*/
-	first_name?: string
-	/**	Middle Name : Data	*/
-	middle_name?: string
-	/**	Last Name : Data	*/
-	last_name?: string
-	/**	Name : Data	*/
-	full_name?: string
-	/**	Email : Data	*/
-	email?: string
+	employee_code: string
 	/**	Location Name : Data	*/
 	location_name?: string
 	/**	Designation Name : Data	*/
@@ -40,16 +30,28 @@ export interface JHUserMaster{
 	cost_center?: string
 	/**	Employee Status : Data	*/
 	employee_status?: string
+	/**	Email : Data	*/
+	email: string
+	/**	First Name : Data	*/
+	first_name: string
+	/**	Middle Name : Data	*/
+	middle_name?: string
+	/**	Last Name : Data	*/
+	last_name?: string
+	/**	Full Name : Data	*/
+	full_name?: string
+	/**	Reporting Manager : Link - JH User Master	*/
+	reporting_manager: string
+	/**	Business : Link - JH Business Master	*/
+	business: string
+	/**	Division : Link - JH Division Master	*/
+	division?: string
+	/**	User : Link - User	*/
+	user?: string
 	/**	Active : Check	*/
 	active?: 0 | 1
 	/**	Is Admin : Check	*/
 	is_admin?: 0 | 1
 	/**	Is Head of Department : Check	*/
 	is_head_of_department?: 0 | 1
-	/**	Business : Link - JH Business Master	*/
-	business?: string
-	/**	Division : Link - JH Division Master	*/
-	division?: string
-	/**	Reporting Manager : Link - JH User Master	*/
-	reporting_manager?: string
 }

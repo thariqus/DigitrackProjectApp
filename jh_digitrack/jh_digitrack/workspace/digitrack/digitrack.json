@@ -1,6 +1,6 @@
 {
  "charts": [],
- "content": "[{\"id\":\"BKK-p8CJRn\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">JH Digitrack Masters</span>\",\"col\":12}},{\"id\":\"W-hHRY8Due\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Jh Division Master\",\"col\":3}},{\"id\":\"lKVOy2wJaP\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Jh Business Master\",\"col\":3}},{\"id\":\"sB1r4pTPzQ\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Jh User Master\",\"col\":3}},{\"id\":\"prLw3i8ENd\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Jh Tasks Master\",\"col\":3}},{\"id\":\"bCtAgbDc7d\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Jh Audits\",\"col\":3}},{\"id\":\"9NMIb-B3hB\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Jh Digitrack Settings\",\"col\":3}},{\"id\":\"yfMGuAaSak\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"ud__qCv-ma\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Open Dashboard\",\"col\":3}}]",
+ "content": "[{\"id\":\"BKK-p8CJRn\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">JH Digitrack Masters</span>\",\"col\":12}},{\"id\":\"W-hHRY8Due\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Jh Division Master\",\"col\":3}},{\"id\":\"lKVOy2wJaP\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Jh Business Master\",\"col\":3}},{\"id\":\"sB1r4pTPzQ\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Jh User Master\",\"col\":3}},{\"id\":\"prLw3i8ENd\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Jh Tasks Master\",\"col\":3}},{\"id\":\"bCtAgbDc7d\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Jh Audits\",\"col\":3}},{\"id\":\"9NMIb-B3hB\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Jh Digitrack Settings\",\"col\":3}},{\"id\":\"iaDmgrOgbY\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Meetings/Grouped Tasks\",\"col\":3}},{\"id\":\"6XfgFHxqoR\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Jh Travel Request\",\"col\":3}},{\"id\":\"yfMGuAaSak\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"ud__qCv-ma\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Open Dashboard\",\"col\":3}}]",
  "creation": "2025-03-14 18:05:39.145654",
  "custom_blocks": [],
  "docstatus": 0,
@@ -13,8 +13,8 @@
  "is_hidden": 0,
  "label": "Digitrack",
  "links": [],
- "modified": "2025-04-15 12:47:17.656845",
- "modified_by": "faris@bytsolv.com",
+ "modified": "2025-04-18 16:26:27.316617",
+ "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "Digitrack",
  "number_cards": [],
@@ -47,8 +47,24 @@
   {
    "color": "Grey",
    "doc_view": "List",
+   "label": "Meetings/Grouped Tasks",
+   "link_to": "JH Grouped Task Master",
+   "stats_filter": "[]",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
    "label": "Jh Division Master",
    "link_to": "JH Division Master",
+   "stats_filter": "[]",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Jh Travel Request",
+   "link_to": "JH Travel Request",
    "stats_filter": "[]",
    "type": "DocType"
   },
