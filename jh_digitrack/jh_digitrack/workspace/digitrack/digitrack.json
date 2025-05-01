@@ -13,8 +13,8 @@
  "is_hidden": 0,
  "label": "Digitrack",
  "links": [],
- "modified": "2025-04-18 16:26:27.316617",
- "modified_by": "Administrator",
+ "modified": "2025-05-01 13:02:45.538483",
+ "modified_by": "faris@bytsolv.com",
  "module": "JH Digitrack",
  "name": "Digitrack",
  "number_cards": [],
@@ -24,7 +24,7 @@
  "quick_lists": [],
  "roles": [
   {
-   "role": "JH Digitrack Member"
+   "role": "JH Digitrack Admin"
   }
  ],
  "sequence_id": 28.0,

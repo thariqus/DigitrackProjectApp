@@ -126,6 +126,7 @@ def remind(task_id: str):
 
     if should_send_email(task.reminded_at) and should_send_email(task.escalated_at):
         frappe.sendmail(
+            expose_recipients="header",
             recipients=[task.assigned_to_email],
             cc=[task.creator_email],
             subject=f"DigiTrack : Reminder - {task.name} ",
@@ -177,6 +178,7 @@ def escalate(task_id: str):
 
     if should_send_email(task.reminded_at) and should_send_email(task.escalated_at):
         frappe.sendmail(
+            expose_recipients="header",
             recipients=[task.assigned_to_email],
             cc=[task.creator_email, reporting_manager_email],
             subject=f"DigiTrack : Escalation - {task.name} ",
@@ -353,6 +355,7 @@ def scheduled_emails():
 
             if len(tasks) > 0:
                 frappe.sendmail(
+                    expose_recipients="header",
                     recipients=[tasks[0].assigned_to_email],
                     subject="DigiTrack: Task List - Pending / Upcoming ",
                     message=generate_task_reminder_email(tasks=tasks, type="scheduled"),

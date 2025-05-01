@@ -345,31 +345,52 @@ export function TaskSheet({
   }, [isPrivate, currentJhUser, setValue, assignedTo]);
 
   useEffect(() => {
+    let isMounted = true;
+
     async function fetchAndSetBusinessAndDivision() {
-      if (assignedTo) {
-        const business_data = await frappeClient.db.getDoc(
-          "JH Business Master",
-          assigneeJhUser?.business
-        );
-        const division_data = await frappeClient.db.getDoc(
-          "JH Division Master",
-          assigneeJhUser?.division
-        );
+      try {
+        if (
+          !assignedTo ||
+          !assigneeJhUser?.business ||
+          !assigneeJhUser?.division
+        ) {
+          return;
+        }
+
+        const [business_data, division_data] = await Promise.all([
+          frappeClient.db.getDoc("JH Business Master", assigneeJhUser.business),
+          frappeClient.db.getDoc("JH Division Master", assigneeJhUser.division),
+        ]);
+
+        if (!isMounted) return;
+
         setSearchState((prev) => ({
           ...prev,
-          businessSearch: business_data?.business_name,
-          divisionSearch: division_data?.division_name,
+          businessSearch: business_data?.business_name ?? "",
+          divisionSearch: division_data?.division_name ?? "",
+          assigneeSearch: assigneeJhUser?.full_name ?? "",
         }));
-        setValue("business_id", business_data?.name, {
-          shouldValidate: true,
-        });
-        setValue("division_id", division_data?.name, {
-          shouldValidate: true,
-        });
+
+        setValue("business_id", business_data?.name, { shouldValidate: true });
+        setValue("division_id", division_data?.name, { shouldValidate: true });
+      } catch (error) {
+        console.error("Error fetching business and division data:", error);
+        // Handle error appropriately - maybe show a notification to user
       }
     }
+
     fetchAndSetBusinessAndDivision();
-  }, [assignedTo, assigneeJhUser, setValue]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [
+    assignedTo,
+    assigneeJhUser?.business,
+    assigneeJhUser?.division,
+    assigneeJhUser?.full_name,
+    setValue,
+  ]);
 
   // ==========================================
   // DATA SAVING FUNCTIONS
