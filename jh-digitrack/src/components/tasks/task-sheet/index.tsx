@@ -901,7 +901,7 @@ export function TaskSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="sm:max-w-3xl px-5">
         <SheetHeader className="px-0 flex-row justify-between items-center">
-          <SheetTitle className="text-2xl font-bold">
+          <SheetTitle className="text-2xl font-semibold truncate max-w-[100ch]">
             {isEdit
               ? `Edit Task: ${
                   task?.serial_number ? "#" + task?.serial_number + " " : ""
@@ -916,34 +916,34 @@ export function TaskSheet({
             </SheetClose>
           </div>
         </SheetHeader>
-        {(isClosed || isDeleted) && (
-          <Alert variant={"destructive"}>
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              {`This task is ${
-                isClosed ? "closed" : "in the recycle bin"
-              }. You cannot edit it.`}
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {["JH Audit Master", "JH Grouped Task Master"].includes(
-          sourceDocType!
-        ) && (
-          <div className="space-y-2">
-            <span>
-              <b>{sourceData?.name}</b>:{" "}
-              {sourceDocType === "JH Audit Master"
-                ? (sourceData as JHAudits)?.audit_name
-                : (sourceData as JHGroupedTaskMaster)?.title}
-            </span>
-          </div>
-        )}
 
         <ScrollArea className="max-h-screen">
           <SheetDescription className="h-[calc(100vh-100px)]">
+            {(isClosed || isDeleted) && (
+              <Alert variant={"destructive"}>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  {`This task is ${
+                    isClosed ? "closed" : "in the recycle bin"
+                  }. You cannot edit it.`}
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {["JH Audit Master", "JH Grouped Task Master"].includes(
+              sourceDocType!
+            ) && (
+              <div className="space-y-2">
+                <span>
+                  <b>{sourceData?.name}</b>:{" "}
+                  {sourceDocType === "JH Audit Master"
+                    ? (sourceData as JHAudits)?.audit_name
+                    : (sourceData as JHGroupedTaskMaster)?.title}
+                </span>
+              </div>
+            )}
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-              <div className="flex items-center">
+              <div className="flex items-center mt-4">
                 {isEdit && isTaskLoading ? (
                   <Skeleton className="w-[180px] h-10" />
                 ) : task ? (
