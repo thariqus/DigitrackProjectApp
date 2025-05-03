@@ -264,7 +264,8 @@ def scheduled_emails():
             creator.full_name.as_("creator_name"),
         )
         .where(
-            (tasks.due_date < today)
+            (tasks.deleted_at.isnull())
+            & (tasks.due_date < today)
             & (tasks.status.notin(["Completed", "Closed", "Canceled"]))
         )
         .join(assigned_to)
@@ -285,7 +286,8 @@ def scheduled_emails():
             creator.full_name.as_("creator_name"),
         )
         .where(
-            (tasks.due_date == two_days_from_now)
+            (tasks.deleted_at.isnull())
+            & (tasks.due_date == two_days_from_now)
             & (tasks.status.notin(["Completed", "Closed", "Canceled"]))
         )
         .join(assigned_to)
@@ -305,7 +307,11 @@ def scheduled_emails():
             creator.email.as_("creator_email"),
             creator.full_name.as_("creator_name"),
         )
-        .where(tasks.creation.between(today_start, today_end))
+        .where(
+            (tasks.deleted_at.isnull())
+            & (tasks.creation.between(today_start, today_end))
+            & (tasks.status.notin(["Completed", "Closed", "Canceled"]))
+        )
         .join(assigned_to)
         .on(tasks.assigned_to == assigned_to.name)
         .join(creator)
