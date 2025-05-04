@@ -14,4 +14,6 @@ export interface JHBusinessMaster{
 	business_id?: string
 	/**	Business Name : Data	*/
 	business_name?: string
+	/**	SAP Reference ID : Data	*/
+	sap_reference_id?: string
 }

@@ -126,6 +126,7 @@ def remind(task_id: str):
 
     if should_send_email(task.reminded_at) and should_send_email(task.escalated_at):
         frappe.sendmail(
+            expose_recipients="header",
             recipients=[task.assigned_to_email],
             cc=[task.creator_email],
             subject=f"DigiTrack : Reminder - {task.name} ",
@@ -177,6 +178,7 @@ def escalate(task_id: str):
 
     if should_send_email(task.reminded_at) and should_send_email(task.escalated_at):
         frappe.sendmail(
+            expose_recipients="header",
             recipients=[task.assigned_to_email],
             cc=[task.creator_email, reporting_manager_email],
             subject=f"DigiTrack : Escalation - {task.name} ",
@@ -262,7 +264,8 @@ def scheduled_emails():
             creator.full_name.as_("creator_name"),
         )
         .where(
-            (tasks.due_date < today)
+            (tasks.deleted_at.isnull())
+            & (tasks.due_date < today)
             & (tasks.status.notin(["Completed", "Closed", "Canceled"]))
         )
         .join(assigned_to)
@@ -283,7 +286,8 @@ def scheduled_emails():
             creator.full_name.as_("creator_name"),
         )
         .where(
-            (tasks.due_date == two_days_from_now)
+            (tasks.deleted_at.isnull())
+            & (tasks.due_date == two_days_from_now)
             & (tasks.status.notin(["Completed", "Closed", "Canceled"]))
         )
         .join(assigned_to)
@@ -303,7 +307,11 @@ def scheduled_emails():
             creator.email.as_("creator_email"),
             creator.full_name.as_("creator_name"),
         )
-        .where(tasks.creation.between(today_start, today_end))
+        .where(
+            (tasks.deleted_at.isnull())
+            & (tasks.creation.between(today_start, today_end))
+            & (tasks.status.notin(["Completed", "Closed", "Canceled"]))
+        )
         .join(assigned_to)
         .on(tasks.assigned_to == assigned_to.name)
         .join(creator)
@@ -353,6 +361,7 @@ def scheduled_emails():
 
             if len(tasks) > 0:
                 frappe.sendmail(
+                    expose_recipients="header",
                     recipients=[tasks[0].assigned_to_email],
                     subject="DigiTrack: Task List - Pending / Upcoming ",
                     message=generate_task_reminder_email(tasks=tasks, type="scheduled"),

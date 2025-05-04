@@ -765,7 +765,7 @@ export function MeetingSheet({
                     control={control}
                     render={({ field }) => (
                       <input
-                        min={format(new Date(), "yyyy-MM-dd")}
+                        // min={format(new Date(), "yyyy-MM-dd")} // allowing past dates
                         type="date"
                         id="meeting_date"
                         disabled={isCompleted}
