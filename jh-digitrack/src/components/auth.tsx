@@ -14,7 +14,8 @@ function AuthProvider(props: PropsWithChildren) {
   }
 
   if (!user) {
-    return <Navigate to="/login" replace />;
+    window.location.href = "/login";
+    return;
   }
 
   if (!currentJHUser?.name) {

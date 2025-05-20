@@ -13,6 +13,7 @@
   "reconfirmation_required",
   "request_status",
   "requested_by",
+  "assigned_to",
   "column_break_npsz",
   "from_city",
   "to_city",
@@ -24,6 +25,8 @@
   "location",
   "preferred_hotel",
   "preferred_flight",
+  "other_preffered_flight",
+  "passenger_information",
   "description",
   "contact_number",
   "attachments_section",
@@ -35,7 +38,9 @@
   "cost_center",
   "column_break_udnk",
   "qty",
-  "gl"
+  "gl",
+  "po_iem",
+  "grn_miro"
  ],
  "fields": [
   {
@@ -51,19 +56,20 @@
    "description": "Include any additional information like explanation, links or points.\n\n",
    "fieldname": "description",
    "fieldtype": "Long Text",
-   "label": "Description"
+   "label": "Description (Budget, Other details etc.)"
   },
   {
    "fieldname": "column_break_npsz",
    "fieldtype": "Column Break"
   },
   {
+   "default": "Approval Pending",
    "description": "Check request status to see if your manager or credit card holder has engaged with your request.",
    "fieldname": "request_status",
    "fieldtype": "Select",
    "in_standard_filter": 1,
    "label": "Request Status",
-   "options": "Approval Pending\nApproved\nDenied\nCompleted\nUrgent\nReconfirmation Pending\nReconfirmed",
+   "options": "Approval Pending\nApproved\nDenied\nCompleted\nUrgent\nReconfirmation Pending\nReconfirmed\nAssigned for PO / IEM\nAssigned for GRN / Miro",
    "read_only": 1
   },
   {
@@ -75,14 +81,16 @@
   {
    "depends_on": "eval:doc.request_type === \"Flight\"",
    "fieldname": "from_city",
-   "fieldtype": "Data",
-   "label": "From City"
+   "fieldtype": "Link",
+   "label": "From City",
+   "options": "JH Airport Code Master"
   },
   {
    "depends_on": "eval:doc.request_type === \"Flight\"",
    "fieldname": "to_city",
-   "fieldtype": "Data",
-   "label": "To City"
+   "fieldtype": "Link",
+   "label": "To City",
+   "options": "JH Airport Code Master"
   },
   {
    "fieldname": "section_break_vwcd",
@@ -106,42 +114,42 @@
    "description": "Name and location of the preferred hotel.",
    "fieldname": "preferred_hotel",
    "fieldtype": "Data",
-   "label": "Preferred Hotel"
+   "label": "Preferred Hotel",
+   "mandatory_depends_on": "eval:doc.request_type === \"Hotel\""
   },
   {
    "depends_on": "eval:doc.request_type === \"Flight\"",
    "description": "Name of the preferred airlines.",
    "fieldname": "preferred_flight",
-   "fieldtype": "Data",
-   "label": "Preferred Flight"
+   "fieldtype": "Link",
+   "label": "Preferred Flight",
+   "options": "JH Travel Flight Master"
   },
   {
    "fieldname": "company_code",
    "fieldtype": "Data",
-   "label": "Company Code",
-   "reqd": 1
+   "label": "Company Code"
   },
   {
    "fieldname": "plant",
    "fieldtype": "Data",
-   "label": "Plant",
-   "reqd": 1
+   "label": "Plant"
   },
   {
    "fieldname": "column_break_udnk",
    "fieldtype": "Column Break"
   },
   {
+   "default": "K",
    "fieldname": "assignment",
    "fieldtype": "Data",
    "label": "Assignment",
-   "reqd": 1
+   "read_only": 1
   },
   {
    "fieldname": "cost_center",
    "fieldtype": "Data",
-   "label": "Cost Center",
-   "reqd": 1
+   "label": "Cost Center"
   },
   {
    "fetch_from": "request_type.article_code",
@@ -154,14 +162,12 @@
   {
    "fieldname": "qty",
    "fieldtype": "Data",
-   "label": "Qty",
-   "reqd": 1
+   "label": "Qty"
   },
   {
    "fieldname": "gl",
    "fieldtype": "Data",
-   "label": "GL",
-   "reqd": 1
+   "label": "GL"
   },
   {
    "fieldname": "requested_by",
@@ -200,7 +206,8 @@
    "depends_on": "eval:doc.request_type === \"Flight\"",
    "fieldname": "travel_date",
    "fieldtype": "Date",
-   "label": "Travel Date"
+   "label": "Travel Date",
+   "mandatory_depends_on": "eval:doc.request_type === \"Flight\""
   },
   {
    "default": "0",
@@ -227,11 +234,44 @@
    "fieldtype": "Check",
    "label": "Reconfirmation Required",
    "set_only_once": 1
+  },
+  {
+   "fieldname": "assigned_to",
+   "fieldtype": "Link",
+   "label": "Assigned To",
+   "options": "JH User Master",
+   "read_only": 1
+  },
+  {
+   "fieldname": "po_iem",
+   "fieldtype": "Data",
+   "label": "PO. / IEM",
+   "read_only": 1
+  },
+  {
+   "fieldname": "grn_miro",
+   "fieldtype": "Data",
+   "label": "GRN / Miro",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.request_type === \"Flight\" && doc.preferred_flight === \"Other\" ",
+   "fieldname": "other_preffered_flight",
+   "fieldtype": "Data",
+   "label": "Other Preffered Flight",
+   "mandatory_depends_on": "eval:doc.request_type === \"Flight\" && doc.preferred_flight === \"Other\" "
+  },
+  {
+   "depends_on": "eval:doc.request_type === \"Flight\"",
+   "fieldname": "passenger_information",
+   "fieldtype": "Long Text",
+   "label": "Passenger Information",
+   "mandatory_depends_on": "eval:doc.request_type === \"Flight\""
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-05-01 15:07:35.705002",
+ "modified": "2025-05-19 22:34:18.739563",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Travel Request",
@@ -252,7 +292,6 @@
   },
   {
    "create": 1,
-   "delete": 1,
    "email": 1,
    "export": 1,
    "print": 1,
@@ -264,7 +303,6 @@
   },
   {
    "create": 1,
-   "delete": 1,
    "email": 1,
    "export": 1,
    "print": 1,
@@ -283,6 +321,17 @@
    "read": 1,
    "report": 1,
    "role": "JH Digitrack Admin",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "JH Travel Workflow User",
    "share": 1,
    "write": 1
   }

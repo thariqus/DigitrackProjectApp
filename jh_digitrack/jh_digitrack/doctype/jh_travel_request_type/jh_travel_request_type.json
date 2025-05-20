@@ -27,7 +27,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-05-01 15:06:33.157757",
+ "modified": "2025-05-12 12:41:05.270368",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Travel Request Type",
@@ -48,7 +48,6 @@
   },
   {
    "create": 1,
-   "delete": 1,
    "email": 1,
    "export": 1,
    "print": 1,
@@ -60,7 +59,6 @@
   },
   {
    "create": 1,
-   "delete": 1,
    "email": 1,
    "export": 1,
    "print": 1,
@@ -79,6 +77,17 @@
    "read": 1,
    "report": 1,
    "role": "JH Digitrack Admin",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "JH Travel Workflow User",
    "share": 1,
    "write": 1
   }

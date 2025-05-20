@@ -75,6 +75,22 @@ export function TaskDetailSheet({
 
   const task = taskDetailed?.docs[0];
 
+  const { data: sourceDoc } = useDoc<{
+    audit_name?: string;
+    title?: string;
+  }>({
+    doctype: task?.source_doctype || "",
+    name: task?.source || "",
+    disabled: !task?.source_doctype || !task?.source || isLoadingTaskInfo,
+  });
+
+  let sourceTitle = "";
+  if (task?.source_doctype === "JH Audit Master") {
+    sourceTitle = sourceDoc?.audit_name ?? "";
+  } else if (task?.source_doctype === "JH Grouped Task Master") {
+    sourceTitle = sourceDoc?.title ?? "";
+  }
+
   const { data: taskAfter, isLoading: isLoadingTaskAfter } = useDoc<Task>({
     doctype: "JH Task Master",
     name: task?.start_after || "",
@@ -269,7 +285,7 @@ export function TaskDetailSheet({
                 <>
                   <div className="text-sm text-gray-500 flex items-center gap-2">
                     {task?.source ? (
-                      <span>{`${task?.source}#${task?.serial_number}`}</span>
+                      <span>{`${task?.source}#${task?.serial_number} ${sourceTitle}`}</span>
                     ) : (
                       <span>{task?.name}</span>
                     )}
