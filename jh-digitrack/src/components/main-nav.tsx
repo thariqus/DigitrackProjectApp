@@ -19,6 +19,8 @@ import {
 import { useCurrentJhUser, useLogout } from "@/hooks/auth";
 import { useAppVersion } from "@/hooks/system";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { JHDigitrackSettings } from "@/types/JHDigitrack/JHDigitrackSettings";
+import { useDocDetail } from "@/hooks/doc";
 
 export function MainNav() {
   const { pathname } = useLocation();
@@ -35,6 +37,13 @@ export function MainNav() {
         : "text-gray-600"
     );
   };
+
+  const { data: attachmentDetailed } = useDocDetail<JHDigitrackSettings>({
+    doctype: "JH Digitrack Settings",
+    name: "JH Digitrack Settings",
+  });
+
+  const attachment = attachmentDetailed?.docs[0];
 
   return (
     <header className="border-b">
@@ -131,6 +140,15 @@ export function MainNav() {
               >
                 <span>Account Settings</span>
               </DropdownMenuItem>
+              {attachment?.user_manual ? (
+                <DropdownMenuItem
+                  onClick={() => {
+                    window.open(attachment?.user_manual);
+                  }}
+                >
+                  <span>User Manual</span>
+                </DropdownMenuItem>
+              ) : null}
               <DropdownMenuItem className="w-full" onClick={() => logout()}>
                 <span>Log out</span>
               </DropdownMenuItem>

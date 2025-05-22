@@ -18,6 +18,11 @@ class JHTravelRequest(Document):
         if "JH Credit Card Holder" in frappe.get_roles():
             self.request_status = "Approved"
 
+    def after_insert(self):
+        if self.name:
+            self.virtual_name = self.name
+            self.save()
+
     def before_save(self):
         for attachment in self.attachments:
             if not attachment.created_by:

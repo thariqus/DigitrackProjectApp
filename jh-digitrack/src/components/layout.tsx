@@ -6,7 +6,7 @@ function Layout() {
     <div className="min-h-screen bg-background">
       <MainNav />
       <main className="flex justify-center">
-        <div className="container py-6">
+        <div className="container py-6 px-4 lg:px-8">
           <Outlet />
         </div>
       </main>

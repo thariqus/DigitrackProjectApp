@@ -16,7 +16,7 @@ export type TaskStatus =
   | "In progress"
   | "Canceled"
   | "completed"
-  | "closed";
+  | "Closed";
 
 // Priority types
 export type TaskPriority = "low" | "medium" | "high";
@@ -96,4 +96,9 @@ export interface TeamMemberRowProps {
   onToggleExpand: () => void;
   onNavigate: () => void;
   filteredTasks: Task[];
+}
+
+export interface TaskCounts {
+  count: number;
+  status: TaskStatus;
 }

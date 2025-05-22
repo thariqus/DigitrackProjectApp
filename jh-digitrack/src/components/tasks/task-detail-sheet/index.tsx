@@ -407,10 +407,8 @@ export function TaskDetailSheet({
                 ) : (
                   <div
                     ref={descriptionRef}
-                    className={`bg-gray-50 p-4 rounded-md ${
-                      !showFullDescription
-                        ? "max-h-[200px] overflow-hidden"
-                        : ""
+                    className={`bg-gray-50 p-1 rounded-md ${
+                      !showFullDescription ? "line-clamp-4" : ""
                     }`}
                     dangerouslySetInnerHTML={{
                       __html:
@@ -428,7 +426,7 @@ export function TaskDetailSheet({
                   </Button>
                 )}
               </div>
-              <div className="text-sm text-gray-500">Assignee Comments</div>
+              <div className="text-sm text-gray-500">Assignee Remarks</div>
               <div>
                 {isLoading ? (
                   <div className="space-y-2">
@@ -440,9 +438,7 @@ export function TaskDetailSheet({
                   <div
                     ref={assigneeCommentsRef}
                     className={`bg-gray-50 p-4 rounded-md ${
-                      !showFullAssigneeComments
-                        ? "max-h-[200px] overflow-hidden"
-                        : ""
+                      !showFullAssigneeComments ? "line-clamp-4" : ""
                     }`}
                     dangerouslySetInnerHTML={{
                       __html:

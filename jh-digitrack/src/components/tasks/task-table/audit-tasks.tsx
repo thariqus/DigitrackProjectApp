@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { Table, TableBody, TableFooter } from "@/components/ui/table";
 import { useDeleteDoc, useDoc, useDocs } from "@/hooks/doc";
 import { toast } from "sonner";
@@ -20,9 +20,14 @@ import { useNavigate, useParams } from "react-router";
 import { JHAudits } from "@/types/JHDigitrack/JHAudits";
 import StatusBadge from "../ui/StatusBadge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Download, Eye } from "lucide-react";
+import { ArrowLeft, Calendar, Download, Eye } from "lucide-react";
 import { AuditDetailSheet } from "@/components/audits/audits-detail-sheet";
 import { queryClient } from "@/utils/query-client";
+import { JHBusinessMaster } from "@/types/JHDigitrack/JHBusinessMaster";
+import { JHDivisionMaster } from "@/types/JHDigitrack/JHDivisionMaster";
+import { JHUserMaster } from "@/types/JHDigitrack/JHUserMaster";
+import { format } from "date-fns";
+import { useGetTaskCountByStatusBySource } from "@/hooks/task";
 
 export const AuditTasks = () => {
   const { auditId } = useParams();
@@ -45,8 +50,13 @@ export const AuditTasks = () => {
     undefined
   );
   const [activeFilters, setActiveFilters] = useState<TaskFilter[]>([]);
+  const [showFullDescription, setShowFullDescription] = useState(false);
+  const [isDescriptionOverflowing, setIsDescriptionOverflowing] =
+    useState(false);
+  const descriptionRef = useRef<HTMLDivElement>(null);
   const { data: currentJHUser } = useCurrentJhUser();
   const { data: currentUser } = useCurrentUser();
+  const { data: taskCounts } = useGetTaskCountByStatusBySource(auditId || "");
 
   // Use the new hook for filter logic
   const { getFilters } = useTaskFilters({
@@ -62,6 +72,32 @@ export const AuditTasks = () => {
     doctype: "JH Audit Master",
     name: auditId!,
   });
+
+  const { data: business } = useDoc<JHBusinessMaster>({
+    doctype: "JH Business Master",
+    name: audit?.business || "",
+    disabled: !audit?.business,
+  });
+
+  const { data: division } = useDoc<JHDivisionMaster>({
+    doctype: "JH Division Master",
+    name: audit?.division || "",
+    disabled: !audit?.division,
+  });
+
+  const { data: createdBy } = useDoc<JHUserMaster>({
+    doctype: "JH User Master",
+    name: audit?.created_by || "",
+    disabled: !audit?.created_by,
+  });
+
+  // Add this effect to check if description is overflowing
+  useEffect(() => {
+    if (audit?.audit_description) {
+      const isOverflowing = audit?.audit_description.length > 350;
+      setIsDescriptionOverflowing(isOverflowing);
+    }
+  }, [audit?.audit_description]);
 
   const {
     data: tasks,
@@ -224,33 +260,93 @@ export const AuditTasks = () => {
   return (
     <div className="space-y-6">
       <div>
-        <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-          <ArrowLeft className="h-6 w-6" />
-        </Button>
-        <h1 className="text-2xl font-semibold tracking-tight mb-4">
-          {audit?.audit_name}
-        </h1>
-        <div className="flex items-center gap-2">
-          <StatusBadge status={audit?.status} />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIsAuditDetailOpen(true)}
-          >
-            <Eye className="h-4 w-4" />
+        <div className="flex gap-2">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <ArrowLeft className="h-6 w-6" />
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              window.open(
-                `/api/method/jh_digitrack.api.audits.download_csv?audit_id=${auditId}`,
-                "_blank"
-              );
+          <h1 className="text-2xl font-semibold tracking-tight mb-4">
+            {audit?.audit_name}
+          </h1>
+        </div>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <StatusBadge status={audit?.status} />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsAuditDetailOpen(true)}
+            >
+              <Eye className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                window.open(
+                  `/api/method/jh_digitrack.api.audits.download_csv?audit_id=${auditId}`,
+                  "_blank"
+                );
+              }}
+            >
+              <Download className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="flex items-center gap-2">
+            {taskCounts?.message
+              // .filter(
+              //   (task) => task.status === "Open" || task.status === "Closed"
+              // )
+              .map((task, i) => (
+                <div className="flex bg-gray-200 rounded-md" key={i}>
+                  <StatusBadge status={task.status} />
+                  <StatusBadge status={task.count.toString()} />
+                </div>
+              ))}
+          </div>
+        </div>
+        <div className="mb-2">
+          <div className="text-base text-gray-500">
+            <span>{business?.business_name || ""}</span>
+            {business?.business_name && division?.division_name ? " / " : ""}
+            <span>{division?.division_name || ""}</span>
+          </div>
+        </div>
+        <div className="flex max-w-md items-center justify-between mb-2">
+          <div className="flex text-base gap-2">
+            <span>Created Date: </span>
+            <div className="flex items-center gap-1">
+              <Calendar className="w-4 h-4 text-red-500" />
+              <span className="text-gray-500">
+                {audit?.creation
+                  ? format(new Date(audit?.creation), "dd MMM yyyy")
+                  : "—"}
+              </span>
+            </div>
+          </div>
+          <div className="text-base">
+            <span>Created By: </span>
+            <span className="text-gray-500">
+              {createdBy?.full_name ?? audit?.created_by}
+            </span>
+          </div>
+        </div>
+        <div className="text-base">
+          <div
+            ref={descriptionRef}
+            className={`${!showFullDescription ? "line-clamp-2" : ""}`}
+            dangerouslySetInnerHTML={{
+              __html: audit?.audit_description?.replace(/\n+/g, "<br />") || "",
             }}
-          >
-            <Download className="h-4 w-4" />
-          </Button>
+          />
+          {isDescriptionOverflowing && (
+            <Button
+              variant="ghost"
+              className="text-gray-500 mt-2 h-auto p-0 text-sm"
+              onClick={() => setShowFullDescription(!showFullDescription)}
+            >
+              {showFullDescription ? "Show less" : "See full description"}
+            </Button>
+          )}
         </div>
       </div>
       <div className="space-y-4">

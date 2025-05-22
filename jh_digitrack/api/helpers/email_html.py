@@ -6,7 +6,7 @@ import frappe
 from jinja2 import Template
 
 
-def generate_task_reminder_email(tasks, type):
+def generate_task_reminder_email(tasks, type, initiator_name=""):
     """
     Generate an HTML email for task reminders.
 
@@ -63,8 +63,11 @@ def generate_task_reminder_email(tasks, type):
 
             <p>
             <a href="{{ url }}/jh-digitrack/tasks/">Click here</a> to view your tasks.
+            <br/>
+            <br/>
+            {{initiator_mention}}
             
-            <p class="footer"><em>This is an automated message. This email inbox is not actively monitored.</em></p>
+            <p class="footer"><em>{{ footer }}</em></p>
         </div>
     </body>
 </html>
@@ -76,12 +79,33 @@ def generate_task_reminder_email(tasks, type):
     elif type == "scheduled":
         header = "The below tasks are opened in your name:"
 
+    footer = ""
+    if type == "reminder" or type == "escalation":
+        footer = "This email inbox is not actively monitored."
+    elif type == "scheduled":
+        footer = (
+            "This is an automated message. This email inbox is not actively monitored."
+        )
+
+    initiator_mention = ""
+    if initiator_name:
+        if type == "reminder":
+            initiator_mention = f"Reminded by {initiator_name}"
+        elif type == "escalation":
+            initiator_mention = f"Escalated by {initiator_name}"
+
     # Create Jinja2 template object
     template = Template(template_str)
 
     url = frappe.utils.get_url()
 
     # Render the template with provided context
-    html_content = template.render(tasks=tasks, url=url, header=header)
+    html_content = template.render(
+        tasks=tasks,
+        url=url,
+        header=header,
+        footer=footer,
+        initiator_mention=initiator_mention,
+    )
 
     return html_content

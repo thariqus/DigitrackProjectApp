@@ -260,8 +260,8 @@ export function MeetingDetailSheet({
                 ) : (
                   <div
                     ref={agendaRef}
-                    className={`bg-gray-50 p-4 rounded-md w-100 break-words  ${
-                      !showFullAgenda ? "max-h-[200px] overflow-hidden" : ""
+                    className={`bg-gray-50 p-1 rounded-md ${
+                      !showFullAgenda ? "line-clamp-4" : ""
                     }`}
                     dangerouslySetInnerHTML={{
                       __html: meeting?.agenda?.replace(/\n+/g, "<br />") || "",
@@ -289,8 +289,8 @@ export function MeetingDetailSheet({
                 ) : (
                   <div
                     ref={remarksRef}
-                    className={`bg-gray-50 p-4 rounded-md w-100 break-words  ${
-                      !showFullRemarks ? "max-h-[200px] overflow-hidden" : ""
+                    className={`bg-gray-50 p-1 rounded-md ${
+                      !showFullRemarks ? "line-clamp-4" : ""
                     }`}
                     dangerouslySetInnerHTML={{
                       __html: meeting?.remarks?.replace(/\n+/g, "<br />") || "",

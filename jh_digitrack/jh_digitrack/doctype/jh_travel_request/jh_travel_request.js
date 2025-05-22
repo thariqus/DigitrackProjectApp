@@ -69,6 +69,7 @@ frappe.ui.form.on("JH Travel Request", {
         console.log(role);
 
         if (frm.is_new()) {
+          frm.set_value("request_status", "Approval Pending");
           if (role !== "cc_holder") {
             for (const field of required_fields) {
               frm.toggle_reqd(field, true);

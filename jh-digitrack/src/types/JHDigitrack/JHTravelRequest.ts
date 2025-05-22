@@ -25,6 +25,8 @@ export interface JHTravelRequest{
 	requested_by?: string
 	/**	Assigned To : Link - JH User Master	*/
 	assigned_to?: string
+	/**	Request Ref No : Data - just a virtual field to get the ID of this request	*/
+	virtual_name?: string
 	/**	From City : Link - JH Airport Code Master	*/
 	from_city?: string
 	/**	To City : Link - JH Airport Code Master	*/
