@@ -207,6 +207,9 @@ export const MeetingTasks = () => {
       await queryClient.invalidateQueries({
         queryKey: ["Docs"],
       });
+      await queryClient.invalidateQueries({
+        queryKey: ["task-counts", meetingId],
+      });
       toast.success("Task deleted successfully");
       refetch();
     } catch (error) {

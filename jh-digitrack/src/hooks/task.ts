@@ -63,7 +63,7 @@ export const useEscalateTask = () => {
 
 export const useGetTaskCountByStatusBySource = (source?: string) => {
   return useQuery({
-    queryKey: ["team-tasks", source],
+    queryKey: ["task-counts", source],
     queryFn: () =>
       frappe.api.get<{ message: TaskCounts[] }>(
         `jh_digitrack.api.tasks.get_task_count_by_status_by_source`,

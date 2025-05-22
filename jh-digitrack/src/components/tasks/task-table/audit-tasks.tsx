@@ -222,6 +222,9 @@ export const AuditTasks = () => {
       await queryClient.invalidateQueries({
         queryKey: ["Docs"],
       });
+      await queryClient.invalidateQueries({
+        queryKey: ["task-counts", auditId],
+      });
       toast.success("Task deleted successfully");
       refetch();
     } catch (error) {

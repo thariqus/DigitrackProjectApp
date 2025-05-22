@@ -1,5 +1,6 @@
 {
  "actions": [],
+ "allow_import": 1,
  "allow_rename": 1,
  "autoname": "field:label",
  "creation": "2025-04-17 16:24:08.627398",
@@ -27,7 +28,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-05-12 12:41:05.270368",
+ "modified": "2025-05-22 15:53:30.706390",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Travel Request Type",

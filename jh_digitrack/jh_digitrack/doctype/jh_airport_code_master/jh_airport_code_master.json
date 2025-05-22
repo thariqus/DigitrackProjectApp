@@ -1,5 +1,6 @@
 {
  "actions": [],
+ "allow_import": 1,
  "allow_rename": 1,
  "autoname": "field:airport_code",
  "creation": "2025-05-19 22:32:49.153348",
@@ -24,7 +25,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-05-19 22:33:40.948423",
+ "modified": "2025-05-22 15:53:20.153374",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Airport Code Master",
@@ -42,6 +43,36 @@
    "role": "System Manager",
    "share": 1,
    "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "JH Credit Card Holder",
+   "share": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "JH Digitrack Admin",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "JH Travel Workflow User",
+   "share": 1
   }
  ],
  "search_fields": "airport_code,city",

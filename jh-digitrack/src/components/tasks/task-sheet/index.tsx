@@ -466,6 +466,9 @@ export function TaskSheet({
             },
           ],
         });
+        await queryClient.invalidateQueries({
+          queryKey: ["task-counts", source],
+        });
 
         // Success handling
         toast.success(
