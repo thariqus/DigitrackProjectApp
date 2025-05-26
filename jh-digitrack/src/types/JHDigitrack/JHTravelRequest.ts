@@ -49,14 +49,14 @@ export interface JHTravelRequest{
 	preferred_flight?: string
 	/**	Other Preffered Flight : Data	*/
 	other_preffered_flight?: string
-	/**	Passenger Information : Long Text	*/
+	/**	Passenger Information : Text Editor	*/
 	passenger_information?: string
-	/**	Description (Budget, Other details etc.) : Long Text - Include any additional information like explanation, links or points.
+	/**	Description (Budget, Contact details etc.) : Long Text - Include any additional information like explanation, links or points.
 
 	*/
 	description?: string
-	/**	Contact Number : Data	*/
-	contact_number?: string
+	/**	Final amount : Data	*/
+	final_amount?: string
 	/**	Attachments : Table - JH File Attachments	*/
 	attachments?: JHFileAttachments[]
 	/**	Company Code : Data	*/

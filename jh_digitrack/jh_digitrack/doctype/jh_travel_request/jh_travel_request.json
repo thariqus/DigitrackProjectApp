@@ -30,7 +30,7 @@
   "other_preffered_flight",
   "passenger_information",
   "description",
-  "contact_number",
+  "final_amount",
   "attachments_section",
   "attachments",
   "section_break_vwcd",
@@ -58,7 +58,7 @@
    "description": "Include any additional information like explanation, links or points.\n\n",
    "fieldname": "description",
    "fieldtype": "Long Text",
-   "label": "Description (Budget, Other details etc.)"
+   "label": "Description (Budget, Contact details etc.)"
   },
   {
    "fieldname": "column_break_npsz",
@@ -104,21 +104,22 @@
    "depends_on": "eval:doc.request_type === \"Hotel\"",
    "fieldname": "from_date",
    "fieldtype": "Date",
-   "label": "From Date"
+   "label": "From Date",
+   "mandatory_depends_on": "eval:doc.request_type === \"Hotel\""
   },
   {
    "depends_on": "eval:doc.request_type === \"Hotel\"",
    "fieldname": "to_date",
    "fieldtype": "Date",
-   "label": "To Date"
+   "label": "To Date",
+   "mandatory_depends_on": "eval:doc.request_type === \"Hotel\""
   },
   {
    "depends_on": "eval:doc.request_type === \"Hotel\"",
    "description": "Name and location of the preferred hotel.",
    "fieldname": "preferred_hotel",
    "fieldtype": "Data",
-   "label": "Preferred Hotel",
-   "mandatory_depends_on": "eval:doc.request_type === \"Hotel\""
+   "label": "Preferred Hotel"
   },
   {
    "depends_on": "eval:doc.request_type === \"Flight\"",
@@ -235,12 +236,6 @@
    "label": "Return date"
   },
   {
-   "depends_on": "eval:doc.request_type === \"Flight\" || doc.request_type === \"Hotel\"",
-   "fieldname": "contact_number",
-   "fieldtype": "Data",
-   "label": "Contact Number"
-  },
-  {
    "default": "0",
    "fieldname": "reconfirmation_required",
    "fieldtype": "Check",
@@ -278,9 +273,9 @@
    "mandatory_depends_on": "eval:doc.request_type === \"Flight\" && doc.preferred_flight === \"Other\" "
   },
   {
-   "depends_on": "eval:doc.request_type === \"Flight\"",
+   "depends_on": "eval:doc.request_type === \"Flight\" || doc.request_type === \"Hotel\"",
    "fieldname": "passenger_information",
-   "fieldtype": "Long Text",
+   "fieldtype": "Text Editor",
    "label": "Passenger Information",
    "mandatory_depends_on": "eval:doc.request_type === \"Flight\""
   },
@@ -291,11 +286,18 @@
    "hidden": 1,
    "label": "Request Ref No",
    "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.request_type === \"Flight\" || doc.request_type === \"Hotel\"",
+   "fieldname": "final_amount",
+   "fieldtype": "Data",
+   "label": "Final amount",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-05-21 13:01:33.383286",
+ "modified": "2025-05-23 09:13:47.070422",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Travel Request",

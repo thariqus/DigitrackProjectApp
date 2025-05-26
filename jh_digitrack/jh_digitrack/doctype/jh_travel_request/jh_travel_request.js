@@ -110,9 +110,16 @@ frappe.ui.form.on("JH Travel Request", {
                         options: "JH User Master",
                         reqd: 1,
                       },
+                      {
+                        label: "Final Amount",
+                        fieldname: "final_amount",
+                        fieldtype: "Data",
+                        reqd: 1,
+                      },
                     ],
                     (values) => {
                       frm.set_value("assigned_to", values.assigned_to);
+                      frm.set_value("final_amount", values.final_amount);
                       frm.set_value("request_status", "Assigned for PO / IEM");
                       frm.save();
                     }
