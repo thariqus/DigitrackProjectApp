@@ -149,6 +149,13 @@ export function MainNav() {
                   <span>User Manual</span>
                 </DropdownMenuItem>
               ) : null}
+              <DropdownMenuItem
+                  onClick={() => {
+                    window.location.href = "/app/travel-request";
+                  }}
+                >
+                  <span>Travel Workflow Dashboard</span>
+                </DropdownMenuItem>
               <DropdownMenuItem className="w-full" onClick={() => logout()}>
                 <span>Log out</span>
               </DropdownMenuItem>

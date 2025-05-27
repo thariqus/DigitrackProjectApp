@@ -1,0 +1,90 @@
+{
+ "charts": [
+  {
+   "chart_name": "Travel Request Count",
+   "label": "Travel Request Count"
+  }
+ ],
+ "content": "[{\"id\":\"fELCzK-Z-a\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Travel Request</span>\",\"col\":12}},{\"id\":\"EJ9yDp_UCH\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Jh Travel Request\",\"col\":3}},{\"id\":\"xaoExEFooH\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Go to Digitrack\",\"col\":3}},{\"id\":\"xFS-OqG9ZR\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"ThDeypp-C1\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Pending Requests\",\"col\":4}},{\"id\":\"1Y9NzNrPRA\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Reconfirmation Pending\",\"col\":4}},{\"id\":\"bN6--qISDb\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Reconfirmed\",\"col\":4}},{\"id\":\"PJJlIMPFCk\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Assigned For GRN/MIRO\",\"col\":4}},{\"id\":\"6G3uMMbRTJ\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Assigned For PO/IEM\",\"col\":4}},{\"id\":\"DHVsRjoe6e\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Approved\",\"col\":4}},{\"id\":\"AXhqwcagEZ\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Completed\",\"col\":4}},{\"id\":\"dK0-rHs7d6\",\"type\":\"chart\",\"data\":{\"chart_name\":\"Travel Request Count\",\"col\":12}}]",
+ "creation": "2025-05-27 09:48:59.586648",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 0,
+ "icon": "map",
+ "idx": 0,
+ "indicator_color": "green",
+ "is_hidden": 0,
+ "label": "Travel Request",
+ "links": [],
+ "modified": "2025-05-27 10:13:14.339353",
+ "modified_by": "Administrator",
+ "module": "JH Digitrack",
+ "name": "Travel Request",
+ "number_cards": [
+  {
+   "label": "Pending Requests",
+   "number_card_name": "Pending Requests"
+  },
+  {
+   "label": "Reconfirmation Pending",
+   "number_card_name": "Reconfirmation Pending"
+  },
+  {
+   "label": "Reconfirmed",
+   "number_card_name": "Reconfirmed"
+  },
+  {
+   "label": "Assigned For GRN/MIRO",
+   "number_card_name": "Assigned For GRN - MIRO"
+  },
+  {
+   "label": "Assigned For PO/IEM",
+   "number_card_name": "Assigned For PO - IEM"
+  },
+  {
+   "label": "Approved",
+   "number_card_name": "Approved"
+  },
+  {
+   "label": "Completed",
+   "number_card_name": "Completed"
+  }
+ ],
+ "owner": "Administrator",
+ "parent_page": "",
+ "public": 1,
+ "quick_lists": [],
+ "roles": [
+  {
+   "role": "JH Credit Card Holder"
+  },
+  {
+   "role": "JH Digitrack Admin"
+  },
+  {
+   "role": "JH Travel Workflow User"
+  }
+ ],
+ "sequence_id": 1.0,
+ "shortcuts": [
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Go to Digitrack",
+   "link_to": "jh-digitrack",
+   "type": "Page"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "format": "{} Total",
+   "label": "Jh Travel Request",
+   "link_to": "JH Travel Request",
+   "stats_filter": "[]",
+   "type": "DocType"
+  }
+ ],
+ "title": "Travel Request"
+}
