@@ -3,7 +3,6 @@
  "allow_rename": 1,
  "autoname": "format:TRAVEL{####}",
  "creation": "2025-04-16 14:14:43.962520",
- "default_email_template": "Travel Request Email",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
@@ -297,7 +296,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-05-23 09:13:47.070422",
+ "modified": "2025-05-28 17:05:25.813856",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Travel Request",
