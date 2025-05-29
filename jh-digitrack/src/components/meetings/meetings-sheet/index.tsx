@@ -776,8 +776,8 @@ export function MeetingSheet({
                 />
                 <Label htmlFor="visible_to_all">
                   {watch("visible_to_all") === true
-                    ? "Visible to all"
-                    : "Visible to creator/assignee"}
+                    ? "Task visible to all"
+                    : "Task visible to creator/assignee"}
                 </Label>
               </div>
 
