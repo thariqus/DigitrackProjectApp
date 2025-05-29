@@ -698,7 +698,6 @@ export function TaskSheet({
           type: "Status Change",
           remark: `changed status from ${task.status} to ${newStatus}`,
         });
-
         toast.success("Status updated successfully");
         await refetchTaskDetails();
 
@@ -717,6 +716,9 @@ export function TaskSheet({
         });
         await queryClient.invalidateQueries({
           queryKey: ["team-tasks"],
+        });
+        await queryClient.invalidateQueries({
+          queryKey: ["task-counts", source],
         });
       } catch (error) {
         console.error(error);
@@ -902,7 +904,7 @@ export function TaskSheet({
   // ==========================================
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="sm:max-w-3xl px-5">
+      <SheetContent className="sm:max-w-5xl px-5">
         <SheetHeader className="px-0 flex-row justify-between items-center">
           <SheetTitle className="text-2xl font-semibold truncate max-w-[100ch]">
             {isEdit

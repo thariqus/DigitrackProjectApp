@@ -45,6 +45,7 @@ import ChangelogRemarkDialog from "./ChangeLogRemarkDialog";
 import FileAttachmentHandler from "./FileAttachmentHandler";
 import { JHAudits } from "@/types/JHDigitrack/JHAudits";
 import { useAddAuditRemark } from "@/hooks/audits";
+import { Switch } from "@/components/ui/switch";
 // ==========================================
 // COMPONENT PROPS INTERFACE
 // ==========================================
@@ -83,6 +84,7 @@ export function AuditSheet({
       start_date: z.string().optional(),
       file_name: z.string().optional(),
       folder_name: z.string().optional(),
+      visible_to_all: z.boolean().optional(),
     })
     .transform((arg) => ({
       ...arg,
@@ -157,6 +159,7 @@ export function AuditSheet({
       start_date: format(new Date(), "yyyy-MM-dd"),
       file_name: "",
       folder_name: "",
+      visible_to_all: true,
     }),
     []
   );
@@ -224,6 +227,7 @@ export function AuditSheet({
         start_date: audit.start_date || format(new Date(), "yyyy-MM-dd"),
         file_name: audit.file_name || "",
         folder_name: audit.folder_name || "",
+        visible_to_all: audit.visible_to_all === 1 ? true : false,
       });
 
       // Set existing files when audit is loaded
@@ -622,7 +626,7 @@ export function AuditSheet({
   // ==========================================
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="sm:max-w-3xl px-5">
+      <SheetContent className="sm:max-w-5xl px-5">
         <SheetHeader className="px-0 flex-row justify-between items-center">
           <SheetTitle className="text-2xl font-bold">
             {isEdit
@@ -722,6 +726,27 @@ export function AuditSheet({
                     {errors.audit_name.message}
                   </p>
                 )}
+              </div>
+              <div className="flex items-center space-x-2">
+                <Controller
+                  name="visible_to_all"
+                  control={control}
+                  render={({ field }) => (
+                    <Switch
+                      disabled={isEdit}
+                      checked={field.value === true}
+                      onCheckedChange={(checked) => {
+                        field.onChange(checked ? true : false);
+                      }}
+                      id="visible_to_all"
+                    />
+                  )}
+                />
+                <Label htmlFor="visible_to_all">
+                  {watch("visible_to_all") === true
+                    ? "Task visible to all"
+                    : "Task visible to creator/assignee"}
+                </Label>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

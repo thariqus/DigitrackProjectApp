@@ -8,28 +8,34 @@ from .helpers.clean_html import clean_html
 
 @frappe.whitelist()
 def team_audits(
-    reporting_to: str, search_query: str = "", page: int = 1, page_size: int = 100
+    reporting_to: str, 
+    search_query: str = "", 
+    page: int = 1, 
+    page_size: int = 100,
+    status_filter: str = "",
 ):
-    def get_team_members_recursive(manager_id, current_level=0, max_level=5):
-        if current_level >= max_level:
-            return []
+    # NOTE: manager access removed for now
+    # def get_team_members_recursive(manager_id, current_level=0, max_level=5):
+    #     if current_level >= max_level:
+    #         return []
 
-        direct_reports = frappe.db.get_list(
-            "JH User Master", filters={"reporting_manager": manager_id}, fields=["name"]
-        )
+    #     direct_reports = frappe.db.get_list(
+    #         "JH User Master", filters={"reporting_manager": manager_id}, fields=["name"]
+    #     )
 
-        all_team_members = direct_reports.copy()
+    #     all_team_members = direct_reports.copy()
 
-        for member in direct_reports:
-            subordinates = get_team_members_recursive(
-                member.name, current_level + 1, max_level
-            )
-            all_team_members.extend(subordinates)
+    #     for member in direct_reports:
+    #         subordinates = get_team_members_recursive(
+    #             member.name, current_level + 1, max_level
+    #         )
+    #         all_team_members.extend(subordinates)
 
-        return all_team_members
+    #     return all_team_members
 
     # Get team members up to 5 levels deep
-    team_members = get_team_members_recursive(reporting_to)
+    # team_members = get_team_members_recursive(reporting_to)
+    team_members = []
     team_members.append({"name": reporting_to})
 
     filters = {
@@ -37,6 +43,14 @@ def team_audits(
     }
     if search_query:
         filters["audit_name"] = ["like", f"%{search_query}%"]
+
+    # Handle status_filter as array of strings
+    selected_statuses = status_filter.split(",") if status_filter else ["Open"]
+    if selected_statuses and len(selected_statuses) > 0:
+        if len(selected_statuses) == 1:
+            filters["status"] = selected_statuses[0]
+        else:
+            filters["status"] = ["in", selected_statuses]
 
     audit_list = frappe.db.get_list(
         "JH Audit Master",

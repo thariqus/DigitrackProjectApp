@@ -213,9 +213,14 @@ export function TaskDetailSheet({
   const showDeleteButton =
     task?.owner === currentUser && task?.creation === task?.modified;
 
+  const showEmailPopover =
+    task?.assigned_to !== currentJhUser?.name &&
+    task?.status !== "Closed" &&
+    task?.status !== "Canceled";
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="sm:max-w-[700px] p-0 overflow-y-auto">
+      <SheetContent className="sm:max-w-5xl p-0 overflow-y-auto">
         <div className="flex flex-col h-full">
           {/* Header with status and actions */}
           <div className="flex items-center justify-between p-4 border-b">
@@ -223,7 +228,7 @@ export function TaskDetailSheet({
               <StatusBadge status={task?.status} />
             </div>
             <div className="flex items-center gap-2 mr-5">
-              {task?.assigned_to !== currentJhUser?.name && (
+              {showEmailPopover && (
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button variant="ghost" size="icon">
@@ -407,7 +412,7 @@ export function TaskDetailSheet({
                 ) : (
                   <div
                     ref={descriptionRef}
-                    className={`bg-gray-50 p-1 rounded-md ${
+                    className={`bg-gray-50 p-1 rounded-md max-w-lg overflow-x-auto ${
                       !showFullDescription ? "line-clamp-4" : ""
                     }`}
                     dangerouslySetInnerHTML={{
@@ -437,7 +442,7 @@ export function TaskDetailSheet({
                 ) : (
                   <div
                     ref={assigneeCommentsRef}
-                    className={`bg-gray-50 p-4 rounded-md ${
+                    className={`bg-gray-50 p-4 rounded-md max-w-lg overflow-x-auto ${
                       !showFullAssigneeComments ? "line-clamp-4" : ""
                     }`}
                     dangerouslySetInnerHTML={{

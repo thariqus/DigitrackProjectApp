@@ -162,7 +162,7 @@ export function MeetingDetailSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="sm:max-w-[700px] p-0 overflow-y-auto">
+      <SheetContent className="sm:max-w-5xl p-0 overflow-y-auto">
         <div className="flex flex-col h-full">
           {/* Header with status and actions */}
           <div className="flex items-center justify-between p-4 border-b">
@@ -260,7 +260,7 @@ export function MeetingDetailSheet({
                 ) : (
                   <div
                     ref={agendaRef}
-                    className={`bg-gray-50 p-1 rounded-md ${
+                    className={`bg-gray-50 p-1 rounded-md max-w-lg overflow-x-auto ${
                       !showFullAgenda ? "line-clamp-4" : ""
                     }`}
                     dangerouslySetInnerHTML={{
@@ -289,7 +289,7 @@ export function MeetingDetailSheet({
                 ) : (
                   <div
                     ref={remarksRef}
-                    className={`bg-gray-50 p-1 rounded-md ${
+                    className={`bg-gray-50 p-1 rounded-md max-w-lg overflow-x-auto ${
                       !showFullRemarks ? "line-clamp-4" : ""
                     }`}
                     dangerouslySetInnerHTML={{

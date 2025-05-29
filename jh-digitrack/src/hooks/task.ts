@@ -61,14 +61,28 @@ export const useEscalateTask = () => {
   });
 };
 
-export const useGetTaskCountByStatusBySource = (source?: string) => {
+export const useGetTaskCountByStatusBySource = (
+  source?: string,
+  current_jh_user?: string,
+  created_by?: string,
+  visible_to_all?: boolean
+) => {
   return useQuery({
-    queryKey: ["task-counts", source],
+    queryKey: [
+      "task-counts",
+      source,
+      current_jh_user,
+      created_by,
+      visible_to_all,
+    ],
     queryFn: () =>
       frappe.api.get<{ message: TaskCounts[] }>(
         `jh_digitrack.api.tasks.get_task_count_by_status_by_source`,
         {
           source,
+          current_jh_user,
+          created_by,
+          visible_to_all,
         }
       ),
     enabled: Boolean(source),

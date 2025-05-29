@@ -19,6 +19,8 @@ export interface JHAuditMaster{
 	additional_comments?: string
 	/**	Status : Select	*/
 	status: "Open" | "Completed"
+	/**	Visible To All : Check	*/
+	visible_to_all?: 0 | 1
 	/**	Created By : Link - JH User Master	*/
 	created_by: string
 	/**	Start Date : Datetime	*/

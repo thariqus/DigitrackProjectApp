@@ -6,10 +6,18 @@ export const useTeamAudits = (
   reporting_to?: string,
   page: number = 1,
   page_size: number = 10,
-  search_query?: string
+  search_query?: string,
+  status_filter?: string[]
 ) => {
   return useQuery({
-    queryKey: ["team-audits", reporting_to, page, page_size, search_query],
+    queryKey: [
+      "team-audits",
+      reporting_to,
+      page,
+      page_size,
+      search_query,
+      status_filter,
+    ],
     queryFn: () =>
       frappeClient.api.get<{
         message: {
@@ -21,6 +29,7 @@ export const useTeamAudits = (
         page,
         page_size,
         search_query,
+        status_filter: status_filter?.join(","),
       }),
     enabled: Boolean(reporting_to),
   });

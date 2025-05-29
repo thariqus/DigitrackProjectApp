@@ -19,7 +19,7 @@ import { useTaskFilters } from "./hooks/useTaskFilters";
 import { useNavigate, useParams } from "react-router";
 import StatusBadge from "../ui/StatusBadge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Calendar, Eye } from "lucide-react";
+import { ArrowLeft, Calendar, Download, Eye } from "lucide-react";
 import { JHGroupedTaskMaster } from "@/types/JHDigitrack/JHGroupedTaskMaster";
 import { MeetingDetailSheet } from "@/components/meetings/meetings-detail-sheet";
 import { queryClient } from "@/utils/query-client";
@@ -53,7 +53,6 @@ export const MeetingTasks = () => {
   const agendaRef = useRef<HTMLDivElement>(null);
   const { data: currentJHUser } = useCurrentJhUser();
   const { data: currentUser } = useCurrentUser();
-  const { data: taskCounts } = useGetTaskCountByStatusBySource(meetingId || "");
 
   // Use the new hook for filter logic
   const { getFilters } = useTaskFilters({
@@ -69,6 +68,8 @@ export const MeetingTasks = () => {
     doctype: "JH Grouped Task Master",
     name: meetingId!,
   });
+
+  const visibleToAll = meeting?.visible_to_all === 1;
 
   const { data: organizer } = useDoc<JHUserMaster>({
     doctype: "JH User Master",
@@ -95,6 +96,7 @@ export const MeetingTasks = () => {
       "task_name",
       "status",
       "due_date",
+      "revised_due_date",
       "assigned_to",
       "private",
       "source",
@@ -118,6 +120,11 @@ export const MeetingTasks = () => {
     filters: [
       ["source_doctype", "=", "JH Grouped Task Master"],
       ["source", "=", meetingId!],
+      ...(currentJHUser &&
+      organizer?.name !== currentJHUser.name &&
+      !visibleToAll
+        ? [["assigned_to", "=", currentJHUser.name] as Filter<Task>]
+        : []),
       ...(getFilters() as Filter<Task>[]),
     ],
   });
@@ -132,6 +139,13 @@ export const MeetingTasks = () => {
       ...(getFilters() as Filter<Task>[]),
     ],
   });
+
+  const { data: taskCounts } = useGetTaskCountByStatusBySource(
+    meetingId,
+    currentJHUser?.name,
+    organizer?.name,
+    visibleToAll
+  );
 
   const totalPages = Math.ceil(taskCounter?.length / tasksPerPage);
 
@@ -266,18 +280,18 @@ export const MeetingTasks = () => {
             >
               <Eye className="h-4 w-4" />
             </Button>
-            {/* <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              window.open(
-                `/api/method/jh_digitrack.api.audits.download_csv?audit_id=${meetingId}`,
-                "_blank"
-              );
-            }}
-          >
-            <Download className="h-4 w-4" />
-          </Button> */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                window.open(
+                  `/api/method/jh_digitrack.api.meetings.download_csv?meeting_id=${meetingId}`,
+                  "_blank"
+                );
+              }}
+            >
+              <Download className="h-4 w-4" />
+            </Button>
           </div>
           <div className="flex items-center gap-2">
             {taskCounts?.message

@@ -24,6 +24,7 @@ def team_tasks(reporting_to: str):
             "assigned_to": ["in", [member.name for member in team_members]],
             "deleted_at": ["is", "not set"],
             "private": ["=", 0],
+            "status": ["!=", "Closed"],
         },
         fields=[
             "*",
@@ -380,14 +381,21 @@ def scheduled_emails():
 
 
 @frappe.whitelist()
-def get_task_count_by_status_by_source(source: str):
+def get_task_count_by_status_by_source(source: str, current_jh_user: str, created_by: str, visible_to_all: bool):
     """
     Get the count of tasks by status for a specific source.
     """
+    # Base filters
+    filters = {"source": source}
+    
+    # Add conditional filter based on user permissions
+    if (current_jh_user and created_by != current_jh_user and not visible_to_all):
+        filters["assigned_to"] = current_jh_user
+    
     tasks = frappe.db.get_list(
         "JH Task Master",
         fields=["count(name) as count", "status"],
         group_by="status",
-        filters={"source": source},
+        filters=filters,
     )
     return tasks
