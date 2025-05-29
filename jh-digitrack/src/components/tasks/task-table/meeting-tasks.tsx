@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { Table, TableBody, TableFooter } from "@/components/ui/table";
 import { useDeleteDoc, useDoc, useDocs } from "@/hooks/doc";
 import { toast } from "sonner";
@@ -19,10 +19,13 @@ import { useTaskFilters } from "./hooks/useTaskFilters";
 import { useNavigate, useParams } from "react-router";
 import StatusBadge from "../ui/StatusBadge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Eye } from "lucide-react";
+import { ArrowLeft, Calendar, Eye } from "lucide-react";
 import { JHGroupedTaskMaster } from "@/types/JHDigitrack/JHGroupedTaskMaster";
 import { MeetingDetailSheet } from "@/components/meetings/meetings-detail-sheet";
 import { queryClient } from "@/utils/query-client";
+import { JHUserMaster } from "@/types/JHDigitrack/JHUserMaster";
+import { format } from "date-fns";
+import { useGetTaskCountByStatusBySource } from "@/hooks/task";
 
 export const MeetingTasks = () => {
   const { meetingId } = useParams();
@@ -45,8 +48,12 @@ export const MeetingTasks = () => {
     undefined
   );
   const [activeFilters, setActiveFilters] = useState<TaskFilter[]>([]);
+  const [showFullAgenda, setShowFullAgenda] = useState(false);
+  const [isAgendaOverflowing, setIsAgendaOverflowing] = useState(false);
+  const agendaRef = useRef<HTMLDivElement>(null);
   const { data: currentJHUser } = useCurrentJhUser();
   const { data: currentUser } = useCurrentUser();
+  const { data: taskCounts } = useGetTaskCountByStatusBySource(meetingId || "");
 
   // Use the new hook for filter logic
   const { getFilters } = useTaskFilters({
@@ -62,6 +69,20 @@ export const MeetingTasks = () => {
     doctype: "JH Grouped Task Master",
     name: meetingId!,
   });
+
+  const { data: organizer } = useDoc<JHUserMaster>({
+    doctype: "JH User Master",
+    name: meeting?.organizer || "",
+    disabled: !meeting?.organizer,
+  });
+
+  // Add this effect to check if description is overflowing
+  useEffect(() => {
+    if (meeting?.agenda) {
+      const isOverflowing = meeting?.agenda.length > 350;
+      setIsAgendaOverflowing(isOverflowing);
+    }
+  }, [meeting?.agenda]);
 
   const {
     data: tasks,
@@ -186,6 +207,9 @@ export const MeetingTasks = () => {
       await queryClient.invalidateQueries({
         queryKey: ["Docs"],
       });
+      await queryClient.invalidateQueries({
+        queryKey: ["task-counts", meetingId],
+      });
       toast.success("Task deleted successfully");
       refetch();
     } catch (error) {
@@ -224,22 +248,25 @@ export const MeetingTasks = () => {
   return (
     <div className="space-y-6">
       <div>
-        <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-          <ArrowLeft className="h-6 w-6" />
-        </Button>
-        <h1 className="text-2xl font-semibold tracking-tight mb-4">
-          {meeting?.title}
-        </h1>
-        <div className="flex items-center gap-2">
-          <StatusBadge status={meeting?.status} />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIsAuditDetailOpen(true)}
-          >
-            <Eye className="h-4 w-4" />
+        <div className="flex gap-2">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <ArrowLeft className="h-6 w-6" />
           </Button>
-          {/* <Button
+          <h1 className="text-2xl font-semibold tracking-tight mb-4">
+            {meeting?.title}
+          </h1>
+        </div>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2 mb-2">
+            <StatusBadge status={meeting?.status} />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsAuditDetailOpen(true)}
+            >
+              <Eye className="h-4 w-4" />
+            </Button>
+            {/* <Button
             variant="outline"
             size="sm"
             onClick={() => {
@@ -251,6 +278,69 @@ export const MeetingTasks = () => {
           >
             <Download className="h-4 w-4" />
           </Button> */}
+          </div>
+          <div className="flex items-center gap-2">
+            {taskCounts?.message
+              // .filter(
+              //   (task) => task.status === "Open" || task.status === "Closed"
+              // )
+              .map((task, i) => (
+                <div className="flex bg-gray-200 rounded-md" key={i}>
+                  <StatusBadge status={task.status} />
+                  <StatusBadge status={task.count.toString()} />
+                </div>
+              ))}
+          </div>
+        </div>
+        <div className="flex max-w-md items-center justify-between mb-2">
+          <div className="text-base">
+            <span>Organizer: </span>
+            <span className="text-gray-500">
+              {organizer?.full_name ?? meeting?.organizer}
+            </span>
+          </div>
+          <div className="flex text-base gap-2">
+            <span>Created Date: </span>
+            <div className="flex items-center gap-1">
+              <Calendar className="w-4 h-4 text-red-500" />
+              <span className="text-gray-500">
+                {meeting?.creation
+                  ? format(new Date(meeting?.creation), "dd MMM yyyy")
+                  : "—"}
+              </span>
+            </div>
+          </div>
+        </div>
+        <div className="mb-2">
+          <div className="flex text-base gap-2">
+            <span>Meeting Date: </span>
+            <div className="flex items-center gap-1">
+              <Calendar className="w-4 h-4 text-red-500" />
+              <span className="text-gray-500">
+                {meeting?.meeting_date
+                  ? format(new Date(meeting?.meeting_date), "dd MMM yyyy")
+                  : "—"}
+              </span>
+            </div>
+          </div>
+        </div>
+        <div className="text-base">
+          <div
+            ref={agendaRef}
+            className={`${!showFullAgenda ? "line-clamp-2" : ""}`}
+            dangerouslySetInnerHTML={{
+              __html: meeting?.agenda?.replace(/\n+/g, "<br />") || "",
+            }}
+          />
+          {isAgendaOverflowing && (
+            <Button
+              variant="ghost"
+              className="text-gray-500 mt-2 h-auto p-0 text-sm"
+              onClick={() => setShowFullAgenda(!showFullAgenda)}
+            >
+              {showFullAgenda ? "Show less" : "See full agenda"}
+            </Button>
+          )}
         </div>
       </div>
       <div className="space-y-4">

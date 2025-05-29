@@ -2,6 +2,7 @@ import frappe from "@/utils/frappe-client";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { TeamMember } from "@/types/teamtasks";
 import { toast } from "sonner";
+import { TaskCounts } from "@/types/tasks";
 
 export const useTeamTasks = (reporting_to?: string) => {
   return useQuery({
@@ -57,5 +58,19 @@ export const useEscalateTask = () => {
     onError: (error) => {
       toast.error(error.message);
     },
+  });
+};
+
+export const useGetTaskCountByStatusBySource = (source?: string) => {
+  return useQuery({
+    queryKey: ["task-counts", source],
+    queryFn: () =>
+      frappe.api.get<{ message: TaskCounts[] }>(
+        `jh_digitrack.api.tasks.get_task_count_by_status_by_source`,
+        {
+          source,
+        }
+      ),
+    enabled: Boolean(source),
   });
 };

@@ -1,4 +1,5 @@
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 interface StatusBadgeProps {
   status?: string;
@@ -23,7 +24,10 @@ export const StatusBadge = ({ status }: StatusBadgeProps) => {
   };
 
   return (
-    <Badge className={getStatusBadgeStyles(status)} variant="outline">
+    <Badge
+      className={cn(getStatusBadgeStyles(status), "h-8 min-w-8")}
+      variant="outline"
+    >
       {status || "Unknown"}
     </Badge>
   );

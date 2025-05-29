@@ -1,0 +1,39 @@
+{
+ "based_on": "creation",
+ "chart_name": "Travel Request Count",
+ "chart_type": "Count",
+ "creation": "2025-05-27 10:04:04.227675",
+ "docstatus": 0,
+ "doctype": "Dashboard Chart",
+ "document_type": "JH Travel Request",
+ "dynamic_filters_json": "[]",
+ "filters_json": "[]",
+ "group_by_type": "Count",
+ "idx": 0,
+ "is_public": 0,
+ "is_standard": 1,
+ "last_synced_on": "2025-05-27 10:05:22.519101",
+ "modified": "2025-05-27 10:10:33.925733",
+ "modified_by": "Administrator",
+ "module": "JH Digitrack",
+ "name": "Travel Request Count",
+ "number_of_groups": 0,
+ "owner": "Administrator",
+ "parent_document_type": "",
+ "roles": [
+  {
+   "role": "JH Travel Workflow User"
+  },
+  {
+   "role": "JH Credit Card Holder"
+  }
+ ],
+ "source": "",
+ "time_interval": "Weekly",
+ "timeseries": 1,
+ "timespan": "Last Month",
+ "type": "Line",
+ "use_report_chart": 0,
+ "value_based_on": "",
+ "y_axis": []
+}

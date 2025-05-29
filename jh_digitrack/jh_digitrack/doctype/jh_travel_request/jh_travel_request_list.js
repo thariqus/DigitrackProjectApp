@@ -30,6 +30,14 @@ const REQUEST_STATUS = [
     label: "Reconfirmed",
     color: "blue",
   },
+  {
+    label: "Assigned for PO / IEM",
+    color: "blue",
+  },
+  {
+    label: "Assigned for GRN / Miro",
+    color: "blue",
+  },
 ];
 frappe.listview_settings["JH Travel Request"] = {
   add_fields: ["request_status"],

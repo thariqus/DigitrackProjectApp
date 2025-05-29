@@ -20,12 +20,16 @@ export interface JHTravelRequest{
 	/**	Reconfirmation Required : Check	*/
 	reconfirmation_required?: 0 | 1
 	/**	Request Status : Select - Check request status to see if your manager or credit card holder has engaged with your request.	*/
-	request_status?: "Approval Pending" | "Approved" | "Denied" | "Completed" | "Urgent" | "Reconfirmation Pending" | "Reconfirmed"
+	request_status?: "Approval Pending" | "Approved" | "Denied" | "Completed" | "Urgent" | "Reconfirmation Pending" | "Reconfirmed" | "Assigned for PO / IEM" | "Assigned for GRN / Miro"
 	/**	Requested By : Link - JH User Master	*/
 	requested_by?: string
-	/**	From City : Data	*/
+	/**	Assigned To : Link - JH User Master	*/
+	assigned_to?: string
+	/**	Request Ref No : Data - just a virtual field to get the ID of this request	*/
+	virtual_name?: string
+	/**	From City : Link - JH Airport Code Master	*/
 	from_city?: string
-	/**	To City : Data	*/
+	/**	To City : Link - JH Airport Code Master	*/
 	to_city?: string
 	/**	From Date : Date	*/
 	from_date?: string
@@ -41,26 +45,34 @@ export interface JHTravelRequest{
 	location?: string
 	/**	Preferred Hotel : Data - Name and location of the preferred hotel.	*/
 	preferred_hotel?: string
-	/**	Preferred Flight : Data - Name of the preferred airlines.	*/
+	/**	Preferred Flight : Link - JH Travel Flight Master - Name of the preferred airlines.	*/
 	preferred_flight?: string
-	/**	Description : Long Text - Include any additional information like explanation, links or points.
+	/**	Other Preffered Flight : Data	*/
+	other_preffered_flight?: string
+	/**	Passenger Information : Text Editor	*/
+	passenger_information?: string
+	/**	Description (Budget, Contact details etc.) : Long Text - Include any additional information like explanation, links or points.
 
 	*/
 	description?: string
-	/**	Contact Number : Data	*/
-	contact_number?: string
+	/**	Final amount : Data	*/
+	final_amount?: string
 	/**	Attachments : Table - JH File Attachments	*/
 	attachments?: JHFileAttachments[]
 	/**	Company Code : Data	*/
-	company_code: string
+	company_code?: string
 	/**	Plant : Data	*/
-	plant: string
+	plant?: string
 	/**	Assignment : Data	*/
-	assignment: string
+	assignment?: string
 	/**	Cost Center : Data	*/
-	cost_center: string
+	cost_center?: string
 	/**	Qty : Data	*/
-	qty: string
+	qty?: string
 	/**	GL : Data	*/
-	gl: string
+	gl?: string
+	/**	PO. / IEM : Data	*/
+	po_iem?: string
+	/**	GRN / Miro : Data	*/
+	grn_miro?: string
 }

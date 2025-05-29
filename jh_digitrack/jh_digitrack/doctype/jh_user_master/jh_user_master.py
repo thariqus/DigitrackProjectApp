@@ -29,7 +29,7 @@ def attach_user(jh_user_id: str, email: str):
                 "first_name": jh_user.first_name,
                 "middle_name": jh_user.middle_name,
                 "last_name": jh_user.last_name,
-                "roles": [{"role": "JH Digitrack Member"}],
+                "roles": [{"role": "JH Digitrack Member"}, {"role": "Inbox User"}],
                 "default_app": "jh_digitrack",
             }
         )

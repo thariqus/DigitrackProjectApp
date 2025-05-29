@@ -14,4 +14,6 @@ export interface JHDigitrackSettings{
 	send_scheduled_emails?: 0 | 1
 	/**	Send welcome emails for new users : Check	*/
 	send_welcome_emails?: 0 | 1
+	/**	User Manual : Attach	*/
+	user_manual?: string
 }

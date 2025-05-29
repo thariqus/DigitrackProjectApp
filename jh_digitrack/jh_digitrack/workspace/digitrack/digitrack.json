@@ -13,8 +13,8 @@
  "is_hidden": 0,
  "label": "Digitrack",
  "links": [],
- "modified": "2025-05-01 13:02:45.538483",
- "modified_by": "faris@bytsolv.com",
+ "modified": "2025-05-27 10:11:07.258967",
+ "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "Digitrack",
  "number_cards": [],
@@ -27,7 +27,7 @@
    "role": "JH Digitrack Admin"
   }
  ],
- "sequence_id": 28.0,
+ "sequence_id": 7.0,
  "shortcuts": [
   {
    "color": "Grey",

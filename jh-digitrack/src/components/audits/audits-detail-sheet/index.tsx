@@ -272,10 +272,8 @@ export function AuditDetailSheet({
                 ) : (
                   <div
                     ref={descriptionRef}
-                    className={`bg-gray-50 p-4 rounded-md w-100 break-words  ${
-                      !showFullDescription
-                        ? "max-h-[200px] overflow-hidden"
-                        : ""
+                    className={`bg-gray-50 p-1 rounded-md ${
+                      !showFullDescription ? "line-clamp-4" : ""
                     }`}
                     dangerouslySetInnerHTML={{
                       __html:

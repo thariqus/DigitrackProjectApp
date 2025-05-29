@@ -466,6 +466,9 @@ export function TaskSheet({
             },
           ],
         });
+        await queryClient.invalidateQueries({
+          queryKey: ["task-counts", source],
+        });
 
         // Success handling
         toast.success(
@@ -1357,7 +1360,7 @@ export function TaskSheet({
               </div>
               {isEdit && (
                 <div className="space-y-2 pb-10">
-                  <Label htmlFor="assignee_comments">Assignee Comments</Label>
+                  <Label htmlFor="assignee_comments">Assignee Remarks</Label>
                   <Controller
                     name="assignee_comments"
                     control={control}
@@ -1366,7 +1369,7 @@ export function TaskSheet({
                         readOnly={isOwner}
                         id="assignee_comments"
                         className="h-[150px] max-h-[150px]"
-                        placeholder="Enter assignee comments"
+                        placeholder="Enter assignee remarks"
                         theme="snow"
                         value={field.value || ""}
                         onChange={field.onChange}

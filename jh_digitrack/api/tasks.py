@@ -110,6 +110,8 @@ def should_send_email(date: datetime):
 @frappe.whitelist()
 def remind(task_id: str):
 
+    current_jh_user = frappe.get_doc("JH User Master", {"user": frappe.session.user})
+
     task_list = frappe.db.get_list(
         "JH Task Master",
         filters={"name": task_id},
@@ -130,7 +132,9 @@ def remind(task_id: str):
             recipients=[task.assigned_to_email],
             cc=[task.creator_email],
             subject=f"DigiTrack : Reminder - {task.name} ",
-            message=generate_task_reminder_email(tasks=[task], type="reminder"),
+            message=generate_task_reminder_email(
+                tasks=[task], type="reminder", initiator_name=current_jh_user.full_name
+            ),
         )
     else:
         return Response(
@@ -157,6 +161,8 @@ def remind(task_id: str):
 @frappe.whitelist()
 def escalate(task_id: str):
 
+    current_jh_user = frappe.get_doc("JH User Master", {"user": frappe.session.user})
+
     task_list = frappe.db.get_list(
         "JH Task Master",
         filters={"name": task_id},
@@ -182,7 +188,11 @@ def escalate(task_id: str):
             recipients=[task.assigned_to_email],
             cc=[task.creator_email, reporting_manager_email],
             subject=f"DigiTrack : Escalation - {task.name} ",
-            message=generate_task_reminder_email(tasks=[task], type="escalation"),
+            message=generate_task_reminder_email(
+                tasks=[task],
+                type="escalation",
+                initiator_name=current_jh_user.full_name,
+            ),
         )
     else:
         return Response(
@@ -367,3 +377,17 @@ def scheduled_emails():
                     message=generate_task_reminder_email(tasks=tasks, type="scheduled"),
                 )
     return "Scheduled emails sent successfully"
+
+
+@frappe.whitelist()
+def get_task_count_by_status_by_source(source: str):
+    """
+    Get the count of tasks by status for a specific source.
+    """
+    tasks = frappe.db.get_list(
+        "JH Task Master",
+        fields=["count(name) as count", "status"],
+        group_by="status",
+        filters={"source": source},
+    )
+    return tasks
