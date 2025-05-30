@@ -1,0 +1,23 @@
+name: Mirror GitHub to GitLab
+
+on:
+  push:
+    branches:
+      - main  # Change if your main branch is named differently
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Mirror to GitLab
+        run: |
+          git config --global user.email "is3.jh@jaleel.com"
+          git config --global user.name "Arun M S"
+          git remote add gitlab https://oauth2:${{ secrets.GITLAB_TOKEN }}@gitlab.com/arunms2025/digitrack-push_github.git
+          git push gitlab --all
+          git push gitlab --tags
