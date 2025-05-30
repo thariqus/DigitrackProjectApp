@@ -65,6 +65,7 @@ export const TaskTable = ({
       "task_name",
       "status",
       "due_date",
+      "revised_due_date",
       "assigned_to",
       "private",
       "source",

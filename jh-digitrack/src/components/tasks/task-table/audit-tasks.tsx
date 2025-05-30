@@ -56,7 +56,6 @@ export const AuditTasks = () => {
   const descriptionRef = useRef<HTMLDivElement>(null);
   const { data: currentJHUser } = useCurrentJhUser();
   const { data: currentUser } = useCurrentUser();
-  const { data: taskCounts } = useGetTaskCountByStatusBySource(auditId || "");
 
   // Use the new hook for filter logic
   const { getFilters } = useTaskFilters({
@@ -72,6 +71,8 @@ export const AuditTasks = () => {
     doctype: "JH Audit Master",
     name: auditId!,
   });
+
+  const visibleToAll = audit?.visible_to_all === 1;
 
   const { data: business } = useDoc<JHBusinessMaster>({
     doctype: "JH Business Master",
@@ -110,6 +111,7 @@ export const AuditTasks = () => {
       "task_name",
       "status",
       "due_date",
+      "revised_due_date",
       "assigned_to",
       "private",
       "source",
@@ -133,6 +135,11 @@ export const AuditTasks = () => {
     filters: [
       ["source_doctype", "=", "JH Audit Master"],
       ["source", "=", auditId!],
+      ...(currentJHUser &&
+      createdBy?.name !== currentJHUser.name &&
+      !visibleToAll
+        ? [["assigned_to", "=", currentJHUser.name] as Filter<Task>]
+        : []),
       ...(getFilters() as Filter<Task>[]),
     ],
   });
@@ -147,6 +154,13 @@ export const AuditTasks = () => {
       ...(getFilters() as Filter<Task>[]),
     ],
   });
+
+  const { data: taskCounts } = useGetTaskCountByStatusBySource(
+    auditId,
+    currentJHUser?.name,
+    createdBy?.name,
+    visibleToAll
+  );
 
   const totalPages = Math.ceil(taskCounter?.length / tasksPerPage);
 

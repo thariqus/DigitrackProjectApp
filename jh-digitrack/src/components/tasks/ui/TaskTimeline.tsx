@@ -203,7 +203,7 @@ export default function TaskTimeline({ taskId }: TaskTimelineProps) {
             <div className="flex items-center gap-2 mt-1">
               <MessageSquare className="h-4 w-4 text-gray-400 mt-0.5" />
               <p
-                className="text-sm text-gray-600"
+                className="text-sm text-gray-600 max-w-xl overflow-x-auto"
                 dangerouslySetInnerHTML={{
                   __html: log.content,
                 }}

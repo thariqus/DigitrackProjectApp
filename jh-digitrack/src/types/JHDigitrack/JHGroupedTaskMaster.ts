@@ -34,6 +34,8 @@ export interface JHGroupedTaskMaster{
 	participants_external?: string
 	/**	Agenda : Long Text	*/
 	agenda?: string
+	/**	Visible To All : Check	*/
+	visible_to_all?: 0 | 1
 	/**	Remarks/Decisions : Long Text	*/
 	remarks?: string
 	/**	Changelog : Table - JH Change Log	*/

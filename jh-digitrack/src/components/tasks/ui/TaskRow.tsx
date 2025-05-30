@@ -10,6 +10,20 @@ const formatDueDate = (dueDate?: string) => {
   return dueDate ? format(new Date(dueDate), "MMM dd, yyyy") : "No due date";
 };
 
+const formatRevisedDueDate = (
+  dueDate?: string,
+  revisedDueDate?: string
+): string => {
+  if (!revisedDueDate) return "-";
+
+  const due = new Date(dueDate || "");
+  const revised = new Date(revisedDueDate);
+
+  if (due.getTime() === revised.getTime()) return "-";
+
+  return format(new Date(revised), "MMM dd, yyyy");
+};
+
 export const TaskRow = ({
   task,
   index,
@@ -23,7 +37,10 @@ export const TaskRow = ({
   hideDelete = false,
 }: TaskRowProps) => {
   const formattedDueDate = formatDueDate(task.due_date);
-
+  const formattedRevisedDueDate = formatRevisedDueDate(
+    task.due_date,
+    task.revised_due_date
+  );
   const { data: taskDetails } = useDocDetail<Task>({
     doctype: "JH Task Master",
     name: task.name || "",
@@ -71,7 +88,13 @@ export const TaskRow = ({
       <TableCell>
         <StatusBadge status={task.status} />
       </TableCell>
-      <TableCell>{formattedDueDate}</TableCell>
+      <TableCell>
+        <div>
+          <p>{formattedDueDate}</p>
+          <p>{formattedRevisedDueDate}</p>
+        </div>
+      </TableCell>
+
       {!hideAssignedTo && (
         <TableCell>
           {activeFilter === "my-tasks" ? task.created_by : task.assigned_to}

@@ -14,6 +14,7 @@ import { PaginationControls } from "./pagination-controls";
 import { useNavigate } from "react-router";
 import { useCurrentJhUser } from "@/hooks/auth";
 import { useTeamMeetings } from "@/hooks/meetings";
+import { MeetingStatusFilter } from "../ui/MeetingStatusFilter";
 
 interface MeetingsTableProps {
   hideFilters?: boolean;
@@ -24,6 +25,7 @@ interface MeetingsTableProps {
 export const MeetingsTable = ({
   hideSearchBar,
   hideCreateTask,
+  hideFilters,
 }: MeetingsTableProps) => {
   const navigate = useNavigate();
   const { data: currentJhUser } = useCurrentJhUser();
@@ -43,6 +45,7 @@ export const MeetingsTable = ({
   const [meetingNameToDelete, setMeetingNameToDelete] = useState<
     string | undefined
   >(undefined);
+  const [statusValues, setStatusValues] = useState<string[]>([]);
   // Fetch tasks data with server-side filtering
   const {
     data: meetingsResponse,
@@ -52,7 +55,8 @@ export const MeetingsTable = ({
     currentJhUser?.name,
     currentPage,
     meetingsPerPage,
-    searchQuery
+    searchQuery,
+    statusValues
   );
 
   const meetings = meetingsResponse?.message?.data;
@@ -111,15 +115,6 @@ export const MeetingsTable = ({
     }
   }, [taskToDelete, deleteDoc, refetch]);
 
-  // Handle filters change from FilterButtonsWithComboboxes
-  // const handleFiltersChange = useCallback(
-  //   (filters: TaskFilter[]) => {
-  //     setActiveFilters(filters);
-  //     refetch();
-  //   },
-  //   [refetch]
-  // );
-
   // Handle search query change
   const handleSearchChange = useCallback(
     (value: string) => {
@@ -129,12 +124,37 @@ export const MeetingsTable = ({
     [refetch]
   );
 
+  // Handle status filter change
+  const handleStatusChange = useCallback(() => {
+    setCurrentPage(1); // Reset to first page on filter change
+    setTimeout(() => refetch(), 100);
+  }, [refetch]);
+
+  // Clear all filters
+  const clearFilters = useCallback(() => {
+    setStatusValues([]);
+    setSearchQuery("");
+    setCurrentPage(1);
+    setTimeout(() => refetch(), 100);
+  }, [refetch]);
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        {!hideSearchBar && (
-          <SearchBar value={searchQuery} onChange={handleSearchChange} />
-        )}
+        <div className="flex items-center gap-2">
+          {!hideSearchBar && (
+            <SearchBar value={searchQuery} onChange={handleSearchChange} />
+          )}
+
+          {!hideFilters && (
+            <MeetingStatusFilter
+              handleStatusChange={handleStatusChange}
+              clearFilters={clearFilters}
+              statusValues={statusValues}
+              setStatusValues={setStatusValues}
+            />
+          )}
+        </div>
         {!hideCreateTask && <ActionButtons onCreateTask={handleCreateTask} />}
       </div>
       {!isLoading && meetings?.length && meetings?.length > 0 ? (

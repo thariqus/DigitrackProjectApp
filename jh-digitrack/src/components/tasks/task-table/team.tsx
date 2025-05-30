@@ -107,7 +107,7 @@ const TeamMemberRow = ({
                         Status
                       </TableHead>
                       <TableHead className="font-medium text-[#64748B] py-4">
-                        Due Date
+                        Due Date / Revised
                       </TableHead>
                       <TableHead className="font-medium text-center text-[#64748B] py-4">
                         Actions

@@ -75,7 +75,7 @@ export function MeetingSheet({
         .max(140, "Meeting title cannot be longer than 140 characters"),
       type: z.string().optional(),
       organizer: z.string(),
-      meeting_date: z.string().optional(),
+      meeting_date: z.string().min(1, "Meeting Date is required"),
       duration: z
         .string()
         .optional()
@@ -97,6 +97,7 @@ export function MeetingSheet({
       participants_external: z.string().optional(),
       agenda: z.string().optional(),
       remarks: z.string().optional(),
+      visible_to_all: z.boolean().optional(),
     })
     .transform((arg) => ({
       ...arg,
@@ -167,7 +168,7 @@ export function MeetingSheet({
     () => ({
       title: "",
       type: "group_task",
-      organizer: "",
+      organizer: currentJhUser?.name ?? "",
       meeting_date: "",
       duration: "",
       location: "",
@@ -175,6 +176,7 @@ export function MeetingSheet({
       participants_external: "",
       agenda: "",
       remarks: "",
+      visible_to_all: true,
     }),
     []
   );
@@ -250,6 +252,7 @@ export function MeetingSheet({
         participants_external: meeting.participants_external || "",
         agenda: meeting.agenda || "",
         remarks: meeting.remarks || "",
+        visible_to_all: meeting.visible_to_all === 1 ? true : false,
       });
 
       // Set existing files when meeting is loaded
@@ -632,7 +635,7 @@ export function MeetingSheet({
   // ==========================================
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="sm:max-w-3xl px-5">
+      <SheetContent className="sm:max-w-5xl px-5">
         <SheetHeader className="px-0 flex-row justify-between items-center">
           <SheetTitle className="text-2xl font-bold">
             {isEdit
@@ -756,10 +759,36 @@ export function MeetingSheet({
                   {watch("type") === "meeting" ? "Meeting" : "Grouped Task"}
                 </Label>
               </div>
+              <div className="flex items-center space-x-2">
+                <Controller
+                  name="visible_to_all"
+                  control={control}
+                  render={({ field }) => (
+                    <Switch
+                      disabled={isEdit}
+                      checked={field.value === true}
+                      onCheckedChange={(checked) => {
+                        field.onChange(checked ? true : false);
+                      }}
+                      id="visible_to_all"
+                    />
+                  )}
+                />
+                <Label htmlFor="visible_to_all">
+                  {watch("visible_to_all") === true
+                    ? "Task visible to all"
+                    : "Task visible to creator/assignee"}
+                </Label>
+              </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="meeting_date">Meeting Date</Label>
+                  <Label
+                    htmlFor="meeting_date"
+                    className="after:content-['*'] after:text-[#972e26] after:ml-0.5"
+                  >
+                    Meeting Date
+                  </Label>
                   <Controller
                     name="meeting_date"
                     control={control}
@@ -769,6 +798,7 @@ export function MeetingSheet({
                         type="date"
                         id="meeting_date"
                         disabled={isCompleted}
+                        {...field}
                         value={
                           field.value
                             ? format(new Date(field.value), "yyyy-MM-dd")
@@ -899,7 +929,8 @@ export function MeetingSheet({
                         }
                         searchKeyword={searchState.organizerSearch!}
                         placeholder="Select organizer"
-                        disabled={isCompleted || (isEdit && !isOwner)}
+                        // disabled={isCompleted || (isEdit && !isOwner)}
+                        disabled={true}
                         className={errors.organizer ? "border-red-500" : ""}
                       />
                     )}
@@ -911,10 +942,7 @@ export function MeetingSheet({
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label
-                    htmlFor="organizer"
-                    className="after:content-['*'] after:text-[#972e26] after:ml-0.5"
-                  >
+                  <Label htmlFor="internal_participants">
                     Internal Participants
                   </Label>
                   <Controller
@@ -949,7 +977,9 @@ export function MeetingSheet({
                 </div>
               </div>
               <div className="space-y-2 pb-1">
-                <Label htmlFor="description">External Participants</Label>
+                <Label htmlFor="participants_external">
+                  External Participants
+                </Label>
                 <Controller
                   name="participants_external"
                   control={control}
@@ -970,7 +1000,7 @@ export function MeetingSheet({
                 )}
               </div>
               <div className="space-y-2 pb-10">
-                <Label htmlFor="description">Agenda</Label>
+                <Label htmlFor="agenda">Agenda</Label>
                 <Controller
                   name="agenda"
                   control={control}
