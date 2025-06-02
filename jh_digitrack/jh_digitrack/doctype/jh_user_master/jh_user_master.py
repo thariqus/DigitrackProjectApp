@@ -29,8 +29,13 @@ def attach_user(jh_user_id: str, email: str):
                 "first_name": jh_user.first_name,
                 "middle_name": jh_user.middle_name,
                 "last_name": jh_user.last_name,
-                "roles": [{"role": "JH Digitrack Member"}, {"role": "Inbox User"}],
+                "roles": [
+                    {"role": "JH Digitrack Member"},
+                    {"role": "Inbox User"},
+                    {"role": "JH Travel Workflow User"},
+                ],
                 "default_app": "jh_digitrack",
+                "default_workspace": None,
             }
         )
         user.insert()
@@ -38,6 +43,9 @@ def attach_user(jh_user_id: str, email: str):
         print("User already exists")
         user = frappe.get_doc("User", jh_user.email)
         user.append("roles", {"role": "JH Digitrack Member"})
+        user.append("roles", {"role": "Inbox User"})
+        user.append("roles", {"role": "JH Travel Workflow User"})
+        user.default_app = "jh_digitrack"
 
     jh_user.user = user.name
     jh_user.save()
