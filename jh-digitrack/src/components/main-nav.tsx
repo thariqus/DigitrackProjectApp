@@ -6,6 +6,7 @@ import {
   FolderKanban,
   ClipboardCheck,
   FolderOpenDot,
+  Search,
 } from "lucide-react";
 import { Link, useLocation } from "react-router";
 import JHLogo from "@/assets/digitrack-logo.png";
@@ -98,6 +99,11 @@ export function MainNav() {
               </div>
             </PopoverContent>
           </Popover>
+          <span className="border h-10 border-gray-200"></span>
+          <Link to="search" className={className(["search"])}>
+            <Search className="h-5 w-5" />
+            <span>Search</span>
+          </Link>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="ml-4" aria-label="User profile">
@@ -122,7 +128,7 @@ export function MainNav() {
               {currentJhUser?.is_head_of_department ? (
                 <DropdownMenuItem
                   onClick={() => {
-                    window.location.href = "/app";
+                    window.location.href = "/app/jh-digitrack-settings";
                   }}
                 >
                   <span>Switch To Desk</span>
@@ -150,12 +156,12 @@ export function MainNav() {
                 </DropdownMenuItem>
               ) : null}
               <DropdownMenuItem
-                  onClick={() => {
-                    window.location.href = "/app/travel-request";
-                  }}
-                >
-                  <span>Travel Workflow Dashboard</span>
-                </DropdownMenuItem>
+                onClick={() => {
+                  window.location.href = "/app/travel-request";
+                }}
+              >
+                <span>Travel Workflow Dashboard</span>
+              </DropdownMenuItem>
               <DropdownMenuItem className="w-full" onClick={() => logout()}>
                 <span>Log out</span>
               </DropdownMenuItem>

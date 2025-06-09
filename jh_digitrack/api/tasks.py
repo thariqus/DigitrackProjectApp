@@ -216,6 +216,59 @@ def escalate(task_id: str):
 
     return "Escalation sent successfully"
 
+@frappe.whitelist()
+def email_me(task_id: str):
+
+    current_jh_user = frappe.get_doc("JH User Master", {"user": frappe.session.user})
+
+    task_list = frappe.db.get_list(
+        "JH Task Master",
+        filters={"name": task_id},
+        fields=[
+            "*",
+            "assigned_to.email as assigned_to_email",
+            "assigned_to.full_name as assigned_to_name",
+            "created_by.email as creator_email",
+            "created_by.full_name as creator_name",
+            "assigned_to.reporting_manager as assigned_to_reporting_manager",
+        ],
+    )
+
+    task = task_list[0]
+
+    if should_send_email(task.email_me_at):
+        frappe.sendmail(
+            expose_recipients="header",
+            recipients=[current_jh_user.email],
+            # cc=[],
+            subject=f"DigiTrack : Email Me - {task.name} ",
+            message=generate_task_reminder_email(
+                tasks=[task],
+                type="email_me",
+                initiator_name=current_jh_user.full_name,
+            ),
+        )
+    else:
+        return Response(
+            response=json.dumps({"message": "Email already sent today."}), status=400
+        )
+
+    current_jh_user = frappe.get_doc("JH User Master", {"email": frappe.session.user})
+
+    task_doc = frappe.get_doc("JH Task Master", task_id)
+    task_doc.email_me_at = frappe.utils.now()
+    task_doc.append(
+        "changelog",
+        {
+            "creator": current_jh_user.name,
+            "type": "Email Me",
+            "commented_at": frappe.utils.now(),
+        },
+    )
+    task_doc.save(ignore_permissions=True)
+
+    return "Email Me sent successfully"
+
 
 def _process_task_chunk(task_chunk, tasks_by_assignee, task_type):
     """Helper function to process a chunk of tasks and categorize them by assignee"""

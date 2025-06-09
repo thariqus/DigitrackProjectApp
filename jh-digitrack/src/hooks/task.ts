@@ -61,6 +61,16 @@ export const useEscalateTask = () => {
   });
 };
 
+export const useEmailMeTask = () => {
+  return useMutation({
+    mutationFn: (task_id: string) =>
+      frappe.api.post(`jh_digitrack.api.tasks.email_me`, { task_id }),
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+};
+
 export const useGetTaskCountByStatusBySource = (
   source?: string,
   current_jh_user?: string,

@@ -16,4 +16,8 @@ export interface JHDigitrackSettings{
 	send_welcome_emails?: 0 | 1
 	/**	User Manual : Attach	*/
 	user_manual?: string
+	/**	Maintenance From : Datetime	*/
+	maintenance_from?: string
+	/**	Maintenance To : Datetime	*/
+	maintenance_to?: string
 }

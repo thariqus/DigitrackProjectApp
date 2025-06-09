@@ -20,7 +20,7 @@ import { useNavigate, useParams } from "react-router";
 import { JHAudits } from "@/types/JHDigitrack/JHAudits";
 import StatusBadge from "../ui/StatusBadge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Calendar, Download, Eye } from "lucide-react";
+import { ArrowLeft, Calendar, Download, Expand, Eye } from "lucide-react";
 import { AuditDetailSheet } from "@/components/audits/audits-detail-sheet";
 import { queryClient } from "@/utils/query-client";
 import { JHBusinessMaster } from "@/types/JHDigitrack/JHBusinessMaster";
@@ -28,6 +28,11 @@ import { JHDivisionMaster } from "@/types/JHDigitrack/JHDivisionMaster";
 import { JHUserMaster } from "@/types/JHDigitrack/JHUserMaster";
 import { format } from "date-fns";
 import { useGetTaskCountByStatusBySource } from "@/hooks/task";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 export const AuditTasks = () => {
   const { auditId } = useParams();
@@ -295,17 +300,45 @@ export const AuditTasks = () => {
             >
               <Eye className="h-4 w-4" />
             </Button>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Download className="h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-24 p-1">
+                <div className="flex flex-col space-y-1">
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      window.open(
+                        `/api/method/jh_digitrack.api.audits.download_csv?audit_id=${auditId}`,
+                        "_blank"
+                      );
+                    }}
+                  >
+                    CSV
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      window.open(
+                        `/api/method/jh_digitrack.api.audits.download_pdf?audit_id=${auditId}`,
+                        "_blank"
+                      );
+                    }}
+                  >
+                    PDF
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => {
-                window.open(
-                  `/api/method/jh_digitrack.api.audits.download_csv?audit_id=${auditId}`,
-                  "_blank"
-                );
-              }}
+              onClick={() => navigate("expanded")}
             >
-              <Download className="h-4 w-4" />
+              <Expand className="h-4 w-4" />
             </Button>
           </div>
           <div className="flex items-center gap-2">

@@ -19,13 +19,18 @@ import { useTaskFilters } from "./hooks/useTaskFilters";
 import { useNavigate, useParams } from "react-router";
 import StatusBadge from "../ui/StatusBadge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Calendar, Download, Eye } from "lucide-react";
+import { ArrowLeft, Calendar, Download, Expand, Eye } from "lucide-react";
 import { JHGroupedTaskMaster } from "@/types/JHDigitrack/JHGroupedTaskMaster";
 import { MeetingDetailSheet } from "@/components/meetings/meetings-detail-sheet";
 import { queryClient } from "@/utils/query-client";
 import { JHUserMaster } from "@/types/JHDigitrack/JHUserMaster";
 import { format } from "date-fns";
 import { useGetTaskCountByStatusBySource } from "@/hooks/task";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 export const MeetingTasks = () => {
   const { meetingId } = useParams();
@@ -280,17 +285,45 @@ export const MeetingTasks = () => {
             >
               <Eye className="h-4 w-4" />
             </Button>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Download className="h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-24 p-1">
+                <div className="flex flex-col space-y-1">
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      window.open(
+                        `/api/method/jh_digitrack.api.meetings.download_csv?meeting_id=${meetingId}`,
+                        "_blank"
+                      );
+                    }}
+                  >
+                    CSV
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      window.open(
+                        `/api/method/jh_digitrack.api.meetings.download_pdf?meeting_id=${meetingId}`,
+                        "_blank"
+                      );
+                    }}
+                  >
+                    PDF
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => {
-                window.open(
-                  `/api/method/jh_digitrack.api.meetings.download_csv?meeting_id=${meetingId}`,
-                  "_blank"
-                );
-              }}
+              onClick={() => navigate("expanded")}
             >
-              <Download className="h-4 w-4" />
+              <Expand className="h-4 w-4" />
             </Button>
           </div>
           <div className="flex items-center gap-2">

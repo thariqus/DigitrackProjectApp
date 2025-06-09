@@ -12,9 +12,13 @@ import Projects from "@/components/projects";
 import Meetings from "@/components/meetings";
 import Unauthorized from "./components/Unauthorized";
 import Audits from "./components/audits";
+import Search from "./components/search";
 // import RecycleBin from "./components/recycle-bin";
 import AuditTasks from "./components/tasks/task-table/audit-tasks";
 import MeetingTasks from "./components/tasks/task-table/meeting-tasks";
+import MeetingTasksExpanded from "./components/tasks/task-table/meeting-tasks-expanded";
+import AuditTasksExpanded from "./components/tasks/task-table/audit-tasks-expanded";
+import Maintenance from "./components/Maintenance";
 
 function App() {
   return (
@@ -22,6 +26,7 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/unauthorized" element={<Unauthorized />} />
+          <Route path="/maintenance" element={<Maintenance />} />
         </Routes>
         <AuthProvider>
           <Suspense fallback={<SplashScreen />}>
@@ -36,8 +41,17 @@ function App() {
                 <Route path="projects" element={<Projects />} />
                 <Route path="meetings" element={<Meetings />} />
                 <Route path="meetings/:meetingId" element={<MeetingTasks />} />
+                <Route
+                  path="meetings/:meetingId/expanded"
+                  element={<MeetingTasksExpanded />}
+                />
                 <Route path="audits" element={<Audits />} />
                 <Route path="audits/:auditId" element={<AuditTasks />} />
+                <Route
+                  path="audits/:auditId/expanded"
+                  element={<AuditTasksExpanded />}
+                />
+                <Route path="search" element={<Search />} />
                 {/* <Route path="recycle-bin" element={<RecycleBin />} /> */}
               </Route>
               <Route

@@ -16,7 +16,7 @@ import { format } from "date-fns";
 import StatusBadge from "../ui/StatusBadge";
 import TaskTimeline from "../ui/TaskTimeline";
 import { Badge } from "@/components/ui/badge";
-import { useEscalateTask } from "@/hooks/task";
+import { useEmailMeTask, useEscalateTask } from "@/hooks/task";
 import { useRemindTask } from "@/hooks/task";
 import { toast } from "sonner";
 import { Task } from "@/types/tasks";
@@ -120,6 +120,7 @@ export function TaskDetailSheet({
 
   const { mutateAsync: remindTask } = useRemindTask();
   const { mutateAsync: escalateTask } = useEscalateTask();
+  const { mutateAsync: emailMeTask } = useEmailMeTask();
 
   // Add this effect to check if description is overflowing
   useEffect(() => {
@@ -213,10 +214,9 @@ export function TaskDetailSheet({
   const showDeleteButton =
     task?.owner === currentUser && task?.creation === task?.modified;
 
-  const showEmailPopover =
-    task?.assigned_to !== currentJhUser?.name &&
-    task?.status !== "Closed" &&
-    task?.status !== "Canceled";
+  const assignedToMe = task?.assigned_to === currentJhUser?.name;
+
+  const isClosedTask = task?.status !== "Closed" && task?.status !== "Canceled";
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -228,7 +228,7 @@ export function TaskDetailSheet({
               <StatusBadge status={task?.status} />
             </div>
             <div className="flex items-center gap-2 mr-5">
-              {showEmailPopover && (
+              {isClosedTask && (
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button variant="ghost" size="icon">
@@ -241,29 +241,45 @@ export function TaskDetailSheet({
                         variant="ghost"
                         className="justify-start"
                         onClick={async () => {
-                          await remindTask(taskId!);
-                          toast.success("Reminder sent successfully");
+                          await emailMeTask(taskId!);
+                          toast.success("Email sent successfully");
                         }}
                       >
-                        Remind
+                        Email Me
                       </Button>
-                      <Button
-                        variant="ghost"
-                        className="justify-start"
-                        onClick={async () => {
-                          await escalateTask(taskId!);
-                          toast.success("Escalation sent successfully");
-                        }}
-                      >
-                        Escalate
-                      </Button>
+                      {!assignedToMe ? (
+                        <>
+                          <Button
+                            variant="ghost"
+                            className="justify-start"
+                            onClick={async () => {
+                              await remindTask(taskId!);
+                              toast.success("Reminder sent successfully");
+                            }}
+                          >
+                            Remind
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            className="justify-start"
+                            onClick={async () => {
+                              await escalateTask(taskId!);
+                              toast.success("Escalation sent successfully");
+                            }}
+                          >
+                            Escalate
+                          </Button>
+                        </>
+                      ) : null}
                     </div>
                   </PopoverContent>
                 </Popover>
               )}
-              <Button variant="ghost" size="icon" onClick={handleEdit}>
-                <Edit className="w-5 h-5" />
-              </Button>
+              {onEdit ? (
+                <Button variant="ghost" size="icon" onClick={handleEdit}>
+                  <Edit className="w-5 h-5" />
+                </Button>
+              ) : null}
               {showDeleteButton && (
                 <Button variant="ghost" size="icon" onClick={handleDelete}>
                   <Trash2 className="w-5 h-5" />

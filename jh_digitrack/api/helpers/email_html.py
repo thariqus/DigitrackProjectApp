@@ -74,13 +74,13 @@ def generate_task_reminder_email(tasks, type, initiator_name=""):
     """
 
     header = ""
-    if type == "reminder" or type == "escalation":
+    if type == "reminder" or type == "escalation" or type == "email_me":
         header = "The below task is pending from your end:"
     elif type == "scheduled":
         header = "The below tasks are opened in your name:"
 
     footer = ""
-    if type == "reminder" or type == "escalation":
+    if type == "reminder" or type == "escalation" or type == "email_me":
         footer = "This email inbox is not actively monitored."
     elif type == "scheduled":
         footer = (
@@ -93,6 +93,8 @@ def generate_task_reminder_email(tasks, type, initiator_name=""):
             initiator_mention = f"Reminded by {initiator_name}"
         elif type == "escalation":
             initiator_mention = f"Escalated by {initiator_name}"
+        elif type == "email_me":
+            initiator_mention = f"Emailed me by {initiator_name}"
 
     # Create Jinja2 template object
     template = Template(template_str)

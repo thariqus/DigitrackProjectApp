@@ -49,6 +49,8 @@ export interface JHTaskMaster{
 	reminded_at?: string
 	/**	Escalated At : Datetime	*/
 	escalated_at?: string
+	/**	Email Me At : Datetime	*/
+	email_me_at?: string
 	/**	Change Log : Table - JH Change Log	*/
 	changelog?: JHChangeLog[]
 	/**	Assignee Comments : Long Text	*/

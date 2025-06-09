@@ -3,7 +3,15 @@ import csv
 import io
 from datetime import datetime
 from werkzeug.wrappers import Response
+from .helpers.wrap_text import wrap_text
 from .helpers.clean_html import clean_html
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from reportlab.lib.enums import TA_CENTER
+import re
 
 
 @frappe.whitelist()
@@ -118,14 +126,13 @@ def create_audit_csv_string(audit, tasks):
         writer.writerow(row)
 
     # Write all header information using the helper function
-    write_audit_header_row("Audited By", audit.get("business", "-"))
-    write_audit_header_row(
-        "Auditing", f"{audit.get('business', '-')} / {audit.get('division', '-')}"
-    )
+    write_audit_header_row("Name :", audit.get("audit_name", "-"))
     write_audit_header_row("Created by:", audit.get("created_by", "-"))
-    write_audit_header_row("Audit Name :", audit.get("audit_name", "-"))
     write_audit_header_row(
-        "Audit Description :", clean_html(audit.get("audit_description", "-"))
+        "Business / Division", f"{audit.get('business', '-')} / {audit.get('division', '-')}"
+    )
+    write_audit_header_row(
+        "Description :", clean_html(audit.get("audit_description", "-"))
     )
     write_audit_header_row(
         "Additional Comments :", clean_html(audit.get("additional_comments", "-"))
@@ -134,7 +141,7 @@ def create_audit_csv_string(audit, tasks):
     write_audit_header_row("Folder Name :", audit.get("folder_name", "-"))
     write_audit_header_row("File Attachments")
     write_audit_header_row(
-        "Audit Start Date :",
+        "Start Date :",
         (
             audit.get("start_date").strftime("%d/%m/%Y")
             if audit.get("start_date")
@@ -142,14 +149,14 @@ def create_audit_csv_string(audit, tasks):
         ),
     )
     write_audit_header_row(
-        "Audit Completion Date :",
+        "Completion Date :",
         (
             audit.get("completion_date").strftime("%d/%m/%Y")
             if audit.get("completion_date")
             else "-"
         ),
     )
-    write_audit_header_row("Audit Status: ", audit.get("status", "-"))
+    write_audit_header_row("Status: ", audit.get("status", "-"))
     writer.writerow(["", "", "", "", "", "", "", "", "", "", ""])
 
     # Write the task headers
@@ -167,6 +174,7 @@ def create_audit_csv_string(audit, tasks):
             "Completed Date",
             "Effort (Hrs)",
             "Assignee Comments",
+            "Comments",
         ]
     )
 
@@ -185,6 +193,28 @@ def create_audit_csv_string(audit, tasks):
         #                 for c in recent_comments
         # ]
         # )
+
+        comments = frappe.db.get_list(
+            "Comment",
+            filters={"reference_name": task.get("name"), "comment_type":"Comment", "reference_doctype":"JH Task Master"},
+            fields=["*"],
+            ignore_permissions=True,
+            order_by="creation desc",
+        )
+
+        commentsLogs = []
+        for comment in comments:
+            if comments:
+                creation = comment.get("creation")
+                # format datetime
+                if isinstance(creation, str):
+                    creation = datetime.strptime(creation, "%Y-%m-%d %H:%M:%S")
+                formatted_creation = creation.strftime("%d-%m-%Y,%H:%M")
+                commentsLogs.append(
+                    f"{comment.get('content')} : {comment.get('comment_by')} : {formatted_creation}"
+                )
+
+        commentsLogsList = "\n".join(commentsLogs) if commentsLogs else "-"
 
         writer.writerow(
             [
@@ -216,6 +246,7 @@ def create_audit_csv_string(audit, tasks):
                 ),
                 task.get("effort", "-"),
                 clean_html(task.get("assignee_comments", "-")),
+                commentsLogsList,
             ]
         )
 
@@ -224,6 +255,171 @@ def create_audit_csv_string(audit, tasks):
     output.close()
 
     return csv_string
+
+
+def create_audit_pdf_content(audit, tasks):
+    """
+    Creates a PDF document for audit tracking with tasks.
+    
+    Args:
+        audit (dict): Dictionary with audit information
+        tasks (list): List of task dictionaries
+        
+    Returns:
+        bytes: PDF content as bytes
+    """
+    
+    # Create a byte buffer for PDF content
+    buffer = io.BytesIO()
+    
+    # Create the PDF document
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        rightMargin=30,
+        leftMargin=30,
+        topMargin=30,
+        bottomMargin=30
+    )
+    
+    # Get styles
+    styles = getSampleStyleSheet()
+    
+    # Custom styles
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=18,
+        spaceAfter=20,
+        alignment=TA_CENTER,
+        textColor=colors.black
+    )
+    
+    heading_style = ParagraphStyle(
+        'CustomHeading',
+        parent=styles['Heading2'],
+        fontSize=14,
+        spaceAfter=12,
+        spaceBefore=12,
+        textColor=colors.black
+    )
+    
+    normal_style = ParagraphStyle(
+        'CustomNormal',
+        parent=styles['Normal'],
+        fontSize=10,
+        spaceAfter=6
+    )
+    
+    # Story to hold all content
+    story = []
+    
+    # Title
+    story.append(Paragraph("Audit Report", title_style))
+    story.append(Spacer(1, 20))
+    
+    # Audit Information Section
+    story.append(Paragraph("Audit Information", heading_style))
+    
+    # Audit details table with wrapped content
+    audit_data = [
+        ["Audit Name", wrap_text(audit.get("audit_name", "-"), 40)],
+        ["Created By", wrap_text(audit.get("created_by", "-"), 40)],
+        ["Business / Division", wrap_text(f"{audit.get('business', '-')} / {audit.get('division', '-')}", 40)],
+        ["Status", audit.get("status", "-")],
+        ["File Name", wrap_text(audit.get("file_name", "-"), 40)],
+        ["Folder Name", wrap_text(audit.get("folder_name", "-"), 40)],
+        ["Start Date", audit.get("start_date").strftime("%d/%m/%Y") if audit.get("start_date") else "-"],
+        ["Completion Date", audit.get("completion_date").strftime("%d/%m/%Y") if audit.get("completion_date") else "-"],
+        ["Description", clean_html(wrap_text(audit.get("audit_description", "-"), 80))],
+        ["Additional Comments", clean_html(wrap_text(audit.get("additional_comments", "-"), 80))],
+    ]
+    
+    audit_table = Table(audit_data, colWidths=[2.2*inch, 5*inch])
+    audit_table.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 1), (-1, -1), 9),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('TOPPADDING', (0, 0), (-1, -1), 8),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+    ]))
+    
+    story.append(audit_table)
+    story.append(Spacer(1, 20))
+    
+    # Task Details Section
+    if tasks:
+        story.append(Spacer(1, 20))
+        story.append(Paragraph("Tasks", heading_style))
+            
+        for i, task in enumerate(tasks, 1):
+            story.append(Paragraph(f"Task {i}: {task.get('task_name', 'Unnamed Task')}", 
+                                    ParagraphStyle('TaskTitle', parent=styles['Heading3'], fontSize=12, textColor=colors.black)))
+                
+            # Task comments
+            commentsLogs = []
+            comments = frappe.db.get_list(
+                "Comment",
+                filters={
+                    "reference_name": task.get("name"), 
+                    "comment_type": "Comment", 
+                    "reference_doctype": "JH Task Master"
+                },
+                fields=["*"],
+                ignore_permissions=True,
+                order_by="creation desc",
+            )
+                
+            if comments:
+                for comment in comments[:5]:  # Limit to 5 most recent comments
+                    creation = comment.get("creation")
+                    if isinstance(creation, str):
+                        creation = datetime.strptime(creation, "%Y-%m-%d %H:%M:%S")
+                    formatted_creation = creation.strftime("%d-%m-%Y, %H:%M")
+                    commentsLogs.append(f"• {wrap_text(comment.get('content', ''), 80)} - {comment.get('comment_by', '')} ({formatted_creation})")
+
+            commentsLogsList = "\n".join(commentsLogs) if commentsLogs else "-"
+
+            # Task details
+            task_detail_data = [
+                ["Task ID", wrap_text(task.get("name", "-"), 40)],
+                ["Created By", wrap_text(task.get("created_by", "-"), 40)],
+                ["Assigned To", wrap_text(task.get("assigned_to", "-"), 40)],
+                ["Created Date", task.get("creation").strftime("%d/%m/%Y") if task.get("creation") else "-"],
+                ["Due Date", task.get("due_date").strftime("%d/%m/%Y") if task.get("due_date") else "-"],
+                ["Revised Due Date", task.get("revised_due_date").strftime("%d/%m/%Y") if task.get("revised_due_date") else "-"],
+                ["Completion Date", task.get("completion_date").strftime("%d/%m/%Y") if task.get("completion_date") else "-"],
+                ["Status", task.get("status", "-")],
+                ["Effort (Hours)", str(task.get("effort", "-"))],
+                ["Description", clean_html(wrap_text(task.get("description", "-"), 80))],
+                ["Assignee Comments", clean_html(wrap_text(task.get("assignee_comments", "-"), 80))],
+                ["Comments", commentsLogsList]
+            ]
+                
+            detail_table = Table(task_detail_data, colWidths=[2.2*inch, 5*inch])
+            detail_table.setStyle(TableStyle([
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 9),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('TOPPADDING', (0, 0), (-1, -1), 6),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ]))
+                
+            story.append(detail_table)
+            story.append(Spacer(1, 15))
+    
+    # Build PDF
+    doc.build(story)
+    
+    # Get PDF content
+    pdf_content = buffer.getvalue()
+    buffer.close()
+    
+    return pdf_content
 
 
 @frappe.whitelist()
@@ -281,3 +477,66 @@ def download_csv(audit_id: str):
     response.headers.set("Content-Type", "text/csv")
     response.headers.set("Content-Disposition", f'attachment; filename="{filename}"')
     return response
+
+@frappe.whitelist()
+def download_pdf(audit_id: str):
+    """
+    Downloads audit data as a PDF file.
+
+    Args:
+        audit_id (str): The ID of the audit to download
+
+    Returns:
+        Response: PDF file response
+    """
+    try:
+        # Get audit data
+        audit = frappe.db.get_value(
+            "JH Audit Master",
+            audit_id,
+            [
+                "*",
+                "created_by.full_name as created_by",
+                "created_by.name as created_by_id",
+                "business.business_name as business",
+                "division.division_name as division",
+            ],
+            as_dict=True,
+        )
+
+        if not audit:
+            frappe.throw(f"Audit with ID {audit_id} not found")
+
+        # Get tasks data
+        tasks = frappe.db.get_list(
+            "JH Task Master",
+            filters={"source": audit_id},
+            fields=[
+                "*",
+                "created_by.full_name as created_by",
+                "created_by.name as created_by_id",
+                "assigned_to.full_name as assigned_to",
+                "assigned_to.name as assigned_to_id",
+            ],
+        )
+
+        # Generate PDF content
+        pdf_content = create_audit_pdf_content(audit, tasks)
+
+        # Create filename with timestamp
+        timestamp = datetime.now().strftime("%d%b%Y-%I%M_%p")
+        audit_name = audit.get("audit_name", f"audit_{audit_id}")
+        # Clean filename to remove special characters
+        audit_name = re.sub(r'[^\w\s-]', '', audit_name).strip()
+        audit_name = re.sub(r'[-\s]+', '-', audit_name)
+        filename = f"{audit_name}-{timestamp}.pdf"
+
+        # Create response
+        response = Response(pdf_content)
+        response.headers.set("Content-Type", "application/pdf")
+        response.headers.set("Content-Disposition", f'attachment; filename="{filename}"')
+        return response
+
+    except Exception as e:
+        frappe.log_error(f"Error generating PDF: {str(e)}")
+        frappe.throw(f"Error generating PDF: {str(e)}")

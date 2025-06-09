@@ -15,7 +15,7 @@ export type TaskStatus =
   | "Open"
   | "In progress"
   | "Canceled"
-  | "completed"
+  | "Completed"
   | "Closed";
 
 // Priority types
