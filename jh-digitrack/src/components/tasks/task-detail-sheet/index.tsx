@@ -1,7 +1,6 @@
 import { Sheet, SheetClose, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Calendar, Edit, Mail, Trash2, XIcon } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
 import { useDoc, useDocDetail } from "@/hooks/doc";
 import { JHBusinessMaster } from "@/types/JHDigitrack/JHBusinessMaster";
 import { JHUserMaster } from "@/types/JHDigitrack/JHUserMaster";
@@ -20,6 +19,7 @@ import { useEmailMeTask, useEscalateTask } from "@/hooks/task";
 import { useRemindTask } from "@/hooks/task";
 import { toast } from "sonner";
 import { Task } from "@/types/tasks";
+import { ExpandableTextByLines } from "@/components/ExpandableTextByLines";
 
 const getDateDistance = (date: string) => {
   const dueDate = new Date(date);
@@ -55,17 +55,6 @@ export function TaskDetailSheet({
 }: TaskDetailSheetProps) {
   const { data: currentUser } = useCurrentUser();
   const { data: currentJhUser } = useCurrentJhUser();
-  const [showFullDescription, setShowFullDescription] = useState(false);
-  const descriptionRef = useRef<HTMLDivElement>(null);
-  const [isDescriptionOverflowing, setIsDescriptionOverflowing] =
-    useState(false);
-
-  const [showFullAssigneeComments, setShowFullAssigneeComments] =
-    useState(false);
-  const assigneeCommentsRef = useRef<HTMLDivElement>(null);
-  const [isAssigneeCommentsOverflowing, setIsAssigneeCommentsOverflowing] =
-    useState(false);
-
   const { data: taskDetailed, isLoading: isLoadingTaskInfo } =
     useDocDetail<Task>({
       doctype: "JH Task Master",
@@ -121,21 +110,6 @@ export function TaskDetailSheet({
   const { mutateAsync: remindTask } = useRemindTask();
   const { mutateAsync: escalateTask } = useEscalateTask();
   const { mutateAsync: emailMeTask } = useEmailMeTask();
-
-  // Add this effect to check if description is overflowing
-  useEffect(() => {
-    if (task?.description) {
-      const isOverflowing = task?.description.length > 350;
-      setIsDescriptionOverflowing(isOverflowing);
-    }
-  }, [task?.description]);
-
-  useEffect(() => {
-    if (task?.assignee_comments) {
-      const isOverflowing = task?.assignee_comments.length > 350;
-      setIsAssigneeCommentsOverflowing(isOverflowing);
-    }
-  }, [task?.assignee_comments]);
 
   const handleEdit = () => {
     if (taskId && onEdit) onEdit(taskId);
@@ -426,25 +400,14 @@ export function TaskDetailSheet({
                     <Skeleton className="h-4 w-[80%]" />
                   </div>
                 ) : (
-                  <div
-                    ref={descriptionRef}
-                    className={`bg-gray-50 p-1 rounded-md max-w-lg overflow-x-auto ${
-                      !showFullDescription ? "line-clamp-4" : ""
-                    }`}
-                    dangerouslySetInnerHTML={{
-                      __html:
-                        task?.description?.replace(/\n+/g, "<br />") || "",
-                    }}
+                  <ExpandableTextByLines
+                    text={task?.description || ""}
+                    maxLines={2}
+                    isHtml={true}
+                    className="text-base"
+                    showMoreText="See full description"
+                    showLessText="Show less"
                   />
-                )}
-                {isDescriptionOverflowing && (
-                  <Button
-                    variant="ghost"
-                    className="text-gray-500 mt-2 h-auto p-0 text-sm"
-                    onClick={() => setShowFullDescription(!showFullDescription)}
-                  >
-                    {showFullDescription ? "Show less" : "See full description"}
-                  </Button>
                 )}
               </div>
               <div className="text-sm text-gray-500">Assignee Remarks</div>
@@ -456,30 +419,14 @@ export function TaskDetailSheet({
                     <Skeleton className="h-4 w-[80%]" />
                   </div>
                 ) : (
-                  <div
-                    ref={assigneeCommentsRef}
-                    className={`bg-gray-50 p-4 rounded-md max-w-lg overflow-x-auto ${
-                      !showFullAssigneeComments ? "line-clamp-4" : ""
-                    }`}
-                    dangerouslySetInnerHTML={{
-                      __html:
-                        task?.assignee_comments?.replace(/\n+/g, "<br />") ||
-                        "",
-                    }}
+                  <ExpandableTextByLines
+                    text={task?.assignee_comments || ""}
+                    maxLines={2}
+                    isHtml={true}
+                    className="text-base"
+                    showMoreText="See full assignee remarks"
+                    showLessText="Show less"
                   />
-                )}
-                {isAssigneeCommentsOverflowing && (
-                  <Button
-                    variant="ghost"
-                    className="text-gray-500 mt-2 h-auto p-0 text-sm"
-                    onClick={() =>
-                      setShowFullAssigneeComments(!showFullAssigneeComments)
-                    }
-                  >
-                    {showFullAssigneeComments
-                      ? "Show less"
-                      : "See full assignee comments"}
-                  </Button>
                 )}
               </div>
             </div>

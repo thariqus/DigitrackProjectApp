@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { Table, TableBody, TableFooter } from "@/components/ui/table";
 import { useDeleteDoc, useDoc, useDocs } from "@/hooks/doc";
 import { toast } from "sonner";
@@ -31,6 +31,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { ExpandableTextByLines } from "@/components/ExpandableTextByLines";
 
 export const MeetingTasks = () => {
   const { meetingId } = useParams();
@@ -53,9 +54,6 @@ export const MeetingTasks = () => {
     undefined
   );
   const [activeFilters, setActiveFilters] = useState<TaskFilter[]>([]);
-  const [showFullAgenda, setShowFullAgenda] = useState(false);
-  const [isAgendaOverflowing, setIsAgendaOverflowing] = useState(false);
-  const agendaRef = useRef<HTMLDivElement>(null);
   const { data: currentJHUser } = useCurrentJhUser();
   const { data: currentUser } = useCurrentUser();
 
@@ -81,14 +79,6 @@ export const MeetingTasks = () => {
     name: meeting?.organizer || "",
     disabled: !meeting?.organizer,
   });
-
-  // Add this effect to check if description is overflowing
-  useEffect(() => {
-    if (meeting?.agenda) {
-      const isOverflowing = meeting?.agenda.length > 350;
-      setIsAgendaOverflowing(isOverflowing);
-    }
-  }, [meeting?.agenda]);
 
   const {
     data: tasks,
@@ -372,22 +362,14 @@ export const MeetingTasks = () => {
           </div>
         </div>
         <div className="text-base">
-          <div
-            ref={agendaRef}
-            className={`${!showFullAgenda ? "line-clamp-2" : ""}`}
-            dangerouslySetInnerHTML={{
-              __html: meeting?.agenda?.replace(/\n+/g, "<br />") || "",
-            }}
+          <ExpandableTextByLines
+            text={meeting?.agenda || ""}
+            maxLines={2}
+            isHtml={true}
+            className="text-base"
+            showMoreText="See full agenda"
+            showLessText="Show less"
           />
-          {isAgendaOverflowing && (
-            <Button
-              variant="ghost"
-              className="text-gray-500 mt-2 h-auto p-0 text-sm"
-              onClick={() => setShowFullAgenda(!showFullAgenda)}
-            >
-              {showFullAgenda ? "Show less" : "See full agenda"}
-            </Button>
-          )}
         </div>
       </div>
       <div className="space-y-4">

@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { Table, TableBody, TableFooter } from "@/components/ui/table";
 import { useDeleteDoc, useDoc, useDocs } from "@/hooks/doc";
 import { toast } from "sonner";
@@ -33,6 +33,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { ExpandableTextByLines } from "@/components/ExpandableTextByLines";
 
 export const AuditTasks = () => {
   const { auditId } = useParams();
@@ -55,10 +56,6 @@ export const AuditTasks = () => {
     undefined
   );
   const [activeFilters, setActiveFilters] = useState<TaskFilter[]>([]);
-  const [showFullDescription, setShowFullDescription] = useState(false);
-  const [isDescriptionOverflowing, setIsDescriptionOverflowing] =
-    useState(false);
-  const descriptionRef = useRef<HTMLDivElement>(null);
   const { data: currentJHUser } = useCurrentJhUser();
   const { data: currentUser } = useCurrentUser();
 
@@ -96,14 +93,6 @@ export const AuditTasks = () => {
     name: audit?.created_by || "",
     disabled: !audit?.created_by,
   });
-
-  // Add this effect to check if description is overflowing
-  useEffect(() => {
-    if (audit?.audit_description) {
-      const isOverflowing = audit?.audit_description.length > 350;
-      setIsDescriptionOverflowing(isOverflowing);
-    }
-  }, [audit?.audit_description]);
 
   const {
     data: tasks,
@@ -381,22 +370,14 @@ export const AuditTasks = () => {
           </div>
         </div>
         <div className="text-base">
-          <div
-            ref={descriptionRef}
-            className={`${!showFullDescription ? "line-clamp-2" : ""}`}
-            dangerouslySetInnerHTML={{
-              __html: audit?.audit_description?.replace(/\n+/g, "<br />") || "",
-            }}
+          <ExpandableTextByLines
+            text={audit?.audit_description || ""}
+            maxLines={2}
+            isHtml={true}
+            className="text-base"
+            showMoreText="See full description"
+            showLessText="Show less"
           />
-          {isDescriptionOverflowing && (
-            <Button
-              variant="ghost"
-              className="text-gray-500 mt-2 h-auto p-0 text-sm"
-              onClick={() => setShowFullDescription(!showFullDescription)}
-            >
-              {showFullDescription ? "Show less" : "See full description"}
-            </Button>
-          )}
         </div>
       </div>
       <div className="space-y-4">
