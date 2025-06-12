@@ -98,3 +98,15 @@ export const useGetTaskCountByStatusBySource = (
     enabled: Boolean(source),
   });
 };
+
+export const useRemindAllTaskBySource = () => {
+  return useMutation({
+    mutationFn: (source_id: string) =>
+      frappe.api.post(`jh_digitrack.api.tasks.remind_all_by_source`, {
+        source_id,
+      }),
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+};

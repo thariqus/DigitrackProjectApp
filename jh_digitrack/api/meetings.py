@@ -6,7 +6,7 @@ from werkzeug.wrappers import Response
 from .helpers.wrap_text import wrap_text
 from .helpers.clean_html import clean_html
 from reportlab.lib import colors
-from reportlab.lib.pagesizes import A4
+from reportlab.lib.pagesizes import A2
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
@@ -251,7 +251,7 @@ def create_meeting_pdf_content(meeting, tasks, internal_participants):
     # Create the PDF document
     doc = SimpleDocTemplate(
         buffer,
-        pagesize=A4,
+        pagesize=A2,
         rightMargin=30,
         leftMargin=30,
         topMargin=30,
@@ -294,58 +294,51 @@ def create_meeting_pdf_content(meeting, tasks, internal_participants):
     story.append(Paragraph("Meeting Report", title_style))
     story.append(Spacer(1, 20))
     
-    # Meeting Information Section
+    # Meeting Information Section (as list)
     story.append(Paragraph("Meeting Information", heading_style))
     
-    # Prepare participant names with proper wrapping
+    # Prepare participant names
     participant_names = [participant.get("user_name") for participant in internal_participants if internal_participants]
     internal_participants_text = ", ".join(participant_names) if participant_names else "-"
-    # Wrap long participant list
-    internal_participants_wrapped = wrap_text(internal_participants_text, 80)
     
-    # Meeting details table with wrapped content
-    meeting_data = [
-        ["Organizer", wrap_text(meeting.get("organizer_name", "-"), 40)],
-        ["Title", wrap_text(meeting.get("title", "-"), 40)],
-        ["Type", wrap_text(meeting.get("type", "-"), 40)],
-        ["Created Date", meeting.get('creation', '-').strftime("%d/%m/%Y") if meeting.get('creation') else '-'],
-        ["Meeting Date", str(meeting.get('meeting_date', '-'))],
-        ["Duration (mins)", str(meeting.get('duration', '-'))],
-        ["Location", wrap_text(meeting.get('location', '-'), 40)],
-        ["Status", meeting.get("status", "-")],
-        ["External Participants", wrap_text(meeting.get("participants_external", "-"), 80)],
-        ["Internal Participants", internal_participants_wrapped],
-        ["Completion Date", meeting.get("completion_date").strftime("%d/%m/%Y") if meeting.get("completion_date") else "-"],
-        ["Agenda", clean_html(wrap_text(meeting.get("agenda", "-"), 80))],
-        ["Remarks", clean_html(wrap_text(meeting.get("remarks", "-"), 80))],
+    # Meeting details as paragraphs
+    meeting_info = [
+        f"<b>Title:</b> {meeting.get('title', '-')}",
+        f"<b>Organizer:</b> {meeting.get('organizer_name', '-')}",
+        f"<b>Type:</b> {meeting.get('type', '-')}",
+        f"<b>Created Date:</b> {meeting.get('creation', '-').strftime('%d/%m/%Y') if meeting.get('creation') else '-'}",
+        f"<b>Meeting Date:</b> {str(meeting.get('meeting_date', '-'))}",
+        f"<b>Duration (mins):</b> {str(meeting.get('duration', '-'))}",
+        f"<b>Location:</b> {meeting.get('location', '-')}",
+        f"<b>Status:</b> {meeting.get('status', '-')}",
+        f"<b>Internal Participants:</b> {internal_participants_text}",
+        f"<b>External Participants:</b> {meeting.get('participants_external', '-')}",
+        f"<b>Completion Date:</b> {meeting.get('completion_date').strftime('%d/%m/%Y') if meeting.get('completion_date') else '-'}",
+        f"<b>Agenda:</b> {clean_html(meeting.get('agenda', '-'))}",
+        f"<b>Remarks:</b> {clean_html(meeting.get('remarks', '-'))}"
     ]
     
-    meeting_table = Table(meeting_data, colWidths=[2.2*inch, 5*inch])
-    meeting_table.setStyle(TableStyle([
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 1), (-1, -1), 9),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('TOPPADDING', (0, 0), (-1, -1), 8),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-    ]))
+    for info in meeting_info:
+        story.append(Paragraph(info, normal_style))
     
-    story.append(meeting_table)
     story.append(Spacer(1, 20))
     
-    # Task Details Section
+    # Task Details Section (as single table)
     if tasks:
-        story.append(Spacer(1, 20))
         story.append(Paragraph("Tasks", heading_style))
-            
-        for i, task in enumerate(tasks, 1):
-            story.append(Paragraph(f"Task {i}: {task.get('task_name', 'Unnamed Task')}", 
-                                    ParagraphStyle('TaskTitle', parent=styles['Heading3'], fontSize=12, textColor=colors.black)))
-                
-            # Task comments
-            commentsLogs = []
+        
+        # Table headers
+        task_headers = [
+            "ID", "Name", "Created By/\nDate", "Assigned To", "Due/\nRevised Date", 
+            "Completion\nDate", "Status", "Effort(h)", "Description", 
+            "Assignee Comments", "Recent Comments"
+        ]
+        
+        # Prepare task data
+        task_data = [task_headers]
+        
+        for task in tasks:
+            # Get task comments
             comments = frappe.db.get_list(
                 "Comment",
                 filters={
@@ -357,49 +350,99 @@ def create_meeting_pdf_content(meeting, tasks, internal_participants):
                 ignore_permissions=True,
                 order_by="creation desc",
             )
-                
+            
+            # Format recent comments
+            recent_comments = []
             if comments:
-                for comment in comments[:5]:  # Limit to 5 most recent comments
+                for comment in comments:
                     creation = comment.get("creation")
                     if isinstance(creation, str):
                         creation = datetime.strptime(creation, "%Y-%m-%d %H:%M:%S")
-                    formatted_creation = creation.strftime("%d-%m-%Y, %H:%M")
-                    commentsLogs.append(f"• {wrap_text(comment.get('content', ''), 80)} - {comment.get('comment_by', '')} ({formatted_creation})")
-
-            commentsLogsList = "\n".join(commentsLogs) if commentsLogs else "-"
-
-            # Task details
-            task_detail_data = [
-                ["Task ID", wrap_text(task.get("name", "-"), 40)],
-                ["Created By", wrap_text(task.get("created_by", "-"), 40)],
-                ["Assigned To", wrap_text(task.get("assigned_to", "-"), 40)],
-                ["Created Date", task.get("creation").strftime("%d/%m/%Y") if task.get("creation") else "-"],
-                ["Due Date", task.get("due_date").strftime("%d/%m/%Y") if task.get("due_date") else "-"],
-                ["Revised Due Date", task.get("revised_due_date").strftime("%d/%m/%Y") if task.get("revised_due_date") else "-"],
-                ["Completion Date", task.get("completion_date").strftime("%d/%m/%Y") if task.get("completion_date") else "-"],
-                ["Status", task.get("status", "-")],
-                ["Effort (Hours)", str(task.get("effort", "-"))],
-                ["Description", clean_html(wrap_text(task.get("description", "-"), 80))],
-                ["Assignee Comments", clean_html(wrap_text(task.get("assignee_comments", "-"), 80))],
-                ["Comments", commentsLogsList]
+                    formatted_creation = creation.strftime("%d-%m-%Y")
+                    recent_comments.append(f"• {comment.get('comment_by', '')} - ({formatted_creation}) \n- {wrap_text(comment.get('content', ''), 50)}")
+            
+            comments_text = "\n".join(recent_comments) if recent_comments else "-"
+            
+            # Format Created By & Date column
+            created_by_date = wrap_text(task.get("created_by", "-"), 15)
+            if task.get("creation"):
+                created_by_date += f"\n{task.get('creation').strftime('%d/%m/%Y')}"
+            
+            # Format Due Date & Revised column
+            due_date_str = task.get("due_date").strftime("%d/%m/%Y") if task.get("due_date") else "-"
+            revised_due_date_str = task.get("revised_due_date").strftime("%d/%m/%Y") if task.get("revised_due_date") else None
+            
+            if revised_due_date_str and revised_due_date_str != due_date_str:
+                # Different dates - show both
+                due_date_combined = f"{due_date_str}\n{revised_due_date_str}"
+            else:
+                # Same date or no revised date - show only one
+                due_date_combined = due_date_str
+            
+            # Add task row
+            task_row = [
+                wrap_text(task.get("name", "-"), 15),
+                wrap_text(task.get("task_name", "-"), 25),
+                created_by_date,
+                wrap_text(task.get("assigned_to", "-"), 15),
+                due_date_combined,
+                task.get("completion_date").strftime("%d/%m/%Y") if task.get("completion_date") else "-",
+                task.get("status", "-"),
+                str(task.get("effort", "-")),
+                clean_html(wrap_text(task.get("description", "-"), 50)),
+                clean_html(wrap_text(task.get("assignee_comments", "-"), 35)),
+                comments_text
             ]
-                
-            detail_table = Table(task_detail_data, colWidths=[2.2*inch, 5*inch])
-            detail_table.setStyle(TableStyle([
-                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-                ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, -1), 9),
-                ('GRID', (0, 0), (-1, -1), 1, colors.black),
-                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                ('TOPPADDING', (0, 0), (-1, -1), 6),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-            ]))
-                
-            story.append(detail_table)
-            story.append(Spacer(1, 15))
+            task_data.append(task_row)
+        
+        # Create tasks table
+        tasks_table = Table(task_data, colWidths=[
+            0.8*inch,  # Task ID
+            1.5*inch,  # Task Name
+            1.0*inch,  # Created By & Date
+            1.0*inch,  # Assigned To
+            1.0*inch,  # Due Date & Revised
+            1.0*inch,  # Completion Date
+            0.7*inch,  # Status
+            0.6*inch,  # Effort
+            3.0*inch,  # Description
+            2.0*inch,  # Assignee Comments
+            3.0*inch   # Recent Comments
+        ])
+        
+        tasks_table.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),  # Header row bold
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),      # Data rows normal
+            ('FONTSIZE', (0, 0), (-1, 0), 9),                 # Header font size
+            ('FONTSIZE', (0, 1), (-1, -1), 8),                # Data font size
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey), # Header background
+        ]))
+        
+        story.append(tasks_table)
+        story.append(Spacer(1, 20))
+
+        # Create footer with current date
+    def add_footer(canvas, doc):
+        """Add footer with created date to each page"""
+        from datetime import datetime
+        canvas.saveState()
+        
+        # Footer text
+        footer_text = f"Report Generated on: {datetime.now().strftime('%d/%m/%Y %H:%M')}"
+        
+        # Position footer at bottom of page
+        canvas.setFont('Helvetica', 9)
+        canvas.drawString(30, 30, footer_text)  # 30 points from left and bottom margins
+        
+        canvas.restoreState()
     
     # Build PDF
-    doc.build(story)
+    doc.build(story, onFirstPage=add_footer, onLaterPages=add_footer)
     
     # Get PDF content
     pdf_content = buffer.getvalue()

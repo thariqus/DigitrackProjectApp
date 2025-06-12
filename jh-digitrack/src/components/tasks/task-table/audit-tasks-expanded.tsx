@@ -20,19 +20,23 @@ import { useNavigate, useParams } from "react-router";
 import { JHAudits } from "@/types/JHDigitrack/JHAudits";
 import StatusBadge from "../ui/StatusBadge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Calendar, Download, Eye } from "lucide-react";
+import { ArrowLeft, Calendar, Download, Eye, Mail } from "lucide-react";
 import { AuditDetailSheet } from "@/components/audits/audits-detail-sheet";
 import { queryClient } from "@/utils/query-client";
 import { JHBusinessMaster } from "@/types/JHDigitrack/JHBusinessMaster";
 import { JHDivisionMaster } from "@/types/JHDigitrack/JHDivisionMaster";
 import { JHUserMaster } from "@/types/JHDigitrack/JHUserMaster";
 import { format } from "date-fns";
-import { useGetTaskCountByStatusBySource } from "@/hooks/task";
+import {
+  useGetTaskCountByStatusBySource,
+  useRemindAllTaskBySource,
+} from "@/hooks/task";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import ConfirmationDialog from "@/components/ConfirmationDialog";
 
 export const AuditTasksExpanded = () => {
   const { auditId } = useParams();
@@ -48,6 +52,7 @@ export const AuditTasksExpanded = () => {
   const [isAuditDetailOpen, setIsAuditDetailOpen] = useState(false);
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isEmailConfirmationOpen, setIsEmailConfirmationOpen] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState<string | undefined>(
     undefined
   );
@@ -153,6 +158,8 @@ export const AuditTasksExpanded = () => {
     ],
   });
 
+  const isCreator = createdBy?.name === currentJHUser?.name;
+
   const { data: taskCounts } = useGetTaskCountByStatusBySource(
     auditId,
     currentJHUser?.name,
@@ -187,6 +194,7 @@ export const AuditTasksExpanded = () => {
   // Delete task mutation
 
   const deleteDoc = useDeleteDoc();
+  const { mutateAsync: remindAll } = useRemindAllTaskBySource();
 
   // Event handlers
   const handleCreateTask = useCallback(() => {
@@ -248,6 +256,18 @@ export const AuditTasksExpanded = () => {
       setTaskNameToDelete(undefined);
     }
   }, [taskToDelete, deleteDoc, refetch]);
+
+  const confirmEmailReminder = useCallback(async () => {
+    try {
+      await remindAll(auditId!);
+      toast.success("Reminder emails sent successfully");
+    } catch (error) {
+      toast.error("Failed to send reminder emails");
+      console.error(error);
+    } finally {
+      setIsEmailConfirmationOpen(false);
+    }
+  }, []);
 
   // Handle filters change from FilterButtonsWithComboboxes
   const handleFiltersChange = useCallback(
@@ -326,6 +346,17 @@ export const AuditTasksExpanded = () => {
                 </div>
               </PopoverContent>
             </Popover>
+            {isCreator ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setIsEmailConfirmationOpen(true);
+                }}
+              >
+                <Mail className="h-4 w-4" />
+              </Button>
+            ) : null}
           </div>
           <div className="flex items-center gap-2">
             {taskCounts?.message
@@ -476,6 +507,15 @@ export const AuditTasksExpanded = () => {
           onOpenChange={setIsDeleteDialogOpen}
           taskName={taskNameToDelete || ""}
           onConfirm={confirmDeleteTask}
+        />
+
+        {/* Email confirmation dialog */}
+        <ConfirmationDialog
+          open={isEmailConfirmationOpen}
+          onOpenChange={setIsEmailConfirmationOpen}
+          onConfirm={confirmEmailReminder}
+          title="Send Reminder Emails"
+          message="This will send reminder emails to all assignees."
         />
       </div>
     </div>

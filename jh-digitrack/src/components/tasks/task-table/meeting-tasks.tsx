@@ -19,19 +19,23 @@ import { useTaskFilters } from "./hooks/useTaskFilters";
 import { useNavigate, useParams } from "react-router";
 import StatusBadge from "../ui/StatusBadge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Calendar, Download, Expand, Eye } from "lucide-react";
+import { ArrowLeft, Calendar, Download, Expand, Eye, Mail } from "lucide-react";
 import { JHGroupedTaskMaster } from "@/types/JHDigitrack/JHGroupedTaskMaster";
 import { MeetingDetailSheet } from "@/components/meetings/meetings-detail-sheet";
 import { queryClient } from "@/utils/query-client";
 import { JHUserMaster } from "@/types/JHDigitrack/JHUserMaster";
 import { format } from "date-fns";
-import { useGetTaskCountByStatusBySource } from "@/hooks/task";
+import {
+  useGetTaskCountByStatusBySource,
+  useRemindAllTaskBySource,
+} from "@/hooks/task";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { ExpandableTextByLines } from "@/components/ExpandableTextByLines";
+import ConfirmationDialog from "@/components/ConfirmationDialog";
 
 export const MeetingTasks = () => {
   const { meetingId } = useParams();
@@ -47,6 +51,7 @@ export const MeetingTasks = () => {
   const [isAuditDetailOpen, setIsAuditDetailOpen] = useState(false);
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isEmailConfirmationOpen, setIsEmailConfirmationOpen] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState<string | undefined>(
     undefined
   );
@@ -135,6 +140,8 @@ export const MeetingTasks = () => {
     ],
   });
 
+  const isOrganizer = organizer?.name === currentJHUser?.name;
+
   const { data: taskCounts } = useGetTaskCountByStatusBySource(
     meetingId,
     currentJHUser?.name,
@@ -169,6 +176,7 @@ export const MeetingTasks = () => {
   // Delete task mutation
 
   const deleteDoc = useDeleteDoc();
+  const { mutateAsync: remindAll } = useRemindAllTaskBySource();
 
   // Event handlers
   const handleCreateTask = useCallback(() => {
@@ -230,6 +238,18 @@ export const MeetingTasks = () => {
       setTaskNameToDelete(undefined);
     }
   }, [taskToDelete, deleteDoc, refetch]);
+
+  const confirmEmailReminder = useCallback(async () => {
+    try {
+      await remindAll(meetingId!);
+      toast.success("Reminder emails sent successfully");
+    } catch (error) {
+      toast.error("Failed to send reminder emails");
+      console.error(error);
+    } finally {
+      setIsEmailConfirmationOpen(false);
+    }
+  }, []);
 
   // Handle filters change from FilterButtonsWithComboboxes
   const handleFiltersChange = useCallback(
@@ -308,6 +328,17 @@ export const MeetingTasks = () => {
                 </div>
               </PopoverContent>
             </Popover>
+            {isOrganizer ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setIsEmailConfirmationOpen(true);
+                }}
+              >
+                <Mail className="h-4 w-4" />
+              </Button>
+            ) : null}
             <Button
               variant="outline"
               size="sm"
@@ -452,6 +483,15 @@ export const MeetingTasks = () => {
           onOpenChange={setIsDeleteDialogOpen}
           taskName={taskNameToDelete || ""}
           onConfirm={confirmDeleteTask}
+        />
+
+        {/* Email confirmation dialog */}
+        <ConfirmationDialog
+          open={isEmailConfirmationOpen}
+          onOpenChange={setIsEmailConfirmationOpen}
+          onConfirm={confirmEmailReminder}
+          title="Send Reminder Emails"
+          message="This will send reminder emails to all assignees."
         />
       </div>
     </div>

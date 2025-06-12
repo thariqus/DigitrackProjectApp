@@ -765,7 +765,6 @@ export function MeetingSheet({
                   control={control}
                   render={({ field }) => (
                     <Switch
-                      disabled={isEdit}
                       checked={field.value === true}
                       onCheckedChange={(checked) => {
                         field.onChange(checked ? true : false);
@@ -907,12 +906,7 @@ export function MeetingSheet({
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label
-                    htmlFor="organizer"
-                    className="after:content-['*'] after:text-[#972e26] after:ml-0.5"
-                  >
-                    Organizer
-                  </Label>
+                  <Label htmlFor="organizer">Organizer</Label>
                   <Controller
                     name="organizer"
                     control={control}

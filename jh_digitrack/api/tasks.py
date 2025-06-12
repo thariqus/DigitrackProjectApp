@@ -293,7 +293,7 @@ def _process_task_chunk(task_chunk, tasks_by_assignee, tasks_by_assignor, task_t
             tasks_by_assignor[assignor][task_type].append(task)
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def scheduled_emails():
     """
     Get tasks that match any of these criteria:
@@ -529,24 +529,22 @@ def scheduled_emails():
     for assignee, assignee_tasks in tasks_by_assignee.items():
         if assignee_tasks:
             tasks = []
-            changed_tasks = []
+            changed_tasks = assignee_tasks.get("changes", [])
             # Flatten all task types (past_due, upcoming, new) into a single list
             for task_type in ["past_due", "upcoming", "new"]:
                 if task_type in assignee_tasks:
                     tasks.extend(assignee_tasks[task_type])
 
-            for task_type in ["changes"]:
-                if task_type in assignee_tasks:
-                    changed_tasks.extend(assignee_tasks[task_type])
-
             if len(tasks) > 0:
                 frappe.sendmail(
                     expose_recipients="header",
                     recipients=[tasks[0].assigned_to_email],
-                    subject="DigiTrack: Task List - Pending / Upcoming / New",
+                    subject="DigiTrack: Task List(Assigned to you) - Pending / Upcoming / New",
                     message=generate_task_reminder_email(
-                        tasks=tasks, 
-                        type="scheduled_assignee", 
+                        tasks=assignee_tasks.get("past_due", []),
+                        upcoming_tasks=assignee_tasks.get("upcoming", []),
+                        new_tasks=assignee_tasks.get("new", []),
+                        type="assignee_scheduler", 
                         changed_tasks=changed_tasks, 
                         recipient_name=tasks[0].assigned_to_name),
                 )
@@ -564,26 +562,17 @@ def scheduled_emails():
     # Send emails to assignors
     for assignor, assignor_tasks in tasks_by_assignor.items():
         if assignor_tasks:
-            tasks = []
-            changed_tasks = []
-
-            # Flatten all task types (past_due, upcoming, new) into a single list
-            for task_type in ["past_due", "upcoming", "new"]:
-                if task_type in assignor_tasks:
-                    tasks.extend(assignor_tasks[task_type])
-
-            for task_type in ["changes"]:
-                if task_type in assignor_tasks:
-                    changed_tasks.extend(assignor_tasks[task_type])
+            tasks = assignor_tasks.get("past_due", [])
+            changed_tasks = assignor_tasks.get("changes", [])
 
             if len(tasks) > 0:
                 frappe.sendmail(
                     expose_recipients="header",
                     recipients=[tasks[0].creator_email],
-                    subject="DigiTrack: Task List - Pending",
+                    subject="DigiTrack: Task List(Created by you) - Pending",
                     message=generate_task_reminder_email(
-                        tasks=tasks, 
-                        type="scheduled_assignor", 
+                        tasks=tasks,
+                        type="assignor_scheduler",
                         changed_tasks=changed_tasks, 
                         recipient_name=tasks[0].creator_name),
                 )
@@ -622,3 +611,121 @@ def get_task_count_by_status_by_source(source: str, current_jh_user: str, create
         filters=filters,
     )
     return tasks
+
+def _process_source_task_chunk(task_chunk, tasks_by_assignee, task_type):
+    """Helper function to process a chunk of tasks and categorize them by assignee"""
+    for task in task_chunk:
+        assignee = task.assigned_to
+        if not assignee:
+            continue
+
+        if assignee not in tasks_by_assignee:
+            tasks_by_assignee[assignee] = {"open": []}
+
+        tasks_by_assignee[assignee][task_type].append(task)
+
+
+@frappe.whitelist()
+def remind_all_by_source(source_id: str):
+    """
+    Get tasks that match any of these criteria and send emails to assignees:
+    """
+
+    # Try to fetch JH User Master for the current session user
+    current_user = frappe.session.user
+    try:
+        current_jh_user = frappe.get_doc("JH User Master", {"user": current_user})
+        initiator_name = current_jh_user.full_name
+    except frappe.DoesNotExistError:
+        # Fallback if no user found (common in bench CLI context)
+        initiator_name = "System"
+        current_jh_user = None
+
+    # Authorization check - verify user has permission to send reminders for this source
+    is_authorized = False
+    source_name = None
+    
+    # Try to find the source in JH Grouped Task Master (meeting)
+    try:
+        meeting = frappe.get_doc("JH Grouped Task Master", source_id)
+        if current_jh_user and meeting.organizer == current_jh_user.name:
+            is_authorized = True
+            source_name = meeting.title
+    except frappe.DoesNotExistError:
+        pass
+    
+    # If not found in meetings or not authorized, try JH Audit Master
+    if not is_authorized:
+        try:
+            audit = frappe.get_doc("JH Audit Master", source_id)
+            if current_jh_user and audit.created_by == current_jh_user.name:
+                is_authorized = True
+                source_name = audit.audit_name
+        except frappe.DoesNotExistError:
+            pass
+    
+    # If user is not authorized, deny access
+    if not is_authorized:
+        frappe.throw("You are not authorized to send reminders for this source. Only the meeting organizer or audit creator can send reminders.")
+
+    # Define DocType for JH Task Master
+    tasks = frappe.qb.DocType("JH Task Master")
+    assigned_to = frappe.qb.DocType("JH User Master").as_("assigned_to")
+    creator = frappe.qb.DocType("JH User Master").as_("creator")
+
+
+
+    # 1. Open and in progress tasks - for assignees
+    tasks_query = (
+        frappe.qb.from_(tasks)
+        .select(
+            tasks.star,
+            assigned_to.email.as_("assigned_to_email"),
+            assigned_to.full_name.as_("assigned_to_name"),
+            creator.email.as_("creator_email"),
+            creator.full_name.as_("creator_name"),
+        )
+        .where(
+            (tasks.deleted_at.isnull())
+            & (tasks.source == source_id)
+            & (tasks.status.isin(["Open", "In Progress"]))
+        )
+        .join(assigned_to)
+        .on(tasks.assigned_to == assigned_to.name)
+        .join(creator)
+        .on(tasks.created_by == creator.name)
+        .orderby(tasks.assigned_to)
+    )
+
+    # Execute queries with pagination to handle large datasets
+    # Process in chunks to avoid memory issues
+    chunk_size = 1000
+    tasks_by_assignee = {}
+
+    # Process tasks for assignees
+    for offset in range(0, 100000, chunk_size):
+        past_due_chunk = (
+            tasks_query.limit(chunk_size).offset(offset).run(as_dict=True)
+        )
+        if not past_due_chunk:
+            break
+        _process_source_task_chunk(past_due_chunk, tasks_by_assignee, "open")
+
+    # Send emails to assignees
+    for assignee, assignee_tasks in tasks_by_assignee.items():
+        if assignee_tasks:
+            tasks = assignee_tasks.get("open", [])
+
+            if len(tasks) > 0:
+                frappe.sendmail(
+                    expose_recipients="header",
+                    recipients=[tasks[0].assigned_to_email],
+                    subject=f"DigiTrack: Reminder( {source_name} ) - Open / In Progress",
+                    message=generate_task_reminder_email(
+                        tasks=assignee_tasks.get("open", []),
+                        type="reminder",
+                        initiator_name=initiator_name,
+                        recipient_name=tasks[0].assigned_to_name),
+                )
+
+    return "Emails sent successfully"

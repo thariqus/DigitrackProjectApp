@@ -102,3 +102,11 @@ export interface TaskCounts {
   count: number;
   status: TaskStatus;
 }
+
+export interface ConfirmationProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: () => void;
+  title: string;
+  message: string;
+}

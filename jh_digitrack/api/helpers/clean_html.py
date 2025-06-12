@@ -11,4 +11,4 @@ def clean_html(html_string):
     Returns:
         str: The cleaned HTML string.
     """
-    return re.sub(r"<[^>]*>", "", html_string)
+    return re.sub(r"<[^>]*>", " ", html_string)
