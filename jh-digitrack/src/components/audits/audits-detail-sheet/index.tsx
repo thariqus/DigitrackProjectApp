@@ -1,7 +1,6 @@
 import { Sheet, SheetClose, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Calendar, Trash2, XIcon } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
 import { useDoc, useDocDetail } from "@/hooks/doc";
 import { JHBusinessMaster } from "@/types/JHDigitrack/JHBusinessMaster";
 import { JHUserMaster } from "@/types/JHDigitrack/JHUserMaster";
@@ -12,6 +11,7 @@ import StatusBadge from "../ui/StatusBadge";
 // import AuditTimeline from "../ui/AuditTimeline";
 import { JHAudits } from "@/types/JHDigitrack/JHAudits";
 import { JHDivisionMaster } from "@/types/JHDigitrack/JHDivisionMaster";
+import { ExpandableTextByLines } from "@/components/ExpandableTextByLines";
 
 function renderHyperlink(text: string | undefined) {
   if (!text) return "-";
@@ -42,10 +42,6 @@ export function AuditDetailSheet({
 }: AuditDetailSheetProps) {
   console.log(auditId);
   const { data: currentUser } = useCurrentUser();
-  const [showFullDescription, setShowFullDescription] = useState(false);
-  const descriptionRef = useRef<HTMLDivElement>(null);
-  const [isDescriptionOverflowing, setIsDescriptionOverflowing] =
-    useState(false);
 
   const { data: auditDetails, isLoading: isLoadingAuditInfo } =
     useDocDetail<JHAudits>({
@@ -76,14 +72,6 @@ export function AuditDetailSheet({
       name: audit?.created_by || "",
       disabled: !audit?.created_by,
     });
-
-  // Add this effect to check if description is overflowing
-  useEffect(() => {
-    if (audit?.audit_description) {
-      const isOverflowing = audit?.audit_description.length > 350;
-      setIsDescriptionOverflowing(isOverflowing);
-    }
-  }, [audit?.audit_description]);
 
   // const handleEdit = () => {
   //   if (auditId && onEdit) onEdit(auditId);
@@ -270,26 +258,14 @@ export function AuditDetailSheet({
                     <Skeleton className="h-4 w-[80%]" />
                   </div>
                 ) : (
-                  <div
-                    ref={descriptionRef}
-                    className={`bg-gray-50 p-1 rounded-md max-w-lg overflow-x-auto ${
-                      !showFullDescription ? "line-clamp-4" : ""
-                    }`}
-                    dangerouslySetInnerHTML={{
-                      __html:
-                        audit?.audit_description?.replace(/\n+/g, "<br />") ||
-                        "",
-                    }}
+                  <ExpandableTextByLines
+                    text={audit?.audit_description || ""}
+                    maxLines={2}
+                    isHtml={true}
+                    className="text-base"
+                    showMoreText="See full description"
+                    showLessText="Show less"
                   />
-                )}
-                {isDescriptionOverflowing && (
-                  <Button
-                    variant="ghost"
-                    className="text-gray-500 mt-2 h-auto p-0 text-sm"
-                    onClick={() => setShowFullDescription(!showFullDescription)}
-                  >
-                    {showFullDescription ? "Show less" : "See full description"}
-                  </Button>
                 )}
               </div>
             </div>

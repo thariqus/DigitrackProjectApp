@@ -3,7 +3,15 @@ import csv
 import io
 from datetime import datetime
 from werkzeug.wrappers import Response
+from .helpers.wrap_text import wrap_text
 from .helpers.clean_html import clean_html
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A2
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from reportlab.lib.enums import TA_CENTER
+import re
 
 
 @frappe.whitelist()
@@ -156,12 +164,33 @@ def create_meeting_csv_string(meeting, tasks, intenal_participants):
             "Completed Date",
             "Effort (Hrs)",
             "Assignee Comments",
+            "Comments",
         ]
     )
 
     # Write task rows
     for task in tasks:
+        comments = frappe.db.get_list(
+            "Comment",
+            filters={"reference_name": task.get("name"), "comment_type":"Comment", "reference_doctype":"JH Task Master"},
+            fields=["*"],
+            ignore_permissions=True,
+            order_by="creation desc",
+        )
 
+        commentsLogs = []
+        for comment in comments:
+            if comments:
+                creation = comment.get("creation")
+                # format datetime
+                if isinstance(creation, str):
+                    creation = datetime.strptime(creation, "%Y-%m-%d %H:%M:%S")
+                formatted_creation = creation.strftime("%d-%m-%Y,%H:%M")
+                commentsLogs.append(
+                    f"{comment.get('content')} : {comment.get('comment_by')} : {formatted_creation}"
+                )
+
+        commentsLogsList = "\n".join(commentsLogs) if commentsLogs else "-"
         writer.writerow(
             [
                 task.get("name", "-"),
@@ -192,6 +221,7 @@ def create_meeting_csv_string(meeting, tasks, intenal_participants):
                 ),
                 task.get("effort", "-"),
                 clean_html(task.get("assignee_comments", "-")),
+                commentsLogsList,
             ]
         )
 
@@ -200,6 +230,225 @@ def create_meeting_csv_string(meeting, tasks, intenal_participants):
     output.close()
 
     return csv_string
+
+
+def create_meeting_pdf_content(meeting, tasks, internal_participants):
+    """
+    Creates a PDF document for meeting tracking with tasks.
+    
+    Args:
+        meeting (dict): Dictionary with meeting information
+        tasks (list): List of task dictionaries
+        internal_participants (list): List of internal participants
+        
+    Returns:
+        bytes: PDF content as bytes
+    """
+    
+    # Create a byte buffer for PDF content
+    buffer = io.BytesIO()
+    
+    # Create the PDF document
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A2,
+        rightMargin=30,
+        leftMargin=30,
+        topMargin=30,
+        bottomMargin=30
+    )
+    
+    # Get styles
+    styles = getSampleStyleSheet()
+    
+    # Custom styles
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=18,
+        spaceAfter=20,
+        alignment=TA_CENTER,
+        textColor=colors.black
+    )
+    
+    heading_style = ParagraphStyle(
+        'CustomHeading',
+        parent=styles['Heading2'],
+        fontSize=14,
+        spaceAfter=12,
+        spaceBefore=12,
+        textColor=colors.black
+    )
+    
+    normal_style = ParagraphStyle(
+        'CustomNormal',
+        parent=styles['Normal'],
+        fontSize=10,
+        spaceAfter=6
+    )
+    
+    # Story to hold all content
+    story = []
+    
+    # Title
+    story.append(Paragraph("Meeting Report", title_style))
+    story.append(Spacer(1, 20))
+    
+    # Meeting Information Section (as list)
+    story.append(Paragraph("Meeting Information", heading_style))
+    
+    # Prepare participant names
+    participant_names = [participant.get("user_name") for participant in internal_participants if internal_participants]
+    internal_participants_text = ", ".join(participant_names) if participant_names else "-"
+    
+    # Meeting details as paragraphs
+    meeting_info = [
+        f"<b>Title:</b> {meeting.get('title', '-')}",
+        f"<b>Organizer:</b> {meeting.get('organizer_name', '-')}",
+        f"<b>Type:</b> {meeting.get('type', '-')}",
+        f"<b>Created Date:</b> {meeting.get('creation', '-').strftime('%d/%m/%Y') if meeting.get('creation') else '-'}",
+        f"<b>Meeting Date:</b> {str(meeting.get('meeting_date', '-'))}",
+        f"<b>Duration (mins):</b> {str(meeting.get('duration', '-'))}",
+        f"<b>Location:</b> {meeting.get('location', '-')}",
+        f"<b>Status:</b> {meeting.get('status', '-')}",
+        f"<b>Internal Participants:</b> {internal_participants_text}",
+        f"<b>External Participants:</b> {meeting.get('participants_external', '-')}",
+        f"<b>Completion Date:</b> {meeting.get('completion_date').strftime('%d/%m/%Y') if meeting.get('completion_date') else '-'}",
+        f"<b>Agenda:</b> {clean_html(meeting.get('agenda', '-'))}",
+        f"<b>Remarks:</b> {clean_html(meeting.get('remarks', '-'))}"
+    ]
+    
+    for info in meeting_info:
+        story.append(Paragraph(info, normal_style))
+    
+    story.append(Spacer(1, 20))
+    
+    # Task Details Section (as single table)
+    if tasks:
+        story.append(Paragraph("Tasks", heading_style))
+        
+        # Table headers
+        task_headers = [
+            "ID", "Name", "Created By/\nDate", "Assigned To", "Due/\nRevised Date", 
+            "Completion\nDate", "Status", "Effort(h)", "Description", 
+            "Assignee Comments", "Recent Comments"
+        ]
+        
+        # Prepare task data
+        task_data = [task_headers]
+        
+        for task in tasks:
+            # Get task comments
+            comments = frappe.db.get_list(
+                "Comment",
+                filters={
+                    "reference_name": task.get("name"), 
+                    "comment_type": "Comment", 
+                    "reference_doctype": "JH Task Master"
+                },
+                fields=["*"],
+                ignore_permissions=True,
+                order_by="creation desc",
+            )
+            
+            # Format recent comments
+            recent_comments = []
+            if comments:
+                for comment in comments:
+                    creation = comment.get("creation")
+                    if isinstance(creation, str):
+                        creation = datetime.strptime(creation, "%Y-%m-%d %H:%M:%S")
+                    formatted_creation = creation.strftime("%d-%m-%Y")
+                    recent_comments.append(f"• {comment.get('comment_by', '')} - ({formatted_creation}) \n- {wrap_text(comment.get('content', ''), 50)}")
+            
+            comments_text = "\n".join(recent_comments) if recent_comments else "-"
+            
+            # Format Created By & Date column
+            created_by_date = wrap_text(task.get("created_by", "-"), 15)
+            if task.get("creation"):
+                created_by_date += f"\n{task.get('creation').strftime('%d/%m/%Y')}"
+            
+            # Format Due Date & Revised column
+            due_date_str = task.get("due_date").strftime("%d/%m/%Y") if task.get("due_date") else "-"
+            revised_due_date_str = task.get("revised_due_date").strftime("%d/%m/%Y") if task.get("revised_due_date") else None
+            
+            if revised_due_date_str and revised_due_date_str != due_date_str:
+                # Different dates - show both
+                due_date_combined = f"{due_date_str}\n{revised_due_date_str}"
+            else:
+                # Same date or no revised date - show only one
+                due_date_combined = due_date_str
+            
+            # Add task row
+            task_row = [
+                wrap_text(task.get("name", "-"), 15),
+                wrap_text(task.get("task_name", "-"), 25),
+                created_by_date,
+                wrap_text(task.get("assigned_to", "-"), 15),
+                due_date_combined,
+                task.get("completion_date").strftime("%d/%m/%Y") if task.get("completion_date") else "-",
+                task.get("status", "-"),
+                str(task.get("effort", "-")),
+                clean_html(wrap_text(task.get("description", "-"), 50)),
+                clean_html(wrap_text(task.get("assignee_comments", "-"), 35)),
+                comments_text
+            ]
+            task_data.append(task_row)
+        
+        # Create tasks table
+        tasks_table = Table(task_data, colWidths=[
+            0.8*inch,  # Task ID
+            1.5*inch,  # Task Name
+            1.0*inch,  # Created By & Date
+            1.0*inch,  # Assigned To
+            1.0*inch,  # Due Date & Revised
+            1.0*inch,  # Completion Date
+            0.7*inch,  # Status
+            0.6*inch,  # Effort
+            3.0*inch,  # Description
+            2.0*inch,  # Assignee Comments
+            3.0*inch   # Recent Comments
+        ])
+        
+        tasks_table.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),  # Header row bold
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),      # Data rows normal
+            ('FONTSIZE', (0, 0), (-1, 0), 9),                 # Header font size
+            ('FONTSIZE', (0, 1), (-1, -1), 8),                # Data font size
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey), # Header background
+        ]))
+        
+        story.append(tasks_table)
+        story.append(Spacer(1, 20))
+
+        # Create footer with current date
+    def add_footer(canvas, doc):
+        """Add footer with created date to each page"""
+        from datetime import datetime
+        canvas.saveState()
+        
+        # Footer text
+        footer_text = f"Report Generated on: {datetime.now().strftime('%d/%m/%Y %H:%M')}"
+        
+        # Position footer at bottom of page
+        canvas.setFont('Helvetica', 9)
+        canvas.drawString(30, 30, footer_text)  # 30 points from left and bottom margins
+        
+        canvas.restoreState()
+    
+    # Build PDF
+    doc.build(story, onFirstPage=add_footer, onLaterPages=add_footer)
+    
+    # Get PDF content
+    pdf_content = buffer.getvalue()
+    buffer.close()
+    
+    return pdf_content
 
 
 @frappe.whitelist()
@@ -259,3 +508,75 @@ def download_csv(meeting_id: str):
     response.headers.set("Content-Type", "text/csv")
     response.headers.set("Content-Disposition", f'attachment; filename="{filename}"')
     return response
+
+
+@frappe.whitelist()
+def download_pdf(meeting_id: str):
+    """
+    Downloads meeting data as a PDF file.
+
+    Args:
+        meeting_id (str): The ID of the meeting to download
+
+    Returns:
+        Response: PDF file response
+    """
+    try:
+        # Get meeting data
+        meeting = frappe.db.get_value(
+            "JH Grouped Task Master",
+            meeting_id,
+            [
+                "*",
+                "organizer.full_name as organizer_name",
+                "organizer.name as organizer_id",
+            ],
+            as_dict=True,
+        )
+
+        if not meeting:
+            frappe.throw(f"Meeting with ID {meeting_id} not found")
+
+        # Get internal participants
+        internal_participants = frappe.db.get_list(  
+            "JH User Child Table",
+            filters={"parent": meeting_id},
+            fields=[
+                "user.full_name as user_name"
+            ],
+            ignore_permissions=True
+        )
+
+        # Get tasks data
+        tasks = frappe.db.get_list(
+            "JH Task Master",
+            filters={"source": meeting_id},
+            fields=[
+                "*",
+                "created_by.full_name as created_by",
+                "created_by.name as created_by_id",
+                "assigned_to.full_name as assigned_to",
+                "assigned_to.name as assigned_to_id",
+            ],
+        )
+
+        # Generate PDF content
+        pdf_content = create_meeting_pdf_content(meeting, tasks, internal_participants)
+
+        # Create filename with timestamp
+        timestamp = datetime.now().strftime("%d%b%Y-%I%M_%p")
+        meeting_name = meeting.get("title", f"meeting_{meeting_id}")
+        # Clean filename to remove special characters
+        meeting_name = re.sub(r'[^\w\s-]', '', meeting_name).strip()
+        meeting_name = re.sub(r'[-\s]+', '-', meeting_name)
+        filename = f"{meeting_name}-{timestamp}.pdf"
+
+        # Create response
+        response = Response(pdf_content)
+        response.headers.set("Content-Type", "application/pdf")
+        response.headers.set("Content-Disposition", f'attachment; filename="{filename}"')
+        return response
+
+    except Exception as e:
+        frappe.log_error(f"Error generating PDF: {str(e)}")
+        frappe.throw(f"Error generating PDF: {str(e)}")

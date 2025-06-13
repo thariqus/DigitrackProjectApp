@@ -733,7 +733,6 @@ export function AuditSheet({
                   control={control}
                   render={({ field }) => (
                     <Switch
-                      disabled={isEdit}
                       checked={field.value === true}
                       onCheckedChange={(checked) => {
                         field.onChange(checked ? true : false);

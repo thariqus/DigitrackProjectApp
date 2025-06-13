@@ -37,7 +37,7 @@ function Unauthorized() {
       {currentUser === "Administrator" && (
         <button
           onClick={() => {
-            window.location.href = "/app";
+            window.location.href = "/app/jh-digitrack-settings";
           }}
           className="flex items-center px-4 py-2 mt-4 text-sm font-medium text-gray-700 bg-transparent border-none rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-200"
         >

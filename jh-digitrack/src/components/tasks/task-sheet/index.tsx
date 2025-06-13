@@ -94,6 +94,8 @@ export function TaskSheet({
         .min(1, "Task name is required")
         .max(140, "Task name cannot be longer than 140 characters"),
       private: z.boolean().default(false),
+      no_automated_email_assignor: z.boolean().default(false),
+      no_automated_email_assignee: z.boolean().default(false),
       business_id: z.string().optional(),
       division_id: z.string().optional(),
       assigned_to: z.string().min(1, "Assignee is required"),
@@ -203,6 +205,8 @@ export function TaskSheet({
       start_after: "",
       task_name: "",
       private: false,
+      no_automated_email_assignee: false,
+      no_automated_email_assignor: false,
       business_id: "",
       division_id: "",
       assigned_to: "",
@@ -274,6 +278,8 @@ export function TaskSheet({
         start_after: task.start_after || "",
         task_name: task.task_name || "",
         private: task.private === 1,
+        no_automated_email_assignor: task.no_automated_email_assignor === 1,
+        no_automated_email_assignee: task.no_automated_email_assignee === 1,
         business_id: task.business_id || "",
         division_id: task.division_id || "",
         assigned_to: task.assigned_to || "",
@@ -1385,6 +1391,7 @@ export function TaskSheet({
                   )}
                 </div>
               )}
+
               <div className="space-y-2 pb-28">
                 <FileAttachmentHandler
                   existingFiles={fileState.existingFiles}
@@ -1395,6 +1402,43 @@ export function TaskSheet({
                   currentUser={currentUser}
                   taskOwner={task?.owner}
                 />
+
+                <div className="flex items-center space-x-2 mt-6">
+                  <Controller
+                    name="no_automated_email_assignee"
+                    control={control}
+                    render={({ field }) => (
+                      <Switch
+                        // disabled={isPrivate}
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        id="no-automated-email-assignee"
+                      />
+                    )}
+                  />
+                  <Label htmlFor="no-automated-email-assignee">
+                    No Automated Email For Assignee
+                  </Label>
+                </div>
+
+                <div className="flex items-center space-x-2 mt-6">
+                  <Controller
+                    name="no_automated_email_assignor"
+                    control={control}
+                    render={({ field }) => (
+                      <Switch
+                        // disabled={isPrivate}
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        id="no-automated-email-assignor"
+                      />
+                    )}
+                  />
+                  <Label htmlFor="no-automated-email-assignor">
+                    No Automated Email For Assignor
+                  </Label>
+                </div>
+
                 <div className="mt-6">
                   {isEdit && <TaskTimeline taskId={taskId!} />}
                 </div>

@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { Table, TableBody, TableFooter } from "@/components/ui/table";
 import { useDeleteDoc, useDoc, useDocs } from "@/hooks/doc";
 import { toast } from "sonner";
@@ -19,13 +19,23 @@ import { useTaskFilters } from "./hooks/useTaskFilters";
 import { useNavigate, useParams } from "react-router";
 import StatusBadge from "../ui/StatusBadge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Calendar, Download, Eye } from "lucide-react";
+import { ArrowLeft, Calendar, Download, Expand, Eye, Mail } from "lucide-react";
 import { JHGroupedTaskMaster } from "@/types/JHDigitrack/JHGroupedTaskMaster";
 import { MeetingDetailSheet } from "@/components/meetings/meetings-detail-sheet";
 import { queryClient } from "@/utils/query-client";
 import { JHUserMaster } from "@/types/JHDigitrack/JHUserMaster";
 import { format } from "date-fns";
-import { useGetTaskCountByStatusBySource } from "@/hooks/task";
+import {
+  useGetTaskCountByStatusBySource,
+  useRemindAllTaskBySource,
+} from "@/hooks/task";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { ExpandableTextByLines } from "@/components/ExpandableTextByLines";
+import ConfirmationDialog from "@/components/ConfirmationDialog";
 
 export const MeetingTasks = () => {
   const { meetingId } = useParams();
@@ -41,6 +51,7 @@ export const MeetingTasks = () => {
   const [isAuditDetailOpen, setIsAuditDetailOpen] = useState(false);
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isEmailConfirmationOpen, setIsEmailConfirmationOpen] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState<string | undefined>(
     undefined
   );
@@ -48,9 +59,6 @@ export const MeetingTasks = () => {
     undefined
   );
   const [activeFilters, setActiveFilters] = useState<TaskFilter[]>([]);
-  const [showFullAgenda, setShowFullAgenda] = useState(false);
-  const [isAgendaOverflowing, setIsAgendaOverflowing] = useState(false);
-  const agendaRef = useRef<HTMLDivElement>(null);
   const { data: currentJHUser } = useCurrentJhUser();
   const { data: currentUser } = useCurrentUser();
 
@@ -76,14 +84,6 @@ export const MeetingTasks = () => {
     name: meeting?.organizer || "",
     disabled: !meeting?.organizer,
   });
-
-  // Add this effect to check if description is overflowing
-  useEffect(() => {
-    if (meeting?.agenda) {
-      const isOverflowing = meeting?.agenda.length > 350;
-      setIsAgendaOverflowing(isOverflowing);
-    }
-  }, [meeting?.agenda]);
 
   const {
     data: tasks,
@@ -140,6 +140,8 @@ export const MeetingTasks = () => {
     ],
   });
 
+  const isOrganizer = organizer?.name === currentJHUser?.name;
+
   const { data: taskCounts } = useGetTaskCountByStatusBySource(
     meetingId,
     currentJHUser?.name,
@@ -174,6 +176,7 @@ export const MeetingTasks = () => {
   // Delete task mutation
 
   const deleteDoc = useDeleteDoc();
+  const { mutateAsync: remindAll } = useRemindAllTaskBySource();
 
   // Event handlers
   const handleCreateTask = useCallback(() => {
@@ -236,6 +239,18 @@ export const MeetingTasks = () => {
     }
   }, [taskToDelete, deleteDoc, refetch]);
 
+  const confirmEmailReminder = useCallback(async () => {
+    try {
+      await remindAll(meetingId!);
+      toast.success("Reminder emails sent successfully");
+    } catch (error) {
+      toast.error("Failed to send reminder emails");
+      console.error(error);
+    } finally {
+      setIsEmailConfirmationOpen(false);
+    }
+  }, []);
+
   // Handle filters change from FilterButtonsWithComboboxes
   const handleFiltersChange = useCallback(
     (filters: TaskFilter[]) => {
@@ -280,17 +295,56 @@ export const MeetingTasks = () => {
             >
               <Eye className="h-4 w-4" />
             </Button>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Download className="h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-24 p-1">
+                <div className="flex flex-col space-y-1">
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      window.open(
+                        `/api/method/jh_digitrack.api.meetings.download_csv?meeting_id=${meetingId}`,
+                        "_blank"
+                      );
+                    }}
+                  >
+                    CSV
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      window.open(
+                        `/api/method/jh_digitrack.api.meetings.download_pdf?meeting_id=${meetingId}`,
+                        "_blank"
+                      );
+                    }}
+                  >
+                    PDF
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
+            {isOrganizer ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setIsEmailConfirmationOpen(true);
+                }}
+              >
+                <Mail className="h-4 w-4" />
+              </Button>
+            ) : null}
             <Button
               variant="outline"
               size="sm"
-              onClick={() => {
-                window.open(
-                  `/api/method/jh_digitrack.api.meetings.download_csv?meeting_id=${meetingId}`,
-                  "_blank"
-                );
-              }}
+              onClick={() => navigate("expanded")}
             >
-              <Download className="h-4 w-4" />
+              <Expand className="h-4 w-4" />
             </Button>
           </div>
           <div className="flex items-center gap-2">
@@ -339,22 +393,14 @@ export const MeetingTasks = () => {
           </div>
         </div>
         <div className="text-base">
-          <div
-            ref={agendaRef}
-            className={`${!showFullAgenda ? "line-clamp-2" : ""}`}
-            dangerouslySetInnerHTML={{
-              __html: meeting?.agenda?.replace(/\n+/g, "<br />") || "",
-            }}
+          <ExpandableTextByLines
+            text={meeting?.agenda || ""}
+            maxLines={2}
+            isHtml={true}
+            className="text-base"
+            showMoreText="See full agenda"
+            showLessText="Show less"
           />
-          {isAgendaOverflowing && (
-            <Button
-              variant="ghost"
-              className="text-gray-500 mt-2 h-auto p-0 text-sm"
-              onClick={() => setShowFullAgenda(!showFullAgenda)}
-            >
-              {showFullAgenda ? "Show less" : "See full agenda"}
-            </Button>
-          )}
         </div>
       </div>
       <div className="space-y-4">
@@ -437,6 +483,15 @@ export const MeetingTasks = () => {
           onOpenChange={setIsDeleteDialogOpen}
           taskName={taskNameToDelete || ""}
           onConfirm={confirmDeleteTask}
+        />
+
+        {/* Email confirmation dialog */}
+        <ConfirmationDialog
+          open={isEmailConfirmationOpen}
+          onOpenChange={setIsEmailConfirmationOpen}
+          onConfirm={confirmEmailReminder}
+          title="Send Reminder Emails"
+          message="This will send reminder emails to all assignees."
         />
       </div>
     </div>

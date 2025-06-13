@@ -1,7 +1,6 @@
 import { Sheet, SheetClose, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Calendar, Trash2, XIcon } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
 import { useDoc, useDocDetail, useDocs } from "@/hooks/doc";
 import { JHUserMaster } from "@/types/JHDigitrack/JHUserMaster";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -9,6 +8,7 @@ import { useCurrentUser } from "@/hooks/auth";
 import { format } from "date-fns";
 import StatusBadge from "../ui/StatusBadge";
 import { JHGroupedTaskMaster } from "@/types/JHDigitrack/JHGroupedTaskMaster";
+import { ExpandableTextByLines } from "@/components/ExpandableTextByLines";
 
 interface MeetingDetailSheetProps {
   open: boolean;
@@ -30,13 +30,6 @@ export function MeetingDetailSheet({
 }: MeetingDetailSheetProps) {
   console.log(meetingId);
   const { data: currentUser } = useCurrentUser();
-  const [showFullAgenda, setShowFullAgenda] = useState(false);
-  const agendaRef = useRef<HTMLDivElement>(null);
-  const [isAgendaOverflowing, setIsAgendaOverflowing] = useState(false);
-
-  const [showFullRemarks, setShowFullRemarks] = useState(false);
-  const remarksRef = useRef<HTMLDivElement>(null);
-  const [isRemarksOverflowing, setIsRemarksOverflowing] = useState(false);
 
   const { data: meetingDetails, isLoading: isLoadingMeetingInfo } =
     useDocDetail<JHGroupedTaskMaster>({
@@ -71,21 +64,6 @@ export function MeetingDetailSheet({
     ],
     limit: 100,
   });
-
-  // Add this effect to check if description is overflowing
-  useEffect(() => {
-    if (meeting?.agenda) {
-      const isOverflowing = meeting?.agenda.length > 350;
-      setIsAgendaOverflowing(isOverflowing);
-    }
-  }, [meeting?.agenda]);
-
-  useEffect(() => {
-    if (meeting?.remarks) {
-      const isOverflowing = meeting?.remarks.length > 350;
-      setIsRemarksOverflowing(isOverflowing);
-    }
-  }, [meeting?.remarks]);
 
   // const handleEdit = () => {
   //   if (meetingId && onEdit) onEdit(meetingId);
@@ -258,24 +236,14 @@ export function MeetingDetailSheet({
                     <Skeleton className="h-4 w-[80%]" />
                   </div>
                 ) : (
-                  <div
-                    ref={agendaRef}
-                    className={`bg-gray-50 p-1 rounded-md max-w-lg overflow-x-auto ${
-                      !showFullAgenda ? "line-clamp-4" : ""
-                    }`}
-                    dangerouslySetInnerHTML={{
-                      __html: meeting?.agenda?.replace(/\n+/g, "<br />") || "",
-                    }}
+                  <ExpandableTextByLines
+                    text={meeting?.agenda || ""}
+                    maxLines={2}
+                    isHtml={true}
+                    className="text-base"
+                    showMoreText="See full agenda"
+                    showLessText="Show less"
                   />
-                )}
-                {isAgendaOverflowing && (
-                  <Button
-                    variant="ghost"
-                    className="text-gray-500 mt-2 h-auto p-0 text-sm"
-                    onClick={() => setShowFullAgenda(!showFullAgenda)}
-                  >
-                    {showFullAgenda ? "Show less" : "See full agenda"}
-                  </Button>
                 )}
               </div>
               <div className="text-sm text-gray-500">Remarks/Decisions</div>
@@ -287,24 +255,14 @@ export function MeetingDetailSheet({
                     <Skeleton className="h-4 w-[80%]" />
                   </div>
                 ) : (
-                  <div
-                    ref={remarksRef}
-                    className={`bg-gray-50 p-1 rounded-md max-w-lg overflow-x-auto ${
-                      !showFullRemarks ? "line-clamp-4" : ""
-                    }`}
-                    dangerouslySetInnerHTML={{
-                      __html: meeting?.remarks?.replace(/\n+/g, "<br />") || "",
-                    }}
+                  <ExpandableTextByLines
+                    text={meeting?.remarks || ""}
+                    maxLines={2}
+                    isHtml={true}
+                    className="text-base"
+                    showMoreText="See full remarks"
+                    showLessText="Show less"
                   />
-                )}
-                {isRemarksOverflowing && (
-                  <Button
-                    variant="ghost"
-                    className="text-gray-500 mt-2 h-auto p-0 text-sm"
-                    onClick={() => setShowFullRemarks(!showFullRemarks)}
-                  >
-                    {showFullRemarks ? "Show less" : "See full remarks"}
-                  </Button>
                 )}
               </div>
             </div>

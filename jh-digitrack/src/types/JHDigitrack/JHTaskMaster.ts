@@ -49,6 +49,14 @@ export interface JHTaskMaster{
 	reminded_at?: string
 	/**	Escalated At : Datetime	*/
 	escalated_at?: string
+	/**	Email Me At : Datetime	*/
+	email_me_at?: string
+	/**	No Automated Email Assignee : Check	*/
+	no_automated_email_assignee?: 0 | 1
+	/**	No Automated Email Assignor : Check	*/
+	no_automated_email_assignor?: 0 | 1
+	/**	Scheduled Email Sent At : Datetime	*/
+	scheduled_email_sent_at?: string
 	/**	Change Log : Table - JH Change Log	*/
 	changelog?: JHChangeLog[]
 	/**	Assignee Comments : Long Text	*/
