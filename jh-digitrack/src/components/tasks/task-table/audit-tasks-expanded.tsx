@@ -196,6 +196,22 @@ export const AuditTasksExpanded = () => {
     ],
   });
 
+  const STATUS_ORDER: Record<string, number> = {
+    Open: 1,
+    "In Progress": 2,
+    Canceled: 3,
+    Completed: 4,
+    Closed: 5,
+  };
+
+  const sortedTasks = tasks
+    ? [...tasks].sort((a, b) => {
+        const orderA = STATUS_ORDER[a.status] || 6;
+        const orderB = STATUS_ORDER[b.status] || 6;
+        return orderA - orderB;
+      })
+    : [];
+
   // Delete task mutation
 
   const deleteDoc = useDeleteDoc();
@@ -459,12 +475,12 @@ export const AuditTasksExpanded = () => {
           showCreatedByFilter={false}
         />
 
-        {tasks.length > 0 ? (
+        {sortedTasks.length > 0 ? (
           <div className="rounded-md border">
             <Table className="w-full table-fixed">
               <TaskTableHeaderExpanded />
               <TableBody>
-                {tasks.map((task, index) => (
+                {sortedTasks.map((task, index) => (
                   <TaskRowExpanded
                     key={task.name}
                     task={task}

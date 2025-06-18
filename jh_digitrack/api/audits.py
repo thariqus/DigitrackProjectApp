@@ -346,8 +346,8 @@ def create_audit_pdf_content(audit, tasks):
         
         # Table headers
         task_headers = [
-            "ID", "Name", "Created By/\nDate", "Assigned To", "Due/\nRevised Date", 
-            "Completion\nDate", "Status", "Effort(h)", "Description", 
+            "ID", "Name/\nDescription", "Created By/\nDate", "Assigned To", "Due/\nRevised Date", 
+            "Completion\nDate", "Status/\nEffort(h)", 
             "Assignee Remarks", "Comments"
         ]
         
@@ -367,18 +367,56 @@ def create_audit_pdf_content(audit, tasks):
                 ignore_permissions=True,
                 order_by="creation desc",
             )
+            change_log = frappe.db.get_list(
+                "JH Change Log",
+                filters={"parent": task.get("name")},
+                fields=["*", "creator.full_name as creator", "creator.name as creator_id"],
+                ignore_permissions=True,
+                order_by="creation desc",
+            )
+
+            combined_entries = []
+        
+            # Add comments
+            for comment in comments:
+                creation = comment.get("creation")
+                if isinstance(creation, str):
+                    creation = datetime.strptime(creation, "%Y-%m-%d %H:%M:%S")
+                formatted_creation = creation.strftime("%d-%m-%Y")
+                combined_entries.append({
+                    'text': f"COMMENT: {wrap_text(comment.get('content', ''), 60)}",
+                    'user': comment.get('comment_by', ''),
+                    'date': formatted_creation,
+                    'creation_datetime': creation
+                })
+        
+            # Add change log entries
+            for log in change_log:
+                creation = log.get("creation") or log.get("commented_at")
+                if isinstance(creation, str):
+                    creation = datetime.strptime(creation, "%Y-%m-%d %H:%M:%S")
+                formatted_creation = creation.strftime("%d-%m-%Y")
             
-            # Format recent comments
-            recent_comments = []
-            if comments:
-                for comment in comments:
-                    creation = comment.get("creation")
-                    if isinstance(creation, str):
-                        creation = datetime.strptime(creation, "%Y-%m-%d %H:%M:%S")
-                    formatted_creation = creation.strftime("%d-%m-%Y")
-                    recent_comments.append(f"• {comment.get('comment_by', '')} - ({formatted_creation}) \n- {wrap_text(comment.get('content', ''), 50)}")
+                # Format change log content
+                log_text = f"LOG ({log.get('type', '')}): {wrap_text(log.get('comment', ''), 50) if log.get('comment') else ''}"
+                if log.get('remark'):
+                    log_text += f"\nRemark: {wrap_text(log.get('remark'), 40)}"
             
-            comments_text = "\n".join(recent_comments) if recent_comments else "-"
+                combined_entries.append({
+                    'text': log_text,
+                    'user': log.get('creator', ''),
+                    'date': formatted_creation,
+                    'creation_datetime': creation
+                })
+        
+            # Sort combined entries by creation date (most recent first)
+            combined_entries.sort(key=lambda x: x['creation_datetime'], reverse=True)
+
+            recent_entries = []
+            for entry in combined_entries:
+                recent_entries.append(f"{entry['date']} : {entry['user']} \n{entry['text']}\n")
+        
+            comments_text = "\n".join(recent_entries) if recent_entries else "-"
             
             # Format Created By & Date column
             created_by_date = wrap_text(task.get("created_by", "-"), 15)
@@ -395,36 +433,34 @@ def create_audit_pdf_content(audit, tasks):
             else:
                 # Same date or no revised date - show only one
                 due_date_combined = due_date_str
-            
+
+            name_and_description = wrap_text(task.get("task_name", "-"), 25) + "\n" + "Description: " + clean_html(wrap_text(task.get("description", "-"), 50))
+            status_and_effort = task.get("status", "-") + "\n" + str(task.get("effort", "-"))
             # Add task row
             task_row = [
                 wrap_text(task.get("name", "-"), 15),
-                wrap_text(task.get("task_name", "-"), 25),
+                name_and_description,
                 created_by_date,
                 wrap_text(task.get("assigned_to", "-"), 15),
                 due_date_combined,
                 task.get("completion_date").strftime("%d/%m/%Y") if task.get("completion_date") else "-",
-                task.get("status", "-"),
-                str(task.get("effort", "-")),
-                clean_html(wrap_text(task.get("description", "-"), 50)),
-                clean_html(wrap_text(task.get("assignee_comments", "-"), 35)),
-                comments_text
+                status_and_effort,
+                clean_html(wrap_text(task.get("assignee_comments", "-"), 50)),
+                comments_text,
             ]
             task_data.append(task_row)
         
         # Create tasks table
         tasks_table = Table(task_data, colWidths=[
             0.8*inch,  # Task ID
-            1.5*inch,  # Task Name
+            3.0*inch,  # Task Name
             1.0*inch,  # Created By & Date
             1.0*inch,  # Assigned To
             1.0*inch,  # Due Date & Revised
             1.0*inch,  # Completion Date
-            0.7*inch,  # Status
-            0.6*inch,  # Effort
-            3.0*inch,  # Description
-            2.0*inch,  # Assignee Remarks
-            3.0*inch   # Comments
+            0.8*inch,  # Status
+            3.0*inch,  # Assignee Remarks
+            4.0*inch   # Comments
         ])
         
         tasks_table.setStyle(TableStyle([
