@@ -190,7 +190,7 @@ export function TaskDetailSheet({
 
   const assignedToMe = task?.assigned_to === currentJhUser?.name;
 
-  const isClosedTask = task?.status !== "Closed" && task?.status !== "Canceled";
+  const isClosedTask = task?.status !== "Canceled";
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>

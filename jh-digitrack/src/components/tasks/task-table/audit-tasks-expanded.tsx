@@ -36,6 +36,11 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import ConfirmationDialog from "@/components/ConfirmationDialog";
 
 export const AuditTasksExpanded = () => {
@@ -261,9 +266,6 @@ export const AuditTasksExpanded = () => {
     try {
       await remindAll(auditId!);
       toast.success("Reminder emails sent successfully");
-    } catch (error) {
-      toast.error("Failed to send reminder emails");
-      console.error(error);
     } finally {
       setIsEmailConfirmationOpen(false);
     }
@@ -306,19 +308,29 @@ export const AuditTasksExpanded = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <StatusBadge status={audit?.status} />
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsAuditDetailOpen(true)}
-            >
-              <Eye className="h-4 w-4" />
-            </Button>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <Download className="h-4 w-4" />
+            <Tooltip>
+              <TooltipTrigger>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsAuditDetailOpen(true)}
+                >
+                  <Eye className="h-4 w-4" />
                 </Button>
-              </PopoverTrigger>
+              </TooltipTrigger>
+              <TooltipContent>View Details</TooltipContent>
+            </Tooltip>
+            <Popover>
+              <Tooltip>
+                <TooltipTrigger>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <Download className="h-4 w-4" />
+                    </Button>
+                  </PopoverTrigger>
+                </TooltipTrigger>
+                <TooltipContent>Download</TooltipContent>
+              </Tooltip>
               <PopoverContent className="w-24 p-1">
                 <div className="flex flex-col space-y-1">
                   <Button
@@ -347,15 +359,20 @@ export const AuditTasksExpanded = () => {
               </PopoverContent>
             </Popover>
             {isCreator ? (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setIsEmailConfirmationOpen(true);
-                }}
-              >
-                <Mail className="h-4 w-4" />
-              </Button>
+              <Tooltip>
+                <TooltipTrigger>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setIsEmailConfirmationOpen(true);
+                    }}
+                  >
+                    <Mail className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Send Reminder</TooltipContent>
+              </Tooltip>
             ) : null}
           </div>
           <div className="flex items-center gap-2">

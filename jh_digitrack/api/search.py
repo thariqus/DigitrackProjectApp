@@ -114,26 +114,26 @@ def global_search(
     # 3. TASK SEARCH - Only search if task-specific filters are provided
     all_tasks = []
     
-    def get_team_members_recursive(manager_id, current_level=0, max_level=5):
-        if current_level >= max_level:
-            return []
+    # def get_team_members_recursive(manager_id, current_level=0, max_level=5):
+    #     if current_level >= max_level:
+    #         return []
 
-        direct_reports = frappe.db.get_list(
-            "JH User Master", filters={"reporting_manager": manager_id}, fields=["name"]
-        )
+    #     direct_reports = frappe.db.get_list(
+    #         "JH User Master", filters={"reporting_manager": manager_id}, fields=["name"]
+    #     )
 
-        all_team_members = direct_reports.copy()
+    #     all_team_members = direct_reports.copy()
 
-        for member in direct_reports:
-            subordinates = get_team_members_recursive(
-                member.name, current_level + 1, max_level
-            )
-            all_team_members.extend(subordinates)
+    #     for member in direct_reports:
+    #         subordinates = get_team_members_recursive(
+    #             member.name, current_level + 1, max_level
+    #         )
+    #         all_team_members.extend(subordinates)
 
-        return all_team_members
+    #     return all_team_members
 
-    team_members = get_team_members_recursive(reporting_to)
-    team_members.append({"name": reporting_to})
+    # team_members = get_team_members_recursive(reporting_to)
+    # team_members.append({"name": reporting_to})
 
     if (task_name.strip() or assigned_to.strip() or assigned_by.strip() or 
         due_date_from.strip() or due_date_to.strip() or status.strip() or

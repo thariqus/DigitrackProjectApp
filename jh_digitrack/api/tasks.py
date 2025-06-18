@@ -642,12 +642,14 @@ def remind_all_by_source(source_id: str):
         current_jh_user = None
 
     # Authorization check - verify user has permission to send reminders for this source
+    source = None
     is_authorized = False
     source_name = None
     
     # Try to find the source in JH Grouped Task Master (meeting)
     try:
         meeting = frappe.get_doc("JH Grouped Task Master", source_id)
+        source = meeting
         if current_jh_user and meeting.organizer == current_jh_user.name:
             is_authorized = True
             source_name = meeting.title
@@ -658,6 +660,7 @@ def remind_all_by_source(source_id: str):
     if not is_authorized:
         try:
             audit = frappe.get_doc("JH Audit Master", source_id)
+            source = audit
             if current_jh_user and audit.created_by == current_jh_user.name:
                 is_authorized = True
                 source_name = audit.audit_name
@@ -667,7 +670,11 @@ def remind_all_by_source(source_id: str):
     # If user is not authorized, deny access
     if not is_authorized:
         frappe.throw("You are not authorized to send reminders for this source. Only the meeting organizer or audit creator can send reminders.")
-
+    
+    if not should_send_email(source.reminded_at):
+        return Response(
+            response=json.dumps({"message": "Email already sent today."}), status=400
+        )
     # Define DocType for JH Task Master
     tasks = frappe.qb.DocType("JH Task Master")
     assigned_to = frappe.qb.DocType("JH User Master").as_("assigned_to")
@@ -720,6 +727,7 @@ def remind_all_by_source(source_id: str):
                 frappe.sendmail(
                     expose_recipients="header",
                     recipients=[tasks[0].assigned_to_email],
+                    cc=[tasks[0].creator_email],
                     subject=f"DigiTrack: Reminder( {source_name} ) - Open / In Progress",
                     message=generate_task_reminder_email(
                         tasks=assignee_tasks.get("open", []),
@@ -727,5 +735,27 @@ def remind_all_by_source(source_id: str):
                         initiator_name=initiator_name,
                         recipient_name=tasks[0].assigned_to_name),
                 )
+
+            for task in tasks:
+                try:
+                    task_doc = frappe.get_doc("JH Task Master", task.name)
+                    task_doc.reminded_at = frappe.utils.now()
+                    task_doc.append(
+                        "changelog",
+                        {
+                            "creator": current_jh_user.name,
+                            "type": "Reminder",
+                            "commented_at": frappe.utils.now(),
+                        },
+                    )
+                    task_doc.save(ignore_permissions=True)
+                except Exception as e:
+                    frappe.log_error(f"Error updating reminded_at for task {task.name}: {str(e)}")
+
+    try:
+        source.reminded_at = frappe.utils.now()
+        source.save(ignore_permissions=True)
+    except Exception as e:
+        frappe.log_error(f"Error updating reminded_at for source {source.name}: {str(e)}")
 
     return "Emails sent successfully"

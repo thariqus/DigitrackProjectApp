@@ -163,7 +163,7 @@ def create_meeting_csv_string(meeting, tasks, intenal_participants):
             "Status",
             "Completed Date",
             "Effort (Hrs)",
-            "Assignee Comments",
+            "Assignee Remarks",
             "Comments",
         ]
     )
@@ -331,7 +331,7 @@ def create_meeting_pdf_content(meeting, tasks, internal_participants):
         task_headers = [
             "ID", "Name", "Created By/\nDate", "Assigned To", "Due/\nRevised Date", 
             "Completion\nDate", "Status", "Effort(h)", "Description", 
-            "Assignee Comments", "Recent Comments"
+            "Assignee Remarks", "Comments"
         ]
         
         # Prepare task data
@@ -406,8 +406,8 @@ def create_meeting_pdf_content(meeting, tasks, internal_participants):
             0.7*inch,  # Status
             0.6*inch,  # Effort
             3.0*inch,  # Description
-            2.0*inch,  # Assignee Comments
-            3.0*inch   # Recent Comments
+            2.0*inch,  # Assignee Remarks
+            3.0*inch   # Comments
         ])
         
         tasks_table.setStyle(TableStyle([
