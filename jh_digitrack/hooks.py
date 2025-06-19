@@ -27,8 +27,8 @@ add_to_apps_screen = [
 # ------------------
 
 # include js, css files in header of desk.html
-app_include_css = "/assets/jh_digitrack/css/workspace_hide.css"
-app_include_js = "/assets/jh_digitrack/js/workspaces_buttons.js"
+app_include_css = "/assets/jh_digitrack/css/navbar_hide.css"
+app_include_js = "/assets/jh_digitrack/js/workspaces_button_hide.js"
 
 # include js, css files in header of web template
 # web_include_css = "/assets/jh_digitrack/css/jh_digitrack.css"
