@@ -11,4 +11,15 @@ def clean_html(html_string):
     Returns:
         str: The cleaned HTML string.
     """
-    return re.sub(r"<[^>]*>", " ", html_string)
+
+    
+    # Replace all other tags with a space
+    html_string = re.sub(r'<[^>]*>', '\n', html_string)
+    
+    # Collapse multiple spaces into one
+    html_string = re.sub(r' +', ' ', html_string)
+    
+    # Remove spaces before/after newlines and trim
+    html_string = re.sub(r' *\n *', '\n', html_string)
+    html_string = re.sub(r'\n\n+', '\n', html_string)
+    return html_string.strip()

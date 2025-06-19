@@ -37,6 +37,8 @@ export interface JHAuditMaster{
 	division?: string
 	/**	Remarks : Long Text	*/
 	remarks?: string
+	/**	Reminded At : Datetime	*/
+	reminded_at?: string
 	/**	Changelog : Table - JH Change Log	*/
 	changelog?: JHChangeLog[]
 }
