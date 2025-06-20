@@ -1,0 +1,13 @@
+a:not([href]):not([class]) {
+    display: none !important; 
+    color: inherit; 
+    text-decoration: none;
+}
+
+[data-theme="light"] a:not([href]):not([class]) {
+    display: none !important;
+}
+
+[data-theme="dark"] a:not([href]):not([class]) {
+    display: none !important;
+}
