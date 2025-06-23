@@ -27,7 +27,7 @@ add_to_apps_screen = [
 # ------------------
 
 # include js, css files in header of desk.html
-app_include_css = ["/assets/jh_digitrack/css/navbar_hide_icons.css", "/assets/jh_digitrack/css/numbercards_hide.css"]
+app_include_css = ["/assets/jh_digitrack/css/navbar_hide_icons.css", "/assets/jh_digitrack/css/numbercards_hide.css", "/assets/jh_digitrack/css/hide_chart_icons.css"]
 app_include_js = "/assets/jh_digitrack/js/workspaces_button_hide.js"
 
 # include js, css files in header of web template
@@ -102,7 +102,7 @@ after_migrate = "jh_digitrack.setup.after_migrate.run"
 
 # before_app_install = "jh_digitrack.utils.before_app_install"
 # after_app_install = "jh_digitrack.utils.after_app_install"
-
+fixtures = ["Navbar Settings"]
 # Integration Cleanup
 # -------------------
 # To clean up dependencies/integrations with other apps
@@ -246,3 +246,4 @@ scheduler_events = {
 website_route_rules = [
     {"from_route": "/jh-digitrack/<path:app_path>", "to_route": "jh-digitrack"},
 ]
+
