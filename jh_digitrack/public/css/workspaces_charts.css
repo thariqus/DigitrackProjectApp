@@ -1,0 +1,3 @@
+.chart-actions .dropdown-menu .dropdown-item:not([data-action="action-refresh"]) {
+    display: none !important;
+}

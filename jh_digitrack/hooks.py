@@ -27,7 +27,7 @@ add_to_apps_screen = [
 # ------------------
 
 # include js, css files in header of desk.html
-app_include_css = ["/assets/jh_digitrack/css/navbar_hide_icons.css", "/assets/jh_digitrack/css/numbercards_hide.css"]
+app_include_css = ["/assets/jh_digitrack/css/workspace_navbar.css", "/assets/jh_digitrack/css/numbercards_hide.css", "/assets/jh_digitrack/css/workspaces_charts.css"]
 app_include_js = "/assets/jh_digitrack/js/workspaces_button_hide.js"
 
 # include js, css files in header of web template
@@ -193,6 +193,15 @@ scheduler_events = {
 # -----------------------------------------------------------
 
 # ignore_links_on_delete = ["Communication", "ToDo"]
+fixtures = [
+    "Navbar Settings",
+    {
+        "dt": "Workspace",
+        "filters": {
+            "name": ["=", "Website"]
+        }
+    }
+]
 
 # Request Events
 # ----------------
