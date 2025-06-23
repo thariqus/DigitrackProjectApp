@@ -27,8 +27,8 @@ add_to_apps_screen = [
 # ------------------
 
 # include js, css files in header of desk.html
-# app_include_css = "/assets/jh_digitrack/css/jh_digitrack.css"
-# app_include_js = "/assets/jh_digitrack/js/jh_digitrack.js"
+app_include_css = ["/assets/jh_digitrack/css/navbar_hide_icons.css", "/assets/jh_digitrack/css/numbercards_hide.css"]
+app_include_js = "/assets/jh_digitrack/js/workspaces_button_hide.js"
 
 # include js, css files in header of web template
 # web_include_css = "/assets/jh_digitrack/css/jh_digitrack.css"
@@ -42,10 +42,10 @@ add_to_apps_screen = [
 # webform_include_css = {"doctype": "public/css/doctype.css"}
 
 # include js in page
-# page_js = {"page" : "public/js/file.js"}
+# page_js = {"workspaces" : "public/js/workspace.js"}
 
 # include js in doctype views
-# doctype_js = {"doctype" : "public/js/doctype.js"}
+# doctype_js = {"Workspaces" : "public/js/workspace.js"}
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}

@@ -20,7 +20,6 @@
   "business",
   "division",
   "remarks",
-  "reminded_at",
   "section_break_nchk",
   "changelog"
  ],
@@ -115,16 +114,11 @@
    "fieldname": "visible_to_all",
    "fieldtype": "Check",
    "label": "Visible To All"
-  },
-  {
-   "fieldname": "reminded_at",
-   "fieldtype": "Datetime",
-   "label": "Reminded At"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-06-17 14:57:36.321736",
+ "modified": "2025-05-28 16:23:58.090267",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Audit Master",

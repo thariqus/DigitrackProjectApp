@@ -35,8 +35,6 @@ export interface JHAudits {
   division?: string;
   /**	Remarks : Long Text	*/
   remarks?: string;
-  /**	Reminded At : Datetime	*/
-  reminded_at?: string;
   /**	Changelog : Table - JH Change Log	*/
   changelog?: any;
 }

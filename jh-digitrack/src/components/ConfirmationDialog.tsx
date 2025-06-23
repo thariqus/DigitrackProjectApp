@@ -8,9 +8,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { cn } from "@/lib/utils";
 import { ConfirmationProps } from "@/types/tasks";
-import { buttonVariants } from "@/components/ui/button";
 
 export const ConfirmationDialog = ({
   open,
@@ -26,20 +24,8 @@ export const ConfirmationDialog = ({
         <AlertDialogDescription>{message}</AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter>
-        <AlertDialogCancel
-          className={cn(
-            buttonVariants({ variant: "default" }),
-            "hover:text-white"
-          )}
-        >
-          Cancel
-        </AlertDialogCancel>
-        <AlertDialogAction
-          className={cn(buttonVariants({ variant: "outline" }), "text-black")}
-          onClick={onConfirm}
-        >
-          Confirm
-        </AlertDialogAction>
+        <AlertDialogCancel>Cancel</AlertDialogCancel>
+        <AlertDialogAction onClick={onConfirm}>Confirm</AlertDialogAction>
       </AlertDialogFooter>
     </AlertDialogContent>
   </AlertDialog>
