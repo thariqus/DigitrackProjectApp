@@ -8,7 +8,6 @@ import frappeClient from "@/utils/frappe-client";
 export function useUserSearch(searchTerm: string = "") {
   const usersFilters: DocFilters<JHUserMaster> = [
     ["full_name", "!=", "JH Admin"],
-    ["full_name", "like", `%${searchTerm}%`],
   ];
 
   const { data: allUsers = [], isLoading } = useDocs<JHUserMaster>({
@@ -22,10 +21,16 @@ export function useUserSearch(searchTerm: string = "") {
   });
 
   const filteredUsers = useMemo(() => {
-    return allUsers.map((user) => ({
-      value: user.name!,
-      label: user.full_name!,
-    }));
+    return allUsers
+      .filter(
+        (user) =>
+          !searchTerm ||
+          user.full_name?.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+      .map((user) => ({
+        value: user.name!,
+        label: user.full_name!,
+      }));
   }, [allUsers, searchTerm]);
 
   return {

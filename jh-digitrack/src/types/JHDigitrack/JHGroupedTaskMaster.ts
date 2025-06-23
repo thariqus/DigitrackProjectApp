@@ -42,6 +42,4 @@ export interface JHGroupedTaskMaster{
 	changelog?: JHChangeLog[]
 	/**	naming_series : Data	*/
 	naming_series?: string
-	/**	Reminded At : Datetime	*/
-	reminded_at?: string
 }

@@ -162,8 +162,6 @@ export default function TaskTimeline({ taskId }: TaskTimelineProps) {
                 ? "Reminder Sent"
                 : log.comment_type === "Escalation"
                 ? "Escalation Sent"
-                : log.comment_type === "Email Me"
-                ? "Email Me"
                 : "Commented"}
             </span>
             <span className="text-xs text-gray-400">

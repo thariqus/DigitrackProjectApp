@@ -114,32 +114,34 @@ def global_search(
     # 3. TASK SEARCH - Only search if task-specific filters are provided
     all_tasks = []
     
-    # def get_team_members_recursive(manager_id, current_level=0, max_level=5):
-    #     if current_level >= max_level:
-    #         return []
+    def get_team_members_recursive(manager_id, current_level=0, max_level=5):
+        if current_level >= max_level:
+            return []
 
-    #     direct_reports = frappe.db.get_list(
-    #         "JH User Master", filters={"reporting_manager": manager_id}, fields=["name"]
-    #     )
+        direct_reports = frappe.db.get_list(
+            "JH User Master", filters={"reporting_manager": manager_id}, fields=["name"]
+        )
 
-    #     all_team_members = direct_reports.copy()
+        all_team_members = direct_reports.copy()
 
-    #     for member in direct_reports:
-    #         subordinates = get_team_members_recursive(
-    #             member.name, current_level + 1, max_level
-    #         )
-    #         all_team_members.extend(subordinates)
+        for member in direct_reports:
+            subordinates = get_team_members_recursive(
+                member.name, current_level + 1, max_level
+            )
+            all_team_members.extend(subordinates)
 
-    #     return all_team_members
+        return all_team_members
 
-    # team_members = get_team_members_recursive(reporting_to)
-    # team_members.append({"name": reporting_to})
+    team_members = get_team_members_recursive(reporting_to)
+    team_members.append({"name": reporting_to})
 
     if (task_name.strip() or assigned_to.strip() or assigned_by.strip() or 
         due_date_from.strip() or due_date_to.strip() or status.strip() or
         created_date_from.strip() or created_date_to.strip()):
         
         task_filters = {
+            # "assigned_to": ["in", [reporting_to]],
+            "assigned_to": ["in", [member["name"] for member in team_members]],
             "deleted_at": ["is", "not set"],
             "private": ["=", 0],
             "status": ["!=", ["Closed", "Cancelled"]],
@@ -171,132 +173,46 @@ def global_search(
             else:
                 task_filters["creation"] = ["<=", created_date_to.strip()]
         
-        # Check if assigned_by or assigned_to filters are provided (restrict to specific users)
-        if assigned_by.strip() or assigned_to.strip():
-            # When assigned_by or assigned_to is provided, restrict to only tasks matching those specific filters
-            
-            if assigned_by.strip():
-                try:
-                    # Test permission for assigned_by field
-                    frappe.db.get_list("JH Task Master", filters={"name": ["!=", ""]}, fields=["created_by"], limit=1)
-                    task_filters["created_by"] = ["like", f"%{assigned_by.strip()}%"]
-                except frappe.exceptions.PermissionError:
-                    # If no permission for created_by field, return empty results
-                    all_tasks = []
-                    return
-            
-            if assigned_to.strip():
-                # Override the assigned_to filter to be more specific
-                task_filters["assigned_to"] = ["like", f"%{assigned_to.strip()}%"]
-            
-            # Get tasks matching the specific assigned_by/assigned_to filters only
+        # Handle assigned_by filter with permission check
+        if assigned_by.strip():
             try:
-                all_tasks = frappe.db.get_list(
-                    "JH Task Master",
-                    filters=task_filters,
-                    fields=[
-                        "*",
-                        "assigned_to.full_name as assigned_to_name",
-                        "assigned_to.name as assigned_to_id",
-                        "created_by.full_name as assigned_by_name",
-                        "created_by.name as assigned_by_id",
-                    ],
-                    order_by="modified desc",
-                    page_length=100,
-                )
+                # Test permission for assigned_by field
+                frappe.db.get_list("JH Task Master", filters={"name": ["!=", ""]}, fields=["created_by"], limit=1)
+                task_filters["created_by"] = ["like", f"%{assigned_by.strip()}%"]
             except frappe.exceptions.PermissionError:
-                # Retry without created_by fields if no permission
-                if "created_by" in task_filters:
-                    del task_filters["created_by"]
-                
-                try:
-                    all_tasks = frappe.db.get_list(
-                        "JH Task Master",
-                        filters=task_filters,
-                        fields=[
-                            "*",
-                            "assigned_to.full_name as assigned_to_name",
-                            "assigned_to.name as assigned_to_id",
-                        ],
-                        order_by="modified desc",
-                        page_length=100,
-                    )
-                except frappe.exceptions.PermissionError:
-                    all_tasks = []
-        else:
-            # When assigned_by is not provided, include both created_by and assigned_to reporting_to user
+                pass  # Skip if no permission
+        
+        # Get ALL tasks matching the criteria
+        try:
+            all_tasks = frappe.db.get_list(
+                "JH Task Master",
+                filters=task_filters,
+                fields=[
+                    "*",
+                    "assigned_to.full_name as assigned_to_name",
+                    "assigned_to.name as assigned_to_id",
+                    "created_by.full_name as assigned_by_name",
+                    "created_by.name as assigned_by_id",
+                ],
+                order_by="modified desc",
+                page_length=100,  # Get more tasks to properly group them
+            )
+        except frappe.exceptions.PermissionError:
+            # Retry without created_by fields
+            if "created_by" in task_filters:
+                del task_filters["created_by"]
             
-            # Get tasks created by the reporting_to user
-            try:
-                created_tasks = frappe.db.get_list(
-                    "JH Task Master",
-                    filters={
-                        **task_filters,
-                        "created_by": ["in", [member["name"] for member in team_members]]
-                    },
-                    fields=[
-                        "*",
-                        "assigned_to.full_name as assigned_to_name",
-                        "assigned_to.name as assigned_to_id",
-                        "created_by.full_name as assigned_by_name",
-                        "created_by.name as assigned_by_id",
-                    ],
-                    order_by="modified desc",
-                    page_length=100,
-                )
-                all_tasks.extend(created_tasks)
-            except frappe.exceptions.PermissionError:
-                pass
-            
-            # Get tasks assigned to the reporting_to user (avoiding duplicates)
-            try:
-                assigned_task_filters = task_filters.copy()
-                assigned_task_filters["assigned_to"] = ["in", [member["name"] for member in team_members]]
-                
-                assigned_tasks = frappe.db.get_list(
-                    "JH Task Master",
-                    filters=assigned_task_filters,
-                    fields=[
-                        "*",
-                        "assigned_to.full_name as assigned_to_name",
-                        "assigned_to.name as assigned_to_id",
-                        "created_by.full_name as assigned_by_name",
-                        "created_by.name as assigned_by_id",
-                    ],
-                    order_by="modified desc",
-                    page_length=100,
-                )
-                
-                # Remove duplicates by checking task names
-                existing_task_names = {task.get("name") for task in all_tasks}
-                for task in assigned_tasks:
-                    if task.get("name") not in existing_task_names:
-                        all_tasks.append(task)
-                        
-            except frappe.exceptions.PermissionError:
-                # Retry without created_by fields for assigned tasks
-                assigned_task_filters = task_filters.copy()
-                assigned_task_filters["assigned_to"] = ["in", [member["name"] for member in team_members]]
-                if "created_by" in assigned_task_filters:
-                    del assigned_task_filters["created_by"]
-                
-                assigned_tasks = frappe.db.get_list(
-                    "JH Task Master",
-                    filters=assigned_task_filters,
-                    fields=[
-                        "*",
-                        "assigned_to.full_name as assigned_to_name",
-                        "assigned_to.name as assigned_to_id",
-                    ],
-                    order_by="modified desc",
-                    page_length=100,
-                )
-                
-                # Remove duplicates by checking task names
-                existing_task_names = {task.get("name") for task in all_tasks}
-                for task in assigned_tasks:
-                    if task.get("name") not in existing_task_names:
-                        all_tasks.append(task)
+            all_tasks = frappe.db.get_list(
+                "JH Task Master",
+                filters=task_filters,
+                fields=[
+                    "*",
+                    "assigned_to.full_name as assigned_to_name",
+                    "assigned_to.name as assigned_to_id",
+                ],
+                order_by="modified desc",
+                page_length=100,
+            )
     
     # 4. ORGANIZE TASKS BY SOURCE
     # Separate tasks into categories
