@@ -1,0 +1,4 @@
+/* Hide all dropdown items except Refresh */
+.dropdown-menu .dropdown-item:not([data-action="action-refresh"]) {
+    display: none !important;
+}
