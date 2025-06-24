@@ -7,3 +7,11 @@ body.not-admin li.vertical-bar {
 body.not-admin li.dropdown-notifications {
     display: none !important;
 }
+
+body.not-admin #navbar-search {
+    display: none !important;
+}
+
+body.not-admin .search-icon {
+    display: none !important;
+}
