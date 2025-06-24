@@ -27,7 +27,7 @@ add_to_apps_screen = [
 # ------------------
 
 # include js, css files in header of desk.html
-app_include_css = ["/assets/jh_digitrack/css/workspace_navbar.css", "/assets/jh_digitrack/css/numbercards_hide.css", "/assets/jh_digitrack/css/workspaces_charts.css"]
+app_include_css = ["/assets/jh_digitrack/css/workspace_navbar4.css", "/assets/jh_digitrack/css/numbercards_hide.css", "/assets/jh_digitrack/css/workspaces_charts.css"]
 app_include_js = "/assets/jh_digitrack/js/workspaces_button_hide.js"
 
 # include js, css files in header of web template
@@ -144,7 +144,11 @@ permission_query_conditions = {
 doc_events = {
     "User": {
         "before_save": "jh_digitrack.setup.user_events.before_save",
-    }
+    },
+  
+#     "File": {
+#         "before_save": "jh_digitrack.jh_digitrack.doc_events.file.before_save_file",
+# }
 }
 
 # Scheduled Tasks
@@ -200,7 +204,16 @@ fixtures = [
         "filters": {
             "name": ["=", "Website"]
         }
-    }
+    },
+    # {
+    #     "dt":"Property Setter",
+    #     "filters":[
+    #         ["name","in",[
+    #             'File-is_private-default',
+    #         ]]
+    #     ]
+    # }
+
 ]
 
 # Request Events
