@@ -1,7 +1,6 @@
 
 frappe.router.on('change', () => {
     const route = frappe.get_route();
-    console.log("Route changed to:", route);
     if (!frappe.user_roles.includes("Administrator")) {
         document.body.classList.add("not-admin");
     } else {
@@ -11,9 +10,7 @@ frappe.router.on('change', () => {
         if (route[0] === "Workspaces") {
             $("#page-Workspaces .btn-edit-workspace").hide();
             $("#page-Workspaces .btn-new-workspace").hide();
- 
+            
         }
     }
 });
-
-
