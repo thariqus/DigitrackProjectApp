@@ -1,0 +1,49 @@
+body.not-admin li.vertical-bar {
+    display: none !important;
+}
+/* body.not-admin li.dropdown-help {
+    display: none !important;
+} */
+body.not-admin li.dropdown-notifications {
+    display: none !important;
+}
+
+body.not-admin #navbar-search {
+    display: none !important;
+}
+
+body.not-admin .search-icon {
+    display: none !important;
+}
+
+/* body.not-admin #toolbar-user .dropdown-item {
+  display: none !important;
+} */
+
+body.not-admin #toolbar-user button[onclick="return frappe.ui.toolbar.route_to_user()"] {
+  display: none !important;
+}
+
+body.not-admin #toolbar-user button[onclick="return frappe.ui.toolbar.setup_session_defaults()"] {
+  display: none !important;
+}
+
+body.not-admin #toolbar-user button[onclick="return frappe.ui.toolbar.view_website()"] {
+  display: none !important;
+}
+
+body.not-admin #toolbar-user button[onclick="return frappe.ui.toolbar.toggle_full_width()"] {
+  display: none !important;
+}
+
+body.not-admin #toolbar-user a[href="/apps"] {
+  display: none !important;
+}
+
+body.not-admin #toolbar-user button[onclick="return new frappe.ui.ThemeSwitcher().show()"] {
+  display: none !important;
+}
+
+body.not-admin #toolbar-user .dropdown-divider {
+  display: none !important;
+}
