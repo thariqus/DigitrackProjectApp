@@ -28,7 +28,7 @@ add_to_apps_screen = [
 
 # include js, css files in header of desk.html
 app_include_css = ["/assets/jh_digitrack/css/workspace_navbar4.css", "/assets/jh_digitrack/css/numbercards_hide.css", "/assets/jh_digitrack/css/workspaces_charts.css"]
-app_include_js = "/assets/jh_digitrack/js/workspaces_button_hide.js"
+app_include_js = "/assets/jh_digitrack/js/workspaces_button_hide2.js"
 
 # include js, css files in header of web template
 # web_include_css = "/assets/jh_digitrack/css/jh_digitrack.css"
@@ -149,6 +149,9 @@ doc_events = {
 #     "File": {
 #         "before_save": "jh_digitrack.jh_digitrack.doc_events.file.before_save_file",
 # }
+    "JH Digitrack Settings": {
+        "validate": "jh_digitrack.jh_digitrack.doc_events.user_manual_route.populate_user_manual",
+    },
 }
 
 # Scheduled Tasks

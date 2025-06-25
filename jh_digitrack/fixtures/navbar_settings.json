@@ -63,10 +63,10 @@
     "parent": "Navbar Settings",
     "parentfield": "help_dropdown",
     "parenttype": "Navbar Settings",
-    "route": "/files/DigiTrack-UserManual 1.pdf"
+    "route": "test"
    }
   ],
-  "modified": "2025-06-24 11:58:37.512529",
+  "modified": "2025-06-25 11:04:06.806896",
   "name": "Navbar Settings",
   "settings_dropdown": [
    {
