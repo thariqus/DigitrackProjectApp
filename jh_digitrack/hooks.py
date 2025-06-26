@@ -27,8 +27,8 @@ add_to_apps_screen = [
 # ------------------
 
 # include js, css files in header of desk.html
-# app_include_css = "/assets/jh_digitrack/css/jh_digitrack.css"
-# app_include_js = "/assets/jh_digitrack/js/jh_digitrack.js"
+app_include_css = ["/assets/jh_digitrack/css/workspace_navbar8.css", "/assets/jh_digitrack/css/numbercards_hide.css", "/assets/jh_digitrack/css/workspaces_charts.css"]
+app_include_js = "/assets/jh_digitrack/js/workspaces_button_hide2.js"
 
 # include js, css files in header of web template
 # web_include_css = "/assets/jh_digitrack/css/jh_digitrack.css"
@@ -42,10 +42,10 @@ add_to_apps_screen = [
 # webform_include_css = {"doctype": "public/css/doctype.css"}
 
 # include js in page
-# page_js = {"page" : "public/js/file.js"}
+# page_js = {"workspaces" : "public/js/workspace.js"}
 
 # include js in doctype views
-# doctype_js = {"doctype" : "public/js/doctype.js"}
+# doctype_js = {"Workspaces" : "public/js/workspace.js"}
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
@@ -144,7 +144,14 @@ permission_query_conditions = {
 doc_events = {
     "User": {
         "before_save": "jh_digitrack.setup.user_events.before_save",
-    }
+    },
+  
+#     "File": {
+#         "before_save": "jh_digitrack.jh_digitrack.doc_events.file.before_save_file",
+# }
+    "JH Digitrack Settings": {
+        "validate": "jh_digitrack.jh_digitrack.doc_events.user_manual_route.populate_user_manual",
+    },
 }
 
 # Scheduled Tasks
@@ -193,6 +200,24 @@ scheduler_events = {
 # -----------------------------------------------------------
 
 # ignore_links_on_delete = ["Communication", "ToDo"]
+fixtures = [
+    "Navbar Settings",
+    {
+        "dt": "Workspace",
+        "filters": {
+            "name": ["=", "Website"]
+        }
+    },
+    # {
+    #     "dt":"Property Setter",
+    #     "filters":[
+    #         ["name","in",[
+    #             'File-is_private-default',
+    #         ]]
+    #     ]
+    # }
+
+]
 
 # Request Events
 # ----------------

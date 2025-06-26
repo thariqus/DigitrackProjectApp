@@ -173,3 +173,4 @@ def wrap_text_with_html(text, width):
             lines.append(line_content)
     
     return '<br/>'.join(lines)
+
