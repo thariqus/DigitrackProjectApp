@@ -4,7 +4,7 @@ import io
 from datetime import datetime
 from werkzeug.wrappers import Response
 from .helpers.wrap_text import wrap_text
-from .helpers.clean_html import clean_html
+from .helpers.clean_html import clean_html, clean_html_for_reportlab, wrap_text_with_html
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A2
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
@@ -163,7 +163,7 @@ def create_meeting_csv_string(meeting, tasks, intenal_participants):
             "Status",
             "Completed Date",
             "Effort (Hrs)",
-            "Assignee Remarks",
+            "Assignee Comments",
             "Comments",
         ]
     )
@@ -286,6 +286,13 @@ def create_meeting_pdf_content(meeting, tasks, internal_participants):
         fontSize=10,
         spaceAfter=6
     )
+
+    small_style = ParagraphStyle(
+        'CustomNormal',
+        parent=styles['Normal'],
+        fontSize=9,
+        spaceAfter=6
+    )
     
     # Story to hold all content
     story = []
@@ -314,8 +321,8 @@ def create_meeting_pdf_content(meeting, tasks, internal_participants):
         f"<b>Internal Participants:</b> {internal_participants_text}",
         f"<b>External Participants:</b> {meeting.get('participants_external', '-')}",
         f"<b>Completion Date:</b> {meeting.get('completion_date').strftime('%d/%m/%Y') if meeting.get('completion_date') else '-'}",
-        f"<b>Agenda:</b> {clean_html(meeting.get('agenda', '-'))}",
-        f"<b>Remarks:</b> {clean_html(meeting.get('remarks', '-'))}"
+        f"<b>Agenda:</b><br/> {clean_html_for_reportlab(meeting.get('agenda', '-'))}",
+        f"<b>Remarks:</b><br/> {clean_html_for_reportlab(meeting.get('remarks', '-'))}"
     ]
     
     for info in meeting_info:
@@ -326,18 +333,30 @@ def create_meeting_pdf_content(meeting, tasks, internal_participants):
     # Task Details Section (as single table)
     if tasks:
         story.append(Paragraph("Tasks", heading_style))
+
+        # Define status order for sorting
+        STATUS_ORDER = {
+            "Open": 1,
+            "In Progress": 2,
+            "Canceled": 3,
+            "Completed": 4,
+            "Closed": 5,
+        }
+        
+        # Sort tasks by status
+        sorted_tasks = sorted(tasks, key=lambda task: STATUS_ORDER.get(task.get("status", ""), 6))
         
         # Table headers
         task_headers = [
-            "ID", "Name/\nDescription", "Created By/\nDate", "Assigned To", "Due/\nRevised Date", 
-            "Completion\nDate", "Status/\nEffort(h)", 
-            "Assignee Remarks", "Comments"
+            "ID", "Name", "Created By/\nDate", "Assigned To", "Due/\nRevised Date", 
+            "Completion\nDate", "Status", "Effort(h)", "Description", 
+            "Assignee Comments", "Recent Comments"
         ]
         
         # Prepare task data
         task_data = [task_headers]
         
-        for task in tasks:
+        for task in sorted_tasks:
             # Get task comments
             comments = frappe.db.get_list(
                 "Comment",
@@ -350,57 +369,18 @@ def create_meeting_pdf_content(meeting, tasks, internal_participants):
                 ignore_permissions=True,
                 order_by="creation desc",
             )
-            change_log = frappe.db.get_list(
-                "JH Change Log",
-                filters={"parent": task.get("name")},
-                fields=["*", "creator.full_name as creator", "creator.name as creator_id"],
-                ignore_permissions=True,
-                order_by="creation desc",
-            )
             
-            combined_entries = []
-        
-            # Add comments
-            for comment in comments:
-                creation = comment.get("creation")
-                if isinstance(creation, str):
-                    creation = datetime.strptime(creation, "%Y-%m-%d %H:%M:%S")
-                formatted_creation = creation.strftime("%d-%m-%Y")
-                combined_entries.append({
-                    'text': f"COMMENT: {wrap_text(comment.get('content', ''), 60)}",
-                    'user': comment.get('comment_by', ''),
-                    'date': formatted_creation,
-                    'creation_datetime': creation
-                })
-        
-            # Add change log entries
-            for log in change_log:
-                creation = log.get("creation") or log.get("commented_at")
-                if isinstance(creation, str):
-                    creation = datetime.strptime(creation, "%Y-%m-%d %H:%M:%S")
-                formatted_creation = creation.strftime("%d-%m-%Y")
+            # Format recent comments
+            recent_comments = []
+            if comments:
+                for comment in comments:
+                    creation = comment.get("creation")
+                    if isinstance(creation, str):
+                        creation = datetime.strptime(creation, "%Y-%m-%d %H:%M:%S")
+                    formatted_creation = creation.strftime("%d-%m-%Y")
+                    recent_comments.append(f"• {comment.get('comment_by', '')} - ({formatted_creation}) \n- {wrap_text(comment.get('content', ''), 50)}")
             
-                # Format change log content
-                log_text = f"LOG ({log.get('type', '')}): {wrap_text(log.get('comment', ''), 50) if log.get('comment') else ''}"
-                if log.get('remark'):
-                    log_text += f"\nRemark: {wrap_text(log.get('remark'), 40)}"
-            
-                combined_entries.append({
-                    'text': log_text,
-                    'user': log.get('creator', ''),
-                    'date': formatted_creation,
-                    'creation_datetime': creation
-                })
-        
-            # Sort combined entries by creation date (most recent first)
-            combined_entries.sort(key=lambda x: x['creation_datetime'], reverse=True)
-
-            recent_entries = []
-            for entry in combined_entries:
-                recent_entries.append(f"{entry['date']} : {entry['user']} \n{entry['text']}\n")
-        
-            comments_text = "\n".join(recent_entries) if recent_entries else "-"
-            
+            comments_text = "\n".join(recent_comments) if recent_comments else "-"
             
             # Format Created By & Date column
             created_by_date = wrap_text(task.get("created_by", "-"), 15)
@@ -418,33 +398,47 @@ def create_meeting_pdf_content(meeting, tasks, internal_participants):
                 # Same date or no revised date - show only one
                 due_date_combined = due_date_str
 
-            name_and_description = wrap_text(task.get("task_name", "-"), 25) + "\n" + "Description: " + clean_html(wrap_text(task.get("description", "-"), 50))
+            # Task name and description
+            task_name_desc = clean_html_for_reportlab(task.get("task_name", "-"))
+            if task.get("description", "-") != "-":
+                task_desc = clean_html_for_reportlab(task.get("description", "-"))
+                task_name_desc += f"<br/><br/><b>Description: </b><br/> {task_desc}"
+            
+            # Status and Effort
             status_and_effort = task.get("status", "-") + "\n" + str(task.get("effort", "-"))
+
+            # Assignee remarks with HTML
+            assignee_remarks = clean_html_for_reportlab(task.get("assignee_comments", "-"))
+
             # Add task row
             task_row = [
                 wrap_text(task.get("name", "-"), 15),
-                name_and_description,
+                Paragraph(task_name_desc, small_style),
+
                 created_by_date,
                 wrap_text(task.get("assigned_to", "-"), 15),
                 due_date_combined,
                 task.get("completion_date").strftime("%d/%m/%Y") if task.get("completion_date") else "-",
                 status_and_effort,
-                clean_html(wrap_text(task.get("assignee_comments", "-"), 50)),
+                Paragraph(assignee_remarks, small_style),
                 comments_text,
+
             ]
             task_data.append(task_row)
         
         # Create tasks table
         tasks_table = Table(task_data, colWidths=[
             0.8*inch,  # Task ID
-            3.0*inch,  # Task Name
+            1.5*inch,  # Task Name
             1.0*inch,  # Created By & Date
             1.0*inch,  # Assigned To
             1.0*inch,  # Due Date & Revised
             1.0*inch,  # Completion Date
-            0.8*inch,  # Status
-            3.0*inch,  # Assignee Remarks
-            4.0*inch   # Comments
+            0.7*inch,  # Status
+            0.6*inch,  # Effort
+            3.0*inch,  # Description
+            2.0*inch,  # Assignee Comments
+            3.0*inch   # Recent Comments
         ])
         
         tasks_table.setStyle(TableStyle([

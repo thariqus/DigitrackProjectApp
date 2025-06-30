@@ -20,8 +20,7 @@
   "visible_to_all",
   "remarks",
   "changelog",
-  "naming_series",
-  "reminded_at"
+  "naming_series"
  ],
  "fields": [
   {
@@ -117,16 +116,11 @@
    "fieldname": "visible_to_all",
    "fieldtype": "Check",
    "label": "Visible To All"
-  },
-  {
-   "fieldname": "reminded_at",
-   "fieldtype": "Datetime",
-   "label": "Reminded At"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-06-17 15:01:11.061533",
+ "modified": "2025-05-29 11:08:10.540413",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Grouped Task Master",

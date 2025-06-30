@@ -1,6 +1,6 @@
 import { Sheet, SheetClose, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Calendar, Download, Edit, Mail, Trash2, XIcon } from "lucide-react";
+import { Calendar, Edit, Mail, Trash2, XIcon } from "lucide-react";
 import { useDoc, useDocDetail } from "@/hooks/doc";
 import { JHBusinessMaster } from "@/types/JHDigitrack/JHBusinessMaster";
 import { JHUserMaster } from "@/types/JHDigitrack/JHUserMaster";
@@ -190,11 +190,13 @@ export function TaskDetailSheet({
 
   const assignedToMe = task?.assigned_to === currentJhUser?.name;
 
-  const isClosedTask = task?.status !== "Canceled";
+
+  const isNotCanceled = task?.status !== "Canceled";
 
   const isSource =
     task?.source_doctype === "JH Audit Master" ||
     task?.source_doctype === "JH Grouped Task Master";
+
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -220,7 +222,8 @@ export function TaskDetailSheet({
                   <Download className="w-5 h-5" />
                 </Button>
               )}
-              {isClosedTask && (
+              {isNotCanceled && (
+
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button variant="ghost" size="icon">
@@ -239,7 +242,7 @@ export function TaskDetailSheet({
                       >
                         Email Me
                       </Button>
-                      {!assignedToMe ? (
+                      {!assignedToMe && task?.status !== "Closed" ? (
                         <>
                           <Button
                             variant="ghost"

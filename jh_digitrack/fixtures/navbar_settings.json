@@ -63,10 +63,10 @@
     "parent": "Navbar Settings",
     "parentfield": "help_dropdown",
     "parenttype": "Navbar Settings",
-    "route": "/apps"
+    "route": "test"
    }
   ],
-  "modified": "2025-06-20 17:34:18.249139",
+  "modified": "2025-06-25 11:04:06.806896",
   "name": "Navbar Settings",
   "settings_dropdown": [
    {

@@ -1,9 +1,0 @@
-body.not-admin li.vertical-bar {
-    display: none !important;
-}
-/* body.not-admin li.dropdown-help {
-    display: none !important;
-} */
-body.not-admin li.dropdown-notifications {
-    display: none !important;
-}
