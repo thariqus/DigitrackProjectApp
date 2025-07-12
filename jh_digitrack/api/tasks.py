@@ -7,7 +7,8 @@ import json
 import frappe
 from werkzeug.wrappers import Response
 from .helpers.email_html import generate_task_reminder_email
-from frappe.utils import cintimport io
+from frappe.utils import cint
+import io
 from .helpers.wrap_text import wrap_text
 from .helpers.clean_html import clean_html
 from reportlab.lib import colors
@@ -1032,3 +1033,75 @@ def download_pdf(task_id: str):
     except Exception as e:
         frappe.log_error(f"Error generating PDF: {str(e)}")
         frappe.throw(f"Error generating PDF: {str(e)}")
+
+from frappe import _
+
+@frappe.whitelist(allow_guest=True)
+def get_task_status_counts(jh_user_name):
+    if not jh_user_name:
+        frappe.throw(_("JH User name is required"))
+
+    def get_counts(field_name):
+        result = frappe.db.sql("""
+            SELECT status, COUNT(*) AS count
+            FROM `tabJH Task Master`
+            WHERE `{0}` = %s AND status IN ('Open', 'In Progress')
+            GROUP BY status
+        """.format(field_name), (jh_user_name,), as_dict=True)
+
+        return {row.status: row.count for row in result}
+    def get_audit_counts():
+        result = frappe.db.sql("""
+            SELECT status, COUNT(*) AS count
+            FROM `tabJH Audits`
+            WHERE created_by = %s
+            GROUP BY status
+        """, (jh_user_name,), as_dict=True)
+        return {row.status.lower(): row.count for row in result}
+    def get_travel_counts():
+        result = frappe.db.sql("""
+            SELECT request_status, COUNT(*) AS count
+            FROM `tabJH Travel Request`
+            WHERE requested_by = %s
+            GROUP BY request_status
+        """, (jh_user_name,), as_dict=True)
+        return {row.request_status: row.count for row in result}
+    def get_meeting_counts():
+        result = frappe.db.sql("""
+            SELECT COUNT(*) AS count
+            FROM `tabJH Grouped Task Master` task
+            WHERE task.type = 'meeting'
+            AND task.status = 'Open'
+            AND EXISTS (
+                SELECT 1
+                FROM `tabJH User Child Table` child
+                WHERE child.parent = task.name
+                AND child.user = %s
+            )
+        """, (jh_user_name,), as_dict=True)
+
+        return {"open": result[0].count if result else 0}
+    def get_team_task_counts():
+        result = frappe.db.sql("""
+            SELECT COUNT(*) AS count
+            FROM `tabJH Grouped Task Master` task
+            WHERE task.type = 'group_task'
+            AND task.status = 'Open'
+            AND EXISTS (
+                SELECT 1
+                FROM `tabJH User Child Table` child
+                WHERE child.parent = task.name
+                AND child.user = %s
+            )
+        """, (jh_user_name,), as_dict=True)
+
+        return {"Open": result[0].count if result else 0}
+
+    return {
+        "my_tasks": get_counts("assigned_to"),
+        "created_by_me": get_counts("created_by"),
+        "audits": get_audit_counts(),
+        "travel_request": get_travel_counts(),
+        "meetings": get_meeting_counts(),
+        "team_tasks": get_team_task_counts()
+    }

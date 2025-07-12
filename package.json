@@ -16,5 +16,8 @@
   "license": "ISC",
   "devDependencies": {
     "husky": "^8.0.0"
+  },
+  "dependencies": {
+    "@radix-ui/react-tooltip": "^1.2.7"
   }
 }
