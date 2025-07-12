@@ -190,13 +190,11 @@ export function TaskDetailSheet({
 
   const assignedToMe = task?.assigned_to === currentJhUser?.name;
 
-
   const isNotCanceled = task?.status !== "Canceled";
 
   const isSource =
     task?.source_doctype === "JH Audit Master" ||
     task?.source_doctype === "JH Grouped Task Master";
-
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -223,7 +221,6 @@ export function TaskDetailSheet({
                 </Button>
               )}
               {isNotCanceled && (
-
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button variant="ghost" size="icon">

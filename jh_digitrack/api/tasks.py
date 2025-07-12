@@ -7,7 +7,17 @@ import json
 import frappe
 from werkzeug.wrappers import Response
 from .helpers.email_html import generate_task_reminder_email
-from frappe.utils import cint
+from frappe.utils import cintimport io
+from .helpers.wrap_text import wrap_text
+from .helpers.clean_html import clean_html
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A2
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from reportlab.lib.enums import TA_CENTER
+import re
+
 
 @frappe.whitelist()
 def team_tasks(reporting_to: str):
@@ -535,7 +545,7 @@ def scheduled_emails():
                 if task_type in assignee_tasks:
                     tasks.extend(assignee_tasks[task_type])
 
-            if len(tasks) > 0:
+            if len(tasks) > 0 or len(changed_tasks) > 0:
                 frappe.sendmail(
                     expose_recipients="header",
                     recipients=[tasks[0].assigned_to_email],
@@ -550,7 +560,8 @@ def scheduled_emails():
                 )
 
                 # Mark scheduled_email_sent_at for all tasks sent to this assignee
-                for task in tasks:
+                all_tasks_to_update = tasks + changed_tasks
+                for task in all_tasks_to_update:
                     try:
                         task_doc = frappe.get_doc("JH Task Master", task.name)
                         task_doc.scheduled_email_sent_at = frappe.utils.add_to_date(frappe.utils.now(), seconds=10)
@@ -565,7 +576,7 @@ def scheduled_emails():
             tasks = assignor_tasks.get("past_due", [])
             changed_tasks = assignor_tasks.get("changes", [])
 
-            if len(tasks) > 0:
+            if len(tasks) > 0 or len(changed_tasks) > 0:
                 frappe.sendmail(
                     expose_recipients="header",
                     recipients=[tasks[0].creator_email],
@@ -578,7 +589,8 @@ def scheduled_emails():
                 )
                 # Mark scheduled_email_sent_at for all tasks sent to this assignor
                 # Only update if not already updated by assignee email (avoid duplicate updates)
-                for task in tasks:
+                all_tasks_to_update = tasks + changed_tasks
+                for task in all_tasks_to_update:
                     try:
                         task_doc = frappe.get_doc("JH Task Master", task.name)
                         # Only update if not already updated in the last minute (to avoid race conditions)
@@ -642,12 +654,14 @@ def remind_all_by_source(source_id: str):
         current_jh_user = None
 
     # Authorization check - verify user has permission to send reminders for this source
+    source = None
     is_authorized = False
     source_name = None
     
     # Try to find the source in JH Grouped Task Master (meeting)
     try:
         meeting = frappe.get_doc("JH Grouped Task Master", source_id)
+        source = meeting
         if current_jh_user and meeting.organizer == current_jh_user.name:
             is_authorized = True
             source_name = meeting.title
@@ -658,6 +672,7 @@ def remind_all_by_source(source_id: str):
     if not is_authorized:
         try:
             audit = frappe.get_doc("JH Audit Master", source_id)
+            source = audit
             if current_jh_user and audit.created_by == current_jh_user.name:
                 is_authorized = True
                 source_name = audit.audit_name
@@ -667,7 +682,11 @@ def remind_all_by_source(source_id: str):
     # If user is not authorized, deny access
     if not is_authorized:
         frappe.throw("You are not authorized to send reminders for this source. Only the meeting organizer or audit creator can send reminders.")
-
+    
+    if not should_send_email(source.reminded_at):
+        return Response(
+            response=json.dumps({"message": "Email already sent today."}), status=400
+        )
     # Define DocType for JH Task Master
     tasks = frappe.qb.DocType("JH Task Master")
     assigned_to = frappe.qb.DocType("JH User Master").as_("assigned_to")
@@ -720,6 +739,7 @@ def remind_all_by_source(source_id: str):
                 frappe.sendmail(
                     expose_recipients="header",
                     recipients=[tasks[0].assigned_to_email],
+                    cc=[tasks[0].creator_email],
                     subject=f"DigiTrack: Reminder( {source_name} ) - Open / In Progress",
                     message=generate_task_reminder_email(
                         tasks=assignee_tasks.get("open", []),
@@ -728,78 +748,287 @@ def remind_all_by_source(source_id: str):
                         recipient_name=tasks[0].assigned_to_name),
                 )
 
+            for task in tasks:
+                try:
+                    task_doc = frappe.get_doc("JH Task Master", task.name)
+                    task_doc.reminded_at = frappe.utils.now()
+                    task_doc.append(
+                        "changelog",
+                        {
+                            "creator": current_jh_user.name,
+                            "type": "Reminder",
+                            "commented_at": frappe.utils.now(),
+                        },
+                    )
+                    task_doc.save(ignore_permissions=True)
+                except Exception as e:
+                    frappe.log_error(f"Error updating reminded_at for task {task.name}: {str(e)}")
+
+    try:
+        source.reminded_at = frappe.utils.now()
+        source.save(ignore_permissions=True)
+    except Exception as e:
+        frappe.log_error(f"Error updating reminded_at for source {source.name}: {str(e)}")
+
     return "Emails sent successfully"
 
-
-from frappe import _
-
-@frappe.whitelist(allow_guest=True)
-def get_task_status_counts(jh_user_name):
-    if not jh_user_name:
-        frappe.throw(_("JH User name is required"))
-
-    def get_counts(field_name):
-        result = frappe.db.sql("""
-            SELECT status, COUNT(*) AS count
-            FROM `tabJH Task Master`
-            WHERE `{0}` = %s AND status IN ('Open', 'In Progress')
-            GROUP BY status
-        """.format(field_name), (jh_user_name,), as_dict=True)
-
-        return {row.status: row.count for row in result}
-    def get_audit_counts():
-        result = frappe.db.sql("""
-            SELECT status, COUNT(*) AS count
-            FROM `tabJH Audits`
-            WHERE created_by = %s
-            GROUP BY status
-        """, (jh_user_name,), as_dict=True)
-        return {row.status.lower(): row.count for row in result}
-    def get_travel_counts():
-        result = frappe.db.sql("""
-            SELECT request_status, COUNT(*) AS count
-            FROM `tabJH Travel Request`
-            WHERE requested_by = %s
-            GROUP BY request_status
-        """, (jh_user_name,), as_dict=True)
-        return {row.request_status: row.count for row in result}
-    def get_meeting_counts():
-        result = frappe.db.sql("""
-            SELECT COUNT(*) AS count
-            FROM `tabJH Grouped Task Master` task
-            WHERE task.type = 'meeting'
-            AND task.status = 'Open'
-            AND EXISTS (
-                SELECT 1
-                FROM `tabJH User Child Table` child
-                WHERE child.parent = task.name
-                AND child.user = %s
+def create_task_pdf_content(tasks):
+    """
+    Creates a PDF document for tasks.
+    
+    Args:
+        tasks (list): List of task dictionaries
+        
+    Returns:
+        bytes: PDF content as bytes
+    """
+    
+    # Create a byte buffer for PDF content
+    buffer = io.BytesIO()
+    
+    # Create the PDF document
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A2,
+        rightMargin=30,
+        leftMargin=30,
+        topMargin=30,
+        bottomMargin=30
+    )
+    
+    # Get styles
+    styles = getSampleStyleSheet()
+    
+    # Custom styles
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=18,
+        spaceAfter=20,
+        alignment=TA_CENTER,
+        textColor=colors.black
+    )
+    
+    heading_style = ParagraphStyle(
+        'CustomHeading',
+        parent=styles['Heading2'],
+        fontSize=14,
+        spaceAfter=12,
+        spaceBefore=12,
+        textColor=colors.black
+    )
+    
+    # Story to hold all content
+    story = []
+    
+    # Title
+    story.append(Paragraph("Task Details", title_style))
+    story.append(Spacer(1, 20))
+    
+    # Task Details Section (as single table)
+    if tasks:
+        
+        # Table headers
+        task_headers = [
+            "ID", "Name/\nDescription", "Created By/\nDate", "Assigned To", "Due/\nRevised Date", 
+            "Completion\nDate", "Status/\nEffort(h)", 
+            "Assignee Remarks", "Comments"
+        ]
+        
+        # Prepare task data
+        task_data = [task_headers]
+        
+        for task in tasks:
+            # Get task comments
+            comments = frappe.db.get_list(
+                "Comment",
+                filters={
+                    "reference_name": task.get("name"), 
+                    "comment_type": "Comment", 
+                    "reference_doctype": "JH Task Master"
+                },
+                fields=["*"],
+                ignore_permissions=True,
+                order_by="creation desc",
             )
-        """, (jh_user_name,), as_dict=True)
-
-        return {"open": result[0].count if result else 0}
-    def get_team_task_counts():
-        result = frappe.db.sql("""
-            SELECT COUNT(*) AS count
-            FROM `tabJH Grouped Task Master` task
-            WHERE task.type = 'group_task'
-            AND task.status = 'Open'
-            AND EXISTS (
-                SELECT 1
-                FROM `tabJH User Child Table` child
-                WHERE child.parent = task.name
-                AND child.user = %s
+            change_log = frappe.db.get_list(
+                "JH Change Log",
+                filters={"parent": task.get("name")},
+                fields=["*", "creator.full_name as creator", "creator.name as creator_id"],
+                ignore_permissions=True,
+                order_by="creation desc",
             )
-        """, (jh_user_name,), as_dict=True)
 
-        return {"Open": result[0].count if result else 0}
+            combined_entries = []
+        
+            # Add comments
+            for comment in comments:
+                creation = comment.get("creation")
+                if isinstance(creation, str):
+                    creation = datetime.strptime(creation, "%Y-%m-%d %H:%M:%S")
+                formatted_creation = creation.strftime("%d-%m-%Y")
+                combined_entries.append({
+                    'text': f"COMMENT: {wrap_text(comment.get('content', ''), 60)}",
+                    'user': comment.get('comment_by', ''),
+                    'date': formatted_creation,
+                    'creation_datetime': creation
+                })
+        
+            # Add change log entries
+            for log in change_log:
+                creation = log.get("creation") or log.get("commented_at")
+                if isinstance(creation, str):
+                    creation = datetime.strptime(creation, "%Y-%m-%d %H:%M:%S")
+                formatted_creation = creation.strftime("%d-%m-%Y")
+            
+                # Format change log content
+                log_text = f"LOG ({log.get('type', '')}): {wrap_text(log.get('comment', ''), 50) if log.get('comment') else ''}"
+                if log.get('remark'):
+                    log_text += f"\nRemark: {wrap_text(log.get('remark'), 40)}"
+            
+                combined_entries.append({
+                    'text': log_text,
+                    'user': log.get('creator', ''),
+                    'date': formatted_creation,
+                    'creation_datetime': creation
+                })
+        
+            # Sort combined entries by creation date (most recent first)
+            combined_entries.sort(key=lambda x: x['creation_datetime'], reverse=True)
 
-    return {
-        "my_tasks": get_counts("assigned_to"),
-        "created_by_me": get_counts("created_by"),
-        "audits": get_audit_counts(),
-        "travel_request": get_travel_counts(),
-        "meetings": get_meeting_counts(),
-        "team_tasks": get_team_task_counts()
-    }
+            recent_entries = []
+            for entry in combined_entries:
+                recent_entries.append(f"{entry['date']} : {entry['user']} \n{entry['text']}\n")
+        
+            comments_text = "\n".join(recent_entries) if recent_entries else "-"
+            
+            # Format Created By & Date column
+            created_by_date = wrap_text(task.get("created_by", "-"), 15)
+            if task.get("creation"):
+                created_by_date += f"\n{task.get('creation').strftime('%d/%m/%Y')}"
+            
+            # Format Due Date & Revised column
+            due_date_str = task.get("due_date").strftime("%d/%m/%Y") if task.get("due_date") else "-"
+            revised_due_date_str = task.get("revised_due_date").strftime("%d/%m/%Y") if task.get("revised_due_date") else None
+            
+            if revised_due_date_str and revised_due_date_str != due_date_str:
+                # Different dates - show both
+                due_date_combined = f"{due_date_str}\n{revised_due_date_str}"
+            else:
+                # Same date or no revised date - show only one
+                due_date_combined = due_date_str
 
+            name_and_description = wrap_text(task.get("task_name", "-"), 25) + "\n" + "Description: " + clean_html(wrap_text(task.get("description", "-"), 50))
+            status_and_effort = task.get("status", "-") + "\n" + str(task.get("effort", "-"))
+            # Add task row
+            task_row = [
+                wrap_text(task.get("name", "-"), 15),
+                name_and_description,
+                created_by_date,
+                wrap_text(task.get("assigned_to", "-"), 15),
+                due_date_combined,
+                task.get("completion_date").strftime("%d/%m/%Y") if task.get("completion_date") else "-",
+                status_and_effort,
+                clean_html(wrap_text(task.get("assignee_comments", "-"), 50)),
+                comments_text,
+            ]
+            task_data.append(task_row)
+        
+        # Create tasks table
+        tasks_table = Table(task_data, colWidths=[
+            0.8*inch,  # Task ID
+            3.0*inch,  # Task Name
+            1.0*inch,  # Created By & Date
+            1.0*inch,  # Assigned To
+            1.0*inch,  # Due Date & Revised
+            1.0*inch,  # Completion Date
+            0.8*inch,  # Status
+            3.0*inch,  # Assignee Remarks
+            4.0*inch   # Comments
+        ])
+        
+        tasks_table.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),  # Header row bold
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),      # Data rows normal
+            ('FONTSIZE', (0, 0), (-1, 0), 9),                 # Header font size
+            ('FONTSIZE', (0, 1), (-1, -1), 8),                # Data font size
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey), # Header background
+        ]))
+        
+        story.append(tasks_table)
+        story.append(Spacer(1, 20))
+    
+    # Create footer with current date
+    def add_footer(canvas, doc):
+        """Add footer with created date to each page"""
+        from datetime import datetime
+        canvas.saveState()
+        
+        # Footer text
+        footer_text = f"Report Generated on: {datetime.now().strftime('%d/%m/%Y %H:%M')}"
+        
+        # Position footer at bottom of page
+        canvas.setFont('Helvetica', 9)
+        canvas.drawString(30, 30, footer_text)  # 30 points from left and bottom margins
+        
+        canvas.restoreState()
+    
+    # Build PDF with footer
+    doc.build(story, onFirstPage=add_footer, onLaterPages=add_footer)
+    
+    # Get PDF content
+    pdf_content = buffer.getvalue()
+    buffer.close()
+    
+    return pdf_content
+
+@frappe.whitelist()
+def download_pdf(task_id: str):
+    """
+    Downloads audit data as a PDF file.
+
+    Args:
+        audit_id (str): The ID of the audit to download
+
+    Returns:
+        Response: PDF file response
+    """
+    try:
+        # Get tasks data
+        tasks = frappe.db.get_list(
+            "JH Task Master",
+            filters={"name": task_id},
+            fields=[
+                "*",
+                "created_by.full_name as created_by",
+                "created_by.name as created_by_id",
+                "assigned_to.full_name as assigned_to",
+                "assigned_to.name as assigned_to_id",
+            ],
+        )
+
+        # Generate PDF content
+        pdf_content = create_task_pdf_content(tasks)
+
+        # Create filename with timestamp
+        timestamp = datetime.now().strftime("%d%b%Y-%I%M_%p")
+        task_name = tasks[0].get("task_name", f"task_{task_id}")
+        # Clean filename to remove special characters
+        task_name = re.sub(r'[^\w\s-]', '', task_name).strip()
+        task_name = re.sub(r'[-\s]+', '-', task_name)
+        filename = f"{task_name}-{timestamp}.pdf"
+
+        # Create response
+        response = Response(pdf_content)
+        response.headers.set("Content-Type", "application/pdf")
+        response.headers.set("Content-Disposition", f'attachment; filename="{filename}"')
+        return response
+
+    except Exception as e:
+        frappe.log_error(f"Error generating PDF: {str(e)}")
+        frappe.throw(f"Error generating PDF: {str(e)}")
