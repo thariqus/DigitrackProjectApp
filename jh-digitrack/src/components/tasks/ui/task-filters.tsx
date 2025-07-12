@@ -1,6 +1,7 @@
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const filters = [
+  { label: "Dashboard", value: "dashboard", description: "dashboard overview",disabled: false },
   {
     label: "My Tasks",
     value: "my-tasks",
@@ -33,6 +34,10 @@ export function TaskFilters({
   onDescriptionChange,
 }: TaskFiltersProps) {
   const handleValueChange = (value: string) => {
+    if (value === "dashboard") {
+      window.location.href = "/jh-digitrack/dashboard";
+      return;
+    }
     onFilterChange(value);
     const filter = filters.find((f) => f.value === value);
     if (filter) {
