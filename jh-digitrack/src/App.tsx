@@ -19,6 +19,7 @@ import MeetingTasks from "./components/tasks/task-table/meeting-tasks";
 import MeetingTasksExpanded from "./components/tasks/task-table/meeting-tasks-expanded";
 import AuditTasksExpanded from "./components/tasks/task-table/audit-tasks-expanded";
 import Maintenance from "./components/Maintenance";
+import Dashboard from "./components/dashboard"; 
 
 function App() {
   return (
@@ -33,10 +34,11 @@ function App() {
             <Routes>
               <Route
                 path="/"
-                element={<Navigate to="/jh-digitrack/tasks" replace />}
+                element={<Navigate to="/jh-digitrack/dashboard" replace />}
               />
               <Route path="/jh-digitrack" element={<Layout />}>
-                <Route index element={<Tasks />} />
+                <Route index element={<Dashboard />} />
+                <Route path="dashboard" element={<Dashboard />} />
                 <Route path="tasks" element={<Tasks />} />
                 <Route path="projects" element={<Projects />} />
                 <Route path="meetings" element={<Meetings />} />
@@ -56,7 +58,7 @@ function App() {
               </Route>
               <Route
                 path="*"
-                element={<Navigate to="/jh-digitrack/tasks" replace />}
+                element={<Navigate to="/jh-digitrack/dashboard" replace />}
               />
             </Routes>
           </Suspense>

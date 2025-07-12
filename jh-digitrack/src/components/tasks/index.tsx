@@ -1,14 +1,19 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { TaskFilters } from "./ui/task-filters";
 import { TaskTable, TeamTasksTable } from "./task-table";
 
-function Tasks() {
-  const [activeFilter, setActiveFilter] = useState("my-tasks");
-  const [description, setDescription] = useState(
-    "Here is the list of all tasks assigned to you and created by you."
-  );
+// Utility to get query parameter
+function getFilterFromURL(): string {
+  const urlParams = new URLSearchParams(window.location.search);
+  const filter = urlParams.get("filter");
+  const allowedFilters = ["my-tasks", "created-by-me", "team-tasks"];
+  return allowedFilters.includes(filter ?? "") ? filter! : "my-tasks";
+}
 
-  // Update the description when the filter changes
+function Tasks() {
+  const [activeFilter, setActiveFilter] = useState(getFilterFromURL());
+  const [description, setDescription] = useState("");
+
   useEffect(() => {
     if (activeFilter === "my-tasks") {
       setDescription("Tasks that you have created and are responsible for.");

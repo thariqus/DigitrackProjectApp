@@ -59,7 +59,11 @@ export function MainNav() {
           />
         </Link>
         <nav className="ml-auto flex items-center gap-4 md:gap-6">
-          <Link to="tasks" className={className(["tasks", "jh-digitrack"])}>
+          <Link to="dashboard" className={className(["dashboard"])}>
+            <ClipboardCheck className="h-5 w-5" />
+            <span>Dashboard</span>
+          </Link>
+          <Link to="tasks" className={className(["tasks"])}>
             <ListTodo className="h-5 w-5" />
             <span>Tasks</span>
           </Link>
