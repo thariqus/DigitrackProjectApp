@@ -39,7 +39,7 @@ export const useTaskFilters = ({
       } else if (activeFilter === "created-by-me" && currentUser) {
         filters.push(["owner", "=", currentUser]);
         if (!filters.some((filter) => filter[0] === "status"))
-          filters.push(["status", "not in", ["Closed", "Cancelled"]]);
+          filters.push(["status", "not in", ["Closed", "Cancelled", "Completed"]]);
       } else if (activeFilter === "deleted-tasks") {
         const deletedFilter = filters.find(
           (filter) => filter[0] === "deleted_at"

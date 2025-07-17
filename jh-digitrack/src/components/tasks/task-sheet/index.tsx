@@ -1244,7 +1244,7 @@ export function TaskSheet({
                       control={control}
                       render={({ field }) => (
                         <input
-                          min={format(new Date(), "yyyy-MM-dd")}
+                          // min={format(new Date(), "yyyy-MM-dd")}
                           type="date"
                           id="revised_due_date"
                           disabled={isClosed || isDeleted}

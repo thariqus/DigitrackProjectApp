@@ -20,9 +20,9 @@ const Dashboard = () => {
       case "created-by-me":
         setDescription("Tasks that you have created.");
         break;
-      case "team-tasks":
-        setDescription("All tasks assigned to your team members.");
-        break;
+      // case "team-tasks":
+      //   setDescription("All tasks assigned to your team members.");
+      //   break;
     }
   }, [activeFilter]);
 
