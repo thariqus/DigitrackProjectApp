@@ -478,7 +478,7 @@ def scheduled_emails():
 
     # Execute queries with pagination to handle large datasets
     # Process in chunks to avoid memory issues
-    chunk_size = 1000
+    chunk_size = 1000000
     tasks_by_assignee = {}
     tasks_by_assignor = {}
 
@@ -719,7 +719,7 @@ def remind_all_by_source(source_id: str):
 
     # Execute queries with pagination to handle large datasets
     # Process in chunks to avoid memory issues
-    chunk_size = 1000
+    chunk_size = 1000000
     tasks_by_assignee = {}
 
     # Process tasks for assignees
