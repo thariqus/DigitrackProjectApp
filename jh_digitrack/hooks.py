@@ -144,8 +144,11 @@ permission_query_conditions = {
 doc_events = {
     "User": {
         "before_save": "jh_digitrack.setup.user_events.before_save",
+    },
+    "JH Digitrack Settings": {
+        "before_save": "jh_digitrack.jh_digitrack.doc_events.user_manual_route.populate_user_manual",
     }
-}
+}     
 
 # Scheduled Tasks
 # ---------------
