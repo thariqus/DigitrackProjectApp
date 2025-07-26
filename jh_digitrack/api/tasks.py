@@ -547,9 +547,15 @@ def scheduled_emails():
                     tasks.extend(assignee_tasks[task_type])
 
             if len(tasks) > 0 or len(changed_tasks) > 0:
+                if tasks:
+                    recipient = [tasks[0].creator_email]
+                    recipient_names=tasks[0].creator_name
+                elif changed_tasks:
+                    recipient = [changed_tasks[0].creator_email]
+                    recipient_names=changed_tasks[0].creator_name
                 frappe.sendmail(
                     expose_recipients="header",
-                    recipients=[tasks[0].assigned_to_email],
+                    recipients=recipient,
                     subject="DigiTrack: Task List(Assigned to you) - Pending / Upcoming / New",
                     message=generate_task_reminder_email(
                         tasks=assignee_tasks.get("past_due", []),
@@ -557,7 +563,9 @@ def scheduled_emails():
                         new_tasks=assignee_tasks.get("new", []),
                         type="assignee_scheduler", 
                         changed_tasks=changed_tasks, 
-                        recipient_name=tasks[0].assigned_to_name),
+                        recipient_name=recipient_names), delayed=False
+
+                    
                 )
 
                 # Mark scheduled_email_sent_at for all tasks sent to this assignee
@@ -578,15 +586,21 @@ def scheduled_emails():
             changed_tasks = assignor_tasks.get("changes", [])
 
             if len(tasks) > 0 or len(changed_tasks) > 0:
+                if tasks:
+                    recipient = [tasks[0].creator_email]
+                    recipient_names=tasks[0].creator_name
+                elif changed_tasks:
+                    recipient = [changed_tasks[0].creator_email]
+                    recipient_names=changed_tasks[0].creator_name
                 frappe.sendmail(
                     expose_recipients="header",
-                    recipients=[tasks[0].creator_email],
+                    recipients=recipient,
                     subject="DigiTrack: Task List(Created by you) - Pending",
                     message=generate_task_reminder_email(
                         tasks=tasks,
                         type="assignor_scheduler",
                         changed_tasks=changed_tasks, 
-                        recipient_name=tasks[0].creator_name),
+                        recipient_name=recipient_names), delayed=False 
                 )
                 # Mark scheduled_email_sent_at for all tasks sent to this assignor
                 # Only update if not already updated by assignee email (avoid duplicate updates)
@@ -1054,7 +1068,7 @@ def get_task_status_counts(jh_user_name):
     def get_audit_counts():
         result = frappe.db.sql("""
             SELECT status, COUNT(*) AS count
-            FROM `tabJH Audits`
+            FROM `tabJH Audit Master`
             WHERE created_by = %s
             GROUP BY status
         """, (jh_user_name,), as_dict=True)
@@ -1067,18 +1081,28 @@ def get_task_status_counts(jh_user_name):
             GROUP BY request_status
         """, (jh_user_name,), as_dict=True)
         return {row.request_status: row.count for row in result}
+    # def get_meeting_counts():
+    #     result = frappe.db.sql("""
+    #         SELECT COUNT(*) AS count
+    #         FROM `tabJH Grouped Task Master` task
+    #         WHERE task.status = 'Open'
+    #         AND EXISTS (
+    #             SELECT 1
+    #             FROM `tabJH User Child Table` child
+    #             WHERE child.parent = task.name
+    #             AND child.user = %s
+    #         )
+    #     """, (jh_user_name,), as_dict=True)
+
+    #     return {"open": result[0].count if result else 0}
+    
     def get_meeting_counts():
         result = frappe.db.sql("""
             SELECT COUNT(*) AS count
             FROM `tabJH Grouped Task Master` task
-            WHERE task.type = 'meeting'
-            AND task.status = 'Open'
-            AND EXISTS (
-                SELECT 1
-                FROM `tabJH User Child Table` child
-                WHERE child.parent = task.name
-                AND child.user = %s
-            )
+            WHERE task.status = 'Open'
+            AND task.organizer = %s
+        
         """, (jh_user_name,), as_dict=True)
 
         return {"open": result[0].count if result else 0}
