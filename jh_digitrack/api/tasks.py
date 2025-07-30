@@ -483,7 +483,7 @@ def scheduled_emails():
     tasks_by_assignor = {}
 
     # Process past due tasks for assignees
-    for offset in range(0, 100000, chunk_size):
+    for offset in range(0, 1000, chunk_size):
         past_due_chunk = (
             past_due_assignee_query.limit(chunk_size).offset(offset).run(as_dict=True)
         )
@@ -492,7 +492,7 @@ def scheduled_emails():
         _process_task_chunk(past_due_chunk, tasks_by_assignee, {}, "past_due")
 
     # Process upcoming due tasks for assignees
-    for offset in range(0, 100000, chunk_size):
+    for offset in range(0, 1000, chunk_size):
         upcoming_chunk = (
             upcoming_due_assignee_query.limit(chunk_size).offset(offset).run(as_dict=True)
         )
@@ -501,7 +501,7 @@ def scheduled_emails():
         _process_task_chunk(upcoming_chunk, tasks_by_assignee, {}, "upcoming")
 
     # Process new tasks for assignees
-    for offset in range(0, 100000, chunk_size):
+    for offset in range(0, 1000, chunk_size):
         new_tasks_chunk = (
             new_tasks_assignee_query.limit(chunk_size).offset(offset).run(as_dict=True)
         )
@@ -510,7 +510,7 @@ def scheduled_emails():
         _process_task_chunk(new_tasks_chunk, tasks_by_assignee, {}, "new")
 
     # Process changes after last scheduled email for assignees
-    for offset in range(0, 100000, chunk_size):
+    for offset in range(0, 1000, chunk_size):
         changes_chunk = (
             changes_after_last_scheduled_email_assignee.limit(chunk_size).offset(offset).run(as_dict=True)
         )
@@ -519,7 +519,7 @@ def scheduled_emails():
         _process_task_chunk(changes_chunk, tasks_by_assignee, {}, "changes")
     
     # Process past due tasks for assignors
-    for offset in range(0, 100000, chunk_size):
+    for offset in range(0, 1000, chunk_size):
         past_due_chunk = (
             past_due_assignor_query.limit(chunk_size).offset(offset).run(as_dict=True)
         )
@@ -528,7 +528,7 @@ def scheduled_emails():
         _process_task_chunk(past_due_chunk, {}, tasks_by_assignor, "past_due")
 
     # Process changes after last scheduled email for assignors
-    for offset in range(0, 100000, chunk_size):
+    for offset in range(0, 1000, chunk_size):
         changes_chunk = (
             changes_after_last_scheduled_email_assignor.limit(chunk_size).offset(offset).run(as_dict=True)
         )
@@ -547,9 +547,15 @@ def scheduled_emails():
                     tasks.extend(assignee_tasks[task_type])
 
             if len(tasks) > 0 or len(changed_tasks) > 0:
+                if tasks:
+                    recipient = [tasks[0].creator_email]
+                    recipient_names=tasks[0].creator_name
+                elif changed_tasks:
+                    recipient = [changed_tasks[0].creator_email]
+                    recipient_names=changed_tasks[0].creator_name
                 frappe.sendmail(
                     expose_recipients="header",
-                    recipients=[tasks[0].assigned_to_email],
+                    recipients=recipient,
                     subject="DigiTrack: Task List(Assigned to you) - Pending / Upcoming / New",
                     message=generate_task_reminder_email(
                         tasks=assignee_tasks.get("past_due", []),
@@ -557,7 +563,9 @@ def scheduled_emails():
                         new_tasks=assignee_tasks.get("new", []),
                         type="assignee_scheduler", 
                         changed_tasks=changed_tasks, 
-                        recipient_name=tasks[0].assigned_to_name),
+                        recipient_name=recipient_names), delayed=False
+
+                    
                 )
 
                 # Mark scheduled_email_sent_at for all tasks sent to this assignee
@@ -578,15 +586,21 @@ def scheduled_emails():
             changed_tasks = assignor_tasks.get("changes", [])
 
             if len(tasks) > 0 or len(changed_tasks) > 0:
+                if tasks:
+                    recipient = [tasks[0].creator_email]
+                    recipient_names=tasks[0].creator_name
+                elif changed_tasks:
+                    recipient = [changed_tasks[0].creator_email]
+                    recipient_names=changed_tasks[0].creator_name
                 frappe.sendmail(
                     expose_recipients="header",
-                    recipients=[tasks[0].creator_email],
+                    recipients=recipient,
                     subject="DigiTrack: Task List(Created by you) - Pending",
                     message=generate_task_reminder_email(
                         tasks=tasks,
                         type="assignor_scheduler",
                         changed_tasks=changed_tasks, 
-                        recipient_name=tasks[0].creator_name),
+                        recipient_name=recipient_names), delayed=False 
                 )
                 # Mark scheduled_email_sent_at for all tasks sent to this assignor
                 # Only update if not already updated by assignee email (avoid duplicate updates)
@@ -719,7 +733,7 @@ def remind_all_by_source(source_id: str):
 
     # Execute queries with pagination to handle large datasets
     # Process in chunks to avoid memory issues
-    chunk_size = 1000
+    chunk_size = 1000000
     tasks_by_assignee = {}
 
     # Process tasks for assignees
@@ -1046,6 +1060,7 @@ def get_task_status_counts(jh_user_name):
             SELECT status, COUNT(*) AS count
             FROM `tabJH Task Master`
             WHERE `{0}` = %s AND status IN ('Open', 'In Progress')
+                               AND deleted_at IS NULL
             GROUP BY status
         """.format(field_name), (jh_user_name,), as_dict=True)
 
@@ -1053,7 +1068,7 @@ def get_task_status_counts(jh_user_name):
     def get_audit_counts():
         result = frappe.db.sql("""
             SELECT status, COUNT(*) AS count
-            FROM `tabJH Audits`
+            FROM `tabJH Audit Master`
             WHERE created_by = %s
             GROUP BY status
         """, (jh_user_name,), as_dict=True)
@@ -1070,38 +1085,17 @@ def get_task_status_counts(jh_user_name):
         result = frappe.db.sql("""
             SELECT COUNT(*) AS count
             FROM `tabJH Grouped Task Master` task
-            WHERE task.type = 'meeting'
-            AND task.status = 'Open'
-            AND EXISTS (
-                SELECT 1
-                FROM `tabJH User Child Table` child
-                WHERE child.parent = task.name
-                AND child.user = %s
-            )
+            WHERE task.status = 'Open'
+            AND task.organizer = %s
+        
         """, (jh_user_name,), as_dict=True)
 
         return {"open": result[0].count if result else 0}
-    def get_team_task_counts():
-        result = frappe.db.sql("""
-            SELECT COUNT(*) AS count
-            FROM `tabJH Grouped Task Master` task
-            WHERE task.type = 'group_task'
-            AND task.status = 'Open'
-            AND EXISTS (
-                SELECT 1
-                FROM `tabJH User Child Table` child
-                WHERE child.parent = task.name
-                AND child.user = %s
-            )
-        """, (jh_user_name,), as_dict=True)
-
-        return {"Open": result[0].count if result else 0}
-
+    
     return {
         "my_tasks": get_counts("assigned_to"),
         "created_by_me": get_counts("created_by"),
         "audits": get_audit_counts(),
         "travel_request": get_travel_counts(),
         "meetings": get_meeting_counts(),
-        "team_tasks": get_team_task_counts()
     }

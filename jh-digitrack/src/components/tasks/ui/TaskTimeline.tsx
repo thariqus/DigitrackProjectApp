@@ -10,7 +10,7 @@ import { MessageSquare, Send } from "lucide-react";
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Task } from "@/types/tasks";
-
+import { Textarea } from "@/components/ui/textarea";
 type TaskTimelineProps = {
   taskId: string;
 };
@@ -302,18 +302,18 @@ export default function TaskTimeline({ taskId }: TaskTimelineProps) {
 
       {/* Comment input */}
       <div className="flex gap-2 mt-6 pt-4 border-t">
-        <Input
-          value={comment}
-          onChange={(e) => setComment(e.target.value)}
-          placeholder="Add a comment..."
-          className="flex-1"
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              handleAddComment();
-            }
-          }}
-        />
+      <Textarea
+        value={comment}
+        onChange={(e) => setComment(e.target.value)}
+        placeholder="Add a comment..."
+        className="flex-1"
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && !e.shiftKey && !e.altKey) {
+            e.preventDefault();
+            handleAddComment();
+          }
+        }}
+      />
         <Button
           onClick={handleAddComment}
           size="icon"

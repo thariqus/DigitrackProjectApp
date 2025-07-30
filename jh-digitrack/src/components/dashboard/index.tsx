@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { TaskFilters } from "../tasks/ui/task-filters";
-// import { getTravelRequests } from "@/hooks/travel_request";
 import { TaskCardGrid } from "./ui/TaskCardGrid";
-// import { CardFilters } from "./ui/CardFilters"; 
 
 const Dashboard = () => {
   const [activeFilter, setActiveFilter] = useState("dashboard");
@@ -19,9 +17,6 @@ const Dashboard = () => {
         break;
       case "created-by-me":
         setDescription("Tasks that you have created.");
-        break;
-      case "team-tasks":
-        setDescription("All tasks assigned to your team members.");
         break;
     }
   }, [activeFilter]);
@@ -46,18 +41,11 @@ const Dashboard = () => {
           onDescriptionChange={setDescription}
         />
 
-        {/* <CardFilters
-          onDateChange={(fromDate, toDate) => {
-            console.log("Selected Date Range:", fromDate, toDate);
-            // Optional: Update state or trigger API refetch here
-          }}
-        /> */}
       </div>
 
       {activeFilter === "dashboard" && (
         <>
           <TaskCardGrid />
-          {/* {!loading && <TravelRequestTable data={travelRequests} />} */}
         </>
       )}
     </div>

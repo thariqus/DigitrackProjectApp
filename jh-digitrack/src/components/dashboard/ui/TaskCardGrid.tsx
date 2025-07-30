@@ -12,7 +12,6 @@ const initialCounts = {
   travel_request: {approval_pending: 0, urgent: 0, reconfirmation_pending: 0,},
   my_tasks: { open: 0, in_progress: 0},
   created_by_me: { open: 0, in_progress: 0 },
-  team_tasks: { open: 0, in_progress: 0},
 };
 
 export const TaskCardGrid = () => {
@@ -55,14 +54,12 @@ export const TaskCardGrid = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <TaskCard title="My Tasks" filterKey="my-tasks" counts={counts.my_tasks} />
         <TaskCard title="Created By Me" filterKey="created-by-me" counts={counts.created_by_me} />
-        <TaskCard title="Team Tasks" filterKey="team-tasks" counts={counts.team_tasks} />
+        <TravelRequestCard title="Travel Requests" filterKey="dashboard" counts={counts.travel_request} />
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         <AuditCard title="Audits" filterKey="dashboard" count={counts.audits?.open || 0} />
         <MeetingCard title="Meetings" filterKey="dashboard" count={counts.meetings?.open || 0} />
         <ProjectCard title="Projects" filterKey="dashboard" count={counts.projects?.open || 0} />
-        <TravelRequestCard title="Travel Requests" filterKey="dashboard" counts={counts.travel_request} />
-        
       </div>
     </>
   );
