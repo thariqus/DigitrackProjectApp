@@ -478,12 +478,12 @@ def scheduled_emails():
 
     # Execute queries with pagination to handle large datasets
     # Process in chunks to avoid memory issues
-    chunk_size = 1000000
+    chunk_size = 1000
     tasks_by_assignee = {}
     tasks_by_assignor = {}
 
     # Process past due tasks for assignees
-    for offset in range(0, 100000, chunk_size):
+    for offset in range(0, 1000, chunk_size):
         past_due_chunk = (
             past_due_assignee_query.limit(chunk_size).offset(offset).run(as_dict=True)
         )
@@ -492,7 +492,7 @@ def scheduled_emails():
         _process_task_chunk(past_due_chunk, tasks_by_assignee, {}, "past_due")
 
     # Process upcoming due tasks for assignees
-    for offset in range(0, 100000, chunk_size):
+    for offset in range(0, 1000, chunk_size):
         upcoming_chunk = (
             upcoming_due_assignee_query.limit(chunk_size).offset(offset).run(as_dict=True)
         )
@@ -501,7 +501,7 @@ def scheduled_emails():
         _process_task_chunk(upcoming_chunk, tasks_by_assignee, {}, "upcoming")
 
     # Process new tasks for assignees
-    for offset in range(0, 100000, chunk_size):
+    for offset in range(0, 1000, chunk_size):
         new_tasks_chunk = (
             new_tasks_assignee_query.limit(chunk_size).offset(offset).run(as_dict=True)
         )
@@ -510,7 +510,7 @@ def scheduled_emails():
         _process_task_chunk(new_tasks_chunk, tasks_by_assignee, {}, "new")
 
     # Process changes after last scheduled email for assignees
-    for offset in range(0, 100000, chunk_size):
+    for offset in range(0, 1000, chunk_size):
         changes_chunk = (
             changes_after_last_scheduled_email_assignee.limit(chunk_size).offset(offset).run(as_dict=True)
         )
@@ -519,7 +519,7 @@ def scheduled_emails():
         _process_task_chunk(changes_chunk, tasks_by_assignee, {}, "changes")
     
     # Process past due tasks for assignors
-    for offset in range(0, 100000, chunk_size):
+    for offset in range(0, 1000, chunk_size):
         past_due_chunk = (
             past_due_assignor_query.limit(chunk_size).offset(offset).run(as_dict=True)
         )
@@ -528,7 +528,7 @@ def scheduled_emails():
         _process_task_chunk(past_due_chunk, {}, tasks_by_assignor, "past_due")
 
     # Process changes after last scheduled email for assignors
-    for offset in range(0, 100000, chunk_size):
+    for offset in range(0, 1000, chunk_size):
         changes_chunk = (
             changes_after_last_scheduled_email_assignor.limit(chunk_size).offset(offset).run(as_dict=True)
         )
@@ -1081,21 +1081,6 @@ def get_task_status_counts(jh_user_name):
             GROUP BY request_status
         """, (jh_user_name,), as_dict=True)
         return {row.request_status: row.count for row in result}
-    # def get_meeting_counts():
-    #     result = frappe.db.sql("""
-    #         SELECT COUNT(*) AS count
-    #         FROM `tabJH Grouped Task Master` task
-    #         WHERE task.status = 'Open'
-    #         AND EXISTS (
-    #             SELECT 1
-    #             FROM `tabJH User Child Table` child
-    #             WHERE child.parent = task.name
-    #             AND child.user = %s
-    #         )
-    #     """, (jh_user_name,), as_dict=True)
-
-    #     return {"open": result[0].count if result else 0}
-    
     def get_meeting_counts():
         result = frappe.db.sql("""
             SELECT COUNT(*) AS count
@@ -1106,27 +1091,11 @@ def get_task_status_counts(jh_user_name):
         """, (jh_user_name,), as_dict=True)
 
         return {"open": result[0].count if result else 0}
-    # def get_team_task_counts():
-    #     result = frappe.db.sql("""
-    #         SELECT COUNT(*) AS count
-    #         FROM `tabJH Grouped Task Master` task
-    #         WHERE task.type = 'group_task'
-    #         AND task.status = 'Open'
-    #         AND EXISTS (
-    #             SELECT 1
-    #             FROM `tabJH User Child Table` child
-    #             WHERE child.parent = task.name
-    #             AND child.user = %s
-    #         )
-    #     """, (jh_user_name,), as_dict=True)
-
-    #     return {"Open": result[0].count if result else 0}
-
+    
     return {
         "my_tasks": get_counts("assigned_to"),
         "created_by_me": get_counts("created_by"),
         "audits": get_audit_counts(),
         "travel_request": get_travel_counts(),
         "meetings": get_meeting_counts(),
-        # "team_tasks": get_team_task_counts()
     }
