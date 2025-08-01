@@ -548,11 +548,11 @@ def scheduled_emails():
 
             if len(tasks) > 0 or len(changed_tasks) > 0:
                 if tasks:
-                    recipient = [tasks[0].creator_email]
-                    recipient_names=tasks[0].creator_name
+                    recipient = [tasks[0].assigned_to_email]
+                    recipient_names=tasks[0].assigned_to_email
                 elif changed_tasks:
-                    recipient = [changed_tasks[0].creator_email]
-                    recipient_names=changed_tasks[0].creator_name
+                    recipient = [changed_tasks[0].assigned_to_email]
+                    recipient_names=changed_tasks[0].assigned_to_email
                 frappe.sendmail(
                     expose_recipients="header",
                     recipients=recipient,
