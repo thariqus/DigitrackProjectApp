@@ -302,18 +302,6 @@ export default function TaskTimeline({ taskId }: TaskTimelineProps) {
 
       {/* Comment input */}
       <div className="flex gap-2 mt-6 pt-4 border-t">
-        {/* <Input
-          value={comment}
-          onChange={(e) => setComment(e.target.value)}
-          placeholder="Add a comment..."
-          className="flex-1"
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              handleAddComment();
-            }
-          }}
-        /> */}
       <Textarea
         value={comment}
         onChange={(e) => setComment(e.target.value)}
