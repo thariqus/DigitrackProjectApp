@@ -1,0 +1,481 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Employee Search</title>
+  <link rel="icon" href="/assets/jh_digitrack/jh-digitrack/jaleel-holdings-1.png" />
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: #f8f9fa;
+      min-height: 100vh;
+    }
+
+    .logo {
+      margin-top: 80px;
+      width: 160px;
+    }
+
+    .search-container {
+      margin-top: 40px;
+      width: 100%;
+      max-width: 600px;
+      display: flex;
+      align-items: center;
+      border: 1px solid #ccc;
+      border-radius: 50px;
+      padding: 10px 20px;
+      background-color: white;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .search-container input {
+      flex: 1;
+      border: none;
+      outline: none;
+      font-size: 18px;
+      padding: 8px 12px;
+      border-radius: 50px;
+    }
+
+    .search-container button {
+      background: white; 
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      margin-left: 10px;
+      border-radius: 50px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .search-container button:hover {
+      background: #948a8ac3;
+    }
+
+    #results {
+      margin-top: 40px;
+      width: 90%;
+      max-width: 900px;
+      font-size: 14px;
+      color: #333;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.3s ease;
+    }
+
+    #results.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    th, td {
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+    }
+
+    th {
+      background: #310202;
+      color: white;
+    }
+
+    tr:hover {
+      background-color: #f1f7ff;
+      cursor: pointer;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.5);
+      animation: fadeIn 0.3s;
+      overflow-y: auto;
+    }
+
+    .modal-content {
+      background-color: #fff;
+      margin: 5% auto;
+      padding: 30px;
+      border-radius: 12px;
+      max-width: 1200px; 
+      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+      animation: slideIn 0.3s;
+    }
+
+    .modal-content h2 {
+      margin-top: 0;
+      color: #f28b82;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .close {
+      float: right;
+      font-size: 28px;
+      cursor: pointer;
+      color: #999;
+    }
+
+    .close:hover {
+      color: #333;
+    }
+
+    .details-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px 24px;
+    }
+
+    .details-item {
+      background: #f9f9f9;
+      padding: 10px 15px;
+      border-radius: 6px;
+      border: 1px solid #eee;
+    }
+
+    .details-item strong {
+      display: block;
+      color: #b30000;
+      margin-bottom: 4px;
+      font-size: 13px;
+    }
+    .page-title {
+      margin-top: 25px;
+      font-size: 36px;
+      font-weight: 700;
+      font-family: "Poppins", "Segoe UI", sans-serif;
+      text-align: center;
+      color: #222;
+      letter-spacing: 1px;
+      display: inline-block;
+      background: linear-gradient(90deg, #8b0000, #ff4d4d);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: fadeInUp 0.8s ease-out;
+    }
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+    .page-title::before,
+    .page-title::after {
+      content: "";
+      position: absolute;
+      height: 3px;
+      width: 50px;
+      background: #ff4d4d;
+      bottom: -10px;
+      border-radius: 2px;
+      animation: growLine 1s ease-out;
+    }
+
+    .page-title::before {
+      left: 0;
+      transform: translateX(-120%);
+    }
+
+    .page-title::after {
+      right: 0;
+      transform: translateX(120%);
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes growLine {
+      from { width: 0; opacity: 0; }
+      to { width: 50px; opacity: 1; }
+    }
+
+    @keyframes fadeIn {
+      from {opacity: 0;}
+      to {opacity: 1;}
+    }
+    @keyframes slideIn {
+      from {transform: translateY(-30px); opacity: 0;}
+      to {transform: translateY(0); opacity: 1;}
+    }
+.employee-modal {
+  max-width: 1200px;
+  width: 90%;
+  border-radius: 12px;
+  padding: 30px;
+}
+
+.modal-title {
+  text-align: center;
+  margin-bottom: 25px;
+  color:  #310202 !important;
+  font-weight: 600;
+}
+
+.profile-section {
+  display: flex;
+  gap: 40px;
+  margin-bottom: 20px;
+}
+
+.profile-left {
+  flex: 0 0 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.employee-name {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.employee-avatar {
+  width: 150px;
+  height: 150px;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 3px solid #eee;
+}
+
+.profile-right {
+  flex: 1;
+}
+
+.profile-right h4 {
+  margin-bottom: 15px;
+  color: #b30000;
+  font-size: 18px;
+  border-bottom: 2px solid #eee;
+  padding-bottom: 5px;
+}
+
+.contact-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.details-grid div {
+  background: #f7f7f7;
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+  font-size: 14px;
+}
+
+.details-grid div strong {
+  display: block;
+  color: #555;
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+
+.section-divider {
+  border: none;
+  border-top: 1px solid #ddd;
+  margin: 25px 0;
+}
+
+.job-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+}
+
+  </style>
+</head>
+<body>
+
+  <img class="logo" src="/assets/jh_digitrack/jh-digitrack/jaleel-holdings-1.png" alt="Logo" />
+  <h1 class="page-title">Employee Lookup</h1>
+  <div class="search-container">
+    <input type="text" id="search" placeholder="Search employee...">
+    <button onclick="searchEmployee()">🔍</button>
+  </div>
+
+  <div id="results"></div>
+
+<div id="employeeModal" class="modal">
+  <div class="modal-content employee-modal">
+    <span class="close">&times;</span>
+    <h2 class="modal-title">Employee Details</h2>
+
+    <div class="profile-section">
+      <div class="profile-left">
+        <h3 id="employeeFullName" class="employee-name"></h3>
+        <img id="employeeAvatar" class="employee-avatar" src="/assets/jh_digitrack/images/avatar-logo.png" alt="Avatar" />
+      </div>
+      <div class="profile-right">
+        <h4>Contact Info</h4>
+        <div id="contactDetails" class="details-grid contact-grid"></div>
+      </div>
+    </div>
+
+    <hr class="section-divider">
+
+    <div class="job-section">
+      <h4>Job Info</h4>
+      <div id="jobDetails" class="details-grid job-grid"></div>
+    </div>
+
+    <hr class="section-divider">
+
+    <div class="personal-section">
+      <h4>Personal Info</h4>
+      <div id="personalDetails" class="details-grid job-grid"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+async function searchEmployee() {
+  const query = document.getElementById('search').value;
+  if (!query) return;
+
+  try {
+    const res = await fetch(`/api/method/jh_digitrack.api.employee_search.search_employees?search=${query}`);
+    const data = await res.json();
+
+    const resultsEl = document.getElementById('results');
+    resultsEl.innerHTML = '';
+    resultsEl.classList.remove('show'); 
+
+    const employeeList = data?.message?.message;
+
+    if (Array.isArray(employeeList) && employeeList.length > 0) {
+      const table = document.createElement('table');
+
+      table.innerHTML = `
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>First Name</th>
+            <th>Last Name</th>
+            <th>Employee Code</th>
+            <th>Email</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      `;
+
+      const tbody = table.querySelector('tbody');
+
+      employeeList.forEach((emp, index) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${index + 1}</td>
+          <td>${emp.first_name || ''}</td>
+          <td>${emp.last_name || ''}</td>
+          <td>${emp.employee_code || ''}</td>
+          <td>${emp.mail_id || ''}</td>
+        `;
+
+        row.addEventListener('click', () => showEmployeeDetails(emp));
+
+        tbody.appendChild(row);
+      });
+
+      resultsEl.appendChild(table);
+      setTimeout(() => resultsEl.classList.add('show'), 50);
+    } else {
+      resultsEl.innerHTML = '<p>No employees found.</p>';
+      resultsEl.classList.add('show');
+    }
+  } catch (err) {
+    console.error("Fetch error:", err);
+    const resultsEl = document.getElementById('results');
+    resultsEl.innerHTML = '<p>An error occurred while fetching data.</p>';
+    resultsEl.classList.add('show');
+  }
+}
+
+async function showEmployeeDetails(emp) {
+  const modal = document.getElementById('employeeModal');
+  const avatarEl = document.getElementById('employeeAvatar');
+  const nameEl = document.getElementById('employeeFullName');
+  const contactContainer = document.getElementById('contactDetails');
+  const jobContainer = document.getElementById('jobDetails');
+  const personalContainer = document.getElementById('personalDetails');
+
+  try {
+    const res = await fetch(`/api/method/jh_digitrack.api.employee_search.get_employee_details?name=${emp.name}`);
+    const data = await res.json();
+    const fullEmp = data?.message?.message || emp;
+
+    const fullName = [fullEmp.first_name, fullEmp.middle_name, fullEmp.last_name]
+                      .filter(Boolean).join(" ");
+    nameEl.textContent = fullName || fullEmp.first_name || "Unknown Employee";
+
+    avatarEl.src = fullEmp.image || "/assets/jh_digitrack/images/avatar-logo.png";
+
+    contactContainer.innerHTML = "";
+    jobContainer.innerHTML = "";
+    personalContainer.innerHTML = "";
+
+    const skipFields = ["name","owner","creation","modified_by","modified","doctype","first_name","middle_name","last_name","image"];
+    const contactFields = ["mail_id","phone","mobile","company_email"];
+    const jobFields = ["employee_code","ou_name","department_name","designation_name","location_name","date_of_joining","reporting_manager","functional_reporting_manager","active"];
+    const personalFields = ["dob","gender","nationality","passport_number","passport_expiry_date","vis_expiry_date"];
+
+    Object.entries(fullEmp).forEach(([key,value]) => {
+      if(!value || skipFields.includes(key)) return;
+      const fieldHTML = `<div><strong>${formatKey(key)}</strong>${value}</div>`;
+
+      if(contactFields.includes(key)) {
+        contactContainer.innerHTML += fieldHTML;
+      } else if(jobFields.includes(key)) {
+        jobContainer.innerHTML += fieldHTML;
+      } else if(personalFields.includes(key)) {
+        personalContainer.innerHTML += fieldHTML;
+      }
+    });
+
+    modal.style.display = "block";
+    document.querySelector(".modal .close").onclick = () => modal.style.display = "none";
+    window.onclick = (event) => { if (event.target == modal) modal.style.display = "none"; };
+
+  } catch (err) {
+    console.error("Error fetching employee details:", err);
+  }
+}
+
+
+function formatKey(key) {
+  return key.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase());
+}
+
+document.getElementById("search").addEventListener("keypress", function (e) {
+  if (e.key === "Enter") searchEmployee();
+});
+</script>
+
+</body>
+</html>

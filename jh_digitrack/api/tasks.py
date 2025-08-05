@@ -548,11 +548,11 @@ def scheduled_emails():
 
             if len(tasks) > 0 or len(changed_tasks) > 0:
                 if tasks:
-                    recipient = [tasks[0].creator_email]
-                    recipient_names=tasks[0].creator_name
+                    recipient = [tasks[0].assigned_to_email]
+                    recipient_names=tasks[0].assigned_to_name
                 elif changed_tasks:
-                    recipient = [changed_tasks[0].creator_email]
-                    recipient_names=changed_tasks[0].creator_name
+                    recipient = [changed_tasks[0].assigned_to_email]
+                    recipient_names=changed_tasks[0].assigned_to_name
                 frappe.sendmail(
                     expose_recipients="header",
                     recipients=recipient,
@@ -1056,15 +1056,41 @@ def get_task_status_counts(jh_user_name):
         frappe.throw(_("JH User name is required"))
 
     def get_counts(field_name):
-        result = frappe.db.sql("""
+        extra_condition = ""
+        if field_name == "assigned_to":
+            extra_condition = "AND created_by != %(jh_user_name)s"
+
+        result = frappe.db.sql(f"""
             SELECT status, COUNT(*) AS count
             FROM `tabJH Task Master`
-            WHERE `{0}` = %s AND status IN ('Open', 'In Progress')
-                               AND deleted_at IS NULL
+            WHERE `{field_name}` = %(jh_user_name)s
+            {extra_condition}
+            AND status IN ('Open', 'In Progress')
+            AND deleted_at IS NULL
             GROUP BY status
-        """.format(field_name), (jh_user_name,), as_dict=True)
+        """, {"jh_user_name": jh_user_name}, as_dict=True)
 
-        return {row.status: row.count for row in result}
+        counts = {row.status: {"count": row.count, "ages": []} for row in result}
+
+        age_result = frappe.db.sql(f"""
+            SELECT status, DATEDIFF(CURDATE(), creation) AS age_in_days, COUNT(*) AS age_count
+            FROM `tabJH Task Master`
+            WHERE `{field_name}` = %(jh_user_name)s
+            {extra_condition}
+            AND status IN ('Open', 'In Progress')
+            GROUP BY status, age_in_days
+            ORDER BY age_in_days DESC
+        """, {"jh_user_name": jh_user_name}, as_dict=True)
+
+        for row in age_result:
+            if row.status in counts:
+                counts[row.status]["ages"].append({
+                    "age_in_days": row.age_in_days,
+                    "count": row.age_count
+                })
+
+        return counts
+    
     def get_audit_counts():
         result = frappe.db.sql("""
             SELECT status, COUNT(*) AS count
@@ -1081,20 +1107,6 @@ def get_task_status_counts(jh_user_name):
             GROUP BY request_status
         """, (jh_user_name,), as_dict=True)
         return {row.request_status: row.count for row in result}
-    # def get_meeting_counts():
-    #     result = frappe.db.sql("""
-    #         SELECT COUNT(*) AS count
-    #         FROM `tabJH Grouped Task Master` task
-    #         WHERE task.status = 'Open'
-    #         AND EXISTS (
-    #             SELECT 1
-    #             FROM `tabJH User Child Table` child
-    #             WHERE child.parent = task.name
-    #             AND child.user = %s
-    #         )
-    #     """, (jh_user_name,), as_dict=True)
-
-    #     return {"open": result[0].count if result else 0}
     
     def get_meeting_counts():
         result = frappe.db.sql("""
@@ -1106,21 +1118,6 @@ def get_task_status_counts(jh_user_name):
         """, (jh_user_name,), as_dict=True)
 
         return {"open": result[0].count if result else 0}
-    # def get_team_task_counts():
-    #     result = frappe.db.sql("""
-    #         SELECT COUNT(*) AS count
-    #         FROM `tabJH Grouped Task Master` task
-    #         WHERE task.type = 'group_task'
-    #         AND task.status = 'Open'
-    #         AND EXISTS (
-    #             SELECT 1
-    #             FROM `tabJH User Child Table` child
-    #             WHERE child.parent = task.name
-    #             AND child.user = %s
-    #         )
-    #     """, (jh_user_name,), as_dict=True)
-
-    #     return {"Open": result[0].count if result else 0}
 
     return {
         "my_tasks": get_counts("assigned_to"),
@@ -1128,5 +1125,4 @@ def get_task_status_counts(jh_user_name):
         "audits": get_audit_counts(),
         "travel_request": get_travel_counts(),
         "meetings": get_meeting_counts(),
-        # "team_tasks": get_team_task_counts()
     }

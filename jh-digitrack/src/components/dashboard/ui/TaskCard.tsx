@@ -1,6 +1,16 @@
 import { StatusCard } from "./StatusCard";
 
-const statuses = ["Open","In Progress"];
+const statuses = ["Open", "In Progress"];
+
+type AgeData = {
+  age_in_days: number;
+  count: number;
+};
+
+type StatusData = {
+  count: number;
+  ages?: AgeData[];
+};
 
 export const TaskCard = ({
   title,
@@ -9,14 +19,18 @@ export const TaskCard = ({
 }: {
   title: string;
   filterKey: string;
-  counts?: { [status: string]: number };
+  counts?: {
+    [status: string]: StatusData;
+  };
 }) => {
   const handleClick = () => {
     window.location.href = `/jh-digitrack/tasks?filter=${filterKey}`;
   };
 
-  const total =
-    (counts["Open"]|| 0) + (counts["In Progress"]|| 0);
+  const total = statuses.reduce(
+    (sum, status) => sum + (counts?.[status]?.count || 0),
+    0
+  );
 
   return (
     <div
@@ -34,12 +48,12 @@ export const TaskCard = ({
           <StatusCard
             key={status}
             status={status}
-            count={counts?.[status] || 0}
+            count={counts?.[status]?.count || 0}
+            ages={counts?.[status]?.ages || []}
+            type="task"
           />
         ))}
       </div>
     </div>
   );
 };
-
-
