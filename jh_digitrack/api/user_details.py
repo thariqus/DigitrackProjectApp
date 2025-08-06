@@ -115,7 +115,7 @@ def create_hrms_users():
             doc.middle_name = emp.get("MIDDLE_NAME")
             doc.company_name = emp.get("COMPANY_NAME")
             doc.date_of_joining = emp.get("DATE_OF_JOINING")
-            doc.dob = emp.get("DOB")
+            doc.dob = format_date(emp.get("DOB"))
             doc.gender = emp.get("GENDER")
             doc.mail_id = emp.get("MAIL_ID")
             doc.reporting_manager = emp.get("REPORTING_MANAGER")
@@ -171,3 +171,8 @@ def delete_existing_hrms_users():
     frappe.db.sql("DELETE FROM `tabHRMS Users`")
     frappe.db.commit()
 
+def format_date(value):
+    """Return only YYYY-MM-DD if value is a datetime string."""
+    if not value:
+        return None
+    return value.split("T")[0] if "T" in value else value
