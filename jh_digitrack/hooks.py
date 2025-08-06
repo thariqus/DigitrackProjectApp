@@ -167,6 +167,11 @@ scheduler_events = {
     # "monthly": [
     # 	"jh_digitrack.tasks.monthly"
     # ],
+    "cron": {
+        "0 1 * * *": [
+            "jh_digitrack.api.user_details.get_access_token"
+        ]
+    }
 }
 
 # Testing
