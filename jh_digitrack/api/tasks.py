@@ -18,7 +18,8 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.lib.enums import TA_CENTER
 import re
-
+from reportlab.platypus import KeepInFrame, Paragraph
+from reportlab.lib.styles import getSampleStyleSheet
 
 @frappe.whitelist()
 def team_tasks(reporting_to: str):
@@ -915,8 +916,11 @@ def create_task_pdf_content(tasks):
             for entry in combined_entries:
                 recent_entries.append(f"{entry['date']} : {entry['user']} \n{entry['text']}\n")
         
-            comments_text = "\n".join(recent_entries) if recent_entries else "-"
-            
+            if recent_entries:
+                comment_paragraphs = [Paragraph(entry, normal_style) for entry in recent_entries]
+                comments_cell = KeepInFrame(4.0*inch, 800, comment_paragraphs, mode='shrink')
+            else:
+                comments_cell = "-"            
             # Format Created By & Date column
             created_by_date = wrap_text(task.get("created_by", "-"), 15)
             if task.get("creation"):
@@ -945,7 +949,7 @@ def create_task_pdf_content(tasks):
                 task.get("completion_date").strftime("%d/%m/%Y") if task.get("completion_date") else "-",
                 status_and_effort,
                 clean_html(wrap_text(task.get("assignee_comments", "-"), 50)),
-                comments_text,
+                comments_cell,
             ]
             task_data.append(task_row)
         
@@ -1054,7 +1058,6 @@ from frappe import _
 def get_task_status_counts(jh_user_name):
     if not jh_user_name:
         frappe.throw(_("JH User name is required"))
-
     def get_counts(field_name):
         extra_condition = ""
         if field_name == "assigned_to":
@@ -1063,7 +1066,7 @@ def get_task_status_counts(jh_user_name):
         result = frappe.db.sql(f"""
             SELECT status, COUNT(*) AS count
             FROM `tabJH Task Master`
-            WHERE `{field_name}` = %(jh_user_name)s
+            WHERE {field_name} = %(jh_user_name)s
             {extra_condition}
             AND status IN ('Open', 'In Progress')
             AND deleted_at IS NULL
@@ -1073,24 +1076,40 @@ def get_task_status_counts(jh_user_name):
         counts = {row.status: {"count": row.count, "ages": []} for row in result}
 
         age_result = frappe.db.sql(f"""
-            SELECT status, DATEDIFF(CURDATE(), creation) AS age_in_days, COUNT(*) AS age_count
+            SELECT
+                status,
+                CASE
+                    WHEN DATE(COALESCE(revised_due_date, due_date)) >= CURDATE() THEN 'within_due'
+                    WHEN DATEDIFF(CURDATE(), DATE(COALESCE(revised_due_date, due_date))) BETWEEN 1 AND 10 THEN '1_10'
+                    WHEN DATEDIFF(CURDATE(), DATE(COALESCE(revised_due_date, due_date))) BETWEEN 11 AND 30 THEN '11_30'
+                    WHEN DATEDIFF(CURDATE(), DATE(COALESCE(revised_due_date, due_date))) > 30 THEN '30_plus'
+                END AS bucket,
+                COUNT(*) AS bucket_count
             FROM `tabJH Task Master`
-            WHERE `{field_name}` = %(jh_user_name)s
+            WHERE {field_name} = %(jh_user_name)s
             {extra_condition}
             AND status IN ('Open', 'In Progress')
-            GROUP BY status, age_in_days
-            ORDER BY age_in_days DESC
+            AND deleted_at IS NULL
+            GROUP BY status, bucket
         """, {"jh_user_name": jh_user_name}, as_dict=True)
 
+        bucket_labels = {
+            "within_due": "Within (Rev.) Due Dt.",
+            "1_10": "1 - 10 days overdue",
+            "11_30": "11 - 30 days overdue",
+            "30_plus": "30+ days overdue"
+        }
+
         for row in age_result:
-            if row.status in counts:
+            if row.status in counts and row.bucket:
                 counts[row.status]["ages"].append({
-                    "age_in_days": row.age_in_days,
-                    "count": row.age_count
+                    "label": bucket_labels[row.bucket],
+                    "count": row.bucket_count
                 })
 
         return counts
-    
+
+
     def get_audit_counts():
         result = frappe.db.sql("""
             SELECT status, COUNT(*) AS count

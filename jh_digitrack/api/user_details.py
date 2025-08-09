@@ -1,9 +1,9 @@
-
 import frappe
 from frappe import _ 
 import requests
 import json
 from frappe.utils.error import log_error
+from datetime import datetime
 
 @frappe.whitelist(allow_guest=True)
 def get_access_token():
@@ -32,6 +32,7 @@ def get_access_token():
     except Exception:
         frappe.log_error("HRMS Access Token Error", frappe.get_traceback())
 
+
 @frappe.whitelist(allow_guest=True)
 def fetch_hr_data(token):
     try:
@@ -51,72 +52,24 @@ def fetch_hr_data(token):
 
         frappe.log_error("External HR API Response", json.dumps(hr_data, indent=2))
 
-        local_payload = {
-            "Data": {
-                "Employee Data": hr_data[0].get("Data", {}).get("Employee Data", [])
-            }
-        }
-
-        # pass base_url in the site config.json inorder to fetch the exact url
-        delete_existing_hrms_users()
-        base_url = frappe.get_site_config().get("base_url")
-        print("base_url", base_url)
-        user = frappe.get_doc("User", "Administrator")  
-        api_key = user.api_key
-        api_secret = frappe.utils.password.get_decrypted_password("User", "Administrator", "api_secret")
-        
-        authorization_token = f"Token {api_key}:{api_secret}"
-        print("authorization",authorization_token)
-        local_api_url = f"{base_url}/api/method/jh_digitrack.api.user_details.create_hrms_users"
-        post_response = requests.post(
-            local_api_url,
-            json=local_payload,
-            headers={
-                "Authorization": authorization_token,
-                "Content-Type": "application/json",
-                "Accept": "application/json",
-                "Expect": "" 
-            }
-        )
-        post_response.raise_for_status()
-
-        frappe.log_error("Internal HRMS User Creation Response", post_response.text)
-
-        return {
-            "status": "success",
-            "message": "HRMS Users created successfully",
-            "external_api_response": hr_data,
-            "internal_api_response": post_response.json()
-        }
-
-    except Exception:
-        frappe.log_error("HRMS Data Fetch Error", frappe.get_traceback())
-        frappe.response["http_status_code"] = 500
-        frappe.response["message"] = "Error fetching or posting HRMS data"
-
-@frappe.whitelist(allow_guest=True)
-def create_hrms_users():
-    try:
-        data = frappe.request.get_json()
-        employees = data.get("Data", {}).get("Employee Data", [])
-
-        if not employees:
-            frappe.response["http_status_code"] = 400
-            frappe.response["message"] = "No employee data received"
+        new_users = hr_data[0].get("Data", {}).get("Employee Data", [])
+        if not new_users:
+            frappe.throw("No employee data received from HRMS")
             return
 
-        created_docs = []
+        frappe.db.sql("DELETE FROM `tabHRMS Users`")
 
-        for emp in employees:
+        for emp in new_users:
             doc = frappe.new_doc("HRMS Users")
             doc.employee_code = emp.get("EMPLOYEE_CODE")
             doc.first_name = emp.get("FIRST_NAME")
             doc.last_name = emp.get("LAST_NAME")
             doc.middle_name = emp.get("MIDDLE_NAME")
             doc.company_name = emp.get("COMPANY_NAME")
-            doc.date_of_joining = emp.get("DATE_OF_JOINING")
+            doc.date_of_joining = format_date(emp.get("DATE_OF_JOINING"))
             doc.dob = format_date(emp.get("DOB"))
-            doc.gender = emp.get("GENDER")
+            gender_map = {"M": "Male", "F": "Female"}
+            doc.gender = gender_map.get(emp.get("GENDER"), emp.get("GENDER") or "N/A")
             doc.mail_id = emp.get("MAIL_ID")
             doc.reporting_manager = emp.get("REPORTING_MANAGER")
             doc.funcational_reporting_manager = emp.get("FUNCATIONAL_REPORTING_MANAGER")
@@ -158,21 +111,26 @@ def create_hrms_users():
             doc.emp_notice_period = emp.get("EMP_NOTICE_PERIOD")
             doc.cost_center_name = emp.get("COST_CENTER_NAME")
             doc.employee_job_status = emp.get("EMPLOYEE_JOB_STATUS")
-
             doc.insert(ignore_permissions=True)
-            created_docs.append(doc.name)
 
-    except Exception as e:
-        frappe.log_error(frappe.get_traceback(), "HRMS Users Bulk Creation Error")
+        frappe.db.commit()
+
+    except Exception:
+        frappe.db.rollback()  
+        frappe.log_error("HRMS Data Fetch Error", frappe.get_traceback())
         frappe.response["http_status_code"] = 500
-        frappe.response["message"] = "Error while creating HRMS Users"
+        frappe.response["message"] = "Error fetching or posting HRMS data"
 
-def delete_existing_hrms_users():
-    frappe.db.sql("DELETE FROM `tabHRMS Users`")
-    frappe.db.commit()
 
 def format_date(value):
-    """Return only YYYY-MM-DD if value is a datetime string."""
+    """Return date in DD-MM-YYYY format from a datetime or date string."""
     if not value:
         return None
-    return value.split("T")[0] if "T" in value else value
+    try:
+        date_str = value.split("T")[0] if "T" in value else value
+        dt = datetime.strptime(date_str, "%Y-%m-%d")
+        return dt.strftime("%d-%m-%Y")
+    except Exception:
+        return value 
+
+

@@ -3,7 +3,7 @@ import { StatusCard } from "./StatusCard";
 const statuses = ["Open", "In Progress"];
 
 type AgeData = {
-  age_in_days: number;
+  label: string;
   count: number;
 };
 
