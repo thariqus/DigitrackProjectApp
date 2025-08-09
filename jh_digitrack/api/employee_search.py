@@ -5,13 +5,23 @@ def search_employees(search):
     if not search:
         return {"message": []}
 
-    employees = frappe.get_all(
-        "HRMS Users",
-        filters={"first_name": ["like", f"%{search}%"]},
-        fields=["name", "first_name", "last_name", "employee_code", "mail_id"]
-    )
-    if isinstance(employees, dict):
-        employees = list(employees.values())
+    search = f"%{search}%"
+
+    employees = frappe.db.sql("""
+        SELECT 
+            name,
+            first_name,
+            last_name,
+            employee_code,
+            mail_id                 
+        FROM `tabHRMS Users`
+        WHERE 
+            first_name LIKE %(search)s
+            OR last_name LIKE %(search)s
+            OR employee_code LIKE %(search)s
+        
+    """, {"search": search}, as_dict=True)
+
     return {"message": employees}
 
 @frappe.whitelist(allow_guest=True)
