@@ -2,8 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <!-- <meta name="viewport" content="width=device-width, initial-scale=1.0"/> -->
   <title>Employee Search</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+
+
   <link rel="icon" href="/assets/jh_digitrack/jh-digitrack/jaleel-holdings-1.png" />
 
   <style>
@@ -702,11 +705,6 @@ searchInput.addEventListener("input", () => {
     currentRows = [];
     selectedRowIndex = -1;
     lastSearchQuery = "";
-  }
-});
-window.addEventListener('load', () => {
-  if (navigator.userAgent.includes("Windows")) {
-    document.body.style.zoom = "75%";
   }
 });
 
