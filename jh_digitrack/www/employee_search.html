@@ -704,6 +704,11 @@ searchInput.addEventListener("input", () => {
     lastSearchQuery = "";
   }
 });
+window.addEventListener('load', () => {
+  if (navigator.userAgent.includes("Windows")) {
+    document.body.style.zoom = "75%";
+  }
+});
 
 
 </script>
