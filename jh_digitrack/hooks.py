@@ -157,7 +157,7 @@ scheduler_events = {
     # "all": [
     # 	"jh_digitrack.tasks.all"
     # ],
-    "daily": ["jh_digitrack.api.tasks.scheduled_emails"],
+    # "daily": ["jh_digitrack.api.tasks.scheduled_emails"],
     # "hourly": [
     # 	"jh_digitrack.tasks.hourly"
     # ],
