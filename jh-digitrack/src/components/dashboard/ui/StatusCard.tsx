@@ -46,7 +46,7 @@ export const StatusCard = ({
       type
     )} p-4 shadow hover:shadow-md transition text-center`}
   >
-    <div className="text-sm text-gray-600">{status}</div>
+    <div className="min-h-[2.5rem] text-sm text-gray-600">{status}</div>
 
     <div
       className={`mt-1 text-3xl font-bold ${
@@ -70,3 +70,5 @@ export const StatusCard = ({
 
   </div>
 );
+
+
