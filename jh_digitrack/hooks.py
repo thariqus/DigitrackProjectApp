@@ -153,7 +153,7 @@ doc_events = {
 # Scheduled Tasks
 # ---------------
 
-scheduler_events = {
+# scheduler_events = {
     # "all": [
     # 	"jh_digitrack.tasks.all"
     # ],
@@ -167,12 +167,12 @@ scheduler_events = {
     # "monthly": [
     # 	"jh_digitrack.tasks.monthly"
     # ],
-    "cron": {
-        "0 1 * * *": [
-            "jh_digitrack.api.user_details.get_access_token"
-        ]
-    }
-}
+#     "cron": {
+#         "0 1 * * *": [
+#             "jh_digitrack.api.user_details.get_access_token"
+#         ]
+#     }
+# }
 
 # Testing
 # -------
