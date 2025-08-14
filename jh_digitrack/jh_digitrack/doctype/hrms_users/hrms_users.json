@@ -1,0 +1,366 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-08-05 15:38:49.510614",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_iuph",
+  "employee_code",
+  "first_name",
+  "middle_name",
+  "last_name",
+  "company_name",
+  "date_of_joining",
+  "column_break_moix",
+  "dob",
+  "gender",
+  "mail_id",
+  "reporting_manager",
+  "funcational_reporting_manager",
+  "section_break_zrpl",
+  "ou_name",
+  "department_name",
+  "location_name",
+  "designation_name",
+  "grade_name",
+  "column_break_hocr",
+  "region",
+  "country",
+  "city",
+  "column_break_y7eo",
+  "position",
+  "cost_center",
+  "pay_group",
+  "section_break_lv0q",
+  "employee_status",
+  "vis_expiry_date",
+  "ic_valid_till_date",
+  "active",
+  "effctive_from",
+  "created_on",
+  "created_by",
+  "modified_on",
+  "modified_by1",
+  "column_break_cr7w",
+  "company_sponsor",
+  "visa_designation",
+  "passport_number",
+  "passport_expiry_date",
+  "personal_code",
+  "work_permit_number",
+  "nationality",
+  "eid_number",
+  "entity_name",
+  "coi_expiry_date",
+  "coi_no",
+  "vis_sponsor",
+  "emp_salutation",
+  "emp_confirmationdate",
+  "emp_confirmation_due_on",
+  "emp_notice_period",
+  "cost_center_name",
+  "employee_job_status"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_iuph",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "employee_code",
+   "fieldtype": "Data",
+   "label": "EMPLOYEE CODE"
+  },
+  {
+   "fieldname": "first_name",
+   "fieldtype": "Data",
+   "label": "FIRST NAME"
+  },
+  {
+   "fieldname": "middle_name",
+   "fieldtype": "Data",
+   "label": "MIDDLE NAME"
+  },
+  {
+   "fieldname": "last_name",
+   "fieldtype": "Data",
+   "label": "LAST NAME"
+  },
+  {
+   "fieldname": "company_name",
+   "fieldtype": "Data",
+   "label": "COMPANY NAME"
+  },
+  {
+   "fieldname": "date_of_joining",
+   "fieldtype": "Data",
+   "label": "DATE OF JOINING"
+  },
+  {
+   "fieldname": "column_break_moix",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "dob",
+   "fieldtype": "Data",
+   "label": "DOB"
+  },
+  {
+   "fieldname": "gender",
+   "fieldtype": "Data",
+   "label": "GENDER"
+  },
+  {
+   "fieldname": "mail_id",
+   "fieldtype": "Data",
+   "label": "MAIL ID"
+  },
+  {
+   "fieldname": "reporting_manager",
+   "fieldtype": "Data",
+   "label": "REPORTING MANAGER"
+  },
+  {
+   "fieldname": "funcational_reporting_manager",
+   "fieldtype": "Data",
+   "label": "FUNCATIONAL REPORTING MANAGER"
+  },
+  {
+   "fieldname": "section_break_zrpl",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "ou_name",
+   "fieldtype": "Data",
+   "label": "OU NAME"
+  },
+  {
+   "fieldname": "department_name",
+   "fieldtype": "Data",
+   "label": "DEPARTMENT NAME"
+  },
+  {
+   "fieldname": "location_name",
+   "fieldtype": "Data",
+   "label": "LOCATION NAME"
+  },
+  {
+   "fieldname": "designation_name",
+   "fieldtype": "Data",
+   "label": "DESIGNATION NAME"
+  },
+  {
+   "fieldname": "grade_name",
+   "fieldtype": "Data",
+   "label": "GRADE NAME"
+  },
+  {
+   "fieldname": "column_break_hocr",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "region",
+   "fieldtype": "Data",
+   "label": "REGION"
+  },
+  {
+   "fieldname": "country",
+   "fieldtype": "Data",
+   "label": "COUNTRY"
+  },
+  {
+   "fieldname": "city",
+   "fieldtype": "Data",
+   "label": "CITY"
+  },
+  {
+   "fieldname": "column_break_y7eo",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "position",
+   "fieldtype": "Data",
+   "label": "POSITION"
+  },
+  {
+   "fieldname": "cost_center",
+   "fieldtype": "Data",
+   "label": "COST CENTER"
+  },
+  {
+   "fieldname": "pay_group",
+   "fieldtype": "Data",
+   "label": "PAY GROUP"
+  },
+  {
+   "fieldname": "section_break_lv0q",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "employee_status",
+   "fieldtype": "Data",
+   "label": "EMPLOYEE STATUS"
+  },
+  {
+   "fieldname": "vis_expiry_date",
+   "fieldtype": "Data",
+   "label": "VIS EXPIRY DATE"
+  },
+  {
+   "fieldname": "ic_valid_till_date",
+   "fieldtype": "Data",
+   "label": "IC VALID TILL DATE"
+  },
+  {
+   "fieldname": "active",
+   "fieldtype": "Data",
+   "label": "ACTIVE"
+  },
+  {
+   "fieldname": "effctive_from",
+   "fieldtype": "Data",
+   "label": "EFFCTIVE FROM"
+  },
+  {
+   "fieldname": "created_on",
+   "fieldtype": "Data",
+   "label": "CREATED ON"
+  },
+  {
+   "fieldname": "created_by",
+   "fieldtype": "Data",
+   "label": "CREATED BY"
+  },
+  {
+   "fieldname": "modified_on",
+   "fieldtype": "Data",
+   "label": "MODIFIED ON"
+  },
+  {
+   "fieldname": "modified_by1",
+   "fieldtype": "Data",
+   "label": "MODIFIED BY"
+  },
+  {
+   "fieldname": "column_break_cr7w",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "company_sponsor",
+   "fieldtype": "Data",
+   "label": "COMPANY SPONSOR"
+  },
+  {
+   "fieldname": "visa_designation",
+   "fieldtype": "Data",
+   "label": "VISA DESIGNATION"
+  },
+  {
+   "fieldname": "passport_number",
+   "fieldtype": "Data",
+   "label": "PASSPORT NUMBER"
+  },
+  {
+   "fieldname": "passport_expiry_date",
+   "fieldtype": "Data",
+   "label": "PASSPORT EXPIRY DATE"
+  },
+  {
+   "fieldname": "personal_code",
+   "fieldtype": "Data",
+   "label": "PERSONAL CODE"
+  },
+  {
+   "fieldname": "work_permit_number",
+   "fieldtype": "Data",
+   "label": "WORK PERMIT NUMBER"
+  },
+  {
+   "fieldname": "nationality",
+   "fieldtype": "Data",
+   "label": "NATIONALITY"
+  },
+  {
+   "fieldname": "eid_number",
+   "fieldtype": "Data",
+   "label": "EID NUMBER"
+  },
+  {
+   "fieldname": "entity_name",
+   "fieldtype": "Data",
+   "label": "ENTITY NAME"
+  },
+  {
+   "fieldname": "coi_expiry_date",
+   "fieldtype": "Data",
+   "label": "COI EXPIRY DATE"
+  },
+  {
+   "fieldname": "coi_no",
+   "fieldtype": "Data",
+   "label": "COI NO"
+  },
+  {
+   "fieldname": "vis_sponsor",
+   "fieldtype": "Data",
+   "label": "VIS SPONSOR"
+  },
+  {
+   "fieldname": "emp_salutation",
+   "fieldtype": "Data",
+   "label": "EMP SALUTATION"
+  },
+  {
+   "fieldname": "emp_confirmationdate",
+   "fieldtype": "Data",
+   "label": "EMP CONFIRMATIONDATE"
+  },
+  {
+   "fieldname": "emp_confirmation_due_on",
+   "fieldtype": "Data",
+   "label": "EMP CONFIRMATION DUE ON"
+  },
+  {
+   "fieldname": "emp_notice_period",
+   "fieldtype": "Data",
+   "label": "EMP NOTICE PERIOD"
+  },
+  {
+   "fieldname": "cost_center_name",
+   "fieldtype": "Data",
+   "label": "COST CENTER NAME"
+  },
+  {
+   "fieldname": "employee_job_status",
+   "fieldtype": "Data",
+   "label": "EMPLOYEE JOB STATUS"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-08-05 15:45:36.602337",
+ "modified_by": "Administrator",
+ "module": "JH Digitrack",
+ "name": "HRMS Users",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

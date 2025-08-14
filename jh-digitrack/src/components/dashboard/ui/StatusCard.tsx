@@ -23,14 +23,21 @@ const getBorderColor = (status: string, type?: string) => {
       return "border-gray-200";
   }
 };
-
+const ageOrder = [
+  "Within (Rev.) Due Dt.",
+  "1 - 10 days overdue",
+  "11 - 30 days overdue",
+  "30+ days overdue",
+];
 export const StatusCard = ({
   status,
   count,
+  ages,
   type,
 }: {
   status: string;
   count: number;
+  ages?: { label: string; count: number }[];
   type?: "task" | "travel";
 }) => (
   <div
@@ -39,7 +46,38 @@ export const StatusCard = ({
       type
     )} p-4 shadow hover:shadow-md transition text-center`}
   >
-    <div className="text-sm text-gray-600">{status}</div>
-    <div className="mt-1 text-3xl font-bold text-gray-800">{count}</div>
+    <div className="min-h-[2.5rem] text-sm text-gray-600 break-normal whitespace-normal overflow-hidden">
+      {status}
+    </div>
+
+    <div
+      className={`mt-1 text-3xl font-bold ${
+        type === "travel" ? "text-red-600" : "text-gray-800"
+      }`}
+    >
+      {count}
+    </div>
+
+
+  {(ages ?? [])
+    .sort((a, b) => ageOrder.indexOf(a.label) - ageOrder.indexOf(b.label))
+    .map((a, idx) => (
+      <div key={idx} className="text-xs text-gray-500">
+        <span className="font-semibold">{a.count}</span> task
+        {a.count > 1 ? "s" : ""} —{" "}
+        <span
+          className={`font-bold ${
+            a.label === "Within (Rev.) Due Dt." ? "text-gray-500" : "text-red-600"
+          }`}
+        >
+          {a.label}
+        </span>
+      </div>
+
+  ))}
+
+
   </div>
 );
+
+

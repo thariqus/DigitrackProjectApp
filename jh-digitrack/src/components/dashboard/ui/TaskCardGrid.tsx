@@ -5,13 +5,28 @@ import { AuditCard } from "./AuditCard";
 import { TravelRequestCard } from "./TravelRequestCard";
 import { MeetingCard } from "./MeetingCard";
 import { ProjectCard } from "./ProjectCard";
+
 const initialCounts = {
-  meetings: {open: 0},
-  projects: {open: 0},
-  audits: {open: 0},
-  travel_request: {approval_pending: 0, urgent: 0, reconfirmation_pending: 0,},
-  my_tasks: { open: 0, in_progress: 0},
-  created_by_me: { open: 0, in_progress: 0 },
+  meetings: { open: 0 },
+  projects: { open: 0 },
+  audits: { open: 0 },
+  travel_request: {
+    approval_pending: 0,
+    urgent: 0,
+    reconfirmation_pending: 0,
+  },
+  my_tasks: {
+    Open: { count: 0, ages: [] },
+    In_Progress: { count: 0, ages: [] },
+  },
+  created_by_me: {
+    Open: { count: 0, ages: [] },
+    In_Progress: { count: 0, ages: [] },
+  },
+  team_tasks: {
+    Open: { count: 0, ages: [] },
+    In_Progress: { count: 0, ages: [] },
+  },
 };
 
 export const TaskCardGrid = () => {

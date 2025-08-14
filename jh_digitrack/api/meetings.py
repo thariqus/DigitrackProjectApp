@@ -12,7 +12,8 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.lib.enums import TA_CENTER
 import re
-
+from reportlab.platypus import KeepInFrame, Paragraph
+from reportlab.lib.styles import getSampleStyleSheet
 
 @frappe.whitelist()
 def team_meetings(
@@ -355,7 +356,9 @@ def create_meeting_pdf_content(meeting, tasks, internal_participants):
         
         # Prepare task data
         task_data = [task_headers]
-        
+
+        styles = getSampleStyleSheet()
+        normal_style = styles['Normal']       
         for task in sorted_tasks:
             # Get task comments
             comments = frappe.db.get_list(
@@ -418,8 +421,12 @@ def create_meeting_pdf_content(meeting, tasks, internal_participants):
             for entry in combined_entries:
                 recent_entries.append(f"{entry['date']} : {entry['user']} \n{entry['text']}\n")
         
-            comments_text = "\n".join(recent_entries) if recent_entries else "-"
-            
+            if recent_entries:
+                comment_paragraphs = [Paragraph(entry, normal_style) for entry in recent_entries]
+                comments_cell = KeepInFrame(4.0*inch, 800, comment_paragraphs, mode='shrink')
+            else:
+                comments_cell = "-"
+        
             
             # Format Created By & Date column
             created_by_date = wrap_text(task.get("created_by", "-"), 15)
@@ -459,7 +466,7 @@ def create_meeting_pdf_content(meeting, tasks, internal_participants):
                 task.get("completion_date").strftime("%d/%m/%Y") if task.get("completion_date") else "-",
                 status_and_effort,
                 Paragraph(assignee_remarks, small_style),
-                comments_text,
+                comments_cell,
             ]
             task_data.append(task_row)
         

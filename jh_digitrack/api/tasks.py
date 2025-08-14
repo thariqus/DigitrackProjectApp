@@ -18,7 +18,8 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.lib.enums import TA_CENTER
 import re
-
+from reportlab.platypus import KeepInFrame, Paragraph
+from reportlab.lib.styles import getSampleStyleSheet
 
 @frappe.whitelist()
 def team_tasks(reporting_to: str):
@@ -304,319 +305,319 @@ def _process_task_chunk(task_chunk, tasks_by_assignee, tasks_by_assignor, task_t
             tasks_by_assignor[assignor][task_type].append(task)
 
 
-@frappe.whitelist()
-def scheduled_emails():
-    """
-    Get tasks that match any of these criteria:
-    i. Have a task with due dates missed
-    ii. Any tasks whose due date is equal to today + 2
-    iii. For all new tasks added today
+# @frappe.whitelist()
+# def scheduled_emails():
+#     """
+#     Get tasks that match any of these criteria:
+#     i. Have a task with due dates missed
+#     ii. Any tasks whose due date is equal to today + 2
+#     iii. For all new tasks added today
 
-    Optimized for scalability with large datasets.
-    Sends emails to both assignees and assignors based on their respective settings.
-    """
+#     Optimized for scalability with large datasets.
+#     Sends emails to both assignees and assignors based on their respective settings.
+#     """
 
-    jh_digitrack_settings = frappe.get_doc("JH Digitrack Settings")
+#     jh_digitrack_settings = frappe.get_doc("JH Digitrack Settings")
 
-    if not jh_digitrack_settings.send_scheduled_emails:
-        return "Scheduled emails are disabled"
+#     if not jh_digitrack_settings.send_scheduled_emails:
+#         return "Scheduled emails are disabled"
 
-    # Define DocType for JH Task Master
-    tasks = frappe.qb.DocType("JH Task Master")
-    assigned_to = frappe.qb.DocType("JH User Master").as_("assigned_to")
-    creator = frappe.qb.DocType("JH User Master").as_("creator")
+#     # Define DocType for JH Task Master
+#     tasks = frappe.qb.DocType("JH Task Master")
+#     assigned_to = frappe.qb.DocType("JH User Master").as_("assigned_to")
+#     creator = frappe.qb.DocType("JH User Master").as_("creator")
 
-    # Get today's date using Frappe's utilities
-    today = frappe.utils.getdate()
-    today_start = frappe.utils.get_datetime(frappe.utils.getdate())
-    today_end = (
-        frappe.utils.get_datetime(frappe.utils.getdate())
-        + timedelta(days=1)
-        - timedelta(seconds=1)
-    )
-    two_days_from_now = frappe.utils.add_days(today, 2)
-    seven_days_from_now = frappe.utils.add_days(today, 7)
+#     # Get today's date using Frappe's utilities
+#     today = frappe.utils.getdate()
+#     today_start = frappe.utils.get_datetime(frappe.utils.getdate())
+#     today_end = (
+#         frappe.utils.get_datetime(frappe.utils.getdate())
+#         + timedelta(days=1)
+#         - timedelta(seconds=1)
+#     )
+#     two_days_from_now = frappe.utils.add_days(today, 2)
+#     seven_days_from_now = frappe.utils.add_days(today, 7)
 
-    # Use a more efficient approach with separate queries for each category
-    # This allows for better use of indexes and parallel processing
+#     # Use a more efficient approach with separate queries for each category
+#     # This allows for better use of indexes and parallel processing
 
-    # 1. Past due tasks - for assignees
-    past_due_assignee_query = (
-        frappe.qb.from_(tasks)
-        .select(
-            tasks.star,
-            assigned_to.email.as_("assigned_to_email"),
-            assigned_to.full_name.as_("assigned_to_name"),
-            creator.email.as_("creator_email"),
-            creator.full_name.as_("creator_name"),
-        )
-        .where(
-            (tasks.deleted_at.isnull())
-            & (tasks.revised_due_date < today)
-            & (tasks.status.notin(["Completed", "Closed", "Canceled"]))
-            & (tasks.no_automated_email_assignee == 0)
-        )
-        .join(assigned_to)
-        .on(tasks.assigned_to == assigned_to.name)
-        .join(creator)
-        .on(tasks.created_by == creator.name)
-        .orderby(tasks.assigned_to)
-    )
+#     # 1. Past due tasks - for assignees
+#     past_due_assignee_query = (
+#         frappe.qb.from_(tasks)
+#         .select(
+#             tasks.star,
+#             assigned_to.email.as_("assigned_to_email"),
+#             assigned_to.full_name.as_("assigned_to_name"),
+#             creator.email.as_("creator_email"),
+#             creator.full_name.as_("creator_name"),
+#         )
+#         .where(
+#             (tasks.deleted_at.isnull())
+#             & (tasks.revised_due_date < today)
+#             & (tasks.status.notin(["Completed", "Closed", "Canceled"]))
+#             & (tasks.no_automated_email_assignee == 0)
+#         )
+#         .join(assigned_to)
+#         .on(tasks.assigned_to == assigned_to.name)
+#         .join(creator)
+#         .on(tasks.created_by == creator.name)
+#         .orderby(tasks.assigned_to)
+#     )
 
-    # 2. Tasks due in 2 days or 7 days - for assignees
-    upcoming_due_assignee_query = (
-        frappe.qb.from_(tasks)
-        .select(
-            tasks.star,
-            assigned_to.email.as_("assigned_to_email"),
-            assigned_to.full_name.as_("assigned_to_name"),
-            creator.email.as_("creator_email"),
-            creator.full_name.as_("creator_name"),
-        )
-        .where(
-            (tasks.deleted_at.isnull())
-            & ((tasks.due_date == two_days_from_now) | (tasks.due_date == seven_days_from_now))
-            & (tasks.status.notin(["Completed", "Closed", "Canceled"]))
-            & (tasks.no_automated_email_assignee == 0)
-        )
-        .join(assigned_to)
-        .on(tasks.assigned_to == assigned_to.name)
-        .join(creator)
-        .on(tasks.created_by == creator.name)
-        .orderby(tasks.assigned_to)
-    )
+#     # 2. Tasks due in 2 days or 7 days - for assignees
+#     upcoming_due_assignee_query = (
+#         frappe.qb.from_(tasks)
+#         .select(
+#             tasks.star,
+#             assigned_to.email.as_("assigned_to_email"),
+#             assigned_to.full_name.as_("assigned_to_name"),
+#             creator.email.as_("creator_email"),
+#             creator.full_name.as_("creator_name"),
+#         )
+#         .where(
+#             (tasks.deleted_at.isnull())
+#             & ((tasks.due_date == two_days_from_now) | (tasks.due_date == seven_days_from_now))
+#             & (tasks.status.notin(["Completed", "Closed", "Canceled"]))
+#             & (tasks.no_automated_email_assignee == 0)
+#         )
+#         .join(assigned_to)
+#         .on(tasks.assigned_to == assigned_to.name)
+#         .join(creator)
+#         .on(tasks.created_by == creator.name)
+#         .orderby(tasks.assigned_to)
+#     )
 
-    # 3. New tasks added today - for assignees
-    new_tasks_assignee_query = (
-        frappe.qb.from_(tasks)
-        .select(
-            tasks.star,
-            assigned_to.email.as_("assigned_to_email"),
-            assigned_to.full_name.as_("assigned_to_name"),
-            creator.email.as_("creator_email"),
-            creator.full_name.as_("creator_name"),
-        )
-        .where(
-            (tasks.deleted_at.isnull())
-            & (tasks.creation.between(today_start, today_end))
-            & (tasks.status.notin(["Completed", "Closed", "Canceled"]))
-            & (tasks.no_automated_email_assignee == 0)
-        )
-        .join(assigned_to)
-        .on(tasks.assigned_to == assigned_to.name)
-        .join(creator)
-        .on(tasks.created_by == creator.name)
-        .orderby(tasks.assigned_to)
-    )
+#     # 3. New tasks added today - for assignees
+#     new_tasks_assignee_query = (
+#         frappe.qb.from_(tasks)
+#         .select(
+#             tasks.star,
+#             assigned_to.email.as_("assigned_to_email"),
+#             assigned_to.full_name.as_("assigned_to_name"),
+#             creator.email.as_("creator_email"),
+#             creator.full_name.as_("creator_name"),
+#         )
+#         .where(
+#             (tasks.deleted_at.isnull())
+#             & (tasks.creation.between(today_start, today_end))
+#             & (tasks.status.notin(["Completed", "Closed", "Canceled"]))
+#             & (tasks.no_automated_email_assignee == 0)
+#         )
+#         .join(assigned_to)
+#         .on(tasks.assigned_to == assigned_to.name)
+#         .join(creator)
+#         .on(tasks.created_by == creator.name)
+#         .orderby(tasks.assigned_to)
+#     )
 
-    # 4. Changes after last scheduled email - for assignees
-    changes_after_last_scheduled_email_assignee = (
-        frappe.qb.from_(tasks)
-        .select(
-            tasks.star,
-            assigned_to.email.as_("assigned_to_email"),
-            assigned_to.full_name.as_("assigned_to_name"),
-            creator.email.as_("creator_email"),
-            creator.full_name.as_("creator_name"),
-        )
-        .where(
-            (tasks.deleted_at.isnull())
-            & (tasks.modified > tasks.scheduled_email_sent_at)
-            & (tasks.no_automated_email_assignee == 0)
-        )
-        .join(assigned_to)
-        .on(tasks.assigned_to == assigned_to.name)
-        .join(creator)
-        .on(tasks.created_by == creator.name)
-        .orderby(tasks.assigned_to)
-    )
+#     # 4. Changes after last scheduled email - for assignees
+#     changes_after_last_scheduled_email_assignee = (
+#         frappe.qb.from_(tasks)
+#         .select(
+#             tasks.star,
+#             assigned_to.email.as_("assigned_to_email"),
+#             assigned_to.full_name.as_("assigned_to_name"),
+#             creator.email.as_("creator_email"),
+#             creator.full_name.as_("creator_name"),
+#         )
+#         .where(
+#             (tasks.deleted_at.isnull())
+#             & (tasks.modified > tasks.scheduled_email_sent_at)
+#             & (tasks.no_automated_email_assignee == 0)
+#         )
+#         .join(assigned_to)
+#         .on(tasks.assigned_to == assigned_to.name)
+#         .join(creator)
+#         .on(tasks.created_by == creator.name)
+#         .orderby(tasks.assigned_to)
+#     )
 
-    # 5. Past due tasks - for assignors
-    past_due_assignor_query = (
-        frappe.qb.from_(tasks)
-        .select(
-            tasks.star,
-            assigned_to.email.as_("assigned_to_email"),
-            assigned_to.full_name.as_("assigned_to_name"),
-            creator.email.as_("creator_email"),
-            creator.full_name.as_("creator_name"),
-        )
-        .where(
-            (tasks.deleted_at.isnull())
-            & (tasks.revised_due_date < today)
-            & (tasks.status.notin(["Completed", "Closed", "Canceled"]))
-            & (tasks.no_automated_email_assignor == 0)
-        )
-        .join(assigned_to)
-        .on(tasks.assigned_to == assigned_to.name)
-        .join(creator)
-        .on(tasks.created_by == creator.name)
-        .orderby(tasks.created_by)
-    )
+#     # 5. Past due tasks - for assignors
+#     past_due_assignor_query = (
+#         frappe.qb.from_(tasks)
+#         .select(
+#             tasks.star,
+#             assigned_to.email.as_("assigned_to_email"),
+#             assigned_to.full_name.as_("assigned_to_name"),
+#             creator.email.as_("creator_email"),
+#             creator.full_name.as_("creator_name"),
+#         )
+#         .where(
+#             (tasks.deleted_at.isnull())
+#             & (tasks.revised_due_date < today)
+#             & (tasks.status.notin(["Completed", "Closed", "Canceled"]))
+#             & (tasks.no_automated_email_assignor == 0)
+#         )
+#         .join(assigned_to)
+#         .on(tasks.assigned_to == assigned_to.name)
+#         .join(creator)
+#         .on(tasks.created_by == creator.name)
+#         .orderby(tasks.created_by)
+#     )
 
-    # 6. Changes after last scheduled email - for assignors
-    changes_after_last_scheduled_email_assignor = (
-        frappe.qb.from_(tasks)
-        .select(
-            tasks.star,
-            assigned_to.email.as_("assigned_to_email"),
-            assigned_to.full_name.as_("assigned_to_name"),
-            creator.email.as_("creator_email"),
-            creator.full_name.as_("creator_name"),
-        )
-        .where(
-            (tasks.deleted_at.isnull())
-            & (tasks.modified > tasks.scheduled_email_sent_at)
-            & (tasks.no_automated_email_assignor == 0)
-        )
-        .join(assigned_to)
-        .on(tasks.assigned_to == assigned_to.name)
-        .join(creator)
-        .on(tasks.created_by == creator.name)
-        .orderby(tasks.created_by)
-    )
+#     # 6. Changes after last scheduled email - for assignors
+#     changes_after_last_scheduled_email_assignor = (
+#         frappe.qb.from_(tasks)
+#         .select(
+#             tasks.star,
+#             assigned_to.email.as_("assigned_to_email"),
+#             assigned_to.full_name.as_("assigned_to_name"),
+#             creator.email.as_("creator_email"),
+#             creator.full_name.as_("creator_name"),
+#         )
+#         .where(
+#             (tasks.deleted_at.isnull())
+#             & (tasks.modified > tasks.scheduled_email_sent_at)
+#             & (tasks.no_automated_email_assignor == 0)
+#         )
+#         .join(assigned_to)
+#         .on(tasks.assigned_to == assigned_to.name)
+#         .join(creator)
+#         .on(tasks.created_by == creator.name)
+#         .orderby(tasks.created_by)
+#     )
 
-    # Execute queries with pagination to handle large datasets
-    # Process in chunks to avoid memory issues
-    chunk_size = 1000
-    tasks_by_assignee = {}
-    tasks_by_assignor = {}
+#     # Execute queries with pagination to handle large datasets
+#     # Process in chunks to avoid memory issues
+#     chunk_size = 1000
+#     tasks_by_assignee = {}
+#     tasks_by_assignor = {}
 
-    # Process past due tasks for assignees
-    for offset in range(0, 1000, chunk_size):
-        past_due_chunk = (
-            past_due_assignee_query.limit(chunk_size).offset(offset).run(as_dict=True)
-        )
-        if not past_due_chunk:
-            break
-        _process_task_chunk(past_due_chunk, tasks_by_assignee, {}, "past_due")
+#     # Process past due tasks for assignees
+#     for offset in range(0, 1000, chunk_size):
+#         past_due_chunk = (
+#             past_due_assignee_query.limit(chunk_size).offset(offset).run(as_dict=True)
+#         )
+#         if not past_due_chunk:
+#             break
+#         _process_task_chunk(past_due_chunk, tasks_by_assignee, {}, "past_due")
 
-    # Process upcoming due tasks for assignees
-    for offset in range(0, 1000, chunk_size):
-        upcoming_chunk = (
-            upcoming_due_assignee_query.limit(chunk_size).offset(offset).run(as_dict=True)
-        )
-        if not upcoming_chunk:
-            break
-        _process_task_chunk(upcoming_chunk, tasks_by_assignee, {}, "upcoming")
+#     # Process upcoming due tasks for assignees
+#     for offset in range(0, 1000, chunk_size):
+#         upcoming_chunk = (
+#             upcoming_due_assignee_query.limit(chunk_size).offset(offset).run(as_dict=True)
+#         )
+#         if not upcoming_chunk:
+#             break
+#         _process_task_chunk(upcoming_chunk, tasks_by_assignee, {}, "upcoming")
 
-    # Process new tasks for assignees
-    for offset in range(0, 1000, chunk_size):
-        new_tasks_chunk = (
-            new_tasks_assignee_query.limit(chunk_size).offset(offset).run(as_dict=True)
-        )
-        if not new_tasks_chunk:
-            break
-        _process_task_chunk(new_tasks_chunk, tasks_by_assignee, {}, "new")
+#     # Process new tasks for assignees
+#     for offset in range(0, 1000, chunk_size):
+#         new_tasks_chunk = (
+#             new_tasks_assignee_query.limit(chunk_size).offset(offset).run(as_dict=True)
+#         )
+#         if not new_tasks_chunk:
+#             break
+#         _process_task_chunk(new_tasks_chunk, tasks_by_assignee, {}, "new")
 
-    # Process changes after last scheduled email for assignees
-    for offset in range(0, 1000, chunk_size):
-        changes_chunk = (
-            changes_after_last_scheduled_email_assignee.limit(chunk_size).offset(offset).run(as_dict=True)
-        )
-        if not changes_chunk:
-            break
-        _process_task_chunk(changes_chunk, tasks_by_assignee, {}, "changes")
+#     # Process changes after last scheduled email for assignees
+#     for offset in range(0, 1000, chunk_size):
+#         changes_chunk = (
+#             changes_after_last_scheduled_email_assignee.limit(chunk_size).offset(offset).run(as_dict=True)
+#         )
+#         if not changes_chunk:
+#             break
+#         _process_task_chunk(changes_chunk, tasks_by_assignee, {}, "changes")
     
-    # Process past due tasks for assignors
-    for offset in range(0, 1000, chunk_size):
-        past_due_chunk = (
-            past_due_assignor_query.limit(chunk_size).offset(offset).run(as_dict=True)
-        )
-        if not past_due_chunk:
-            break
-        _process_task_chunk(past_due_chunk, {}, tasks_by_assignor, "past_due")
+#     # Process past due tasks for assignors
+#     for offset in range(0, 1000, chunk_size):
+#         past_due_chunk = (
+#             past_due_assignor_query.limit(chunk_size).offset(offset).run(as_dict=True)
+#         )
+#         if not past_due_chunk:
+#             break
+#         _process_task_chunk(past_due_chunk, {}, tasks_by_assignor, "past_due")
 
-    # Process changes after last scheduled email for assignors
-    for offset in range(0, 1000, chunk_size):
-        changes_chunk = (
-            changes_after_last_scheduled_email_assignor.limit(chunk_size).offset(offset).run(as_dict=True)
-        )
-        if not changes_chunk:
-            break
-        _process_task_chunk(changes_chunk, {}, tasks_by_assignor, "changes")
+#     # Process changes after last scheduled email for assignors
+#     for offset in range(0, 1000, chunk_size):
+#         changes_chunk = (
+#             changes_after_last_scheduled_email_assignor.limit(chunk_size).offset(offset).run(as_dict=True)
+#         )
+#         if not changes_chunk:
+#             break
+#         _process_task_chunk(changes_chunk, {}, tasks_by_assignor, "changes")
 
-    # Send emails to assignees
-    for assignee, assignee_tasks in tasks_by_assignee.items():
-        if assignee_tasks:
-            tasks = []
-            changed_tasks = assignee_tasks.get("changes", [])
-            # Flatten all task types (past_due, upcoming, new) into a single list
-            for task_type in ["past_due", "upcoming", "new"]:
-                if task_type in assignee_tasks:
-                    tasks.extend(assignee_tasks[task_type])
+#     # Send emails to assignees
+#     for assignee, assignee_tasks in tasks_by_assignee.items():
+#         if assignee_tasks:
+#             tasks = []
+#             changed_tasks = assignee_tasks.get("changes", [])
+#             # Flatten all task types (past_due, upcoming, new) into a single list
+#             for task_type in ["past_due", "upcoming", "new"]:
+#                 if task_type in assignee_tasks:
+#                     tasks.extend(assignee_tasks[task_type])
 
-            if len(tasks) > 0 or len(changed_tasks) > 0:
-                if tasks:
-                    recipient = [tasks[0].creator_email]
-                    recipient_names=tasks[0].creator_name
-                elif changed_tasks:
-                    recipient = [changed_tasks[0].creator_email]
-                    recipient_names=changed_tasks[0].creator_name
-                frappe.sendmail(
-                    expose_recipients="header",
-                    recipients=recipient,
-                    subject="DigiTrack: Task List(Assigned to you) - Pending / Upcoming / New",
-                    message=generate_task_reminder_email(
-                        tasks=assignee_tasks.get("past_due", []),
-                        upcoming_tasks=assignee_tasks.get("upcoming", []),
-                        new_tasks=assignee_tasks.get("new", []),
-                        type="assignee_scheduler", 
-                        changed_tasks=changed_tasks, 
-                        recipient_name=recipient_names), delayed=False
+#             if len(tasks) > 0 or len(changed_tasks) > 0:
+#                 if tasks:
+#                     recipient = [tasks[0].assigned_to_email]
+#                     recipient_names=tasks[0].assigned_to_name
+#                 elif changed_tasks:
+#                     recipient = [changed_tasks[0].assigned_to_email]
+#                     recipient_names=changed_tasks[0].assigned_to_name
+#                 frappe.sendmail(
+#                     expose_recipients="header",
+#                     recipients=recipient,
+#                     subject="DigiTrack: Task List(Assigned to you) - Pending / Upcoming / New",
+#                     message=generate_task_reminder_email(
+#                         tasks=assignee_tasks.get("past_due", []),
+#                         upcoming_tasks=assignee_tasks.get("upcoming", []),
+#                         new_tasks=assignee_tasks.get("new", []),
+#                         type="assignee_scheduler", 
+#                         changed_tasks=changed_tasks, 
+#                         recipient_name=recipient_names), delayed=False
 
                     
-                )
+#                 )
 
-                # Mark scheduled_email_sent_at for all tasks sent to this assignee
-                all_tasks_to_update = tasks + changed_tasks
-                for task in all_tasks_to_update:
-                    try:
-                        task_doc = frappe.get_doc("JH Task Master", task.name)
-                        task_doc.scheduled_email_sent_at = frappe.utils.add_to_date(frappe.utils.now(), seconds=10)
-                        task_doc.save(ignore_permissions=True)
-                    except Exception as e:
-                        frappe.log_error(f"Error updating scheduled_email_sent_at for task {task.name}: {str(e)}")
+#                 # Mark scheduled_email_sent_at for all tasks sent to this assignee
+#                 all_tasks_to_update = tasks + changed_tasks
+#                 for task in all_tasks_to_update:
+#                     try:
+#                         task_doc = frappe.get_doc("JH Task Master", task.name)
+#                         task_doc.scheduled_email_sent_at = frappe.utils.add_to_date(frappe.utils.now(), seconds=10)
+#                         task_doc.save(ignore_permissions=True)
+#                     except Exception as e:
+#                         frappe.log_error(f"Error updating scheduled_email_sent_at for task {task.name}: {str(e)}")
 
 
-    # Send emails to assignors
-    for assignor, assignor_tasks in tasks_by_assignor.items():
-        if assignor_tasks:
-            tasks = assignor_tasks.get("past_due", [])
-            changed_tasks = assignor_tasks.get("changes", [])
+#     # Send emails to assignors
+#     for assignor, assignor_tasks in tasks_by_assignor.items():
+#         if assignor_tasks:
+#             tasks = assignor_tasks.get("past_due", [])
+#             changed_tasks = assignor_tasks.get("changes", [])
 
-            if len(tasks) > 0 or len(changed_tasks) > 0:
-                if tasks:
-                    recipient = [tasks[0].creator_email]
-                    recipient_names=tasks[0].creator_name
-                elif changed_tasks:
-                    recipient = [changed_tasks[0].creator_email]
-                    recipient_names=changed_tasks[0].creator_name
-                frappe.sendmail(
-                    expose_recipients="header",
-                    recipients=recipient,
-                    subject="DigiTrack: Task List(Created by you) - Pending",
-                    message=generate_task_reminder_email(
-                        tasks=tasks,
-                        type="assignor_scheduler",
-                        changed_tasks=changed_tasks, 
-                        recipient_name=recipient_names), delayed=False 
-                )
-                # Mark scheduled_email_sent_at for all tasks sent to this assignor
-                # Only update if not already updated by assignee email (avoid duplicate updates)
-                all_tasks_to_update = tasks + changed_tasks
-                for task in all_tasks_to_update:
-                    try:
-                        task_doc = frappe.get_doc("JH Task Master", task.name)
-                        # Only update if not already updated in the last minute (to avoid race conditions)
-                        if not task_doc.scheduled_email_sent_at or \
-                           (frappe.utils.now_datetime() - task_doc.scheduled_email_sent_at).total_seconds() > 60:
-                            task_doc.scheduled_email_sent_at = frappe.utils.add_to_date(frappe.utils.now(), seconds=10)
-                            task_doc.save(ignore_permissions=True)
-                    except Exception as e:
-                        frappe.log_error(f"Error updating scheduled_email_sent_at for task {task.name}: {str(e)}")
+#             if len(tasks) > 0 or len(changed_tasks) > 0:
+#                 if tasks:
+#                     recipient = [tasks[0].creator_email]
+#                     recipient_names=tasks[0].creator_name
+#                 elif changed_tasks:
+#                     recipient = [changed_tasks[0].creator_email]
+#                     recipient_names=changed_tasks[0].creator_name
+#                 frappe.sendmail(
+#                     expose_recipients="header",
+#                     recipients=recipient,
+#                     subject="DigiTrack: Task List(Created by you) - Pending",
+#                     message=generate_task_reminder_email(
+#                         tasks=tasks,
+#                         type="assignor_scheduler",
+#                         changed_tasks=changed_tasks, 
+#                         recipient_name=recipient_names), delayed=False 
+#                 )
+#                 # Mark scheduled_email_sent_at for all tasks sent to this assignor
+#                 # Only update if not already updated by assignee email (avoid duplicate updates)
+#                 all_tasks_to_update = tasks + changed_tasks
+#                 for task in all_tasks_to_update:
+#                     try:
+#                         task_doc = frappe.get_doc("JH Task Master", task.name)
+#                         # Only update if not already updated in the last minute (to avoid race conditions)
+#                         if not task_doc.scheduled_email_sent_at or \
+#                            (frappe.utils.now_datetime() - task_doc.scheduled_email_sent_at).total_seconds() > 60:
+#                             task_doc.scheduled_email_sent_at = frappe.utils.add_to_date(frappe.utils.now(), seconds=10)
+#                             task_doc.save(ignore_permissions=True)
+#                     except Exception as e:
+#                         frappe.log_error(f"Error updating scheduled_email_sent_at for task {task.name}: {str(e)}")
 
-    return "Scheduled emails sent successfully"
+#     return "Scheduled emails sent successfully"
 
 
 @frappe.whitelist()
@@ -915,8 +916,11 @@ def create_task_pdf_content(tasks):
             for entry in combined_entries:
                 recent_entries.append(f"{entry['date']} : {entry['user']} \n{entry['text']}\n")
         
-            comments_text = "\n".join(recent_entries) if recent_entries else "-"
-            
+            if recent_entries:
+                comment_paragraphs = [Paragraph(entry, normal_style) for entry in recent_entries]
+                comments_cell = KeepInFrame(4.0*inch, 800, comment_paragraphs, mode='shrink')
+            else:
+                comments_cell = "-"            
             # Format Created By & Date column
             created_by_date = wrap_text(task.get("created_by", "-"), 15)
             if task.get("creation"):
@@ -945,7 +949,7 @@ def create_task_pdf_content(tasks):
                 task.get("completion_date").strftime("%d/%m/%Y") if task.get("completion_date") else "-",
                 status_and_effort,
                 clean_html(wrap_text(task.get("assignee_comments", "-"), 50)),
-                comments_text,
+                comments_cell,
             ]
             task_data.append(task_row)
         
@@ -1054,17 +1058,58 @@ from frappe import _
 def get_task_status_counts(jh_user_name):
     if not jh_user_name:
         frappe.throw(_("JH User name is required"))
-
     def get_counts(field_name):
-        result = frappe.db.sql("""
+        extra_condition = ""
+        if field_name == "assigned_to":
+            extra_condition = "AND created_by != %(jh_user_name)s"
+
+        result = frappe.db.sql(f"""
             SELECT status, COUNT(*) AS count
             FROM `tabJH Task Master`
-            WHERE `{0}` = %s AND status IN ('Open', 'In Progress')
-                               AND deleted_at IS NULL
+            WHERE {field_name} = %(jh_user_name)s
+            {extra_condition}
+            AND status IN ('Open', 'In Progress')
+            AND deleted_at IS NULL
             GROUP BY status
-        """.format(field_name), (jh_user_name,), as_dict=True)
+        """, {"jh_user_name": jh_user_name}, as_dict=True)
 
-        return {row.status: row.count for row in result}
+        counts = {row.status: {"count": row.count, "ages": []} for row in result}
+
+        age_result = frappe.db.sql(f"""
+            SELECT
+                status,
+                CASE
+                    WHEN DATE(COALESCE(revised_due_date, due_date)) >= CURDATE() THEN 'within_due'
+                    WHEN DATEDIFF(CURDATE(), DATE(COALESCE(revised_due_date, due_date))) BETWEEN 1 AND 10 THEN '1_10'
+                    WHEN DATEDIFF(CURDATE(), DATE(COALESCE(revised_due_date, due_date))) BETWEEN 11 AND 30 THEN '11_30'
+                    WHEN DATEDIFF(CURDATE(), DATE(COALESCE(revised_due_date, due_date))) > 30 THEN '30_plus'
+                END AS bucket,
+                COUNT(*) AS bucket_count
+            FROM `tabJH Task Master`
+            WHERE {field_name} = %(jh_user_name)s
+            {extra_condition}
+            AND status IN ('Open', 'In Progress')
+            AND deleted_at IS NULL
+            GROUP BY status, bucket
+        """, {"jh_user_name": jh_user_name}, as_dict=True)
+
+        bucket_labels = {
+            "within_due": "Within (Rev.) Due Dt.",
+            "1_10": "1 - 10 days overdue",
+            "11_30": "11 - 30 days overdue",
+            "30_plus": "30+ days overdue"
+        }
+
+        for row in age_result:
+            if row.status in counts and row.bucket:
+                counts[row.status]["ages"].append({
+                    "label": bucket_labels[row.bucket],
+                    "count": row.bucket_count
+                })
+
+        return counts
+
+
     def get_audit_counts():
         result = frappe.db.sql("""
             SELECT status, COUNT(*) AS count
@@ -1081,6 +1126,7 @@ def get_task_status_counts(jh_user_name):
             GROUP BY request_status
         """, (jh_user_name,), as_dict=True)
         return {row.request_status: row.count for row in result}
+    
     def get_meeting_counts():
         result = frappe.db.sql("""
             SELECT COUNT(*) AS count
@@ -1091,7 +1137,7 @@ def get_task_status_counts(jh_user_name):
         """, (jh_user_name,), as_dict=True)
 
         return {"open": result[0].count if result else 0}
-    
+
     return {
         "my_tasks": get_counts("assigned_to"),
         "created_by_me": get_counts("created_by"),
