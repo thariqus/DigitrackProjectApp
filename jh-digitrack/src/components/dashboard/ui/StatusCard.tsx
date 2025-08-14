@@ -46,7 +46,9 @@ export const StatusCard = ({
       type
     )} p-4 shadow hover:shadow-md transition text-center`}
   >
-    <div className="min-h-[2.5rem] text-sm text-gray-600">{status}</div>
+    <div className="min-h-[2.5rem] text-sm text-gray-600 break-normal whitespace-normal overflow-hidden">
+      {status}
+    </div>
 
     <div
       className={`mt-1 text-3xl font-bold ${
@@ -63,8 +65,15 @@ export const StatusCard = ({
       <div key={idx} className="text-xs text-gray-500">
         <span className="font-semibold">{a.count}</span> task
         {a.count > 1 ? "s" : ""} —{" "}
-        <span className="italic">{a.label}</span>
+        <span
+          className={`font-bold ${
+            a.label === "Within (Rev.) Due Dt." ? "text-gray-500" : "text-red-600"
+          }`}
+        >
+          {a.label}
+        </span>
       </div>
+
   ))}
 
 
