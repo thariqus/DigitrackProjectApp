@@ -24,9 +24,9 @@ const getBorderColor = (status: string, type?: string) => {
   }
 };
 const ageOrder = [
-  "Within (Rev.) Due Dt.",
-  "1 - 10 days overdue",
-  "11 - 30 days overdue",
+  "Within(Rev.)Due Dt.",
+  "1-10 days overdue",
+  "11-30 days overdue",
   "30+ days overdue",
 ];
 export const StatusCard = ({
@@ -62,12 +62,12 @@ export const StatusCard = ({
   {(ages ?? [])
     .sort((a, b) => ageOrder.indexOf(a.label) - ageOrder.indexOf(b.label))
     .map((a, idx) => (
-      <div key={idx} className="text-xs text-gray-500">
+      <div key={idx} className="text-xs text-gray-500 text-left">
         <span className="font-semibold">{a.count}</span> task
-        {a.count > 1 ? "s" : ""} —{" "}
+        {a.count > 1 ? "s" : ""}:{" "}
         <span
           className={`font-bold ${
-            a.label === "Within (Rev.) Due Dt." ? "text-gray-500" : "text-red-600"
+            a.label === "Within(Rev.)Due Dt." ? "text-gray-500" : "text-red-600"
           }`}
         >
           {a.label}
