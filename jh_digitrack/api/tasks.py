@@ -1061,13 +1061,8 @@ def get_task_status_counts(jh_user_name):
     def get_counts(field_name):
         extra_condition = ""
         if field_name == "assigned_to":
-            extra_condition = """
-                AND (
-                    created_by != %(jh_user_name)s
-                    OR source IS NOT NULL
-                    OR source_doctype IS NOT NULL
-                )
-            """
+            extra_condition = "AND created_by != %(jh_user_name)s"
+
         result = frappe.db.sql(f"""
             SELECT status, COUNT(*) AS count
             FROM `tabJH Task Master`
@@ -1099,9 +1094,9 @@ def get_task_status_counts(jh_user_name):
         """, {"jh_user_name": jh_user_name}, as_dict=True)
 
         bucket_labels = {
-            "within_due": "Within(Rev.)Due Dt.",
-            "1_10": "1-10 days overdue",
-            "11_30": "11-30 days overdue",
+            "within_due": "Within (Rev.) Due Dt.",
+            "1_10": "1 - 10 days overdue",
+            "11_30": "11 - 30 days overdue",
             "30_plus": "30+ days overdue"
         }
 
