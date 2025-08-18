@@ -27,8 +27,7 @@
   {
    "fieldname": "user_manual",
    "fieldtype": "Attach",
-   "label": "User Manual",
-   "permlevel": 1
+   "label": "User Manual"
   },
   {
    "fieldname": "maintenance_from",
@@ -44,7 +43,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-06-17 17:31:15.237415",
+ "modified": "2025-08-18 14:02:28.101775",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Digitrack Settings",
