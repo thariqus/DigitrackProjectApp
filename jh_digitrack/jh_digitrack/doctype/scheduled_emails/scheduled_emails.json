@@ -1,0 +1,70 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-08-18 18:56:58.626407",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_4mfp",
+  "to",
+  "subject",
+  "body",
+  "status",
+  "send"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_4mfp",
+   "fieldtype": "Section Break"
+  },
+  {
+   "columns": 3,
+   "fieldname": "to",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "To"
+  },
+  {
+   "columns": 2,
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "0\n1"
+  },
+  {
+   "columns": 1,
+   "fieldname": "send",
+   "fieldtype": "Button",
+   "in_list_view": 1,
+   "label": "Send"
+  },
+  {
+   "columns": 4,
+   "fieldname": "subject",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Subject"
+  },
+  {
+   "fieldname": "body",
+   "fieldtype": "Long Text",
+   "label": "Body"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-08-19 18:41:01.216081",
+ "modified_by": "Administrator",
+ "module": "JH Digitrack",
+ "name": "Scheduled Emails",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

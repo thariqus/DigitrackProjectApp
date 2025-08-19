@@ -153,11 +153,11 @@ doc_events = {
 # Scheduled Tasks
 # ---------------
 
-# scheduler_events = {
+scheduler_events = {
     # "all": [
     # 	"jh_digitrack.tasks.all"
     # ],
-    # "daily": ["jh_digitrack.api.tasks.scheduled_emails"],
+    "daily": ["jh_digitrack.api.tasks.scheduled_emails"],
     # "hourly": [
     # 	"jh_digitrack.tasks.hourly"
     # ],
@@ -172,7 +172,7 @@ doc_events = {
 #             "jh_digitrack.api.user_details.get_access_token"
 #         ]
 #     }
-# }
+}
 
 # Testing
 # -------
