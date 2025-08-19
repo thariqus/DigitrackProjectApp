@@ -250,6 +250,10 @@ doc_events = {
 # 	"Logging DocType Name": 30  # days to retain logs
 # }
 
+fixtures = [  {
+        "doctype": "Navbar Settings",
+      
+    },]
 
 website_route_rules = [
     {"from_route": "/jh-digitrack/<path:app_path>", "to_route": "jh-digitrack"},
