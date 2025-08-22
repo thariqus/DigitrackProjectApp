@@ -19,6 +19,10 @@ const getBorderColor = (status: string, type?: string) => {
       return "border-sky-200";
     case "in_progress":
       return "border-orange-200";
+    case "completed":
+      return "border-green-200";
+    case "canceled":
+      return "border-red-200";
     default:
       return "border-gray-200";
   }

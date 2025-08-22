@@ -347,13 +347,10 @@ def create_meeting_pdf_content(meeting, tasks, internal_participants):
         # Sort tasks by status
         sorted_tasks = sorted(tasks, key=lambda task: STATUS_ORDER.get(task.get("status", ""), 6))
         
-        # Table headers
         task_headers = [
-            "ID", "Name/\nDescription", "Created By/\nDate", "Assigned To", "Due/\nRevised Date", 
-            "Completion\nDate", "Status/\nEffort(h)", 
+            "ID", "Name/\nDescription","Details",
             "Assignee Remarks", "Comments"
-        ]
-        
+        ]       
         # Prepare task data
         task_data = [task_headers]
 
@@ -423,27 +420,15 @@ def create_meeting_pdf_content(meeting, tasks, internal_participants):
         
             if recent_entries:
                 comment_paragraphs = [Paragraph(entry, normal_style) for entry in recent_entries]
-                comments_cell = KeepInFrame(4.0*inch, 800, comment_paragraphs, mode='shrink')
+                comments_cell = KeepInFrame(7.8*inch, 800, comment_paragraphs, mode='shrink')
             else:
                 comments_cell = "-"
         
-            
-            # Format Created By & Date column
-            created_by_date = wrap_text(task.get("created_by", "-"), 15)
-            if task.get("creation"):
-                created_by_date += f"\n{task.get('creation').strftime('%d/%m/%Y')}"
-            
-            # Format Due Date & Revised column
+            created_by = task.get("created_by")
+            created_date = task.get('creation').strftime('%d/%m/%Y')         
             due_date_str = task.get("due_date").strftime("%d/%m/%Y") if task.get("due_date") else "-"
             revised_due_date_str = task.get("revised_due_date").strftime("%d/%m/%Y") if task.get("revised_due_date") else None
             
-            if revised_due_date_str and revised_due_date_str != due_date_str:
-                # Different dates - show both
-                due_date_combined = f"{due_date_str}\n{revised_due_date_str}"
-            else:
-                # Same date or no revised date - show only one
-                due_date_combined = due_date_str
-
             # Task name and description
             task_name_desc = clean_html_for_reportlab(task.get("task_name", "-"))
             if task.get("description", "-") != "-":
@@ -451,38 +436,41 @@ def create_meeting_pdf_content(meeting, tasks, internal_participants):
                 task_name_desc += f"<br/><br/><b>Description: </b><br/> {task_desc}"
             
             # Status and Effort
-            status_and_effort = task.get("status", "-") + "\n" + str(task.get("effort", "-"))
+            task_status = task.get("status") 
+            task_effort = task.get("effort")
 
             # Assignee remarks with HTML
             assignee_remarks = clean_html_for_reportlab(task.get("assignee_comments", "-"))
 
-            # Add task row
+            details_text = f"""
+            <b>Created By:</b> {created_by}<br/>
+            <b>Created Date:</b> {created_date}<br/>
+            <b>Assigned To:</b> {wrap_text(task.get("assigned_to", "-"), 15)}<br/>
+            <b>Due Date:</b> {due_date_str}<br/>
+            <b>Revised Due Date:</b> {revised_due_date_str}<br/>
+            <b>Completion Date:</b> {task.get("completion_date").strftime("%d/%m/%Y") if task.get("completion_date") else "-"}<br/>
+            <b>Effort Hours:</b> {task_effort}
+            <b>Status:</b> {task_status}
+            """
+            details_cell = Paragraph(details_text, small_style)
+
             task_row = [
                 wrap_text(task.get("name", "-"), 15),
                 Paragraph(task_name_desc, small_style),
-                created_by_date,
-                wrap_text(task.get("assigned_to", "-"), 15),
-                due_date_combined,
-                task.get("completion_date").strftime("%d/%m/%Y") if task.get("completion_date") else "-",
-                status_and_effort,
+                details_cell,
                 Paragraph(assignee_remarks, small_style),
                 comments_cell,
             ]
-            task_data.append(task_row)
-        
-        # Create tasks table
+
+            task_data.append(task_row)  
+
         tasks_table = Table(task_data, colWidths=[
             0.8*inch,  # Task ID
-            3.0*inch,  # Task Name
-            1.0*inch,  # Created By & Date
-            1.0*inch,  # Assigned To
-            1.0*inch,  # Due Date & Revised
-            1.0*inch,  # Completion Date
-            0.8*inch,  # Status
+            2.0*inch,  # Task Name
+            2.0*inch,  # Details
             3.0*inch,  # Assignee Remarks
-            4.0*inch   # Comments
+            7.8*inch   # Comments
         ])
-        
         tasks_table.setStyle(TableStyle([
             ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),  # Header row bold

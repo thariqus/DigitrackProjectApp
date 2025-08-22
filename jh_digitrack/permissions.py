@@ -5,8 +5,6 @@ def travel_request_query(user):
         user = frappe.session.user
 
     jh_user = frappe.db.get_value("JH User Master", {"user": user}, ["name"])
-    if not jh_user:
-        frappe.throw("User is not a valid JH User")
 
     return f"""
         (`tabJH Travel Request`.owner = {frappe.db.escape(user)}
