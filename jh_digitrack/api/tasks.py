@@ -1167,3 +1167,36 @@ def get_task_status_counts(jh_user_name):
         "travel_request": get_travel_counts(),
         "meetings": get_meeting_counts(),
     }
+
+@frappe.whitelist()
+def send_emails(send_single_row=False, parent_docname=None, email_row_name=None):
+   
+    try:
+        email_doc = frappe.get_last_doc("JH Emails") if not parent_docname else frappe.get_doc("JH Emails", parent_docname)
+        emails_to_send = []
+
+        if send_single_row and email_row_name:
+            for row in email_doc.emails:
+                if row.name == email_row_name and str(row.status) == "0":
+                    emails_to_send.append(row)
+                    break
+        else:
+            emails_to_send = [row for row in email_doc.emails if str(row.status) == "0"]
+        if not emails_to_send:
+            return
+
+        for email in emails_to_send:
+            frappe.sendmail(
+                recipients=[email.to],
+                subject=email.subject,
+                message=email.body,
+                delayed=False
+            )
+            email.status = "1"
+
+        email_doc.save(ignore_permissions=True)
+        frappe.db.commit()
+
+    except Exception as e:
+        frappe.log_error(message=str(e), title="Error sending email in JH Emails")
+
