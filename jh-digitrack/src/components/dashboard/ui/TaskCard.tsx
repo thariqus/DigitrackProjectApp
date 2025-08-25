@@ -1,6 +1,6 @@
 import { StatusCard } from "./StatusCard";
 
-const statuses = ["Open", "In Progress"];
+const statuses = ["Open", "In Progress", "Completed", "Canceled"];
 
 type AgeData = {
   label: string;

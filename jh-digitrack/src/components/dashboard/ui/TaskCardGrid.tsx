@@ -18,10 +18,14 @@ const initialCounts = {
   my_tasks: {
     Open: { count: 0, ages: [] },
     In_Progress: { count: 0, ages: [] },
+    completed: { count: 0, ages: [] },
+    canceled: { count: 0, ages: [] },
   },
   created_by_me: {
     Open: { count: 0, ages: [] },
     In_Progress: { count: 0, ages: [] },
+    completed: { count: 0, ages: [] },
+    canceled: { count: 0, ages: [] },
   },
   team_tasks: {
     Open: { count: 0, ages: [] },
