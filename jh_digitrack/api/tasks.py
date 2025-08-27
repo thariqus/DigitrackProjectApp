@@ -1114,7 +1114,7 @@ def get_task_status_counts(jh_user_name):
             FROM `tabJH Task Master`
             WHERE {field_name} = %(jh_user_name)s
             {extra_condition}
-            AND status IN ('Open', 'In Progress', 'Completed', 'Canceled')
+            AND status IN ('Open', 'In Progress')
             AND deleted_at IS NULL
             GROUP BY status, bucket
         """, {"jh_user_name": jh_user_name}, as_dict=True)
