@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { Table, TableBody, TableFooter } from "@/components/ui/table";
 import { useDeleteDoc } from "@/hooks/doc";
 import { toast } from "sonner";
@@ -6,7 +6,7 @@ import { MeetingSheet } from "../meetings-sheet";
 import { MeetingDetailSheet } from "../meetings-detail-sheet";
 import SearchBar from "../ui/SearchBar";
 import ActionButtons from "../ui/ActionButtons";
-import MeetingsTableHeader from "../ui/MeetingsTableHeader";
+import {MeetingsTableHeader} from "../ui/MeetingsTableHeader";
 import MeetingRow from "../ui/MeetingRow";
 import EmptyState from "../ui/EmptyState";
 import DeleteConfirmation from "../ui/DeleteConfirmation";
@@ -29,24 +29,21 @@ export const MeetingsTable = ({
 }: MeetingsTableProps) => {
   const navigate = useNavigate();
   const { data: currentJhUser } = useCurrentJhUser();
+  
   // State management
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [meetingsPerPage, setMeetingsPerPage] = useState(10);
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
-  const [selectedMeetingId, setSelectedMeetingId] = useState<
-    string | undefined
-  >(undefined);
+  const [selectedMeetingId, setSelectedMeetingId] = useState<string | undefined>(undefined);
   const [isMeetingDetailOpen, setIsMeetingDetailOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [taskToDelete, setTaskToDelete] = useState<string | undefined>(
-    undefined
-  );
-  const [meetingNameToDelete, setMeetingNameToDelete] = useState<
-    string | undefined
-  >(undefined);
+  const [taskToDelete, setTaskToDelete] = useState<string | undefined>(undefined);
+  const [meetingNameToDelete, setMeetingNameToDelete] = useState<string | undefined>(undefined);
   const [statusValues, setStatusValues] = useState<string[]>([]);
-  // Fetch tasks data with server-side filtering
+  const [sortField, setSortField] = useState<string | null>(null);
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
   const {
     data: meetingsResponse,
     isLoading,
@@ -61,13 +58,31 @@ export const MeetingsTable = ({
 
   const meetings = meetingsResponse?.message?.data;
 
-  const totalMeetings = meetingsResponse?.message?.total || 0;
+  const sortedMeetings = useMemo(() => {
+    if (!meetings || !sortField) return meetings;
 
+    return [...meetings].sort((a, b) => {
+      let valA = a[sortField as keyof typeof a];
+      let valB = b[sortField as keyof typeof b];
+
+      if (sortField === 'title' && typeof valA === 'string' && typeof valB === 'string') {
+        valA = valA.toLowerCase();
+        valB = valB.toLowerCase();
+      }
+
+      if (valA == null) return 1;
+      if (valB == null) return -1;
+      if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+      if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [meetings, sortField, sortOrder]);
+
+  const totalMeetings = meetingsResponse?.message?.total || 0;
   const totalPages = Math.ceil(totalMeetings / meetingsPerPage);
 
   const deleteDoc = useDeleteDoc();
 
-  // Event handlers
   const handleCreateTask = useCallback(() => {
     setSelectedMeetingId(undefined);
     setIsCreateTaskOpen(true);
@@ -115,7 +130,6 @@ export const MeetingsTable = ({
     }
   }, [taskToDelete, deleteDoc, refetch]);
 
-  // Handle search query change
   const handleSearchChange = useCallback(
     (value: string) => {
       setSearchQuery(value);
@@ -124,19 +138,33 @@ export const MeetingsTable = ({
     [refetch]
   );
 
-  // Handle status filter change
   const handleStatusChange = useCallback(() => {
-    setCurrentPage(1); // Reset to first page on filter change
+    setCurrentPage(1);
     setTimeout(() => refetch(), 100);
   }, [refetch]);
 
-  // Clear all filters
   const clearFilters = useCallback(() => {
     setStatusValues([]);
     setSearchQuery("");
     setCurrentPage(1);
     setTimeout(() => refetch(), 100);
   }, [refetch]);
+
+
+const handleSort = useCallback(
+  (field: string, type: 'asc' | 'desc' | 'reset') => {
+    setCurrentPage(1); 
+
+    if (type === 'reset') {
+      setSortField(null);
+      setSortOrder('desc'); 
+    } else {
+      setSortField(field);
+      setSortOrder(type);
+    }
+  },
+  []
+);
 
   return (
     <div className="space-y-4">
@@ -157,12 +185,16 @@ export const MeetingsTable = ({
         </div>
         {!hideCreateTask && <ActionButtons onCreateTask={handleCreateTask} />}
       </div>
-      {!isLoading && meetings?.length && meetings?.length > 0 ? (
+      {!isLoading && sortedMeetings?.length && sortedMeetings?.length > 0 ? (
         <div className="rounded-md border">
           <Table className="w-full table-fixed">
-            <MeetingsTableHeader />
+            <MeetingsTableHeader
+              onSort={handleSort}
+              sortField={sortField}
+              sortOrder={sortOrder}
+            />
             <TableBody>
-              {meetings?.map((task, index) => (
+              {sortedMeetings?.map((task, index) => (
                 <MeetingRow
                   key={task.name}
                   meeting={task}
@@ -193,14 +225,12 @@ export const MeetingsTable = ({
         />
       )}
 
-      {/* Meeting creation/edit sheet */}
       <MeetingSheet
         open={isCreateTaskOpen}
         onOpenChange={setIsCreateTaskOpen}
         meetingId={selectedMeetingId}
       />
 
-      {/* Meeting detail sheet */}
       <MeetingDetailSheet
         open={isMeetingDetailOpen}
         onOpenChange={setIsMeetingDetailOpen}
@@ -208,7 +238,6 @@ export const MeetingsTable = ({
         onDelete={handleDeleteTask}
       />
 
-      {/* Delete confirmation dialog */}
       <DeleteConfirmation
         open={isDeleteDialogOpen}
         onOpenChange={setIsDeleteDialogOpen}
