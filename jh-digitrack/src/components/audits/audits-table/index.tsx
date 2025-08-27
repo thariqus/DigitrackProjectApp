@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { Table, TableBody, TableFooter } from "@/components/ui/table";
 import { useDeleteDoc } from "@/hooks/doc";
 import { toast } from "sonner";
@@ -29,24 +29,22 @@ export const AuditsTable = ({
 }: AuditsTableProps) => {
   const navigate = useNavigate();
   const { data: currentJhUser } = useCurrentJhUser();
+
   // State management
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [auditsPerPage, setAuditsPerPage] = useState(10);
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
-  const [selectedAuditId, setSelectedAuditId] = useState<string | undefined>(
-    undefined
-  );
+  const [selectedAuditId, setSelectedAuditId] = useState<string | undefined>(undefined);
   const [isAuditDetailOpen, setIsAuditDetailOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [taskToDelete, setTaskToDelete] = useState<string | undefined>(
-    undefined
-  );
-  const [taskNameToDelete, setTaskNameToDelete] = useState<string | undefined>(
-    undefined
-  );
+  const [taskToDelete, setTaskToDelete] = useState<string | undefined>(undefined);
+  const [taskNameToDelete, setTaskNameToDelete] = useState<string | undefined>(undefined);
   const [statusValues, setStatusValues] = useState<string[]>([]);
-  // Fetch tasks data with server-side filtering
+  const [sortField, setSortField] = useState<string | null>(null);
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
+  // Fetch audits
   const {
     data: auditsResponse,
     isLoading,
@@ -61,13 +59,33 @@ export const AuditsTable = ({
 
   const audits = auditsResponse?.message?.data;
 
-  const totalAudits = auditsResponse?.message?.total || 0;
+  const sortedAudits = useMemo(() => {
+    if (!audits || !sortField) return audits;
 
+    return [...audits].sort((a, b) => {
+      let valA = a[sortField as keyof typeof a];
+      let valB = b[sortField as keyof typeof b];
+
+      // Case-insensitive sorting for audit_name
+      if (sortField === 'audit_name' && typeof valA === 'string' && typeof valB === 'string') {
+        valA = valA.toLowerCase();
+        valB = valB.toLowerCase();
+      }
+
+      if (valA == null) return 1;
+      if (valB == null) return -1;
+      if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+      if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [audits, sortField, sortOrder]);
+
+  const totalAudits = auditsResponse?.message?.total || 0;
   const totalPages = Math.ceil(totalAudits / auditsPerPage);
 
   const deleteDoc = useDeleteDoc();
 
-  // Event handlers
+  // Handlers
   const handleCreateTask = useCallback(() => {
     setSelectedAuditId(undefined);
     setIsCreateTaskOpen(true);
@@ -115,7 +133,6 @@ export const AuditsTable = ({
     }
   }, [taskToDelete, deleteDoc, refetch]);
 
-  // Handle search query change
   const handleSearchChange = useCallback(
     (value: string) => {
       setSearchQuery(value);
@@ -125,19 +142,32 @@ export const AuditsTable = ({
     [refetch]
   );
 
-  // Handle status filter change
   const handleStatusChange = useCallback(() => {
-    setCurrentPage(1); // Reset to first page on filter change
+    setCurrentPage(1);
     setTimeout(() => refetch(), 100);
   }, [refetch]);
 
-  // Clear all filters
   const clearFilters = useCallback(() => {
     setStatusValues([]);
     setSearchQuery("");
     setCurrentPage(1);
     setTimeout(() => refetch(), 100);
   }, [refetch]);
+
+  const handleSort = useCallback(
+    (field: string, type: 'asc' | 'desc' | 'reset') => {
+      setCurrentPage(1);
+
+      if (type === 'reset') {
+        setSortField(null);
+        setSortOrder('desc');
+      } else {
+        setSortField(field);
+        setSortOrder(type);
+      }
+    },
+    []
+  );
 
   return (
     <div className="space-y-4">
@@ -160,12 +190,16 @@ export const AuditsTable = ({
         {!hideCreateTask && <ActionButtons onCreateTask={handleCreateTask} />}
       </div>
 
-      {!isLoading && audits?.length && audits?.length > 0 ? (
+      {!isLoading && sortedAudits?.length && sortedAudits?.length > 0 ? (
         <div className="rounded-md border">
           <Table className="w-full table-fixed">
-            <AuditsTableHeader />
+            <AuditsTableHeader
+              onSort={handleSort}
+              sortField={sortField}
+              sortOrder={sortOrder}
+            />
             <TableBody>
-              {audits?.map((task, index) => (
+              {sortedAudits?.map((task, index) => (
                 <AuditRow
                   key={task.name}
                   audit={task}
@@ -193,14 +227,12 @@ export const AuditsTable = ({
         <EmptyState title={"No audits found"} />
       )}
 
-      {/* Audit creation/edit sheet */}
       <AuditSheet
         open={isCreateTaskOpen}
         onOpenChange={setIsCreateTaskOpen}
         auditId={selectedAuditId}
       />
 
-      {/* Audit detail sheet */}
       <AuditDetailSheet
         open={isAuditDetailOpen}
         onOpenChange={setIsAuditDetailOpen}
@@ -208,7 +240,6 @@ export const AuditsTable = ({
         onDelete={handleDeleteTask}
       />
 
-      {/* Delete confirmation dialog */}
       <DeleteConfirmation
         open={isDeleteDialogOpen}
         onOpenChange={setIsDeleteDialogOpen}
