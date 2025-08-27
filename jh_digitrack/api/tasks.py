@@ -423,6 +423,7 @@ def scheduled_emails():
         .where(
             (tasks.deleted_at.isnull())
             & (tasks.modified > tasks.scheduled_email_sent_at)
+            & (tasks.status.notin(["Completed", "Closed", "Canceled"]))
             & (tasks.no_automated_email_assignee == 0)
         )
         .join(assigned_to)
@@ -468,6 +469,7 @@ def scheduled_emails():
         .where(
             (tasks.deleted_at.isnull())
             & (tasks.modified > tasks.scheduled_email_sent_at)
+            & (tasks.status.notin(["Completed", "Closed", "Canceled"]))
             & (tasks.no_automated_email_assignor == 0)
         )
         .join(assigned_to)
@@ -948,7 +950,6 @@ def create_task_pdf_content(tasks):
                 task_desc = clean_html_for_reportlab(task.get("description", "-"))
                 task_name_desc += f"<br/><br/><b>Description: </b><br/> {task_desc}"
                        
-            task_status = task.get("status") 
             task_effort = task.get("effort")
             assignee_remarks = clean_html_for_reportlab(task.get("assignee_comments", "-"))
 
@@ -959,13 +960,16 @@ def create_task_pdf_content(tasks):
             <b>Due Date:</b> {due_date_str}<br/>
             <b>Revised Due Date:</b> {revised_due_date_str}<br/>
             <b>Completion Date:</b> {task.get("completion_date").strftime("%d/%m/%Y") if task.get("completion_date") else "-"}<br/>
-            <b>Effort Hours:</b> {task_effort}
-            <b>Status:</b> {task_status}
+            <b>Effort Hours: {task_effort}</b> 
             """
             details_cell = Paragraph(details_text, small_style)
 
+            task_id_with_status = f"""
+            <b>{wrap_text(task.get("name", "-"), 15)}</b><br/><br/>
+            <font size="8" color="black"><b>Status:</b> {task.get("status", "-")}</font>
+            """
             task_row = [
-                wrap_text(task.get("name", "-"), 15),
+                Paragraph(task_id_with_status, small_style),
                 Paragraph(task_name_desc, small_style),
                 details_cell,
                 Paragraph(assignee_remarks, small_style),

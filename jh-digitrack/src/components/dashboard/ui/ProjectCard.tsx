@@ -17,9 +17,6 @@ export const ProjectCard = ({
       onClick={handleClick}
       className="relative cursor-pointer bg-rose-100/60 backdrop-blur border border-rose-200 rounded-2xl shadow-sm p-6 hover:shadow-md transition"
     >
-      <div className="absolute top-3 right-3 bg-rose-200 text-sm font-semibold text-gray-800 px-3 py-1 rounded-full shadow-sm">
-        Total: {count}
-      </div>
 
       <h3 className="text-lg font-semibold text-gray-800 mb-4">{title}</h3>
 
