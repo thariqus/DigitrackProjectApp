@@ -85,8 +85,7 @@ export const TaskCardGrid = () => {
       </div>
           <div className="md:col-span-2 bg-rose-100 rounded-xl shadow p-3 mt-[-12px]">
       <p className="text-sm text-black-700 text-center font-bold">
-          Tasks in Completed / Cancelled status need your review, make them Closed or Re-open (if further action is required).
-      </p>
+          *Created By Me: Tasks in Completed / Cancelled status need your review, make them Closed or Re-open (if further action is required).      </p>
     </div>
     </div>
   );
