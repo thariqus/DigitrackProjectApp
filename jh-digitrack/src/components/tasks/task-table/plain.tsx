@@ -50,12 +50,10 @@ export const TaskTable = ({
     currentUser,
   });
 
+  const deleteDoc = useDeleteDoc();
+
   // Fetch tasks with applied filters, sorting, and pagination
-  const {
-    data: tasks,
-    isLoading,
-    refetch,
-  } = useDocs<Task>({
+  const { data: tasks, isLoading, refetch } = useDocs<Task>({
     doctype: "JH Task Master",
     fields: [
       "name",
@@ -78,7 +76,7 @@ export const TaskTable = ({
       "modified",
       "deleted_at",
     ],
-    orderBy: sortField
+    orderBy: sortField && sortField !== "created_by" && sortField !== "assigned_to"
       ? { field: `\`tabJH Task Master\`.\`${sortField}\``, order: sortOrder || "asc" }
       : { field: "`tabJH Task Master`.modified", order: "desc" },
     limit: tasksPerPage,
@@ -112,9 +110,26 @@ export const TaskTable = ({
     filters: getFilters(true) as Filter<Task>[],
   });
 
-  const deleteDoc = useDeleteDoc();
+  const [frontendSortedTasks, setFrontendSortedTasks] = useState<Task[]>([]);
 
-  // Sorting handler
+  useEffect(() => {
+    if (!tasks) return;
+
+    if (sortField === "created_by" || sortField === "assigned_to") {
+      const sorted = [...tasks].sort((a, b) => {
+        const nameA = ((a as any)[sortField] || "").toLowerCase();
+        const nameB = ((b as any)[sortField] || "").toLowerCase();
+
+        if (nameA < nameB) return sortOrder === "asc" ? -1 : 1;
+        if (nameA > nameB) return sortOrder === "asc" ? 1 : -1;
+        return 0;
+      });
+      setFrontendSortedTasks(sorted);
+    } else {
+      setFrontendSortedTasks(tasks); 
+    }
+  }, [tasks, sortField, sortOrder]);
+
   const handleSort = useCallback(
     (field: string, type: "asc" | "desc" | "reset") => {
       if (type === "reset") {
@@ -146,7 +161,7 @@ export const TaskTable = ({
 
   const handleDeleteTask = useCallback(
     (taskId: string) => {
-      const task = tasks.find((task) => task.name === taskId);
+      const task = tasks?.find((task) => task.name === taskId);
       setTaskToDelete(taskId);
       setTaskNameToDelete(task?.task_name || "");
       setIsDeleteDialogOpen(true);
@@ -211,7 +226,7 @@ export const TaskTable = ({
         />
       )}
 
-      {tasks.length > 0 ? (
+      {frontendSortedTasks.length > 0 ? (
         <div className="rounded-md border">
           <Table className="w-full table-fixed">
             <TaskTableHeader
@@ -221,7 +236,7 @@ export const TaskTable = ({
               onSort={handleSort}
             />
             <TableBody>
-              {tasks.map((task, index) => (
+              {frontendSortedTasks.map((task, index) => (
                 <TaskRow
                   key={task.name}
                   task={task}
