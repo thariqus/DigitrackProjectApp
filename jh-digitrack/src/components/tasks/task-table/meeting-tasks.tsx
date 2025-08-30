@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Table, TableBody, TableFooter } from "@/components/ui/table";
 import { useDeleteDoc, useDoc, useDocs } from "@/hooks/doc";
 import { toast } from "sonner";
@@ -44,26 +44,26 @@ import ConfirmationDialog from "@/components/ConfirmationDialog";
 
 export const MeetingTasks = () => {
   const { meetingId } = useParams();
+  const navigate = useNavigate();
+
   // State management
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [tasksPerPage, setTasksPerPage] = useState(10);
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
-  const [selectedTaskId, setSelectedTaskId] = useState<string | undefined>(
-    undefined
-  );
+  const [selectedTaskId, setSelectedTaskId] = useState<string | undefined>();
+
   const [isTaskDetailOpen, setIsTaskDetailOpen] = useState(false);
   const [isAuditDetailOpen, setIsAuditDetailOpen] = useState(false);
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isEmailConfirmationOpen, setIsEmailConfirmationOpen] = useState(false);
-  const [taskToDelete, setTaskToDelete] = useState<string | undefined>(
-    undefined
-  );
-  const [taskNameToDelete, setTaskNameToDelete] = useState<string | undefined>(
-    undefined
-  );
+  const [taskToDelete, setTaskToDelete] = useState<string | undefined>();
+  const [taskNameToDelete, setTaskNameToDelete] = useState<string | undefined>();
   const [activeFilters, setActiveFilters] = useState<TaskFilter[]>([]);
+  const [sortField, setSortField] = useState<string | null>(null);
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc" | null>(null);
+  const [frontendSortedTasks, setFrontendSortedTasks] = useState<Task[]>([]);
   const { data: currentJHUser } = useCurrentJhUser();
   const { data: currentUser } = useCurrentUser();
 
@@ -116,10 +116,10 @@ export const MeetingTasks = () => {
       "modified",
       "deleted_at",
     ],
-    orderBy: {
-      field: "`tabJH Task Master`.modified",
-      order: "desc",
-    },
+    orderBy:
+      sortField && sortField !== "created_by" && sortField !== "assigned_to"
+        ? { field: `\`tabJH Task Master\`.\`${sortField}\``, order: sortOrder || "asc" }
+        : { field: "`tabJH Task Master`.modified", order: "desc" },
     limit: tasksPerPage,
     page: currentPage,
     filters: [
@@ -156,27 +156,37 @@ export const MeetingTasks = () => {
 
   const totalPages = Math.ceil(taskCounter?.length / tasksPerPage);
 
-  // Fetch tasks data with server-side filtering
-  const { data: tasksWithoutfilters } = useDocs<Task>({
-    doctype: "JH Task Master",
-    fields: [
-      "assigned_to",
-      "assigned_to.full_name as assigned_to",
-      "assigned_to.name as assigned_to_id",
-      "created_by",
-      "created_by.full_name as created_by",
-      "created_by.name as created_by_id",
-    ],
-    orderBy: {
-      field: "`tabJH Task Master`.modified",
-      order: "desc",
+  useEffect(() => {
+    if (!tasks) return;
+
+    if (sortField === "created_by" || sortField === "assigned_to") {
+      const sorted = [...tasks].sort((a, b) => {
+        const nameA = ((a as any)[sortField] || "").toLowerCase();
+        const nameB = ((b as any)[sortField] || "").toLowerCase();
+        if (nameA < nameB) return sortOrder === "asc" ? -1 : 1;
+        if (nameA > nameB) return sortOrder === "asc" ? 1 : -1;
+        return 0;
+      });
+      setFrontendSortedTasks(sorted);
+    } else {
+      setFrontendSortedTasks(tasks);
+    }
+  }, [tasks, sortField, sortOrder]);
+
+  // Sorting handler with reset
+  const handleSort = useCallback(
+    (field: string, type: "asc" | "desc" | "reset") => {
+      if (type === "reset") {
+        setSortField(null);
+        setSortOrder(null);
+      } else {
+        setSortField(field);
+        setSortOrder(type);
+      }
+      setCurrentPage(1);
     },
-    filters: [
-      ["source_doctype", "=", "JH Grouped Task Master"],
-      ["source", "=", meetingId!],
-      ...(getFilters(true) as Filter<Task>[]),
-    ],
-  });
+    []
+  );
 
   // Delete task mutation
 
@@ -201,7 +211,7 @@ export const MeetingTasks = () => {
 
   const handleDeleteTask = useCallback(
     (taskId: string) => {
-      const task = tasks.find((task) => task.name === taskId);
+      const task = tasks?.find((task) => task.name === taskId);
       setTaskToDelete(taskId);
       setTaskNameToDelete(task?.task_name || "");
       setIsDeleteDialogOpen(true);
@@ -226,12 +236,8 @@ export const MeetingTasks = () => {
         name: taskToDelete,
       });
 
-      await queryClient.invalidateQueries({
-        queryKey: ["Docs"],
-      });
-      await queryClient.invalidateQueries({
-        queryKey: ["task-counts", meetingId],
-      });
+      await queryClient.invalidateQueries({ queryKey: ["Docs"] });
+      await queryClient.invalidateQueries({ queryKey: ["task-counts", meetingId] });
       toast.success("Task deleted successfully");
       refetch();
     } catch (error) {
@@ -262,8 +268,6 @@ export const MeetingTasks = () => {
     [refetch]
   );
 
-  const navigate = useNavigate();
-  // Handle search query change
   const handleSearchChange = useCallback(
     (value: string) => {
       setSearchQuery(value);
@@ -271,6 +275,10 @@ export const MeetingTasks = () => {
     },
     [refetch]
   );
+
+  useEffect(() => {
+    refetch();
+  }, [sortField, sortOrder, currentPage, tasksPerPage]);
 
   if (isLoading) {
     return <div>Loading...</div>;
@@ -318,25 +326,36 @@ export const MeetingTasks = () => {
                 <div className="flex flex-col space-y-1">
                   <Button
                     variant="ghost"
-                    onClick={() => {
+                    onClick={() => 
                       window.open(
                         `/api/method/jh_digitrack.api.meetings.download_csv?meeting_id=${meetingId}`,
                         "_blank"
-                      );
-                    }}
+                      )
+                    }
                   >
                     CSV
                   </Button>
                   <Button
                     variant="ghost"
-                    onClick={() => {
+                    onClick={() => 
                       window.open(
-                        `/api/method/jh_digitrack.api.meetings.download_pdf?meeting_id=${meetingId}`,
+                        `/api/method/jh_digitrack.api.meetings.download_pdf?meeting_id=${meetingId}&pdf_type=1`,
                         "_blank"
-                      );
-                    }}
+                      )
+                    }
                   >
-                    PDF
+                    PDF 1
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => 
+                      window.open(
+                        `/api/method/jh_digitrack.api.meetings.download_pdf?meeting_id=${meetingId}&pdf_type=2`,
+                        "_blank"
+                      )
+                    }
+                  >
+                    PDF 2
                   </Button>
                 </div>
               </PopoverContent>
@@ -347,9 +366,8 @@ export const MeetingTasks = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => {
-                      setIsEmailConfirmationOpen(true);
-                    }}
+                    onClick={() => setIsEmailConfirmationOpen(true)}
+
                   >
                     <Mail className="h-4 w-4" />
                   </Button>
@@ -371,11 +389,9 @@ export const MeetingTasks = () => {
             </Tooltip>
           </div>
           <div className="flex items-center gap-2">
-            {taskCounts?.message
-              // .filter(
-              //   (task) => task.status === "Open" || task.status === "Closed"
-              // )
-              .map((task, i) => (
+           
+            {taskCounts?.message?.map((task, i) => (
+
                 <div className="flex bg-gray-200 rounded-md" key={i}>
                   <StatusBadge status={task.status} />
                   <StatusBadge status={task.count.toString()} />
@@ -435,24 +451,28 @@ export const MeetingTasks = () => {
           />
         </div>
         <FilterButtonsWithComboboxes
-          tasks={tasksWithoutfilters.length > 0 ? tasksWithoutfilters : []}
+          tasks={tasks || []}
           onFiltersChange={handleFiltersChange}
           showPrivateTaskToggle={false}
           showCreatedByFilter={false}
         />
 
-        {tasks.length > 0 ? (
+        {frontendSortedTasks.length > 0 ? (
           <div className="rounded-md border">
             <Table className="w-full table-fixed">
-              <TaskTableHeader />
+              <TaskTableHeader
+                sortField={sortField}
+                sortOrder={sortOrder || undefined}
+                onSort={handleSort}
+              />              
               <TableBody>
-                {tasks.map((task, index) => (
+                {frontendSortedTasks.map((task, index) => (
                   <TaskRow
                     key={task.name}
                     task={task}
                     index={index}
-                    onRowClick={handleRowClick}
-                    onEdit={handleEditTask}
+                    onRowClick={() => handleRowClick(task.name)}
+                    onEdit={() => handleEditTask(task.name)}
                     onDelete={handleDeleteTask}
                     currentPage={currentPage}
                     perPage={tasksPerPage}

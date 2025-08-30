@@ -46,22 +46,32 @@ export const TaskTableHeader = ({
   return (
     <TableHeader>
       <TableRow>
+        {/* Index */}
         <TableHead className="w-[50px]">#</TableHead>
 
+        {/* Task Name */}
         <TableHead className="cursor-pointer">
           <SortableHeader field="task_name">Task</SortableHeader>
         </TableHead>
 
-        <TableHead>Status</TableHead>
+        {/* Status */}
+        <TableHead className="cursor-pointer">
+          <SortableHeader field="status">Status</SortableHeader>
+        </TableHead>
 
+        {/* Due Date */}
         <TableHead className="cursor-pointer">
           <SortableHeader field="due_date">Due Date / Revised</SortableHeader>
         </TableHead>
 
-        <TableHead className="w-[150px]">
-          {activeFilter === "my-tasks" ? "Created By" : "Assigned To"}
+        {/* Created By / Assigned To */}
+        <TableHead className="cursor-pointer w-[150px]">
+          <SortableHeader field={activeFilter === "my-tasks" ? "created_by" : "assigned_to"}>
+            {activeFilter === "my-tasks" ? "Created By" : "Assigned To"}
+          </SortableHeader>
         </TableHead>
 
+        {/* Actions */}
         <TableHead className="w-[100px] text-center">Actions</TableHead>
       </TableRow>
     </TableHeader>
