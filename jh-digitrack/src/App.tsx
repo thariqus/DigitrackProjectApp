@@ -17,7 +17,9 @@ import Search from "./components/search";
 import AuditTasks from "./components/tasks/task-table/audit-tasks";
 import MeetingTasks from "./components/tasks/task-table/meeting-tasks";
 import MeetingTasksExpanded from "./components/tasks/task-table/meeting-tasks-expanded";
+import MeetingTasksShrink from "./components/tasks/task-table/meeting-tasks-shrink";
 import AuditTasksExpanded from "./components/tasks/task-table/audit-tasks-expanded";
+import AuditTasksShrink from "./components/tasks/task-table/audit-tasks-shrink";
 import Maintenance from "./components/Maintenance";
 import Dashboard from "./components/dashboard"; 
 
@@ -47,12 +49,15 @@ function App() {
                   path="meetings/:meetingId/expanded"
                   element={<MeetingTasksExpanded />}
                 />
+                <Route path="meetings/:meetingId/shrink" element={<MeetingTasksShrink />} />
                 <Route path="audits" element={<Audits />} />
                 <Route path="audits/:auditId" element={<AuditTasks />} />
                 <Route
                   path="audits/:auditId/expanded"
                   element={<AuditTasksExpanded />}
                 />
+                <Route path="audits/:auditId/shrink" element={<AuditTasksShrink />} />
+
                 <Route path="search" element={<Search />} />
                 {/* <Route path="recycle-bin" element={<RecycleBin />} /> */}
               </Route>

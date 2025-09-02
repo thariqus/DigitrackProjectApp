@@ -19,7 +19,7 @@ import { useTaskFilters } from "./hooks/useTaskFilters";
 import { useNavigate, useParams } from "react-router";
 import StatusBadge from "../ui/StatusBadge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Calendar, Download, Expand, Eye, Mail } from "lucide-react";
+import { ArrowLeft, Calendar, Download, Expand, Eye, Mail, Shrink} from "lucide-react";
 import { JHGroupedTaskMaster } from "@/types/JHDigitrack/JHGroupedTaskMaster";
 import { MeetingDetailSheet } from "@/components/meetings/meetings-detail-sheet";
 import { queryClient } from "@/utils/query-client";
@@ -387,6 +387,19 @@ export const MeetingTasks = () => {
               </TooltipTrigger>
               <TooltipContent>Expand</TooltipContent>
             </Tooltip>
+            <Tooltip>
+              <TooltipTrigger>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate("shrink")}
+                >
+                  <Shrink className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Shrink</TooltipContent>
+            </Tooltip>
+
           </div>
           <div className="flex items-center gap-2">
            
