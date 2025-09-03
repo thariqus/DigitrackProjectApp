@@ -363,14 +363,25 @@ export const MeetingTasksExpanded = () => {
                   </Button>
                   <Button
                     variant="ghost"
-                    onClick={() => {
+                    onClick={() => 
                       window.open(
-                        `/api/method/jh_digitrack.api.meetings.download_pdf?meeting_id=${meetingId}`,
+                        `/api/method/jh_digitrack.api.meetings.download_pdf?meeting_id=${meetingId}&pdf_type=1`,
                         "_blank"
-                      );
-                    }}
+                      )
+                    }
                   >
-                    PDF
+                    PDF 1
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => 
+                      window.open(
+                        `/api/method/jh_digitrack.api.meetings.download_pdf?meeting_id=${meetingId}&pdf_type=2`,
+                        "_blank"
+                      )
+                    }
+                  >
+                    PDF 2
                   </Button>
                 </div>
               </PopoverContent>
