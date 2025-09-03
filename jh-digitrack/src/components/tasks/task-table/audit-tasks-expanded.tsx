@@ -362,14 +362,25 @@ export const AuditTasksExpanded = () => {
                   </Button>
                   <Button
                     variant="ghost"
-                    onClick={() => {
+                    onClick={() =>
                       window.open(
-                        `/api/method/jh_digitrack.api.audits.download_pdf?audit_id=${auditId}`,
+                        `/api/method/jh_digitrack.api.audits.download_pdf?audit_id=${auditId}&pdf_type=1`,
                         "_blank"
-                      );
-                    }}
+                      )
+                    }
                   >
-                    PDF
+                    PDF 1
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() =>
+                      window.open(
+                        `/api/method/jh_digitrack.api.audits.download_pdf?audit_id=${auditId}&pdf_type=2`,
+                        "_blank"
+                      )
+                    }
+                  >
+                    PDF 2
                   </Button>
                 </div>
               </PopoverContent>
