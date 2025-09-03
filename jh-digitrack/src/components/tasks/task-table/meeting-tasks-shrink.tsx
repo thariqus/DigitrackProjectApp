@@ -323,7 +323,41 @@ export const MeetingTasks = () => {
                 <TooltipContent>Download</TooltipContent>
               </Tooltip>
               <PopoverContent className="w-24 p-1">
-
+                <div className="flex flex-col space-y-1">
+                  <Button
+                    variant="ghost"
+                    onClick={() => 
+                      window.open(
+                        `/api/method/jh_digitrack.api.meetings.download_csv?meeting_id=${meetingId}`,
+                        "_blank"
+                      )
+                    }
+                  >
+                    CSV
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => 
+                      window.open(
+                        `/api/method/jh_digitrack.api.meetings.download_pdf?meeting_id=${meetingId}&pdf_type=1`,
+                        "_blank"
+                      )
+                    }
+                  >
+                    PDF 1
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => 
+                      window.open(
+                        `/api/method/jh_digitrack.api.meetings.download_pdf?meeting_id=${meetingId}&pdf_type=2`,
+                        "_blank"
+                      )
+                    }
+                  >
+                    PDF 2
+                  </Button>
+                </div>
                
               </PopoverContent>
             </Popover>
