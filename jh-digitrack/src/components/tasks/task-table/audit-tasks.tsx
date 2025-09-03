@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Table, TableBody, TableFooter } from "@/components/ui/table";
 import { useDeleteDoc, useDoc, useDocs } from "@/hooks/doc";
 import { toast } from "sonner";
@@ -20,7 +20,7 @@ import { useNavigate, useParams } from "react-router";
 import { JHAudits } from "@/types/JHDigitrack/JHAudits";
 import StatusBadge from "../ui/StatusBadge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Calendar, Download, Expand, Eye, Mail } from "lucide-react";
+import { ArrowLeft, Calendar, Download, Expand, Eye, Mail, Shrink } from "lucide-react";
 import { AuditDetailSheet } from "@/components/audits/audits-detail-sheet";
 import { queryClient } from "@/utils/query-client";
 import { JHBusinessMaster } from "@/types/JHDigitrack/JHBusinessMaster";
@@ -46,30 +46,31 @@ import ConfirmationDialog from "@/components/ConfirmationDialog";
 
 export const AuditTasks = () => {
   const { auditId } = useParams();
+  const navigate = useNavigate();
+
   // State management
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [tasksPerPage, setTasksPerPage] = useState(10);
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
-  const [selectedTaskId, setSelectedTaskId] = useState<string | undefined>(
-    undefined
-  );
+  const [selectedTaskId, setSelectedTaskId] = useState<string | undefined>();
   const [isTaskDetailOpen, setIsTaskDetailOpen] = useState(false);
   const [isAuditDetailOpen, setIsAuditDetailOpen] = useState(false);
-
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isEmailConfirmationOpen, setIsEmailConfirmationOpen] = useState(false);
-  const [taskToDelete, setTaskToDelete] = useState<string | undefined>(
-    undefined
-  );
-  const [taskNameToDelete, setTaskNameToDelete] = useState<string | undefined>(
-    undefined
-  );
+  const [taskToDelete, setTaskToDelete] = useState<string | undefined>();
+  const [taskNameToDelete, setTaskNameToDelete] = useState<string | undefined>();
   const [activeFilters, setActiveFilters] = useState<TaskFilter[]>([]);
+
+  // Sorting (aligned with plain.tsx & meeting.tsx)
+  const [sortField, setSortField] = useState<string | null>(null);
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc" | null>(null);
+  const [frontendSortedTasks, setFrontendSortedTasks] = useState<Task[]>([]);
+
   const { data: currentJHUser } = useCurrentJhUser();
   const { data: currentUser } = useCurrentUser();
 
-  // Use the new hook for filter logic
+  // filter logic
   const { getFilters } = useTaskFilters({
     searchQuery,
     activeFilters,
@@ -77,8 +78,7 @@ export const AuditTasks = () => {
     currentUser,
   });
 
-  // Fetch tasks data with server-side filtering
-
+  // Audit doc
   const { data: audit } = useDoc<JHAudits>({
     doctype: "JH Audit Master",
     name: auditId!,
@@ -104,6 +104,7 @@ export const AuditTasks = () => {
     disabled: !audit?.created_by,
   });
 
+  // Tasks
   const {
     data: tasks,
     isLoading,
@@ -130,10 +131,10 @@ export const AuditTasks = () => {
       "modified",
       "deleted_at",
     ],
-    orderBy: {
-      field: "`tabJH Task Master`.modified",
-      order: "desc",
-    },
+    orderBy:
+      sortField && sortField !== "created_by" && sortField !== "assigned_to"
+        ? { field: `\`tabJH Task Master\`.\`${sortField}\``, order: sortOrder || "asc" }
+        : { field: "`tabJH Task Master`.modified", order: "desc" },
     limit: tasksPerPage,
     page: currentPage,
     filters: [
@@ -170,34 +171,43 @@ export const AuditTasks = () => {
 
   const totalPages = Math.ceil(taskCounter?.length / tasksPerPage);
 
-  // Fetch tasks data with server-side filtering
-  const { data: tasksWithoutfilters } = useDocs<Task>({
-    doctype: "JH Task Master",
-    fields: [
-      "assigned_to",
-      "assigned_to.full_name as assigned_to",
-      "assigned_to.name as assigned_to_id",
-      "created_by",
-      "created_by.full_name as created_by",
-      "created_by.name as created_by_id",
-    ],
-    orderBy: {
-      field: "`tabJH Task Master`.modified",
-      order: "desc",
+  // Local frontend sorting for alias fields
+  useEffect(() => {
+    if (!tasks) return;
+
+    if (sortField === "created_by" || sortField === "assigned_to") {
+      const sorted = [...tasks].sort((a, b) => {
+        const nameA = ((a as any)[sortField] || "").toLowerCase();
+        const nameB = ((b as any)[sortField] || "").toLowerCase();
+        if (nameA < nameB) return sortOrder === "asc" ? -1 : 1;
+        if (nameA > nameB) return sortOrder === "asc" ? 1 : -1;
+        return 0;
+      });
+      setFrontendSortedTasks(sorted);
+    } else {
+      setFrontendSortedTasks(tasks);
+    }
+  }, [tasks, sortField, sortOrder]);
+
+  // Sorting handler with reset
+  const handleSort = useCallback(
+    (field: string, type: "asc" | "desc" | "reset") => {
+      if (type === "reset") {
+        setSortField(null);
+        setSortOrder(null);
+      } else {
+        setSortField(field);
+        setSortOrder(type);
+      }
+      setCurrentPage(1);
     },
-    filters: [
-      ["source_doctype", "=", "JH Audit Master"],
-      ["source", "=", auditId!],
-      ...(getFilters(true) as Filter<Task>[]),
-    ],
-  });
+    []
+  );
 
-  // Delete task mutation
-
+  // Mutations
   const deleteDoc = useDeleteDoc();
   const { mutateAsync: remindAll } = useRemindAllTaskBySource();
 
-  // Event handlers
   const handleCreateTask = useCallback(() => {
     setSelectedTaskId(undefined);
     setIsCreateTaskOpen(true);
@@ -215,7 +225,7 @@ export const AuditTasks = () => {
 
   const handleDeleteTask = useCallback(
     (taskId: string) => {
-      const task = tasks.find((task) => task.name === taskId);
+      const task = tasks?.find((task) => task.name === taskId);
       setTaskToDelete(taskId);
       setTaskNameToDelete(task?.task_name || "");
       setIsDeleteDialogOpen(true);
@@ -227,25 +237,13 @@ export const AuditTasks = () => {
     if (!taskToDelete) return;
 
     try {
-      // await updateDoc.mutateAsync({
-      //   doctype: "JH Task Master",
-      //   name: taskToDelete,
-      //   doc: {
-      //     deleted_at: format(new Date(), "yyyy-MM-dd"),
-      //   },
-      // });
-
       await deleteDoc.mutateAsync({
         doctype: "JH Task Master",
         name: taskToDelete,
       });
 
-      await queryClient.invalidateQueries({
-        queryKey: ["Docs"],
-      });
-      await queryClient.invalidateQueries({
-        queryKey: ["task-counts", auditId],
-      });
+      await queryClient.invalidateQueries({ queryKey: ["Docs"] });
+      await queryClient.invalidateQueries({ queryKey: ["task-counts", auditId] });
       toast.success("Task deleted successfully");
       refetch();
     } catch (error) {
@@ -267,7 +265,6 @@ export const AuditTasks = () => {
     }
   }, []);
 
-  // Handle filters change from FilterButtonsWithComboboxes
   const handleFiltersChange = useCallback(
     (filters: TaskFilter[]) => {
       setActiveFilters(filters);
@@ -276,8 +273,6 @@ export const AuditTasks = () => {
     [refetch]
   );
 
-  const navigate = useNavigate();
-  // Handle search query change
   const handleSearchChange = useCallback(
     (value: string) => {
       setSearchQuery(value);
@@ -286,12 +281,17 @@ export const AuditTasks = () => {
     [refetch]
   );
 
+  useEffect(() => {
+    refetch();
+  }, [sortField, sortOrder, currentPage, tasksPerPage]);
+
   if (isLoading) {
     return <div>Loading...</div>;
   }
 
   return (
     <div className="space-y-6">
+      {/* Audit Header */}
       <div>
         <div className="flex gap-2">
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
@@ -316,7 +316,6 @@ export const AuditTasks = () => {
               </TooltipTrigger>
               <TooltipContent>View Details</TooltipContent>
             </Tooltip>
-
             <Popover>
               <Tooltip>
                 <TooltipTrigger>
@@ -332,25 +331,36 @@ export const AuditTasks = () => {
                 <div className="flex flex-col space-y-1">
                   <Button
                     variant="ghost"
-                    onClick={() => {
+                    onClick={() =>
                       window.open(
                         `/api/method/jh_digitrack.api.audits.download_csv?audit_id=${auditId}`,
                         "_blank"
-                      );
-                    }}
+                      )
+                    }
                   >
                     CSV
                   </Button>
                   <Button
                     variant="ghost"
-                    onClick={() => {
+                    onClick={() =>
                       window.open(
-                        `/api/method/jh_digitrack.api.audits.download_pdf?audit_id=${auditId}`,
+                        `/api/method/jh_digitrack.api.audits.download_pdf?audit_id=${auditId}&pdf_type=1`,
                         "_blank"
-                      );
-                    }}
+                      )
+                    }
                   >
-                    PDF
+                    PDF 1
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() =>
+                      window.open(
+                        `/api/method/jh_digitrack.api.audits.download_pdf?audit_id=${auditId}&pdf_type=2`,
+                        "_blank"
+                      )
+                    }
+                  >
+                    PDF 2
                   </Button>
                 </div>
               </PopoverContent>
@@ -361,9 +371,7 @@ export const AuditTasks = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => {
-                      setIsEmailConfirmationOpen(true);
-                    }}
+                    onClick={() => setIsEmailConfirmationOpen(true)}
                   >
                     <Mail className="h-4 w-4" />
                   </Button>
@@ -383,18 +391,26 @@ export const AuditTasks = () => {
               </TooltipTrigger>
               <TooltipContent>Expand</TooltipContent>
             </Tooltip>
+            <Tooltip>
+            <TooltipTrigger>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate("shrink")}
+              >
+                <Shrink className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Shrink</TooltipContent>
+          </Tooltip>
           </div>
           <div className="flex items-center gap-2">
-            {taskCounts?.message
-              // .filter(
-              //   (task) => task.status === "Open" || task.status === "Closed"
-              // )
-              .map((task, i) => (
-                <div className="flex bg-gray-200 rounded-md" key={i}>
-                  <StatusBadge status={task.status} />
-                  <StatusBadge status={task.count.toString()} />
-                </div>
-              ))}
+            {taskCounts?.message?.map((task, i) => (
+              <div className="flex bg-gray-200 rounded-md" key={i}>
+                <StatusBadge status={task.status} />
+                <StatusBadge status={task.count.toString()} />
+              </div>
+            ))}
           </div>
         </div>
         <div className="mb-2">
@@ -434,6 +450,8 @@ export const AuditTasks = () => {
           />
         </div>
       </div>
+
+      {/* Task Table */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <SearchBar value={searchQuery} onChange={handleSearchChange} />
@@ -443,24 +461,28 @@ export const AuditTasks = () => {
           />
         </div>
         <FilterButtonsWithComboboxes
-          tasks={tasksWithoutfilters.length > 0 ? tasksWithoutfilters : []}
+          tasks={tasks || []}
           onFiltersChange={handleFiltersChange}
           showPrivateTaskToggle={false}
           showCreatedByFilter={false}
         />
 
-        {tasks.length > 0 ? (
+        {frontendSortedTasks.length > 0 ? (
           <div className="rounded-md border">
             <Table className="w-full table-fixed">
-              <TaskTableHeader />
+              <TaskTableHeader
+                sortField={sortField}
+                sortOrder={sortOrder || undefined}
+                onSort={handleSort}
+              />
               <TableBody>
-                {tasks.map((task, index) => (
+                {frontendSortedTasks.map((task, index) => (
                   <TaskRow
                     key={task.name}
                     task={task}
                     index={index}
-                    onRowClick={handleRowClick}
-                    onEdit={handleEditTask}
+                    onRowClick={() => handleRowClick(task.name)}
+                    onEdit={() => handleEditTask(task.name)}
                     onDelete={handleDeleteTask}
                     currentPage={currentPage}
                     perPage={tasksPerPage}
@@ -482,7 +504,7 @@ export const AuditTasks = () => {
           <EmptyState title={"No tasks found"} />
         )}
 
-        {/* Task creation/edit sheet */}
+        {/* Sheets & dialogs */}
         <TaskSheet
           open={isCreateTaskOpen}
           onOpenChange={setIsCreateTaskOpen}
@@ -490,8 +512,6 @@ export const AuditTasks = () => {
           source={auditId}
           sourceDocType="JH Audit Master"
         />
-
-        {/* Task detail sheet */}
         <TaskDetailSheet
           open={isTaskDetailOpen}
           onOpenChange={setIsTaskDetailOpen}
@@ -499,24 +519,18 @@ export const AuditTasks = () => {
           onEdit={handleEditTask}
           onDelete={handleDeleteTask}
         />
-
-        {/* Audit detail sheet */}
         <AuditDetailSheet
           open={isAuditDetailOpen}
           onOpenChange={setIsAuditDetailOpen}
           auditId={auditId}
           onDelete={handleDeleteTask}
         />
-
-        {/* Delete confirmation dialog */}
         <DeleteConfirmation
           open={isDeleteDialogOpen}
           onOpenChange={setIsDeleteDialogOpen}
           taskName={taskNameToDelete || ""}
           onConfirm={confirmDeleteTask}
         />
-
-        {/* Email confirmation dialog */}
         <ConfirmationDialog
           open={isEmailConfirmationOpen}
           onOpenChange={setIsEmailConfirmationOpen}
@@ -528,5 +542,6 @@ export const AuditTasks = () => {
     </div>
   );
 };
+
 
 export default AuditTasks;
