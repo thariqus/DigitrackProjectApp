@@ -1,24 +1,550 @@
-import { useState, useCallback, useEffect } from "react";
+// import { useState, useCallback, useEffect } from "react";
+// import { Table, TableBody, TableFooter } from "@/components/ui/table";
+// import { useDeleteDoc, useDoc, useDocs } from "@/hooks/doc";
+// import { toast } from "sonner";
+// import { Task } from "@/types/tasks";
+// import { TaskSheet } from "../task-sheet";
+// import { TaskDetailSheet } from "../task-detail-sheet";
+// import FilterButtonsWithComboboxes, { TaskFilter } from "../ui/FilterButtonsShrink";
+// import SearchBar from "../ui/SearchBarShrink";
+// import ActionButtons from "../ui/ActionButtons";
+// import TaskTableHeader from "../ui/TaskTableHeader";
+// import TaskRowShrink from "../ui/TaskRowShrink";
+// import EmptyState from "../ui/EmptyState";
+// import DeleteConfirmation from "../ui/DeleteConfirmation";
+// import { Filter } from "frappe-js-sdk/lib/db/types";
+// import { useCurrentJhUser, useCurrentUser } from "@/hooks/auth";
+// import { PaginationControls } from "./pagination-control-shrink";
+// import { useTaskFilters } from "./hooks/useTaskFilters";
+// import { useNavigate, useParams } from "react-router";
+// import { JHAudits } from "@/types/JHDigitrack/JHAudits";
+// import StatusBadge from "../ui/StatusBadgeShrink";
+// import { Button } from "@/components/ui/button";
+// import { ArrowLeft, Calendar, Download, Eye, Mail } from "lucide-react";
+// import { AuditDetailSheet } from "@/components/audits/audits-detail-sheet";
+// import { queryClient } from "@/utils/query-client";
+// import { JHBusinessMaster } from "@/types/JHDigitrack/JHBusinessMaster";
+// import { JHDivisionMaster } from "@/types/JHDigitrack/JHDivisionMaster";
+// import { JHUserMaster } from "@/types/JHDigitrack/JHUserMaster";
+// import { format } from "date-fns";
+// import {
+//   useGetTaskCountByStatusBySource,
+//   useRemindAllTaskBySource,
+// } from "@/hooks/task";
+// import {
+//   Popover,
+//   PopoverContent,
+//   PopoverTrigger,
+// } from "@/components/ui/popover";
+// import {
+//   Tooltip,
+//   TooltipContent,
+//   TooltipTrigger,
+// } from "@/components/ui/tooltip";
+// import { ExpandableTextByLines } from "@/components/ExpandableTextByLines";
+// import ConfirmationDialog from "@/components/ConfirmationDialog";
+
+// export const AuditTasks = () => {
+//   const { auditId } = useParams();
+//   const navigate = useNavigate();
+
+//   // State management
+//   const [searchQuery, setSearchQuery] = useState("");
+//   const [currentPage, setCurrentPage] = useState(1);
+//   const [tasksPerPage, setTasksPerPage] = useState(10);
+//   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
+//   const [selectedTaskId, setSelectedTaskId] = useState<string | undefined>();
+//   const [isTaskDetailOpen, setIsTaskDetailOpen] = useState(false);
+//   const [isAuditDetailOpen, setIsAuditDetailOpen] = useState(false);
+//   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+//   const [isEmailConfirmationOpen, setIsEmailConfirmationOpen] = useState(false);
+//   const [taskToDelete, setTaskToDelete] = useState<string | undefined>();
+//   const [taskNameToDelete, setTaskNameToDelete] = useState<string | undefined>();
+//   const [activeFilters, setActiveFilters] = useState<TaskFilter[]>([]);
+
+//   // Sorting (aligned with plain.tsx & meeting.tsx)
+//   const [sortField, setSortField] = useState<string | null>(null);
+//   const [sortOrder, setSortOrder] = useState<"asc" | "desc" | null>(null);
+//   const [frontendSortedTasks, setFrontendSortedTasks] = useState<Task[]>([]);
+
+//   const { data: currentJHUser } = useCurrentJhUser();
+//   const { data: currentUser } = useCurrentUser();
+
+//   // filter logic
+//   const { getFilters } = useTaskFilters({
+//     searchQuery,
+//     activeFilters,
+//     currentJHUser,
+//     currentUser,
+//   });
+
+//   // Audit doc
+//   const { data: audit } = useDoc<JHAudits>({
+//     doctype: "JH Audit Master",
+//     name: auditId!,
+//   });
+
+//   const visibleToAll = audit?.visible_to_all === 1;
+
+//   const { data: business } = useDoc<JHBusinessMaster>({
+//     doctype: "JH Business Master",
+//     name: audit?.business || "",
+//     disabled: !audit?.business,
+//   });
+
+//   const { data: division } = useDoc<JHDivisionMaster>({
+//     doctype: "JH Division Master",
+//     name: audit?.division || "",
+//     disabled: !audit?.division,
+//   });
+
+//   const { data: createdBy } = useDoc<JHUserMaster>({
+//     doctype: "JH User Master",
+//     name: audit?.created_by || "",
+//     disabled: !audit?.created_by,
+//   });
+
+//   // Tasks
+//   const {
+//     data: tasks,
+//     isLoading,
+//     refetch,
+//   } = useDocs<Task>({
+//     doctype: "JH Task Master",
+//     fields: [
+//       "name",
+//       "task_name",
+//       "status",
+//       "due_date",
+//       "revised_due_date",
+//       "assigned_to",
+//       "private",
+//       "source",
+//       "serial_number",
+//       "assigned_to.full_name as assigned_to",
+//       "assigned_to.name as assigned_to_id",
+//       "created_by",
+//       "created_by.full_name as created_by",
+//       "created_by.name as created_by_id",
+//       "owner",
+//       "creation",
+//       "modified",
+//       "deleted_at",
+//     ],
+//     orderBy:
+//       sortField && sortField !== "created_by" && sortField !== "assigned_to"
+//         ? { field: `\`tabJH Task Master\`.\`${sortField}\``, order: sortOrder || "asc" }
+//         : { field: "`tabJH Task Master`.modified", order: "desc" },
+//     limit: tasksPerPage,
+//     page: currentPage,
+//     filters: [
+//       ["source_doctype", "=", "JH Audit Master"],
+//       ["source", "=", auditId!],
+//       ...(currentJHUser &&
+//       createdBy?.name !== currentJHUser.name &&
+//       !visibleToAll
+//         ? [["assigned_to", "=", currentJHUser.name] as Filter<Task>]
+//         : []),
+//       ...(getFilters() as Filter<Task>[]),
+//     ],
+//   });
+
+//   const { data: taskCounter } = useDocs<Task>({
+//     doctype: "JH Task Master",
+//     fields: ["name"],
+//     limit: 100,
+//     filters: [
+//       ["source_doctype", "=", "JH Audit Master"],
+//       ["source", "=", auditId!],
+//       ...(getFilters() as Filter<Task>[]),
+//     ],
+//   });
+
+//   const isCreator = createdBy?.name === currentJHUser?.name;
+
+//   const { data: taskCounts } = useGetTaskCountByStatusBySource(
+//     auditId,
+//     currentJHUser?.name,
+//     createdBy?.name,
+//     visibleToAll
+//   );
+
+//   const totalPages = Math.ceil(taskCounter?.length / tasksPerPage);
+
+//   // Local frontend sorting for alias fields
+//   useEffect(() => {
+//     if (!tasks) return;
+
+//     if (sortField === "created_by" || sortField === "assigned_to") {
+//       const sorted = [...tasks].sort((a, b) => {
+//         const nameA = ((a as any)[sortField] || "").toLowerCase();
+//         const nameB = ((b as any)[sortField] || "").toLowerCase();
+//         if (nameA < nameB) return sortOrder === "asc" ? -1 : 1;
+//         if (nameA > nameB) return sortOrder === "asc" ? 1 : -1;
+//         return 0;
+//       });
+//       setFrontendSortedTasks(sorted);
+//     } else {
+//       setFrontendSortedTasks(tasks);
+//     }
+//   }, [tasks, sortField, sortOrder]);
+
+//   // Sorting handler with reset
+//   const handleSort = useCallback(
+//     (field: string, type: "asc" | "desc" | "reset") => {
+//       if (type === "reset") {
+//         setSortField(null);
+//         setSortOrder(null);
+//       } else {
+//         setSortField(field);
+//         setSortOrder(type);
+//       }
+//       setCurrentPage(1);
+//     },
+//     []
+//   );
+
+//   // Mutations
+//   const deleteDoc = useDeleteDoc();
+//   const { mutateAsync: remindAll } = useRemindAllTaskBySource();
+
+//   const handleCreateTask = useCallback(() => {
+//     setSelectedTaskId(undefined);
+//     setIsCreateTaskOpen(true);
+//   }, []);
+
+//   const handleRowClick = useCallback((taskId: string) => {
+//     setSelectedTaskId(taskId);
+//     setIsTaskDetailOpen(true);
+//   }, []);
+
+//   const handleEditTask = useCallback((taskId: string) => {
+//     setSelectedTaskId(taskId);
+//     setIsCreateTaskOpen(true);
+//   }, []);
+
+//   const handleDeleteTask = useCallback(
+//     (taskId: string) => {
+//       const task = tasks?.find((task) => task.name === taskId);
+//       setTaskToDelete(taskId);
+//       setTaskNameToDelete(task?.task_name || "");
+//       setIsDeleteDialogOpen(true);
+//     },
+//     [tasks]
+//   );
+
+//   const confirmDeleteTask = useCallback(async () => {
+//     if (!taskToDelete) return;
+
+//     try {
+//       await deleteDoc.mutateAsync({
+//         doctype: "JH Task Master",
+//         name: taskToDelete,
+//       });
+
+//       await queryClient.invalidateQueries({ queryKey: ["Docs"] });
+//       await queryClient.invalidateQueries({ queryKey: ["task-counts", auditId] });
+//       toast.success("Task deleted successfully");
+//       refetch();
+//     } catch (error) {
+//       toast.error("Failed to delete task");
+//       console.error(error);
+//     } finally {
+//       setIsDeleteDialogOpen(false);
+//       setTaskToDelete(undefined);
+//       setTaskNameToDelete(undefined);
+//     }
+//   }, [taskToDelete, deleteDoc, refetch]);
+
+//   const confirmEmailReminder = useCallback(async () => {
+//     try {
+//       await remindAll(auditId!);
+//       toast.success("Reminder emails sent successfully");
+//     } finally {
+//       setIsEmailConfirmationOpen(false);
+//     }
+//   }, []);
+
+//   const handleFiltersChange = useCallback(
+//     (filters: TaskFilter[]) => {
+//       setActiveFilters(filters);
+//       refetch();
+//     },
+//     [refetch]
+//   );
+
+//   const handleSearchChange = useCallback(
+//     (value: string) => {
+//       setSearchQuery(value);
+//       setTimeout(() => refetch(), 300);
+//     },
+//     [refetch]
+//   );
+
+//   useEffect(() => {
+//     refetch();
+//   }, [sortField, sortOrder, currentPage, tasksPerPage]);
+
+//   if (isLoading) {
+//     return <div>Loading...</div>;
+//   }
+
+//   return (
+//     <div className="space-y-6">
+//       {/* Audit Header */}
+//       <div>
+//         <div className="flex gap-2">
+//           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+//             <ArrowLeft className="h-6 w-6" />
+//           </Button>
+//           <h1 className="text-2xl font-semibold tracking-tight mb-4">
+//             {audit?.audit_name}
+//           </h1>
+//         </div>
+//         <div className="flex items-center justify-between mb-2">
+//           <div className="flex items-center gap-2">
+//             <StatusBadge status={audit?.status} />
+//             <Tooltip>
+//               <TooltipTrigger>
+//                 <Button
+//                   variant="outline"
+//                   size="sm"
+//                   onClick={() => setIsAuditDetailOpen(true)}
+//                 >
+//                   <Eye className="h-4 w-4" />
+//                 </Button>
+//               </TooltipTrigger>
+//               <TooltipContent>View Details</TooltipContent>
+//             </Tooltip>
+//             <Popover>
+//               <Tooltip>
+//                 <TooltipTrigger>
+//                   <PopoverTrigger asChild>
+//                     <Button variant="outline" size="sm">
+//                       <Download className="h-4 w-4" />
+//                     </Button>
+//                   </PopoverTrigger>
+//                 </TooltipTrigger>
+//                 <TooltipContent>Download</TooltipContent>
+//               </Tooltip>
+//               <PopoverContent className="w-24 p-1">
+//                 <div className="flex flex-col space-y-1">
+//                   <Button
+//                     variant="ghost"
+//                     onClick={() =>
+//                       window.open(
+//                         `/api/method/jh_digitrack.api.audits.download_csv?audit_id=${auditId}`,
+//                         "_blank"
+//                       )
+//                     }
+//                   >
+//                     CSV
+//                   </Button>
+//                   <Button
+//                     variant="ghost"
+//                     onClick={() =>
+//                       window.open(
+//                         `/api/method/jh_digitrack.api.audits.download_pdf?audit_id=${auditId}&pdf_type=1`,
+//                         "_blank"
+//                       )
+//                     }
+//                   >
+//                     PDF 1
+//                   </Button>
+//                   <Button
+//                     variant="ghost"
+//                     onClick={() =>
+//                       window.open(
+//                         `/api/method/jh_digitrack.api.audits.download_pdf?audit_id=${auditId}&pdf_type=2`,
+//                         "_blank"
+//                       )
+//                     }
+//                   >
+//                     PDF 2
+//                   </Button>
+//                 </div>
+//               </PopoverContent>
+//             </Popover>
+//             {isCreator ? (
+//               <Tooltip>
+//                 <TooltipTrigger>
+//                   <Button
+//                     variant="outline"
+//                     size="sm"
+//                     onClick={() => setIsEmailConfirmationOpen(true)}
+//                   >
+//                     <Mail className="h-4 w-4" />
+//                   </Button>
+//                 </TooltipTrigger>
+//                 <TooltipContent>Send Reminder</TooltipContent>
+//               </Tooltip>
+//             ) : null}
+//           </div>
+//           <div className="flex items-center gap-2">
+//             {taskCounts?.message?.map((task, i) => (
+//               <div className="flex bg-gray-200 rounded-md" key={i}>
+//                 <StatusBadge status={task.status} />
+//                 <StatusBadge status={task.count.toString()} />
+//               </div>
+//             ))}
+//           </div>
+//         </div>
+//         <div className="mb-1">
+//           <div className="text-base text-gray-500">
+//             <span>{business?.business_name || ""}</span>
+//             {business?.business_name && division?.division_name ? " / " : ""}
+//             <span>{division?.division_name || ""}</span>
+//           </div>
+//         </div>
+//         <div className="flex max-w-md items-center justify-between mb-2">
+//           <div className="flex text-base gap-2">
+//             <span>Created Date: </span>
+//             <div className="flex items-center gap-1">
+//               <Calendar className="w-4 h-4 text-red-500" />
+//               <span className="text-gray-500">
+//                 {audit?.creation
+//                   ? format(new Date(audit?.creation), "dd MMM yyyy")
+//                   : "—"}
+//               </span>
+//             </div>
+//           </div>
+//           <div className="text-base">
+//             <span>Created By: </span>
+//             <span className="text-gray-500">
+//               {createdBy?.full_name ?? audit?.created_by}
+//             </span>
+//           </div>
+//         </div>
+//         <div className="text-base">
+//           <ExpandableTextByLines
+//             text={audit?.audit_description || ""}
+//             maxLines={2}
+//             isHtml={true}
+//             className="text-base"
+//             showMoreText="See full description"
+//             showLessText="Show less"
+//           />
+//         </div>
+//       </div>
+
+//       {/* Task Table */}
+//       <div className="space-y-1">
+//         <div className="flex items-center justify-between">
+//           <SearchBar value={searchQuery} onChange={handleSearchChange} />
+//           <ActionButtons
+//             onCreateTask={handleCreateTask}
+//             disabled={audit?.status === "Completed"}
+//           />
+//         </div>
+//         <FilterButtonsWithComboboxes
+//           tasks={tasks || []}
+//           onFiltersChange={handleFiltersChange}
+//           showPrivateTaskToggle={false}
+//           showCreatedByFilter={false}
+//         />
+
+//         {frontendSortedTasks.length > 0 ? (
+//           <div className="rounded-md border">
+//             <Table className="w-full table-fixed">
+//               <TaskTableHeader
+//                 sortField={sortField}
+//                 sortOrder={sortOrder || undefined}
+//                 onSort={handleSort}
+//               />
+//               <TableBody>
+//                 {frontendSortedTasks.map((task, index) => (
+//                   <TaskRowShrink
+//                     key={task.name}
+//                     task={task}
+//                     index={index}
+//                     onRowClick={() => handleRowClick(task.name)}
+//                     onEdit={() => handleEditTask(task.name)}
+//                     onDelete={handleDeleteTask}
+//                     currentPage={currentPage}
+//                     perPage={tasksPerPage}
+//                   />
+//                 ))}
+//               </TableBody>
+//               <TableFooter>
+//                 <PaginationControls
+//                   tasksPerPage={tasksPerPage}
+//                   setTasksPerPage={setTasksPerPage}
+//                   totalPages={totalPages}
+//                   currentPage={currentPage}
+//                   setCurrentPage={setCurrentPage}
+//                 />
+//               </TableFooter>
+//             </Table>
+//           </div>
+//         ) : (
+//           <EmptyState title={"No tasks found"} />
+//         )}
+
+//         {/* Sheets & dialogs */}
+//         <TaskSheet
+//           open={isCreateTaskOpen}
+//           onOpenChange={setIsCreateTaskOpen}
+//           taskId={selectedTaskId}
+//           source={auditId}
+//           sourceDocType="JH Audit Master"
+//         />
+//         <TaskDetailSheet
+//           open={isTaskDetailOpen}
+//           onOpenChange={setIsTaskDetailOpen}
+//           taskId={selectedTaskId}
+//           onEdit={handleEditTask}
+//           onDelete={handleDeleteTask}
+//         />
+//         <AuditDetailSheet
+//           open={isAuditDetailOpen}
+//           onOpenChange={setIsAuditDetailOpen}
+//           auditId={auditId}
+//           onDelete={handleDeleteTask}
+//         />
+//         <DeleteConfirmation
+//           open={isDeleteDialogOpen}
+//           onOpenChange={setIsDeleteDialogOpen}
+//           taskName={taskNameToDelete || ""}
+//           onConfirm={confirmDeleteTask}
+//         />
+//         <ConfirmationDialog
+//           open={isEmailConfirmationOpen}
+//           onOpenChange={setIsEmailConfirmationOpen}
+//           onConfirm={confirmEmailReminder}
+//           title="Send Reminder Emails"
+//           message="This will send reminder emails to all assignees."
+//         />
+//       </div>
+//     </div>
+//   );
+// };
+
+
+// export default AuditTasks;
+
+
+
+import { useState, useCallback } from "react";
 import { Table, TableBody, TableFooter } from "@/components/ui/table";
 import { useDeleteDoc, useDoc, useDocs } from "@/hooks/doc";
 import { toast } from "sonner";
 import { Task } from "@/types/tasks";
 import { TaskSheet } from "../task-sheet";
 import { TaskDetailSheet } from "../task-detail-sheet";
-import FilterButtonsWithComboboxes, { TaskFilter } from "../ui/FilterButtonsShrink";
-import SearchBar from "../ui/SearchBarShrink";
+import FilterButtonsWithComboboxes, { TaskFilter } from "../ui/FilterButtons";
+import SearchBar from "../ui/SearchBar";
 import ActionButtons from "../ui/ActionButtons";
-import TaskTableHeader from "../ui/TaskTableHeader";
+import TaskTableHeaderShrink from "../ui/TableHeaderShrink";
 import TaskRowShrink from "../ui/TaskRowShrink";
 import EmptyState from "../ui/EmptyState";
 import DeleteConfirmation from "../ui/DeleteConfirmation";
 import { Filter } from "frappe-js-sdk/lib/db/types";
 import { useCurrentJhUser, useCurrentUser } from "@/hooks/auth";
-import { PaginationControls } from "./pagination-control-shrink";
+import { PaginationControls } from "./pagination-controls";
 import { useTaskFilters } from "./hooks/useTaskFilters";
 import { useNavigate, useParams } from "react-router";
 import { JHAudits } from "@/types/JHDigitrack/JHAudits";
-import StatusBadge from "../ui/StatusBadgeShrink";
+import StatusBadge from "../ui/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Calendar, Download, Eye, Mail } from "lucide-react";
 import { AuditDetailSheet } from "@/components/audits/audits-detail-sheet";
@@ -41,36 +567,34 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ExpandableTextByLines } from "@/components/ExpandableTextByLines";
 import ConfirmationDialog from "@/components/ConfirmationDialog";
 
-export const AuditTasks = () => {
+export const AuditTasksShrink = () => {
   const { auditId } = useParams();
-  const navigate = useNavigate();
-
   // State management
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [tasksPerPage, setTasksPerPage] = useState(10);
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
-  const [selectedTaskId, setSelectedTaskId] = useState<string | undefined>();
+  const [selectedTaskId, setSelectedTaskId] = useState<string | undefined>(
+    undefined
+  );
   const [isTaskDetailOpen, setIsTaskDetailOpen] = useState(false);
   const [isAuditDetailOpen, setIsAuditDetailOpen] = useState(false);
+
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isEmailConfirmationOpen, setIsEmailConfirmationOpen] = useState(false);
-  const [taskToDelete, setTaskToDelete] = useState<string | undefined>();
-  const [taskNameToDelete, setTaskNameToDelete] = useState<string | undefined>();
+  const [taskToDelete, setTaskToDelete] = useState<string | undefined>(
+    undefined
+  );
+  const [taskNameToDelete, setTaskNameToDelete] = useState<string | undefined>(
+    undefined
+  );
   const [activeFilters, setActiveFilters] = useState<TaskFilter[]>([]);
-
-  // Sorting (aligned with plain.tsx & meeting.tsx)
-  const [sortField, setSortField] = useState<string | null>(null);
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc" | null>(null);
-  const [frontendSortedTasks, setFrontendSortedTasks] = useState<Task[]>([]);
-
   const { data: currentJHUser } = useCurrentJhUser();
   const { data: currentUser } = useCurrentUser();
 
-  // filter logic
+  // Use the new hook for filter logic
   const { getFilters } = useTaskFilters({
     searchQuery,
     activeFilters,
@@ -78,7 +602,8 @@ export const AuditTasks = () => {
     currentUser,
   });
 
-  // Audit doc
+  // Fetch tasks data with server-side filtering
+
   const { data: audit } = useDoc<JHAudits>({
     doctype: "JH Audit Master",
     name: auditId!,
@@ -104,7 +629,6 @@ export const AuditTasks = () => {
     disabled: !audit?.created_by,
   });
 
-  // Tasks
   const {
     data: tasks,
     isLoading,
@@ -130,11 +654,16 @@ export const AuditTasks = () => {
       "creation",
       "modified",
       "deleted_at",
+      "business_id",
+      "completion_date",
+      "effort",
+      "description",
+      "assignee_comments",
     ],
-    orderBy:
-      sortField && sortField !== "created_by" && sortField !== "assigned_to"
-        ? { field: `\`tabJH Task Master\`.\`${sortField}\``, order: sortOrder || "asc" }
-        : { field: "`tabJH Task Master`.modified", order: "desc" },
+    orderBy: {
+      field: "`tabJH Task Master`.modified",
+      order: "desc",
+    },
     limit: tasksPerPage,
     page: currentPage,
     filters: [
@@ -171,43 +700,50 @@ export const AuditTasks = () => {
 
   const totalPages = Math.ceil(taskCounter?.length / tasksPerPage);
 
-  // Local frontend sorting for alias fields
-  useEffect(() => {
-    if (!tasks) return;
-
-    if (sortField === "created_by" || sortField === "assigned_to") {
-      const sorted = [...tasks].sort((a, b) => {
-        const nameA = ((a as any)[sortField] || "").toLowerCase();
-        const nameB = ((b as any)[sortField] || "").toLowerCase();
-        if (nameA < nameB) return sortOrder === "asc" ? -1 : 1;
-        if (nameA > nameB) return sortOrder === "asc" ? 1 : -1;
-        return 0;
-      });
-      setFrontendSortedTasks(sorted);
-    } else {
-      setFrontendSortedTasks(tasks);
-    }
-  }, [tasks, sortField, sortOrder]);
-
-  // Sorting handler with reset
-  const handleSort = useCallback(
-    (field: string, type: "asc" | "desc" | "reset") => {
-      if (type === "reset") {
-        setSortField(null);
-        setSortOrder(null);
-      } else {
-        setSortField(field);
-        setSortOrder(type);
-      }
-      setCurrentPage(1);
+  // Fetch tasks data with server-side filtering
+  const { data: tasksWithoutfilters } = useDocs<Task>({
+    doctype: "JH Task Master",
+    fields: [
+      "assigned_to",
+      "assigned_to.full_name as assigned_to",
+      "assigned_to.name as assigned_to_id",
+      "created_by",
+      "created_by.full_name as created_by",
+      "created_by.name as created_by_id",
+    ],
+    orderBy: {
+      field: "`tabJH Task Master`.modified",
+      order: "desc",
     },
-    []
-  );
+    filters: [
+      ["source_doctype", "=", "JH Audit Master"],
+      ["source", "=", auditId!],
+      ...(getFilters(true) as Filter<Task>[]),
+    ],
+  });
 
-  // Mutations
+  const STATUS_ORDER: Record<string, number> = {
+    Open: 1,
+    "In Progress": 2,
+    Canceled: 3,
+    Completed: 4,
+    Closed: 5,
+  };
+
+  const sortedTasks = tasks
+    ? [...tasks].sort((a, b) => {
+        const orderA = STATUS_ORDER[a.status] || 6;
+        const orderB = STATUS_ORDER[b.status] || 6;
+        return orderA - orderB;
+      })
+    : [];
+
+  // Delete task mutation
+
   const deleteDoc = useDeleteDoc();
   const { mutateAsync: remindAll } = useRemindAllTaskBySource();
 
+  // Event handlers
   const handleCreateTask = useCallback(() => {
     setSelectedTaskId(undefined);
     setIsCreateTaskOpen(true);
@@ -225,7 +761,7 @@ export const AuditTasks = () => {
 
   const handleDeleteTask = useCallback(
     (taskId: string) => {
-      const task = tasks?.find((task) => task.name === taskId);
+      const task = tasks.find((task) => task.name === taskId);
       setTaskToDelete(taskId);
       setTaskNameToDelete(task?.task_name || "");
       setIsDeleteDialogOpen(true);
@@ -237,13 +773,25 @@ export const AuditTasks = () => {
     if (!taskToDelete) return;
 
     try {
+      // await updateDoc.mutateAsync({
+      //   doctype: "JH Task Master",
+      //   name: taskToDelete,
+      //   doc: {
+      //     deleted_at: format(new Date(), "yyyy-MM-dd"),
+      //   },
+      // });
+
       await deleteDoc.mutateAsync({
         doctype: "JH Task Master",
         name: taskToDelete,
       });
 
-      await queryClient.invalidateQueries({ queryKey: ["Docs"] });
-      await queryClient.invalidateQueries({ queryKey: ["task-counts", auditId] });
+      await queryClient.invalidateQueries({
+        queryKey: ["Docs"],
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ["task-counts", auditId],
+      });
       toast.success("Task deleted successfully");
       refetch();
     } catch (error) {
@@ -265,6 +813,7 @@ export const AuditTasks = () => {
     }
   }, []);
 
+  // Handle filters change from FilterButtonsWithComboboxes
   const handleFiltersChange = useCallback(
     (filters: TaskFilter[]) => {
       setActiveFilters(filters);
@@ -273,6 +822,8 @@ export const AuditTasks = () => {
     [refetch]
   );
 
+  const navigate = useNavigate();
+  // Handle search query change
   const handleSearchChange = useCallback(
     (value: string) => {
       setSearchQuery(value);
@@ -281,27 +832,22 @@ export const AuditTasks = () => {
     [refetch]
   );
 
-  useEffect(() => {
-    refetch();
-  }, [sortField, sortOrder, currentPage, tasksPerPage]);
-
   if (isLoading) {
     return <div>Loading...</div>;
   }
 
   return (
     <div className="space-y-6">
-      {/* Audit Header */}
-      <div>
+      <div className="space-y-2">
         <div className="flex gap-2">
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <ArrowLeft className="h-6 w-6" />
           </Button>
-          <h1 className="text-2xl font-semibold tracking-tight mb-4">
+          <h1 className="text-2xl font-semibold tracking-tight">
             {audit?.audit_name}
           </h1>
         </div>
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <StatusBadge status={audit?.status} />
             <Tooltip>
@@ -331,12 +877,12 @@ export const AuditTasks = () => {
                 <div className="flex flex-col space-y-1">
                   <Button
                     variant="ghost"
-                    onClick={() =>
+                    onClick={() => {
                       window.open(
                         `/api/method/jh_digitrack.api.audits.download_csv?audit_id=${auditId}`,
                         "_blank"
-                      )
-                    }
+                      );
+                    }}
                   >
                     CSV
                   </Button>
@@ -371,7 +917,9 @@ export const AuditTasks = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setIsEmailConfirmationOpen(true)}
+                    onClick={() => {
+                      setIsEmailConfirmationOpen(true);
+                    }}
                   >
                     <Mail className="h-4 w-4" />
                   </Button>
@@ -381,54 +929,75 @@ export const AuditTasks = () => {
             ) : null}
           </div>
           <div className="flex items-center gap-2">
-            {taskCounts?.message?.map((task, i) => (
-              <div className="flex bg-gray-200 rounded-md" key={i}>
-                <StatusBadge status={task.status} />
-                <StatusBadge status={task.count.toString()} />
-              </div>
-            ))}
+            {taskCounts?.message
+              // .filter(
+              //   (task) => task.status === "Open" || task.status === "Closed"
+              // )
+              .map((task, i) => (
+                <div className="flex bg-gray-200 rounded-md" key={i}>
+                  <StatusBadge status={task.status} />
+                  <StatusBadge status={task.count.toString()} />
+                </div>
+              ))}
           </div>
         </div>
-        <div className="mb-1">
+        <div className="flex text-base gap-2">
+          <span>Created By : </span>
+          <span className="text-gray-500">
+            {createdBy?.full_name ?? audit?.created_by}
+          </span>
+        </div>
+        <div className="flex text-base gap-2">
+          <span>Created Date: </span>
+          <div className="flex items-center gap-1">
+            <Calendar className="w-4 h-4 text-red-500" />
+            <span className="text-gray-500">
+              {audit?.creation
+                ? format(new Date(audit?.creation), "dd MMM yyyy")
+                : "—"}
+            </span>
+          </div>
+        </div>
+        <div className="flex text-base gap-2">
+          <span>Start Date: </span>
+          <div className="flex items-center gap-1">
+            <Calendar className="w-4 h-4 text-red-500" />
+            <span className="text-gray-500">
+              {audit?.start_date
+                ? format(new Date(audit?.start_date), "dd MMM yyyy")
+                : "—"}
+            </span>
+          </div>
+        </div>
+        <div className="flex text-base gap-2">
+          <span>Business / Division : </span>
           <div className="text-base text-gray-500">
             <span>{business?.business_name || ""}</span>
             {business?.business_name && division?.division_name ? " / " : ""}
             <span>{division?.division_name || ""}</span>
           </div>
         </div>
-        <div className="flex max-w-md items-center justify-between mb-2">
-          <div className="flex text-base gap-2">
-            <span>Created Date: </span>
-            <div className="flex items-center gap-1">
-              <Calendar className="w-4 h-4 text-red-500" />
-              <span className="text-gray-500">
-                {audit?.creation
-                  ? format(new Date(audit?.creation), "dd MMM yyyy")
-                  : "—"}
-              </span>
-            </div>
-          </div>
-          <div className="text-base">
-            <span>Created By: </span>
+        <div className="flex text-base gap-2">
+          <span>Completion Date: </span>
+          <div className="flex items-center gap-1">
+            <Calendar className="w-4 h-4 text-red-500" />
             <span className="text-gray-500">
-              {createdBy?.full_name ?? audit?.created_by}
+              {audit?.completion_date
+                ? format(new Date(audit?.completion_date), "dd MMM yyyy")
+                : "—"}
             </span>
           </div>
         </div>
         <div className="text-base">
-          <ExpandableTextByLines
-            text={audit?.audit_description || ""}
-            maxLines={2}
-            isHtml={true}
-            className="text-base"
-            showMoreText="See full description"
-            showLessText="Show less"
+          <span className="font-semibold">Description</span>
+          <div
+            dangerouslySetInnerHTML={{
+              __html: audit?.audit_description?.replace(/\n+/g, "<br />") || "",
+            }}
           />
         </div>
       </div>
-
-      {/* Task Table */}
-      <div className="space-y-1">
+      <div className="space-y-4">
         <div className="flex items-center justify-between">
           <SearchBar value={searchQuery} onChange={handleSearchChange} />
           <ActionButtons
@@ -437,28 +1006,24 @@ export const AuditTasks = () => {
           />
         </div>
         <FilterButtonsWithComboboxes
-          tasks={tasks || []}
+          tasks={tasksWithoutfilters.length > 0 ? tasksWithoutfilters : []}
           onFiltersChange={handleFiltersChange}
           showPrivateTaskToggle={false}
           showCreatedByFilter={false}
         />
 
-        {frontendSortedTasks.length > 0 ? (
+        {sortedTasks.length > 0 ? (
           <div className="rounded-md border">
             <Table className="w-full table-fixed">
-              <TaskTableHeader
-                sortField={sortField}
-                sortOrder={sortOrder || undefined}
-                onSort={handleSort}
-              />
+              <TaskTableHeaderShrink />
               <TableBody>
-                {frontendSortedTasks.map((task, index) => (
+                {sortedTasks.map((task, index) => (
                   <TaskRowShrink
                     key={task.name}
                     task={task}
                     index={index}
-                    onRowClick={() => handleRowClick(task.name)}
-                    onEdit={() => handleEditTask(task.name)}
+                    onRowClick={handleRowClick}
+                    onEdit={handleEditTask}
                     onDelete={handleDeleteTask}
                     currentPage={currentPage}
                     perPage={tasksPerPage}
@@ -480,7 +1045,7 @@ export const AuditTasks = () => {
           <EmptyState title={"No tasks found"} />
         )}
 
-        {/* Sheets & dialogs */}
+        {/* Task creation/edit sheet */}
         <TaskSheet
           open={isCreateTaskOpen}
           onOpenChange={setIsCreateTaskOpen}
@@ -488,6 +1053,8 @@ export const AuditTasks = () => {
           source={auditId}
           sourceDocType="JH Audit Master"
         />
+
+        {/* Task detail sheet */}
         <TaskDetailSheet
           open={isTaskDetailOpen}
           onOpenChange={setIsTaskDetailOpen}
@@ -495,18 +1062,24 @@ export const AuditTasks = () => {
           onEdit={handleEditTask}
           onDelete={handleDeleteTask}
         />
+
+        {/* Audit detail sheet */}
         <AuditDetailSheet
           open={isAuditDetailOpen}
           onOpenChange={setIsAuditDetailOpen}
           auditId={auditId}
           onDelete={handleDeleteTask}
         />
+
+        {/* Delete confirmation dialog */}
         <DeleteConfirmation
           open={isDeleteDialogOpen}
           onOpenChange={setIsDeleteDialogOpen}
           taskName={taskNameToDelete || ""}
           onConfirm={confirmDeleteTask}
         />
+
+        {/* Email confirmation dialog */}
         <ConfirmationDialog
           open={isEmailConfirmationOpen}
           onOpenChange={setIsEmailConfirmationOpen}
@@ -519,5 +1092,4 @@ export const AuditTasks = () => {
   );
 };
 
-
-export default AuditTasks;
+export default AuditTasksShrink;

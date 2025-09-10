@@ -628,8 +628,8 @@ async function showEmployeeDetails(emp) {
     jobContainer.innerHTML = "";
 
     const skipFields = ["name","owner","creation","modified_by","modified","doctype","first_name","middle_name","last_name","image"];
-    const contactFields = ["mail_id","region"];
-    const jobFields = ["employee_code","ou_name","designation_name","date_of_joining","reporting_manager","funcational_reporting_manager","department_name","location_name"];
+    const contactFields = ["desk_no","mobile_no","mail_id","region"];
+    const jobFields = ["employee_code","ou_name","designation_name","date_of_joining","reporting_manager","funcational_reporting_manager","skip_level_reporting_manager","department_name","location_name"];
 
     const allFields = [...contactFields, ...jobFields];
 
@@ -668,6 +668,8 @@ function formatKey(key) {
     designation_name: "Business Title",
     department_name: "Department",
     region: "Work Address",
+    desk_no:"Desk No",
+    skip_level_reporting_manager:"Skip Level Manager",
     location_name: "Location"
   };
   if (customNames[key]) return customNames[key];

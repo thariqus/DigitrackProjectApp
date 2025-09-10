@@ -31,6 +31,7 @@
   "no_automated_email_assignee",
   "no_automated_email_assignor",
   "scheduled_email_sent_at",
+  "last_commented_on",
   "section_break_ygcl",
   "changelog",
   "column_break_ndht",
@@ -193,11 +194,16 @@
    "fieldname": "scheduled_email_sent_at",
    "fieldtype": "Datetime",
    "label": "Scheduled Email Sent At"
+  },
+  {
+   "fieldname": "last_commented_on",
+   "fieldtype": "Datetime",
+   "label": "Last Commented On"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-06-06 19:24:38.632960",
+ "modified": "2025-09-10 11:40:43.948501",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Task Master",
