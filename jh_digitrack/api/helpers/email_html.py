@@ -95,7 +95,7 @@ def generate_task_reminder_email(
         <div class="container">
             
             <p>Dear {{ recipient_name }},</p>
-            {% if upcoming_tasks|length > 0 %}
+            {% if tasks|length > 0 %}
                 <p>{{ header }}</p>
                 
                 <table border="1" cellpadding="5" cellspacing="0">
