@@ -95,54 +95,54 @@ def generate_task_reminder_email(
         <div class="container">
             
             <p>Dear {{ recipient_name }},</p>
-            
-            <p>{{ header }}</p>
-            
-            <table border="1" cellpadding="5" cellspacing="0">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Name</th>
-                        <th>Description</th>
-                        <th>Created Date</th>
-                        <th>Created By</th>
-                        <th>Assigned To</th>
-                        <th>Due Date</th>
-                        <th>Revised Due Date</th>
-                        <th>Status</th>
-                        <th>Completed Date</th>
-                        <th>Effort (hrs)</th>
-                        <th>Recent Comments</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for task_item in tasks %}
-                    <tr>
-                        <td>{{ task_item.name if task_item.name else "-" }}</td>
-                        <td>{{ task_item.task_name if task_item.task_name else "-" }}</td>
-                        <td>{{ task_item.description if task_item.description else "-" }}</td>
-                        <td>{{ task_item.creation.strftime("%d %b %Y") if task_item.creation else "-" }}</td>
-                        <td>{{ task_item.creator_name if task_item.creator_name else "-" }}</td>
-                        <td>{{ task_item.assigned_to_name if task_item.assigned_to_name else "-" }}</td>
-                        <td>{{ task_item.due_date.strftime("%d %b %Y") if task_item.due_date else "-" }}</td>
-                        <td>{{ task_item.revised_due_date.strftime("%d %b %Y") if task_item.revised_due_date else "-" }}</td>
-                        <td>{{ task_item.status if task_item.status else "-" }}</td>
-                        <td>{{ task_item.completion_date.strftime("%d %b %Y") if task_item.completion_date else "-" }}</td>
-                        <td>{{ task_item.effort_hrs if task_item.effort_hrs else "-" }}</td>
-                        <td class="comments-cell">
-                            {% if task_item.recent_comments and task_item.recent_comments|length > 0 %}
-                                {% for comment in task_item.recent_comments %}
-                                    <div class="comment-line">{{ comment }}</div>
-                                {% endfor %}
-                            {% else %}
-                                -
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-
+            {% if upcoming_tasks|length > 0 %}
+                <p>{{ header }}</p>
+                
+                <table border="1" cellpadding="5" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Description</th>
+                            <th>Created Date</th>
+                            <th>Created By</th>
+                            <th>Assigned To</th>
+                            <th>Due Date</th>
+                            <th>Revised Due Date</th>
+                            <th>Status</th>
+                            <th>Completed Date</th>
+                            <th>Effort (hrs)</th>
+                            <th>Recent Comments</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for task_item in tasks %}
+                        <tr>
+                            <td>{{ task_item.name if task_item.name else "-" }}</td>
+                            <td>{{ task_item.task_name if task_item.task_name else "-" }}</td>
+                            <td>{{ task_item.description if task_item.description else "-" }}</td>
+                            <td>{{ task_item.creation.strftime("%d %b %Y") if task_item.creation else "-" }}</td>
+                            <td>{{ task_item.creator_name if task_item.creator_name else "-" }}</td>
+                            <td>{{ task_item.assigned_to_name if task_item.assigned_to_name else "-" }}</td>
+                            <td>{{ task_item.due_date.strftime("%d %b %Y") if task_item.due_date else "-" }}</td>
+                            <td>{{ task_item.revised_due_date.strftime("%d %b %Y") if task_item.revised_due_date else "-" }}</td>
+                            <td>{{ task_item.status if task_item.status else "-" }}</td>
+                            <td>{{ task_item.completion_date.strftime("%d %b %Y") if task_item.completion_date else "-" }}</td>
+                            <td>{{ task_item.effort_hrs if task_item.effort_hrs else "-" }}</td>
+                            <td class="comments-cell">
+                                {% if task_item.recent_comments and task_item.recent_comments|length > 0 %}
+                                    {% for comment in task_item.recent_comments %}
+                                        <div class="comment-line">{{ comment }}</div>
+                                    {% endfor %}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
             {% if upcoming_tasks|length > 0 %}
                 <p>Upcoming tasks (Tasks due in 2 days or 7 days):</p>
                 <table border="1" cellpadding="5" cellspacing="0">
