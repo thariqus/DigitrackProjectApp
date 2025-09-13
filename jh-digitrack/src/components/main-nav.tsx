@@ -166,6 +166,13 @@ export function MainNav() {
               >
                 <span>Travel Workflow Dashboard</span>
               </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => {
+                  window.location.href = "http://172.16.51.122:8002/employee_search";
+                }}
+              >
+                <span>Employee Lookup</span>
+              </DropdownMenuItem>
               <DropdownMenuItem className="w-full" onClick={() => logout()}>
                 <span>Log out</span>
               </DropdownMenuItem>
