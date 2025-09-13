@@ -422,7 +422,7 @@ def scheduled_emails():
         )
         .where(
             (tasks.deleted_at.isnull())
-            & (tasks.modified > tasks.scheduled_email_sent_at)
+            & ((tasks.modified > tasks.scheduled_email_sent_at) | (tasks.last_commented_on > tasks.scheduled_email_sent_at))
             & (tasks.status.notin(["Completed", "Closed", "Canceled"]))
             & (tasks.no_automated_email_assignee == 0)
         )
@@ -468,7 +468,7 @@ def scheduled_emails():
         )
         .where(
             (tasks.deleted_at.isnull())
-            & (tasks.modified > tasks.scheduled_email_sent_at)
+            & ((tasks.modified > tasks.scheduled_email_sent_at) | (tasks.last_commented_on > tasks.scheduled_email_sent_at))
             & (tasks.status.notin(["Completed", "Closed", "Canceled"]))
             & (tasks.no_automated_email_assignor == 0)
         )
@@ -567,7 +567,14 @@ def scheduled_emails():
                     changed_tasks=changed_tasks,
                     recipient_name=recipient_name
                 )
-
+                all_tasks_to_update = tasks + changed_tasks
+                for task in all_tasks_to_update:
+                    try:
+                        task_doc = frappe.get_doc("JH Task Master", task.name)
+                        task_doc.scheduled_email_sent_at = frappe.utils.add_to_date(frappe.utils.now(), seconds=10)
+                        task_doc.save(ignore_permissions=True)
+                    except Exception as e:
+                        frappe.log_error(f"Error updating scheduled_email_sent_at for task {task.name}: {str(e)}")
                 emails_data.append({
                     "to": recipient,
                     "subject": subject,
@@ -596,7 +603,17 @@ def scheduled_emails():
                     changed_tasks=changed_tasks,
                     recipient_name=recipient_name
                 )
-
+                all_tasks_to_update = tasks + changed_tasks
+                for task in all_tasks_to_update:
+                    try:
+                        task_doc = frappe.get_doc("JH Task Master", task.name)
+                        # Only update if not already updated in the last minute (to avoid race conditions)
+                        if not task_doc.scheduled_email_sent_at or \
+                           (frappe.utils.now_datetime() - task_doc.scheduled_email_sent_at).total_seconds() > 60:
+                            task_doc.scheduled_email_sent_at = frappe.utils.add_to_date(frappe.utils.now(), seconds=10)
+                            task_doc.save(ignore_permissions=True)
+                    except Exception as e:
+                        frappe.log_error(f"Error updating scheduled_email_sent_at for task {task.name}: {str(e)}")
                 emails_data.append({
                     "to": recipient,
                     "subject": subject,
@@ -610,9 +627,8 @@ def scheduled_emails():
 
 def _create_email_doc(emails_data):
     email_doc = frappe.new_doc("JH Emails")
-    today = datetime.today()
     email_doc.source_document = "JH Task Master"
-    email_doc.date = today
+    email_doc.date = frappe.utils.add_to_date(frappe.utils.now())
 
 
     for entry in emails_data:
