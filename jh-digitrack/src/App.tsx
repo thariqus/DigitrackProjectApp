@@ -22,18 +22,18 @@ import AuditTasksExpanded from "./components/tasks/task-table/audit-tasks-expand
 import AuditTasksShrink from "./components/tasks/task-table/audit-tasks-shrink";
 import Maintenance from "./components/Maintenance";
 import Dashboard from "./components/dashboard";
-import { useLogout } from "./hooks/auth";
 
 function AppWrapper() {
-  const logoutMutation = useLogout();
   const idleTimer = useRef<NodeJS.Timeout | null>(null);
-  const IDLE_TIME = 8 * 60 * 1000; 
+  const IDLE_TIME = 10 * 60 * 1000; 
   const resetIdleTimer = () => {
     if (idleTimer.current) clearTimeout(idleTimer.current);
+
     idleTimer.current = setTimeout(() => {
-      logoutMutation.mutate();
+      window.location.href = "/api/method/jh_digitrack.api.idle_logout.idle_logout";
     }, IDLE_TIME);
   };
+
 
   useEffect(() => {
 
