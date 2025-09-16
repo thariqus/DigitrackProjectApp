@@ -306,7 +306,7 @@ tr:hover {
   justify-content: flex-start;
   align-items: center;
   padding: 2px 0;
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .details-row:last-child {
@@ -629,7 +629,7 @@ async function showEmployeeDetails(emp) {
 
     const skipFields = ["name","owner","creation","modified_by","modified","doctype","first_name","middle_name","last_name","image"];
     const contactFields = ["desk_no","mobile_no","mail_id","region"];
-    const jobFields = ["employee_code","ou_name","designation_name","date_of_joining","reporting_manager","funcational_reporting_manager","skip_level_reporting_manager","department_name","location_name"];
+    const jobFields = ["employee_code","ou_name","designation_name","reporting_manager","funcational_reporting_manager","skip_level_reporting_manager","department_name","location_name"];
 
     const allFields = [...contactFields, ...jobFields];
 
