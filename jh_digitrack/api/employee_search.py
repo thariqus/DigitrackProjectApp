@@ -27,7 +27,6 @@ def search_employees(search):
 
 @frappe.whitelist(allow_guest=True)
 def get_employee_details(name):
-    """Fetch all fields for a single employee using the docname"""
     if not name:
         return {"message": {}}
 
