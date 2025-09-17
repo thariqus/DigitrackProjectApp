@@ -2,29 +2,31 @@ import frappe
 
 @frappe.whitelist(allow_guest=True)
 def search_employees(search):
-    
-    if not search:
+    if not search or search.startswith("@"):
         return {"message": []}
-    if "@" in search:
-        search = search.split("@", 1)[0]
-    search = f"%{search}%"
+
+    search = search.split("@", 1)[0] if "@" in search else search
+
+    search_like = f"%{search}%"
+
     employees = frappe.db.sql("""
         SELECT 
             name,
             first_name,
             last_name,
             employee_code,
-            mail_id                 
+            mail_id
         FROM `tabHRMS Users`
         WHERE 
             first_name LIKE %(search)s
             OR last_name LIKE %(search)s
             OR employee_code LIKE %(search)s
             OR SUBSTRING_INDEX(mail_id, '@', 1) LIKE %(search)s
-        
-    """, {"search": search}, as_dict=True)
+    """, {"search": search_like}, as_dict=True)
 
     return {"message": employees}
+
+
 
 @frappe.whitelist(allow_guest=True)
 def get_employee_details(name):
