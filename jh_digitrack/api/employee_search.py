@@ -2,11 +2,12 @@ import frappe
 
 @frappe.whitelist(allow_guest=True)
 def search_employees(search):
+    
     if not search:
         return {"message": []}
-
+    if "@" in search:
+        search = search.split("@", 1)[0]
     search = f"%{search}%"
-
     employees = frappe.db.sql("""
         SELECT 
             name,
@@ -19,7 +20,7 @@ def search_employees(search):
             first_name LIKE %(search)s
             OR last_name LIKE %(search)s
             OR employee_code LIKE %(search)s
-            OR mail_id LIKE %(search)s
+            OR SUBSTRING_INDEX(mail_id, '@', 1) LIKE %(search)s
         
     """, {"search": search}, as_dict=True)
 
