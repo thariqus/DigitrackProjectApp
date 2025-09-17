@@ -7,6 +7,7 @@
 
 
   <link rel="icon" href="/assets/jh_digitrack/jh-digitrack/jaleel-holdings-1.png" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 
   <style>
 
@@ -68,6 +69,28 @@ html, body {
   font-size: 18px;
   color: #888; 
 }
+.search-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 22px;       /* size of icon */
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.search-btn .material-icons {
+  color: grey;           /* always visible in grey */
+  transition: color 0.2s ease;
+}
+
+.search-btn:hover .material-icons {
+  color: red;            /* turn red on hover */
+}
+
+
+
 #results {
   margin-top: 40px;
   width: 90%;
@@ -422,8 +445,11 @@ tr:hover {
 <div class="search-wrapper">
   <div id="searchTip" class="tooltip">Press Enter or click 🔍 to search employee</div>
   <div class="search-container">
-    <input type="text" id="search" placeholder="Search either employee code,first name,last name" autocomplete="off">
-    <button onclick="searchEmployee()">🔍</button>
+    <input type="text" id="search" placeholder="Employee code,First name,Last name or Email " autocomplete="off">
+    <button onclick="searchEmployee()" class="search-btn">
+      <span class="material-icons">search</span>
+    </button>
+
   </div>
 </div>
 <div id="resultHint" class="result-hint">
