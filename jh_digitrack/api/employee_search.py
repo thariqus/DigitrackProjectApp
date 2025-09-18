@@ -22,6 +22,7 @@ def search_employees(search):
             OR last_name LIKE %(search)s
             OR employee_code LIKE %(search)s
             OR SUBSTRING_INDEX(mail_id, '@', 1) LIKE %(search)s
+        LIMIT 50
     """, {"search": search_like}, as_dict=True)
 
     return {"message": employees}
