@@ -75,7 +75,7 @@ export function MainNav() {
             <Calendar className="h-5 w-5" />
             <span>Meetings</span>
           </Link>
-          <Popover>
+                    <Popover>
             <PopoverTrigger asChild>
               <div className="flex items-center gap-2 hover:text-primary cursor-pointer">
                 <FolderOpenDot className="!size-5" />
@@ -168,7 +168,7 @@ export function MainNav() {
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => {
-                  window.location.href = "http://172.16.51.122:8002/employee_search";
+                  window.location.href = "https://digitrack.jaleelholdings.com/employee-search";
                 }}
               >
                 <span>Employee Lookup</span>
