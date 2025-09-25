@@ -18,7 +18,7 @@
  "is_hidden": 0,
  "label": "Travel Request",
  "links": [],
- "modified": "2025-09-18 18:40:49.343612",
+ "modified": "2025-09-25 11:05:38.043758",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "Travel Request",
@@ -86,7 +86,7 @@
    "doc_view": "List",
    "label": "Employee LookUp",
    "type": "URL",
-   "url": "http://127.0.0.1:8003/employee-search"
+   "url": "https://digitrack.jaleelholdings.com/employee-search"
   },
   {
    "color": "Grey",
