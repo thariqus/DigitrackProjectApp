@@ -1,0 +1,145 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:SI-{##########}",
+ "creation": "2025-09-23 12:09:17.461488",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "item_name",
+  "column_break_dyxi",
+  "date",
+  "modified_date",
+  "section_break_2w1t",
+  "employee_id",
+  "employee_name",
+  "contact_details",
+  "column_break_hkei",
+  "status",
+  "quantity",
+  "location",
+  "section_break_vsjk",
+  "description",
+  "image1",
+  "image2",
+  "image3"
+ ],
+ "fields": [
+  {
+   "fieldname": "item_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Item Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_hkei",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "date",
+   "fieldtype": "Date",
+   "label": "Date"
+  },
+  {
+   "fieldname": "section_break_vsjk",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  },
+  {
+   "fieldname": "column_break_dyxi",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_2w1t",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "employee_id",
+   "fieldtype": "Data",
+   "label": "Employee ID"
+  },
+  {
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "label": "Employee Name"
+  },
+  {
+   "fieldname": "quantity",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Quantity",
+   "reqd": 1
+  },
+  {
+   "fieldname": "contact_details",
+   "fieldtype": "Data",
+   "label": "Contact Details"
+  },
+  {
+   "default": "Available",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Available\nSold\nInactive"
+  },
+  {
+   "fieldname": "location",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Location",
+   "reqd": 1
+  },
+  {
+   "fieldname": "image1",
+   "fieldtype": "Attach Image",
+   "label": "Image1"
+  },
+  {
+   "fieldname": "image2",
+   "fieldtype": "Attach Image",
+   "label": "Image2"
+  },
+  {
+   "fieldname": "image3",
+   "fieldtype": "Attach Image",
+   "label": "Image3"
+  },
+  {
+   "fieldname": "modified_date",
+   "fieldtype": "Date",
+   "label": "Modified Date"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-10-01 09:43:33.014686",
+ "modified_by": "Administrator",
+ "module": "JH Digitrack",
+ "name": "JH Scrap Item",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
