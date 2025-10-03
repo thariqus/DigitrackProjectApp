@@ -11,6 +11,7 @@ import Layout from "@/components/layout";
 import Tasks from "@/components/tasks";
 import Projects from "@/components/projects";
 import Meetings from "@/components/meetings";
+import Scrapitems from "@/components/scrapitem";
 import Unauthorized from "./components/Unauthorized";
 import Audits from "./components/audits";
 import Search from "./components/search";
@@ -62,6 +63,7 @@ function AppWrapper() {
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="tasks" element={<Tasks />} />
               <Route path="projects" element={<Projects />} />
+              <Route path="scrapitems" element={<Scrapitems />} />
               <Route path="meetings" element={<Meetings />} />
               <Route path="meetings/:meetingId" element={<MeetingTasks />} />
               <Route path="meetings/:meetingId/expanded" element={<MeetingTasksExpanded />} />

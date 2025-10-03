@@ -3,10 +3,10 @@ import {
   ListTodo,
   Calendar,
   User,
-  FolderKanban,
   ClipboardCheck,
   FolderOpenDot,
   Search,
+  Recycle,
 } from "lucide-react";
 import { Link, useLocation } from "react-router";
 import JHLogo from "@/assets/digitrack-logo.png";
@@ -19,7 +19,6 @@ import {
 } from "./ui/dropdown-menu";
 import { useCurrentJhUser, useLogout } from "@/hooks/auth";
 import { useAppVersion } from "@/hooks/system";
-import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { JHDigitrackSettings } from "@/types/JHDigitrack/JHDigitrackSettings";
 import { useDocDetail } from "@/hooks/doc";
 
@@ -30,7 +29,6 @@ export function MainNav() {
   const { mutate: logout } = useLogout();
 
   const className = (path: string[]) => {
-    console.log(pathname.split("/").pop(), path);
     return cn(
       "flex items-center gap-2 hover:text-primary",
       path?.some((p) => p === pathname.split("/").pop())
@@ -58,6 +56,7 @@ export function MainNav() {
             className="h-10 w-auto"
           />
         </Link>
+
         <nav className="ml-auto flex items-center gap-4 md:gap-6">
           <Link to="dashboard" className={className(["dashboard"])}>
             <ClipboardCheck className="h-5 w-5" />
@@ -75,39 +74,49 @@ export function MainNav() {
             <Calendar className="h-5 w-5" />
             <span>Meetings</span>
           </Link>
-                    <Popover>
-            <PopoverTrigger asChild>
-              <div className="flex items-center gap-2 hover:text-primary cursor-pointer">
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="flex items-center gap-2 text-gray-600 hover:text-primary cursor-pointer">
                 <FolderOpenDot className="!size-5" />
-                Projects
-              </div>
-            </PopoverTrigger>
-            <PopoverContent className="w-[300px] p-0" align="end">
-              <div className="flex flex-col w-full gap-3 p-4">
-                <Link
-                  to="projects"
-                  className={cn(
-                    className(["projects"]),
-                    "opacity-50 pointer-events-none"
-                  )}
-                  aria-disabled="true"
-                >
-                  <FolderKanban className="h-5 w-5" />
-                  <span className="flex items-center gap-2">
-                    TS Projects
-                    <span className="inline-flex items-center rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-800">
-                      Coming Soon
-                    </span>
-                  </span>
+                Others
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56" align="end">
+              <DropdownMenuItem asChild>
+                <Link to="scrapitems" className="flex items-center gap-2">
+                  <Recycle className="h-5 w-5" />
+                  <span>Scrap Item</span>
                 </Link>
-              </div>
-            </PopoverContent>
-          </Popover>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => {
+                  window.location.href = "/app/travel-request";
+                }}
+              >
+                Travel Workflow Dashboard
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => {
+                  window.location.href =
+                    "https://digitrack.jaleelholdings.com/employee-search";
+                }}
+              >
+                Employee Lookup
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Divider */}
           <span className="border h-10 border-gray-200"></span>
+
+          {/* Search */}
           <Link to="search" className={className(["search"])}>
             <Search className="h-5 w-5" />
             <span>Search</span>
           </Link>
+
+          {/* User Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="ml-4" aria-label="User profile">
@@ -128,8 +137,10 @@ export function MainNav() {
                   </span>
                 </div>
               </div>
+
               <DropdownMenuSeparator />
-              {currentJhUser?.is_head_of_department ? (
+
+              {currentJhUser?.is_head_of_department && (
                 <DropdownMenuItem
                   onClick={() => {
                     window.location.href = "/app/jh-digitrack-settings";
@@ -137,12 +148,8 @@ export function MainNav() {
                 >
                   <span>Switch To Desk</span>
                 </DropdownMenuItem>
-              ) : null}
-              {/* <DropdownMenuItem asChild>
-                <Link to="/jh-digitrack/recycle-bin" className="w-full">
-                  <span>Recycle Bin</span>
-                </Link>
-              </DropdownMenuItem> */}
+              )}
+
               <DropdownMenuItem
                 onClick={() => {
                   window.location.href = "/me";
@@ -150,7 +157,8 @@ export function MainNav() {
               >
                 <span>Account Settings</span>
               </DropdownMenuItem>
-              {attachment?.user_manual ? (
+
+              {attachment?.user_manual && (
                 <DropdownMenuItem
                   onClick={() => {
                     window.open(attachment?.user_manual);
@@ -158,25 +166,14 @@ export function MainNav() {
                 >
                   <span>User Manual</span>
                 </DropdownMenuItem>
-              ) : null}
-              <DropdownMenuItem
-                onClick={() => {
-                  window.location.href = "/app/travel-request";
-                }}
-              >
-                <span>Travel Workflow Dashboard</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => {
-                  window.location.href = "https://digitrack.jaleelholdings.com/employee-search";
-                }}
-              >
-                <span>Employee Lookup</span>
-              </DropdownMenuItem>
+              )}
+
               <DropdownMenuItem className="w-full" onClick={() => logout()}>
                 <span>Log out</span>
               </DropdownMenuItem>
+
               <DropdownMenuSeparator />
+
               <div
                 className="p-2 text-xs text-center text-gray-400 cursor-default"
                 onClick={() => {
