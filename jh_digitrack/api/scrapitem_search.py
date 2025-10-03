@@ -124,6 +124,8 @@ def create_scrap_item(
 
     user_doc = frappe.get_doc("JH User Master", created_by)
     employee_name = getattr(user_doc, "full_name", created_by)
+    employee_id = getattr(user_doc, "employee_code", created_by)
+
     scrap_item = frappe.new_doc("JH Scrap Item")
     scrap_item.item_name = title
     scrap_item.date = date
@@ -143,7 +145,6 @@ def create_scrap_item(
 
     return {
         "message": _("Scrap Item created successfully"),
-        "scrap_item": scrap_item.name
     }
 
 
@@ -204,7 +205,7 @@ def update_scrap_item(
     scrap_item.save()
     frappe.db.commit()
 
-    return {"message": scrap_item.as_dict()}
+    return {"message": "Scrap Item updated successfully"}
 
 
 
