@@ -29,8 +29,6 @@ export const useUserScrapItems = (
         search_query,
       });
 
-      console.log("Raw API response from frappeClient:", response);
-
       return response.message;
     },
     
@@ -73,8 +71,6 @@ export const useCreateScrapItem = () => {
         "jh_digitrack.api.scrapitem_search.create_scrap_item",
         payload
       );
-
-      console.log("API response from create_scrap_item:", response);
 
       if (!response.message) {
         throw new Error("Failed to create scrap item");
