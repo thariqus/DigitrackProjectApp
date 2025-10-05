@@ -73,7 +73,7 @@ export const useCreateScrapItem = () => {
       );
 
       if (!response.message) {
-        throw new Error("Failed to create scrap item");
+        throw new Error("Failed to create idle asset");
       }
 
       return response.message;
@@ -96,7 +96,7 @@ export const useUpdateScrapItem = () => {
       );
 
       if (!response.message) {
-        throw new Error("Failed to update scrap item");
+        throw new Error("Failed to update idle asset");
       }
 
       return response.message;
@@ -115,7 +115,7 @@ export const useDeleteScrapItem = () => {
       );
 
       if (!response.message) {
-        throw new Error("Failed to delete scrap item");
+        throw new Error("Failed to delete idle asset");
       }
 
       return response.message;

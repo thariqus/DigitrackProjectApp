@@ -87,10 +87,10 @@ export function ScrapItemSheet({
       try {
         if (initialData?.name) {
           await updateScrapItem({ ...data, name: initialData.name });
-          toast.success("Scrap Item updated successfully");
+          toast.success("Idle Asset updated successfully");
         } else {
           await createScrapItem(data);
-          toast.success("Scrap Item created successfully");
+          toast.success("Idle Asset created successfully");
         }
 
         reset(defaultValues);
@@ -98,7 +98,7 @@ export function ScrapItemSheet({
         await refetch?.();
       } catch (error: any) {
         console.error(error);
-        toast.error(error.message || "Failed to submit Scrap Item");
+        toast.error(error.message || "Failed to submit Idle Asset");
       }
     },
     [initialData, createScrapItem, updateScrapItem, onOpenChange, refetch, reset]
@@ -109,7 +109,7 @@ return (
     <SheetContent className="sm:max-w-3xl px-5 flex flex-col">
       <SheetHeader className="px-0 flex-row justify-between items-center">
         <SheetTitle className="text-2xl font-bold">
-          {initialData ? "Edit Scrap Item" : "Create Scrap Item"}
+          {initialData ? "Edit Idle Asset" : "Create Idle Asset"}
         </SheetTitle>
         <SheetClose asChild>
           <Button variant="ghost" size="icon" aria-label="Close">X</Button>
@@ -386,7 +386,7 @@ return (
             </Button>
           </SheetClose>
           <Button type="submit" form="scrapitem-form" className="w-full bg-[#972e26] hover:bg-[#972e26]/90 text-white">
-            {initialData ? "Update Scrap Item" : "Create Scrap Item"}
+            {initialData ? "Update Idle Asset" : "Create Idle Asset"}
           </Button>
         </div>
       </SheetFooter>

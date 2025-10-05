@@ -7,6 +7,9 @@ import {
   FolderOpenDot,
   Search,
   Recycle,
+  LayoutDashboard,
+  Gauge,
+  Users,
 } from "lucide-react";
 import { Link, useLocation } from "react-router";
 import JHLogo from "@/assets/digitrack-logo.png";
@@ -59,7 +62,7 @@ export function MainNav() {
 
         <nav className="ml-auto flex items-center gap-4 md:gap-6">
           <Link to="dashboard" className={className(["dashboard"])}>
-            <ClipboardCheck className="h-5 w-5" />
+            <LayoutDashboard  className="h-5 w-5" />
             <span>Dashboard</span>
           </Link>
           <Link to="tasks" className={className(["tasks"])}>
@@ -86,7 +89,7 @@ export function MainNav() {
               <DropdownMenuItem asChild>
                 <Link to="scrapitems" className="flex items-center gap-2">
                   <Recycle className="h-5 w-5" />
-                  <span>Scrap Item</span>
+                  <span>Idle Assets</span>
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem
@@ -94,7 +97,8 @@ export function MainNav() {
                   window.location.href = "/app/travel-request";
                 }}
               >
-                Travel Workflow Dashboard
+              <Gauge className="h-5 w-5" />
+                <span>Travel Workflow Dashboard</span>
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => {
@@ -102,7 +106,8 @@ export function MainNav() {
                     "https://digitrack.jaleelholdings.com/employee-search";
                 }}
               >
-                Employee Lookup
+              <Users className="h-5 w-5" />
+                <span>Employee Lookup</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -140,7 +145,7 @@ export function MainNav() {
 
               <DropdownMenuSeparator />
 
-              {currentJhUser?.is_head_of_department && (
+              {Boolean(currentJhUser?.is_head_of_department) && (
                 <DropdownMenuItem
                   onClick={() => {
                     window.location.href = "/app/jh-digitrack-settings";
@@ -168,12 +173,17 @@ export function MainNav() {
                 </DropdownMenuItem>
               )}
 
-              <DropdownMenuItem className="w-full" onClick={() => logout()}>
+              <DropdownMenuItem
+                className="w-full"
+                onSelect={(e) => {
+                  e.preventDefault(); 
+                  logout();
+                }}
+              >
+
                 <span>Log out</span>
               </DropdownMenuItem>
-
               <DropdownMenuSeparator />
-
               <div
                 className="p-2 text-xs text-center text-gray-400 cursor-default"
                 onClick={() => {
