@@ -7,7 +7,7 @@ export const SearchBar = ({ value, onChange }: SearchBarProps) => (
     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
     <Input
       type="search"
-      placeholder="Search Scrap Item..."
+      placeholder="Search Idle Asset..."
       className="pl-8"
       value={value}
       onChange={(e) => onChange(e.target.value)}

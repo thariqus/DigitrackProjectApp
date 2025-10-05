@@ -32,12 +32,12 @@ export const ScrapActions = ({
           deleted_at: null,
         },
         name: scrapId,
-        doctype: "JH Scrap Item", // make sure this matches your doctype
+        doctype: "JH Scrap Item", 
       });
       await queryClient.invalidateQueries({ queryKey: ["scrap-items"] });
-      toast.success("Scrap item restored successfully");
+      toast.success("Idle asset restored successfully");
     } catch (err) {
-      toast.error("Failed to restore scrap item");
+      toast.error("Failed to restore idle asset");
     }
   };
 

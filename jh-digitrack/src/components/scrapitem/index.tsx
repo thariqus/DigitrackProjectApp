@@ -5,10 +5,10 @@ function Scrapitems() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">
-          Scrap Items
+          Idle Assets
         </h1>
         <p className="text-sm text-muted-foreground">
-          Scrap Items List
+          Idle Assets List
         </p>
       </div>
       <ScrapTable />
