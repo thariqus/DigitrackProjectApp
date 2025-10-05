@@ -109,11 +109,11 @@ const handleDeleteScrap = useCallback(
     if (confirm(`Are you sure you want to delete "${item.item_name}"?`)) {
       try {
         await deleteScrapItem(item.name);
-        toast.success(`Scrap Item "${item.item_name}" deleted successfully`);
+        toast.success(`Idle Asset"${item.item_name}" deleted successfully`);
         refetch();
       } catch (error: any) {
         console.error(error);
-        toast.error(error.message || "Failed to delete Scrap Item");
+        toast.error(error.message || "Failed to delete Idle Asset");
       }
     }
   },
@@ -159,8 +159,8 @@ const handleDeleteScrap = useCallback(
         </div>
       ) : (
         <EmptyState
-          title="No Scrap Items found"
-          description="You don't have any scrap items yet."
+          title="No idle assets found"
+          description="You don't have any idle assets yet."
         />
       )}
 

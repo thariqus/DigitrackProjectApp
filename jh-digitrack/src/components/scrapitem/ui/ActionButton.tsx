@@ -6,7 +6,7 @@ export const ActionButtons = ({ onCreateTask }: ActionButtonsProps) => (
   <div className="flex justify-end">
     <Button onClick={onCreateTask} size="sm">
       <Plus className="mr-2 h-4 w-4" />
-      Create Scrap Item
+      Create Idle Asset
     </Button>
   </div>
 );
