@@ -63,7 +63,7 @@ function AppWrapper() {
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="tasks" element={<Tasks />} />
               <Route path="projects" element={<Projects />} />
-              <Route path="scrapitems" element={<Scrapitems />} />
+              <Route path="idle-assets" element={<Scrapitems />} />
               <Route path="meetings" element={<Meetings />} />
               <Route path="meetings/:meetingId" element={<MeetingTasks />} />
               <Route path="meetings/:meetingId/expanded" element={<MeetingTasksExpanded />} />

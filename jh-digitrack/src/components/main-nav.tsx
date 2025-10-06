@@ -87,7 +87,7 @@ export function MainNav() {
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56" align="end">
               <DropdownMenuItem asChild>
-                <Link to="scrapitems" className="flex items-center gap-2">
+                <Link to="idle-assets" className="flex items-center gap-2">
                   <Recycle className="h-5 w-5" />
                   <span>Idle Assets</span>
                 </Link>
