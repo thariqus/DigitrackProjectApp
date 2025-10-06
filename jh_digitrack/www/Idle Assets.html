@@ -183,7 +183,7 @@ tr:hover { background-color: #f1f7ff; cursor: pointer; }
       <span class="material-icons">search</span>
     </button>
   </div>
-  <a href="https://digitrack.jaleelholdings.com/jh-digitrack/scrapitems" class="create-btn">+ Create Idle Assets</a>
+  <a href="https://digitrack.jaleelholdings.com/jh-digitrack/idle-assets" class="create-btn">+ Create Idle Assets</a>
 </div>
 
 <div id="resultHint" class="result-hint">
@@ -260,7 +260,7 @@ async function searchEmployee() {
   if(!query){ resultsEl.innerHTML=''; resultsEl.classList.remove('show'); currentRows=[]; selectedRowIndex=-1; return; }
   if(query.length<=2){ resultsEl.innerHTML=`<div class="no-results"><h3>Input Too Short</h3></div>`; resultsEl.classList.add('show'); currentRows=[]; selectedRowIndex=-1; resultHint.classList.remove("show"); return; }
   try{
-    const res = await fetch(`/api/method/jh_digitrack.api.scrapitem_search.search_scrapitem?search=${encodeURIComponent(query)}`);
+    const res = await fetch(`http://172.16.51.122/api/method/jh_digitrack.api.scrapitem_search.search_scrapitem?search=${encodeURIComponent(query)}`);
     const data = await res.json();
     const employeeList = data?.message?.message;
     resultsEl.innerHTML='';
@@ -295,7 +295,7 @@ async function showItemDetails(item){
   const thumbs = [document.getElementById('thumb1'), document.getElementById('thumb2'), document.getElementById('thumb3')];
 
   try{
-    const res=await fetch(`/api/method/jh_digitrack.api.scrapitem_search.get_item_details?item_name=${encodeURIComponent(item.item_name)}`);
+    const res=await fetch(`http://172.16.51.122/api/method/jh_digitrack.api.scrapitem_search.get_item_details?item_name=${encodeURIComponent(item.item_name)}`);
     const data=await res.json();
     const fullItem=data?.message?.message||item;
 
