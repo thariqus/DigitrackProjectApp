@@ -10,7 +10,7 @@ from .helpers.email_html import generate_task_reminder_email
 from frappe.utils import cint
 import io
 from .helpers.wrap_text import wrap_text
-from .helpers.clean_html import clean_html
+from .helpers.clean_html import clean_html,clean_html_for_reportlab
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A2
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
@@ -422,7 +422,8 @@ def scheduled_emails():
         )
         .where(
             (tasks.deleted_at.isnull())
-            & (tasks.modified > tasks.scheduled_email_sent_at)
+            & ((tasks.modified > tasks.scheduled_email_sent_at) | (tasks.last_commented_on > tasks.scheduled_email_sent_at))
+            & (tasks.status.notin(["Completed", "Closed", "Canceled"]))
             & (tasks.no_automated_email_assignee == 0)
         )
         .join(assigned_to)
@@ -467,7 +468,8 @@ def scheduled_emails():
         )
         .where(
             (tasks.deleted_at.isnull())
-            & (tasks.modified > tasks.scheduled_email_sent_at)
+            & ((tasks.modified > tasks.scheduled_email_sent_at) | (tasks.last_commented_on > tasks.scheduled_email_sent_at))
+            & (tasks.status.notin(["Completed", "Closed", "Canceled"]))
             & (tasks.no_automated_email_assignor == 0)
         )
         .join(assigned_to)
@@ -565,7 +567,14 @@ def scheduled_emails():
                     changed_tasks=changed_tasks,
                     recipient_name=recipient_name
                 )
-
+                all_tasks_to_update = tasks + changed_tasks
+                for task in all_tasks_to_update:
+                    try:
+                        task_doc = frappe.get_doc("JH Task Master", task.name)
+                        task_doc.scheduled_email_sent_at = frappe.utils.add_to_date(frappe.utils.now(), seconds=10)
+                        task_doc.save(ignore_permissions=True)
+                    except Exception as e:
+                        frappe.log_error(f"Error updating scheduled_email_sent_at for task {task.name}: {str(e)}")
                 emails_data.append({
                     "to": recipient,
                     "subject": subject,
@@ -594,7 +603,17 @@ def scheduled_emails():
                     changed_tasks=changed_tasks,
                     recipient_name=recipient_name
                 )
-
+                all_tasks_to_update = tasks + changed_tasks
+                for task in all_tasks_to_update:
+                    try:
+                        task_doc = frappe.get_doc("JH Task Master", task.name)
+                        # Only update if not already updated in the last minute (to avoid race conditions)
+                        if not task_doc.scheduled_email_sent_at or \
+                           (frappe.utils.now_datetime() - task_doc.scheduled_email_sent_at).total_seconds() > 60:
+                            task_doc.scheduled_email_sent_at = frappe.utils.add_to_date(frappe.utils.now(), seconds=10)
+                            task_doc.save(ignore_permissions=True)
+                    except Exception as e:
+                        frappe.log_error(f"Error updating scheduled_email_sent_at for task {task.name}: {str(e)}")
                 emails_data.append({
                     "to": recipient,
                     "subject": subject,
@@ -608,9 +627,8 @@ def scheduled_emails():
 
 def _create_email_doc(emails_data):
     email_doc = frappe.new_doc("JH Emails")
-    today = datetime.today()
     email_doc.source_document = "JH Task Master"
-    email_doc.date = today
+    email_doc.date = frappe.utils.add_to_date(frappe.utils.now())
 
 
     for entry in emails_data:
@@ -829,7 +847,14 @@ def create_task_pdf_content(tasks):
         alignment=TA_CENTER,
         textColor=colors.black
     )
-    
+
+    normal_style = ParagraphStyle(
+        'CustomNormal',
+        parent=styles['Normal'],
+        fontSize=10,
+        spaceAfter=6
+    )
+
     heading_style = ParagraphStyle(
         'CustomHeading',
         parent=styles['Heading2'],
@@ -838,7 +863,12 @@ def create_task_pdf_content(tasks):
         spaceBefore=12,
         textColor=colors.black
     )
-    
+    small_style = ParagraphStyle(
+        'CustomNormal',
+        parent=styles['Normal'],
+        fontSize=9,
+        spaceAfter=6
+    )    
     # Story to hold all content
     story = []
     
@@ -851,10 +881,9 @@ def create_task_pdf_content(tasks):
         
         # Table headers
         task_headers = [
-            "ID", "Name/\nDescription", "Created By/\nDate", "Assigned To", "Due/\nRevised Date", 
-            "Completion\nDate", "Status/\nEffort(h)", 
+            "ID", "Name/\nDescription","Details",
             "Assignee Remarks", "Comments"
-        ]
+        ]  
         
         # Prepare task data
         task_data = [task_headers]
@@ -927,48 +956,50 @@ def create_task_pdf_content(tasks):
             else:
                 comments_cell = "-"            
             # Format Created By & Date column
-            created_by_date = wrap_text(task.get("created_by", "-"), 15)
-            if task.get("creation"):
-                created_by_date += f"\n{task.get('creation').strftime('%d/%m/%Y')}"
-            
-            # Format Due Date & Revised column
+            created_by = task.get("created_by")
+            created_date = task.get('creation').strftime('%d/%m/%Y')         
             due_date_str = task.get("due_date").strftime("%d/%m/%Y") if task.get("due_date") else "-"
             revised_due_date_str = task.get("revised_due_date").strftime("%d/%m/%Y") if task.get("revised_due_date") else None
-            
-            if revised_due_date_str and revised_due_date_str != due_date_str:
-                # Different dates - show both
-                due_date_combined = f"{due_date_str}\n{revised_due_date_str}"
-            else:
-                # Same date or no revised date - show only one
-                due_date_combined = due_date_str
 
-            name_and_description = wrap_text(task.get("task_name", "-"), 25) + "\n" + "Description: " + clean_html(wrap_text(task.get("description", "-"), 50))
-            status_and_effort = task.get("status", "-") + "\n" + str(task.get("effort", "-"))
-            # Add task row
+            task_name_desc = clean_html_for_reportlab(task.get("task_name", "-"))
+            if task.get("description", "-") != "-":
+                task_desc = clean_html_for_reportlab(task.get("description", "-"))
+                task_name_desc += f"<br/><br/><b>Description: </b><br/> {task_desc}"
+                       
+            task_effort = task.get("effort")
+            assignee_remarks = clean_html_for_reportlab(task.get("assignee_comments", "-"))
+
+            details_text = f"""
+            <b>Created By:</b> {created_by}<br/>
+            <b>Created Date:</b> {created_date}<br/>
+            <b>Assigned To:</b> {wrap_text(task.get("assigned_to", "-"), 15)}<br/>
+            <b>Due Date:</b> {due_date_str}<br/>
+            <b>Revised Due Date:</b> {revised_due_date_str}<br/>
+            <b>Completion Date:</b> {task.get("completion_date").strftime("%d/%m/%Y") if task.get("completion_date") else "-"}<br/>
+            <b>Effort Hours: {task_effort}</b> 
+            """
+            details_cell = Paragraph(details_text, small_style)
+
+            task_id_with_status = f"""
+            <b>{wrap_text(task.get("name", "-"), 15)}</b><br/><br/>
+            <font size="8" color="black"><b>Status:</b> {task.get("status", "-")}</font>
+            """
             task_row = [
-                wrap_text(task.get("name", "-"), 15),
-                name_and_description,
-                created_by_date,
-                wrap_text(task.get("assigned_to", "-"), 15),
-                due_date_combined,
-                task.get("completion_date").strftime("%d/%m/%Y") if task.get("completion_date") else "-",
-                status_and_effort,
-                clean_html(wrap_text(task.get("assignee_comments", "-"), 50)),
+                Paragraph(task_id_with_status, small_style),
+                Paragraph(task_name_desc, small_style),
+                details_cell,
+                Paragraph(assignee_remarks, small_style),
                 comments_cell,
             ]
-            task_data.append(task_row)
-        
-        # Create tasks table
+
+            task_data.append(task_row)  
+
         tasks_table = Table(task_data, colWidths=[
             0.8*inch,  # Task ID
-            3.0*inch,  # Task Name
-            1.0*inch,  # Created By & Date
-            1.0*inch,  # Assigned To
-            1.0*inch,  # Due Date & Revised
-            1.0*inch,  # Completion Date
-            0.8*inch,  # Status
+            2.0*inch,  # Task Name
+            2.0*inch,  # Details
             3.0*inch,  # Assignee Remarks
-            4.0*inch   # Comments
+            7.8*inch   # Comments
         ])
         
         tasks_table.setStyle(TableStyle([
@@ -1079,7 +1110,7 @@ def get_task_status_counts(jh_user_name):
             FROM `tabJH Task Master`
             WHERE {field_name} = %(jh_user_name)s
             {extra_condition}
-            AND status IN ('Open', 'In Progress')
+            AND status IN ('Open', 'In Progress', 'Completed', 'Canceled')
             AND deleted_at IS NULL
             GROUP BY status
         """, {"jh_user_name": jh_user_name}, as_dict=True)
@@ -1156,3 +1187,36 @@ def get_task_status_counts(jh_user_name):
         "travel_request": get_travel_counts(),
         "meetings": get_meeting_counts(),
     }
+
+@frappe.whitelist()
+def send_emails(send_single_row=False, parent_docname=None, email_row_name=None):
+   
+    try:
+        email_doc = frappe.get_last_doc("JH Emails") if not parent_docname else frappe.get_doc("JH Emails", parent_docname)
+        emails_to_send = []
+
+        if send_single_row and email_row_name:
+            for row in email_doc.emails:
+                if row.name == email_row_name and str(row.status) == "0":
+                    emails_to_send.append(row)
+                    break
+        else:
+            emails_to_send = [row for row in email_doc.emails if str(row.status) == "0"]
+        if not emails_to_send:
+            return
+
+        for email in emails_to_send:
+            frappe.sendmail(
+                recipients=[email.to],
+                subject=email.subject,
+                message=email.body,
+                delayed=False
+            )
+            email.status = "1"
+
+        email_doc.save(ignore_permissions=True)
+        frappe.db.commit()
+
+    except Exception as e:
+        frappe.log_error(message=str(e), title="Error sending email in JH Emails")
+

@@ -12,12 +12,14 @@
   "last_name",
   "company_name",
   "date_of_joining",
+  "mobile_no",
   "column_break_moix",
   "dob",
   "gender",
   "mail_id",
   "reporting_manager",
   "funcational_reporting_manager",
+  "skip_level_reporting_manager",
   "section_break_zrpl",
   "ou_name",
   "department_name",
@@ -42,6 +44,7 @@
   "created_by",
   "modified_on",
   "modified_by1",
+  "desk_no",
   "column_break_cr7w",
   "company_sponsor",
   "visa_designation",
@@ -335,12 +338,27 @@
    "fieldname": "employee_job_status",
    "fieldtype": "Data",
    "label": "EMPLOYEE JOB STATUS"
+  },
+  {
+   "fieldname": "skip_level_reporting_manager",
+   "fieldtype": "Data",
+   "label": "SKIP LEVEL REPORTING MANAGER"
+  },
+  {
+   "fieldname": "desk_no",
+   "fieldtype": "Data",
+   "label": "DESK NO"
+  },
+  {
+   "fieldname": "mobile_no",
+   "fieldtype": "Data",
+   "label": "MOBILE NO"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-08-05 15:45:36.602337",
+ "modified": "2025-09-08 17:51:47.989135",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "HRMS Users",

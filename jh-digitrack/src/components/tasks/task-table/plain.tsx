@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Table, TableBody, TableFooter } from "@/components/ui/table";
 import { useDeleteDoc, useDocs } from "@/hooks/doc";
 import { toast } from "sonner";
@@ -24,27 +24,24 @@ export const TaskTable = ({
   hideSearchBar,
   hideCreateTask,
 }: TaskTableProps) => {
-  // State management
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [tasksPerPage, setTasksPerPage] = useState(10);
+
+  const [sortField, setSortField] = useState<string | null>(null);
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc" | null>(null);
+
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
-  const [selectedTaskId, setSelectedTaskId] = useState<string | undefined>(
-    undefined
-  );
+  const [selectedTaskId, setSelectedTaskId] = useState<string | undefined>(undefined);
   const [isTaskDetailOpen, setIsTaskDetailOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [taskToDelete, setTaskToDelete] = useState<string | undefined>(
-    undefined
-  );
-  const [taskNameToDelete, setTaskNameToDelete] = useState<string | undefined>(
-    undefined
-  );
+  const [taskToDelete, setTaskToDelete] = useState<string | undefined>(undefined);
+  const [taskNameToDelete, setTaskNameToDelete] = useState<string | undefined>(undefined);
+
   const [activeFilters, setActiveFilters] = useState<TaskFilter[]>([]);
   const { data: currentJHUser } = useCurrentJhUser();
   const { data: currentUser } = useCurrentUser();
 
-  // Use the new hook for filter logic
   const { getFilters } = useTaskFilters({
     searchQuery,
     activeFilters,
@@ -53,12 +50,10 @@ export const TaskTable = ({
     currentUser,
   });
 
-  // Fetch tasks data with server-side filtering
-  const {
-    data: tasks,
-    isLoading,
-    refetch,
-  } = useDocs<Task>({
+  const deleteDoc = useDeleteDoc();
+
+  // Fetch tasks with applied filters, sorting, and pagination
+  const { data: tasks, isLoading, refetch } = useDocs<Task>({
     doctype: "JH Task Master",
     fields: [
       "name",
@@ -81,10 +76,9 @@ export const TaskTable = ({
       "modified",
       "deleted_at",
     ],
-    orderBy: {
-      field: "`tabJH Task Master`.modified",
-      order: "desc",
-    },
+    orderBy: sortField && sortField !== "created_by" && sortField !== "assigned_to"
+      ? { field: `\`tabJH Task Master\`.\`${sortField}\``, order: sortOrder || "asc" }
+      : { field: "`tabJH Task Master`.modified", order: "desc" },
     limit: tasksPerPage,
     page: currentPage,
     filters: getFilters() as Filter<Task>[],
@@ -99,7 +93,6 @@ export const TaskTable = ({
 
   const totalPages = Math.ceil(taskCounter?.length / tasksPerPage);
 
-  // Fetch tasks data with server-side filtering
   const { data: tasksWithoutfilters } = useDocs<Task>({
     doctype: "JH Task Master",
     fields: [
@@ -117,11 +110,40 @@ export const TaskTable = ({
     filters: getFilters(true) as Filter<Task>[],
   });
 
-  // Delete task mutation
+  const [frontendSortedTasks, setFrontendSortedTasks] = useState<Task[]>([]);
 
-  const deleteDoc = useDeleteDoc();
+  useEffect(() => {
+    if (!tasks) return;
 
-  // Event handlers
+    if (sortField === "created_by" || sortField === "assigned_to") {
+      const sorted = [...tasks].sort((a, b) => {
+        const nameA = ((a as any)[sortField] || "").toLowerCase();
+        const nameB = ((b as any)[sortField] || "").toLowerCase();
+
+        if (nameA < nameB) return sortOrder === "asc" ? -1 : 1;
+        if (nameA > nameB) return sortOrder === "asc" ? 1 : -1;
+        return 0;
+      });
+      setFrontendSortedTasks(sorted);
+    } else {
+      setFrontendSortedTasks(tasks); 
+    }
+  }, [tasks, sortField, sortOrder]);
+
+  const handleSort = useCallback(
+    (field: string, type: "asc" | "desc" | "reset") => {
+      if (type === "reset") {
+        setSortField(null);
+        setSortOrder(null);
+      } else {
+        setSortField(field);
+        setSortOrder(type);
+      }
+      setCurrentPage(1); // Reset to first page on sorting
+    },
+    []
+  );
+
   const handleCreateTask = useCallback(() => {
     setSelectedTaskId(undefined);
     setIsCreateTaskOpen(true);
@@ -139,7 +161,7 @@ export const TaskTable = ({
 
   const handleDeleteTask = useCallback(
     (taskId: string) => {
-      const task = tasks.find((task) => task.name === taskId);
+      const task = tasks?.find((task) => task.name === taskId);
       setTaskToDelete(taskId);
       setTaskNameToDelete(task?.task_name || "");
       setIsDeleteDialogOpen(true);
@@ -149,23 +171,9 @@ export const TaskTable = ({
 
   const confirmDeleteTask = useCallback(async () => {
     if (!taskToDelete) return;
-
     try {
-      // await updateDoc.mutateAsync({
-      //   doctype: "JH Task Master",
-      //   name: taskToDelete,
-      //   doc: {
-      //     deleted_at: format(new Date(), "yyyy-MM-dd"),
-      //   },
-      // });
-
-      await deleteDoc.mutateAsync({
-        doctype: "JH Task Master",
-        name: taskToDelete,
-      });
-      await queryClient.invalidateQueries({
-        queryKey: ["Docs"],
-      });
+      await deleteDoc.mutateAsync({ doctype: "JH Task Master", name: taskToDelete });
+      await queryClient.invalidateQueries({ queryKey: ["Docs"] });
       toast.success("Task deleted successfully");
       refetch();
     } catch (error) {
@@ -178,36 +186,37 @@ export const TaskTable = ({
     }
   }, [taskToDelete, deleteDoc, refetch]);
 
-  // Handle filters change from FilterButtonsWithComboboxes
   const handleFiltersChange = useCallback(
     (filters: TaskFilter[]) => {
       setActiveFilters(filters);
+      setCurrentPage(1); // reset page when filters change
       refetch();
     },
     [refetch]
   );
 
-  // Handle search query change
   const handleSearchChange = useCallback(
     (value: string) => {
       setSearchQuery(value);
+      setCurrentPage(1); // reset page when search changes
       setTimeout(() => refetch(), 300);
     },
     [refetch]
   );
 
-  if (isLoading) {
-    return <div>Loading...</div>;
-  }
+  useEffect(() => {
+    refetch();
+  }, [sortField, sortOrder, currentPage, tasksPerPage]);
+
+  if (isLoading) return <div>Loading...</div>;
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        {!hideSearchBar && (
-          <SearchBar value={searchQuery} onChange={handleSearchChange} />
-        )}
+        {!hideSearchBar && <SearchBar value={searchQuery} onChange={handleSearchChange} />}
         {!hideCreateTask && <ActionButtons onCreateTask={handleCreateTask} />}
       </div>
+
       {!hideFilters && (
         <FilterButtonsWithComboboxes
           tasks={tasksWithoutfilters.length > 0 ? tasksWithoutfilters : []}
@@ -217,12 +226,17 @@ export const TaskTable = ({
         />
       )}
 
-      {tasks.length > 0 ? (
+      {frontendSortedTasks.length > 0 ? (
         <div className="rounded-md border">
           <Table className="w-full table-fixed">
-            <TaskTableHeader activeFilter={activeFilter} />
+            <TaskTableHeader
+              activeFilter={activeFilter}
+              sortField={sortField}
+              sortOrder={sortOrder || undefined}
+              onSort={handleSort}
+            />
             <TableBody>
-              {tasks.map((task, index) => (
+              {frontendSortedTasks.map((task, index) => (
                 <TaskRow
                   key={task.name}
                   task={task}
@@ -249,23 +263,17 @@ export const TaskTable = ({
         </div>
       ) : (
         <EmptyState
-          title={
-            activeFilter === "deleted-tasks"
-              ? "No deleted tasks found"
-              : "No tasks found"
-          }
+          title={activeFilter === "deleted-tasks" ? "No deleted tasks found" : "No tasks found"}
         />
       )}
 
-      {/* Task creation/edit sheet */}
       <TaskSheet
         open={isCreateTaskOpen}
         onOpenChange={setIsCreateTaskOpen}
         taskId={selectedTaskId}
         source={tasks?.find((task) => task.name === selectedTaskId)?.source}
         sourceDocType={
-          tasks?.find((task) => task.name === selectedTaskId)
-            ?.source_doctype as
+          tasks?.find((task) => task.name === selectedTaskId)?.source_doctype as
             | "JH Audit Master"
             | "JH TS Projects"
             | "JH Grouped Task Master"
@@ -273,7 +281,6 @@ export const TaskTable = ({
         }
       />
 
-      {/* Task detail sheet */}
       <TaskDetailSheet
         open={isTaskDetailOpen}
         onOpenChange={setIsTaskDetailOpen}
@@ -282,7 +289,6 @@ export const TaskTable = ({
         onDelete={handleDeleteTask}
       />
 
-      {/* Delete confirmation dialog */}
       <DeleteConfirmation
         open={isDeleteDialogOpen}
         onOpenChange={setIsDeleteDialogOpen}

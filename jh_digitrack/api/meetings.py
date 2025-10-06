@@ -347,6 +347,283 @@ def create_meeting_pdf_content(meeting, tasks, internal_participants):
         # Sort tasks by status
         sorted_tasks = sorted(tasks, key=lambda task: STATUS_ORDER.get(task.get("status", ""), 6))
         
+        task_headers = [
+            "ID", "Name/\nDescription","Details",
+            "Assignee Remarks", "Comments"
+        ]       
+        # Prepare task data
+        task_data = [task_headers]
+
+        styles = getSampleStyleSheet()
+        normal_style = styles['Normal']       
+        for task in sorted_tasks:
+            # Get task comments
+            comments = frappe.db.get_list(
+                "Comment",
+                filters={
+                    "reference_name": task.get("name"), 
+                    "comment_type": "Comment", 
+                    "reference_doctype": "JH Task Master"
+                },
+                fields=["*"],
+                ignore_permissions=True,
+                order_by="creation desc",
+            )
+            change_log = frappe.db.get_list(
+                "JH Change Log",
+                filters={"parent": task.get("name")},
+                fields=["*", "creator.full_name as creator", "creator.name as creator_id"],
+                ignore_permissions=True,
+                order_by="creation desc",
+            )
+            
+            combined_entries = []
+        
+            # Add comments
+            for comment in comments:
+                creation = comment.get("creation")
+                if isinstance(creation, str):
+                    creation = datetime.strptime(creation, "%Y-%m-%d %H:%M:%S")
+                formatted_creation = creation.strftime("%d-%m-%Y")
+                combined_entries.append({
+                    'text': f"COMMENT: {wrap_text(comment.get('content', ''), 60)}",
+                    'user': comment.get('comment_by', ''),
+                    'date': formatted_creation,
+                    'creation_datetime': creation
+                })
+        
+            # Add change log entries
+            for log in change_log:
+                creation = log.get("creation") or log.get("commented_at")
+                if isinstance(creation, str):
+                    creation = datetime.strptime(creation, "%Y-%m-%d %H:%M:%S")
+                formatted_creation = creation.strftime("%d-%m-%Y")
+            
+                # Format change log content
+                log_text = f"LOG ({log.get('type', '')}): {wrap_text(log.get('comment', ''), 50) if log.get('comment') else ''}"
+                if log.get('remark'):
+                    log_text += f"\nRemark: {wrap_text(log.get('remark'), 40)}"
+            
+                combined_entries.append({
+                    'text': log_text,
+                    'user': log.get('creator', ''),
+                    'date': formatted_creation,
+                    'creation_datetime': creation
+                })
+        
+            # Sort combined entries by creation date (most recent first)
+            combined_entries.sort(key=lambda x: x['creation_datetime'], reverse=True)
+
+            recent_entries = []
+            for entry in combined_entries:
+                recent_entries.append(f"{entry['date']} : {entry['user']} \n{entry['text']}\n")
+        
+            if recent_entries:
+                comment_paragraphs = [Paragraph(entry, normal_style) for entry in recent_entries]
+                comments_cell = KeepInFrame(7.8*inch, 800, comment_paragraphs, mode='shrink')
+            else:
+                comments_cell = "-"
+        
+            created_by = task.get("created_by")
+            created_date = task.get('creation').strftime('%d/%m/%Y')         
+            due_date_str = task.get("due_date").strftime("%d/%m/%Y") if task.get("due_date") else "-"
+            revised_due_date_str = task.get("revised_due_date").strftime("%d/%m/%Y") if task.get("revised_due_date") else None
+            
+            # Task name and description
+            task_name_desc = clean_html_for_reportlab(task.get("task_name", "-"))
+            if task.get("description", "-") != "-":
+                task_desc = clean_html_for_reportlab(task.get("description", "-"))
+                task_name_desc += f"<br/><br/><b>Description: </b><br/> {task_desc}"
+            
+            # Status and Effort
+            task_effort = task.get("effort")
+
+            # Assignee remarks with HTML
+            assignee_remarks = clean_html_for_reportlab(task.get("assignee_comments", "-"))
+
+            details_text = f"""
+            <b>Created By:</b> {created_by}<br/>
+            <b>Created Date:</b> {created_date}<br/>
+            <b>Assigned To:</b> {wrap_text(task.get("assigned_to", "-"), 15)}<br/>
+            <b>Due Date:</b> {due_date_str}<br/>
+            <b>Revised Due Date:</b> {revised_due_date_str}<br/>
+            <b>Completion Date:</b> {task.get("completion_date").strftime("%d/%m/%Y") if task.get("completion_date") else "-"}<br/>
+            <b>Effort Hours: {task_effort}</b> 
+            """
+            details_cell = Paragraph(details_text, small_style)
+
+            task_id_with_status = f"""
+            <b>{wrap_text(task.get("name", "-"), 15)}</b><br/><br/>
+            <font size="8" color="black"><b>Status:</b> {task.get("status", "-")}</font>
+            """
+            task_row = [
+                Paragraph(task_id_with_status, small_style),
+                Paragraph(task_name_desc, small_style),
+                details_cell,
+                Paragraph(assignee_remarks, small_style),
+                comments_cell,
+            ]
+
+            task_data.append(task_row)  
+
+        tasks_table = Table(task_data, colWidths=[
+            0.8*inch,  # Task ID
+            2.0*inch,  # Task Name
+            2.0*inch,  # Details
+            3.0*inch,  # Assignee Remarks
+            7.8*inch   # Comments
+        ])
+        tasks_table.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),  # Header row bold
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),      # Data rows normal
+            ('FONTSIZE', (0, 0), (-1, 0), 9),                 # Header font size
+            ('FONTSIZE', (0, 1), (-1, -1), 8),                # Data font size
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey), # Header background
+        ]))
+        
+        story.append(tasks_table)
+        story.append(Spacer(1, 20))
+    def add_footer(canvas, doc):
+        """Add footer with created date to each page"""
+        from datetime import datetime
+        canvas.saveState()
+        
+        # Footer text
+        footer_text = f"Report Generated on: {datetime.now().strftime('%d/%m/%Y %H:%M')}"
+        
+        # Position footer at bottom of page
+        canvas.setFont('Helvetica', 9)
+        canvas.drawString(30, 30, footer_text)  # 30 points from left and bottom margins
+        
+        canvas.restoreState()
+    
+    # Build PDF with footer
+    doc.build(story, onFirstPage=add_footer, onLaterPages=add_footer)
+    
+    # Get PDF content
+    pdf_content = buffer.getvalue()
+    buffer.close()
+    
+    return pdf_content
+def create_meeting_pdf_content2(meeting, tasks, internal_participants):
+    """
+    Creates a PDF document for meeting tracking with tasks.
+    
+    Args:
+        meeting (dict): Dictionary with meeting information
+        tasks (list): List of task dictionaries
+        internal_participants (list): List of internal participants
+        
+    Returns:
+        bytes: PDF content as bytes
+    """
+    
+    # Create a byte buffer for PDF content
+    buffer = io.BytesIO()
+    
+    # Create the PDF document
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A2,
+        rightMargin=30,
+        leftMargin=30,
+        topMargin=30,
+        bottomMargin=30
+    )
+    
+    # Get styles
+    styles = getSampleStyleSheet()
+    
+    # Custom styles
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=18,
+        spaceAfter=20,
+        alignment=TA_CENTER,
+        textColor=colors.black
+    )
+    
+    heading_style = ParagraphStyle(
+        'CustomHeading',
+        parent=styles['Heading2'],
+        fontSize=14,
+        spaceAfter=12,
+        spaceBefore=12,
+        textColor=colors.black
+    )
+    
+    normal_style = ParagraphStyle(
+        'CustomNormal',
+        parent=styles['Normal'],
+        fontSize=10,
+        spaceAfter=6
+    )
+
+    small_style = ParagraphStyle(
+        'CustomNormal',
+        parent=styles['Normal'],
+        fontSize=9,
+        spaceAfter=6
+    )
+    
+    # Story to hold all content
+    story = []
+    
+    # Title
+    story.append(Paragraph("Meeting Report", title_style))
+    story.append(Spacer(1, 20))
+    
+    # Meeting Information Section (as list)
+    story.append(Paragraph("Meeting Information", heading_style))
+    
+    # Prepare participant names
+    participant_names = [participant.get("user_name") for participant in internal_participants if internal_participants]
+    internal_participants_text = ", ".join(participant_names) if participant_names else "-"
+    
+    # Meeting details as paragraphs
+    meeting_info = [
+        f"<b>Title:</b> {meeting.get('title', '-')}",
+        f"<b>Organizer:</b> {meeting.get('organizer_name', '-')}",
+        f"<b>Type:</b> {meeting.get('type', '-')}",
+        f"<b>Created Date:</b> {meeting.get('creation', '-').strftime('%d/%m/%Y') if meeting.get('creation') else '-'}",
+        f"<b>Meeting Date:</b> {str(meeting.get('meeting_date', '-'))}",
+        f"<b>Duration (mins):</b> {str(meeting.get('duration', '-'))}",
+        f"<b>Location:</b> {meeting.get('location', '-')}",
+        f"<b>Status:</b> {meeting.get('status', '-')}",
+        f"<b>Internal Participants:</b> {internal_participants_text}",
+        f"<b>External Participants:</b> {meeting.get('participants_external', '-')}",
+        f"<b>Completion Date:</b> {meeting.get('completion_date').strftime('%d/%m/%Y') if meeting.get('completion_date') else '-'}",
+        f"<b>Agenda:</b><br/> {clean_html_for_reportlab(meeting.get('agenda', '-'))}",
+        f"<b>Remarks:</b><br/> {clean_html_for_reportlab(meeting.get('remarks', '-'))}"
+    ]
+    
+    for info in meeting_info:
+        story.append(Paragraph(info, normal_style))
+    
+    story.append(Spacer(1, 20))
+    
+    # Task Details Section (as single table)
+    if tasks:
+        story.append(Paragraph("Tasks", heading_style))
+
+        # Define status order for sorting
+        STATUS_ORDER = {
+            "Open": 1,
+            "In Progress": 2,
+            "Canceled": 3,
+            "Completed": 4,
+            "Closed": 5,
+        }
+        
+        # Sort tasks by status
+        sorted_tasks = sorted(tasks, key=lambda task: STATUS_ORDER.get(task.get("status", ""), 6))
+        
         # Table headers
         task_headers = [
             "ID", "Name/\nDescription", "Created By/\nDate", "Assigned To", "Due/\nRevised Date", 
@@ -498,7 +775,6 @@ def create_meeting_pdf_content(meeting, tasks, internal_participants):
         
         story.append(tasks_table)
         story.append(Spacer(1, 20))
-
         # Create footer with current date
     def add_footer(canvas, doc):
         """Add footer with created date to each page"""
@@ -584,7 +860,7 @@ def download_csv(meeting_id: str):
 
 
 @frappe.whitelist()
-def download_pdf(meeting_id: str):
+def download_pdf(meeting_id: str,pdf_type: str = "1"):
     """
     Downloads meeting data as a PDF file.
 
@@ -633,8 +909,12 @@ def download_pdf(meeting_id: str):
             ],
         )
 
+        if pdf_type == "1":
+            pdf_content = create_meeting_pdf_content(meeting, tasks, internal_participants)
+        else:
+            pdf_content = create_meeting_pdf_content2(meeting, tasks, internal_participants)
         # Generate PDF content
-        pdf_content = create_meeting_pdf_content(meeting, tasks, internal_participants)
+        # pdf_content = create_meeting_pdf_content(meeting, tasks, internal_participants)
 
         # Create filename with timestamp
         timestamp = datetime.now().strftime("%d%b%Y-%I%M_%p")

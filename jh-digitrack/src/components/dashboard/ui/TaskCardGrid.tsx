@@ -18,10 +18,14 @@ const initialCounts = {
   my_tasks: {
     Open: { count: 0, ages: [] },
     In_Progress: { count: 0, ages: [] },
+    completed: { count: 0 },
+    canceled: { count: 0 },
   },
   created_by_me: {
     Open: { count: 0, ages: [] },
     In_Progress: { count: 0, ages: [] },
+    completed: { count: 0 },
+    canceled: { count: 0 },
   },
   team_tasks: {
     Open: { count: 0, ages: [] },
@@ -64,18 +68,35 @@ export const TaskCardGrid = () => {
     fetchCounts();
   }, []);
 
-  return (
-    <>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+return (
+  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+    
+    <div className="md:col-span-2 flex flex-col gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <TaskCard title="My Tasks" filterKey="my-tasks" counts={counts.my_tasks} />
         <TaskCard title="Created By Me" filterKey="created-by-me" counts={counts.created_by_me} />
-        <TravelRequestCard title="Travel Requests" filterKey="dashboard" counts={counts.travel_request} />
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        <AuditCard title="Audits" filterKey="dashboard" count={counts.audits?.open || 0} />
+
+      <div className="bg-rose-100 rounded-xl shadow p-3">
+        <p className="text-sm text-black-700 text-center font-bold">
+          *Created By Me: Tasks in Completed / Cancelled status need your review, make them Closed or Re-open (if further action is required).
+        </p>
+      </div>
+    </div>
+
+    <div className="flex flex-col gap-4">
+      <TravelRequestCard title="Travel Requests" filterKey="dashboard" counts={counts.travel_request} />
+      <div className="grid grid-cols-3 gap-4">
         <MeetingCard title="Meetings" filterKey="dashboard" count={counts.meetings?.open || 0} />
+        <AuditCard title="Audits" filterKey="dashboard" count={counts.audits?.open || 0} />
         <ProjectCard title="Projects" filterKey="dashboard" count={counts.projects?.open || 0} />
       </div>
-    </>
-  );
+    </div>
+
+  </div>
+);
 };
+
+
+
+

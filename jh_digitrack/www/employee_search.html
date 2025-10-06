@@ -7,6 +7,7 @@
 
 
   <link rel="icon" href="/assets/jh_digitrack/jh-digitrack/jaleel-holdings-1.png" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 
   <style>
 
@@ -68,6 +69,28 @@ html, body {
   font-size: 18px;
   color: #888; 
 }
+.search-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 22px;       /* size of icon */
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.search-btn .material-icons {
+  color: grey;           /* always visible in grey */
+  transition: color 0.2s ease;
+}
+
+.search-btn:hover .material-icons {
+  color: red;            /* turn red on hover */
+}
+
+
+
 #results {
   margin-top: 40px;
   width: 90%;
@@ -306,7 +329,7 @@ tr:hover {
   justify-content: flex-start;
   align-items: center;
   padding: 2px 0;
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .details-row:last-child {
@@ -422,8 +445,11 @@ tr:hover {
 <div class="search-wrapper">
   <div id="searchTip" class="tooltip">Press Enter or click 🔍 to search employee</div>
   <div class="search-container">
-    <input type="text" id="search" placeholder="Search either employee code,first name,last name" autocomplete="off">
-    <button onclick="searchEmployee()">🔍</button>
+    <input type="text" id="search" placeholder="Employee code,First name,Last name or Email " autocomplete="off">
+    <button onclick="searchEmployee()" class="search-btn">
+      <span class="material-icons">search</span>
+    </button>
+
   </div>
 </div>
 <div id="resultHint" class="result-hint">
@@ -546,6 +572,20 @@ async function searchEmployee() {
     resultsEl.classList.remove('show');
 
     if (Array.isArray(employeeList) && employeeList.length > 0) {
+      const container = document.createElement('div');
+      container.style.display = "flex";
+      container.style.justifyContent = "flex-end"; 
+      container.style.marginBottom = "8px";
+
+      if (employeeList.length >= 50) {
+        const infoText = document.createElement('div');
+        infoText.textContent = "*Showing first 50 records only";
+        infoText.style.fontSize = "13px";
+        infoText.style.color = "#666";
+        infoText.style.fontWeight = "bold"; 
+        
+        container.appendChild(infoText);
+      }
       const table = document.createElement('table');
       table.innerHTML = `
         <thead>
@@ -573,7 +613,7 @@ async function searchEmployee() {
         row.addEventListener('click', () => showEmployeeDetails(emp));
         tbody.appendChild(row);
       });
-
+      resultsEl.appendChild(container);
       resultsEl.appendChild(table);
 
       currentRows = Array.from(table.querySelectorAll('tbody tr'));
@@ -628,8 +668,8 @@ async function showEmployeeDetails(emp) {
     jobContainer.innerHTML = "";
 
     const skipFields = ["name","owner","creation","modified_by","modified","doctype","first_name","middle_name","last_name","image"];
-    const contactFields = ["mail_id","region"];
-    const jobFields = ["employee_code","ou_name","designation_name","date_of_joining","reporting_manager","funcational_reporting_manager","department_name","location_name"];
+    const contactFields = ["desk_no","mobile_no","mail_id","region"];
+    const jobFields = ["employee_code","ou_name","designation_name","reporting_manager","funcational_reporting_manager","skip_level_reporting_manager","department_name","location_name"];
 
     const allFields = [...contactFields, ...jobFields];
 
@@ -668,6 +708,8 @@ function formatKey(key) {
     designation_name: "Business Title",
     department_name: "Department",
     region: "Work Address",
+    desk_no:"Desk No",
+    skip_level_reporting_manager:"Skip Level Manager",
     location_name: "Location"
   };
   if (customNames[key]) return customNames[key];

@@ -147,6 +147,9 @@ doc_events = {
     },
     "JH Digitrack Settings": {
         "before_save": "jh_digitrack.jh_digitrack.doc_events.user_manual_route.populate_user_manual",
+    },
+    "Comment": {
+        "after_insert": "jh_digitrack.jh_digitrack.doc_events.update_comments.update_last_activity_on"
     }
 }     
 
@@ -157,7 +160,15 @@ scheduler_events = {
     # "all": [
     # 	"jh_digitrack.tasks.all"
     # ],
-    "daily": ["jh_digitrack.api.tasks.scheduled_emails"],
+    # "daily": ["jh_digitrack.api.tasks.scheduled_emails"],
+    "cron": {
+        "10 0 * * *": [
+            "jh_digitrack.api.tasks.scheduled_emails"
+        ],
+        "30 0 * * *": [
+            "jh_digitrack.api.tasks.send_emails"
+        ]
+    },
     # "hourly": [
     # 	"jh_digitrack.tasks.hourly"
     # ],
@@ -167,11 +178,11 @@ scheduler_events = {
     # "monthly": [
     # 	"jh_digitrack.tasks.monthly"
     # ],
-#     "cron": {
-#         "0 1 * * *": [
-#             "jh_digitrack.api.user_details.get_access_token"
-#         ]
-#     }
+    "cron": {
+        "0 1 * * *": [
+            "jh_digitrack.api.user_details.get_access_token"
+        ]
+    }
 }
 
 # Testing
