@@ -263,7 +263,7 @@ async function searchEmployee() {
     const res = await fetch(`/api/method/jh_digitrack.api.proxy_scrapitem_search.proxy_scrapitem_search?search=${encodeURIComponent(query)}`);
 
     const data = await res.json();
-    const employeeList = data?.message?.message;
+    const employeeList = data?.message?.message?.message || [];
     resultsEl.innerHTML='';
     if(Array.isArray(employeeList)&&employeeList.length>0){
       const table=document.createElement('table');
@@ -298,7 +298,7 @@ async function showItemDetails(item){
   try{
     const res = await fetch(`/api/method/jh_digitrack.api.proxy_scrapitem_search.proxy_scrapitem_search?item_name=${encodeURIComponent(item.item_name)}`);
     const data=await res.json();
-    const fullItem=data?.message?.message||item;
+    const fullItem=data?.message?.message?.message||item;
 
     nameEl.textContent = fullItem.item_name || "Unknown Item";
     descriptionContainer.innerHTML = fullItem.description || "No Description";
