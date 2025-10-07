@@ -18,7 +18,7 @@ def proxy_scrapitem_search(search=None, item_name=None):
     elif item_name:
         prod_url = f"{base_url}/api/method/jh_digitrack.api.scrapitem_search.get_item_details?item_name={item_name}"
     else:
-        return {"message": {"message": []}, "error": "No search or item_name provided"}
+        prod_url = f"{base_url}/api/method/jh_digitrack.api.scrapitem_search.get_all_scrapitems"
 
     try:
         headers = {

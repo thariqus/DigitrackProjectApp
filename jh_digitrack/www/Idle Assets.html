@@ -4,7 +4,6 @@
 <meta charset="UTF-8" />
 <title>Idle Assets</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-<link rel="icon" href="/assets/jh_digitrack/jh-digitrack/jaleel-holdings-1.png" />
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 
 <style>
@@ -238,7 +237,11 @@ document.addEventListener("keydown", function (e) {
   else if (e.key==="Enter") {
     e.preventDefault();
     const currentValue = searchInput.value.trim();
-    if(currentValue!==lastSearchQuery){ searchEmployee(); lastSearchQuery=currentValue; }
+    if(currentValue!==lastSearchQuery || currentValue===""){
+      searchEmployee(); 
+      lastSearchQuery=currentValue; 
+    }
+
     else if(selectedRowIndex>=0 && currentRows[selectedRowIndex]) currentRows[selectedRowIndex].click();
   }
 });
@@ -257,8 +260,6 @@ function updateSelection(newIndex){
 
 async function searchEmployee() {
   const query = searchInput.value.trim();
-  if(!query){ resultsEl.innerHTML=''; resultsEl.classList.remove('show'); currentRows=[]; selectedRowIndex=-1; return; }
-  if(query.length<=2){ resultsEl.innerHTML=`<div class="no-results"><h3>Input Too Short</h3></div>`; resultsEl.classList.add('show'); currentRows=[]; selectedRowIndex=-1; resultHint.classList.remove("show"); return; }
   try{
     const res = await fetch(`/api/method/jh_digitrack.api.proxy_scrapitem_search.proxy_scrapitem_search?search=${encodeURIComponent(query)}`);
 
