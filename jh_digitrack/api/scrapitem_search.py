@@ -43,8 +43,19 @@ def get_item_details(item_name):
 
     return {"message": item[0]}
 
+@frappe.whitelist(allow_guest=True)
+def get_all_scrapitems():
+    employees = frappe.db.sql("""
+        SELECT 
+            item_name,
+            quantity,
+            location
+        FROM `tabJH Scrap Item`
+        WHERE status = 'Available'
+        
+    """, as_dict=True)
 
-import frappe
+    return {"message": employees}
 
 @frappe.whitelist(allow_guest=True)
 def user_scrap_items(created_by=None, page=1, page_size=10, search_query=None):
