@@ -28,8 +28,24 @@ def proxy_scrapitem_search(search=None, item_name=None):
 
         resp = requests.get(prod_url, headers=headers, timeout=10, verify=False)
         resp.raise_for_status()
-        return resp.json()
+        data = resp.json()
+
+        message_data = data.get("message", {}).get("message", {})
+        if isinstance(message_data, list):
+            for item in message_data:
+                _fix_image_paths(item, base_url)
+        elif isinstance(message_data, dict):
+            _fix_image_paths(message_data, base_url)
+
+        return data
 
     except requests.RequestException as e:
         frappe.log_error(f"Proxy Error: {str(e)}", "proxy_scrapitem_search")
         return {"message": {"message": []}, "error": str(e)}
+
+
+def _fix_image_paths(item, base_url):
+    """Ensure image paths are absolute URLs"""
+    for key in ["image1", "image2", "image3", "custom_back_cover_image", "custom_additional_image"]:
+        if item.get(key) and item[key].startswith("/files/"):
+            item[key] = f"{base_url}{item[key]}"
