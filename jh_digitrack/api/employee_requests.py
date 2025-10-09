@@ -12,10 +12,11 @@ def get_jh_users():
 
 @frappe.whitelist(allow_guest=True)
 def create_jh_task(requester_name, email, category, idea):
-    if not email:
+    use_default_user = False
+    if not email or not requester_name:
+        requester_name = "Ajayan Konthoth"
         email = "ajayan.k@jaleel.com"
-    if not category or not idea:
-        frappe.throw("Category and Idea are required!")
+        use_default_user = True
 
     try:
         requester_doc = frappe.get_value(
@@ -27,6 +28,7 @@ def create_jh_task(requester_name, email, category, idea):
             frappe.throw(f"Requester '{email}' not found in JH User Master")
 
         requester_docname, requester_business, division = requester_doc
+
         assigned_doc = frappe.get_value(
             "JH User Master",
             {"email": "ajayan.k@jaleel.com"},
@@ -35,8 +37,11 @@ def create_jh_task(requester_name, email, category, idea):
         if not assigned_doc:
             frappe.throw("Assigned user 'Ajayan Konthoth' not found in JH User Master")
 
-        task_name = f"{category} by {requester_name}"
-
+        if use_default_user:
+            task_name = f"{category} by (Email ID not shared)"
+        else:
+            task_name = f"{category} by {requester_name}"
+        frappe.set_user(email)
         task = frappe.new_doc("JH Task Master")
         task.task_name = task_name
         task.created_by = requester_docname       
@@ -49,7 +54,7 @@ def create_jh_task(requester_name, email, category, idea):
 
         task.insert(ignore_permissions=True)
         frappe.db.commit()
-
+        frappe.set_user("Administrator")
         return {
             "status": "success",
             "message": f"Your category: {category} has been logged in Digitrack. It can be tracked through Digitrack via task ID: {task.name}",
