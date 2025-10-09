@@ -51,6 +51,8 @@ def create_jh_task(requester_name, email, category, idea):
         task.due_date = (datetime.today() + timedelta(days=3)).date()
         task.description = idea
         task.status = "Open"
+        task.source_doctype = "JH Grouped Task Master"
+        task.source =  "GPT00008"
 
         task.insert(ignore_permissions=True)
         frappe.db.commit()
