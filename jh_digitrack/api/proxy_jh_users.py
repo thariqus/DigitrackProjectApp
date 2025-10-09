@@ -41,14 +41,6 @@ def create_jh_task(requester_name =None, email=None, category=None, idea=None):
     api_secret = site_config.get("api_secret")
     base_url = site_config.get("scrap_base_url")
 
-    if not requester_name:
-        requester_name = "Ajayan Konthoth"
-    if not email:
-        email = "ajayan.k@jaleel.com"
-
-    if not category or not idea:
-        frappe.throw("Category and Idea are required!")
-
     try:
         headers = {
             "Authorization": f"token {api_key}:{api_secret}",
