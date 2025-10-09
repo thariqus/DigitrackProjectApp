@@ -411,7 +411,6 @@
         });
 
         const data = await res.json();
-        console.log("API response:", data);
         const response = data?.message?.message || data?.message || data;
 
         if (response.status === "success") {
