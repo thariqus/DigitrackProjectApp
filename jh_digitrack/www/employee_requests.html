@@ -235,7 +235,7 @@
     }
     #email {
       width: 44%;
-      box-sizing: border-box; 
+      box-sizing: border-box;
     }
 
   </style>
@@ -343,6 +343,7 @@
           itemsDiv.classList.remove("active");
           recentUsers = [user, ...recentUsers.filter(u => u.name !== user.name)].slice(0, 10);
           updateEmailVisibility();
+          clearSuccessMessage();
         });
         optionsContainer.appendChild(div);
       });
@@ -357,6 +358,18 @@
       }
     }
 
+    function clearSuccessMessage() {
+      successMsg.style.display = 'none';
+      successMsg.innerHTML = '';
+    }
+
+    [categorySelect, ideaInput, emailInput].forEach(el => el.addEventListener('input', clearSuccessMessage));
+    selectedDiv.addEventListener('click', clearSuccessMessage);
+    successMsg.addEventListener('click', (e) => {
+      if (e.target.tagName === 'A') {
+        clearSuccessMessage();
+      }
+    });
     selectedDiv.addEventListener("click", () => {
       itemsDiv.classList.toggle("active");
       searchInput.value = "";
@@ -365,9 +378,7 @@
       updateEmailVisibility();
     });
 
-    searchInput.addEventListener("input", (e) => {
-      filterOptions(e.target.value);
-    });
+    searchInput.addEventListener("input", (e) => filterOptions(e.target.value));
 
     function filterOptions(query) {
       const filtered = usersList.filter(u =>
@@ -380,20 +391,17 @@
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
+      clearSuccessMessage();
+
       const category = categorySelect.value.trim();
       const idea = ideaInput.value.trim();
       const requester_name = selectedDiv.textContent === "Select User" ? "" : selectedDiv.textContent;
       const email = emailInput.value.trim() || "";
 
       let hasError = false;
-
-      if (!category) { categoryError.style.display = 'block'; hasError = true; }
-      else { categoryError.style.display = 'none'; }
-
-      if (!idea) { ideaError.style.display = 'block'; hasError = true; }
-      else { ideaError.style.display = 'none'; }
-
-      if (hasError) { successMsg.style.display = 'none'; return; }
+      if (!category) { categoryError.style.display = 'block'; hasError = true; } else { categoryError.style.display = 'none'; }
+      if (!idea) { ideaError.style.display = 'block'; hasError = true; } else { ideaError.style.display = 'none'; }
+      if (hasError) { return; }
 
       try {
         const res = await fetch("/api/method/jh_digitrack.api.proxy_jh_users.create_jh_task", {
@@ -403,15 +411,24 @@
         });
 
         const data = await res.json();
-        const response = data.message || data;
+        console.log("API response:", data);
+        const response = data?.message?.message || data?.message || data;
+
         if (response.status === "success") {
-          successMsg.textContent = `${response.message}`;
+          successMsg.innerHTML = `${response.message} <br><a href="https://digitrack.jaleelholdings.com/login" target="_blank">Login to Digitrack</a>`;
+          successMsg.style.display = 'block';
+          
+          form.reset();
+          selectedDiv.textContent = 'Select User';
+          updateEmailVisibility();
+          categoryError.style.display = 'none';
+          ideaError.style.display = 'none';
         } else {
-            successMsg.textContent = `Error: ${response.message || 'Something went wrong'}`;
+          successMsg.textContent = `Error: ${response.message || 'Something went wrong'}`;
+          successMsg.style.display = 'block';
         }
-        successMsg.style.display = 'block';
       } catch (err) {
-        console.error(err);
+        console.error("Submission error:", err);
         successMsg.textContent = "Something went wrong while creating the task.";
         successMsg.style.display = 'block';
       }
@@ -423,11 +440,11 @@
       updateEmailVisibility();
       categoryError.style.display = 'none';
       ideaError.style.display = 'none';
-      successMsg.style.display = 'none';
+      clearSuccessMessage();
     });
 
-    categorySelect.addEventListener('change', () => { if (categorySelect.value) categoryError.style.display = 'none'; });
-    ideaInput.addEventListener('input', () => { if (ideaInput.value.trim()) ideaError.style.display = 'none'; });
+    categorySelect.addEventListener('change', () => { if (categorySelect.value) clearSuccessMessage(); });
+    ideaInput.addEventListener('input', () => { if (ideaInput.value.trim()) clearSuccessMessage(); });
 
     window.addEventListener('DOMContentLoaded', () => {
       form.reset();
@@ -437,7 +454,7 @@
       updateEmailVisibility();
       categoryError.style.display = 'none';
       ideaError.style.display = 'none';
-      successMsg.style.display = 'none';
+      clearSuccessMessage();
     });
   </script>
 
