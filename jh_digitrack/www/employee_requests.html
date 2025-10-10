@@ -259,6 +259,8 @@
               </div>
             </div>
             <p class="hint">(If selected can be tracked via Digitrack)</p>
+            <p class="error" id="requesterError">Requester Name is mandatory for Training Request</p>
+
           </div>
 
           <div class="form-group">
@@ -310,6 +312,8 @@
     const itemsDiv = requesterDropdown.querySelector(".select-items");
     const searchInput = requesterDropdown.querySelector(".select-search");
     const optionsContainer = requesterDropdown.querySelector(".options-container");
+    const requesterError = document.getElementById('requesterError');
+
 
     let usersList = [];
     let recentUsers = [];
@@ -344,6 +348,7 @@
           recentUsers = [user, ...recentUsers.filter(u => u.name !== user.name)].slice(0, 10);
           updateEmailVisibility();
           clearSuccessMessage();
+          requesterError.style.display = 'none';
         });
         optionsContainer.appendChild(div);
       });
@@ -401,6 +406,12 @@
       let hasError = false;
       if (!category) { categoryError.style.display = 'block'; hasError = true; } else { categoryError.style.display = 'none'; }
       if (!idea) { ideaError.style.display = 'block'; hasError = true; } else { ideaError.style.display = 'none'; }
+      if (category === "Training Request" && !requester_name) {
+        requesterError.style.display = 'block';
+        hasError = true;
+      } else {
+        requesterError.style.display = 'none';
+      }
       if (hasError) { return; }
 
       try {
@@ -422,6 +433,7 @@
           updateEmailVisibility();
           categoryError.style.display = 'none';
           ideaError.style.display = 'none';
+          requesterError.style.display = 'none';
         } else {
           successMsg.textContent = `Error: ${response.message || 'Something went wrong'}`;
           successMsg.style.display = 'block';
@@ -439,6 +451,7 @@
       updateEmailVisibility();
       categoryError.style.display = 'none';
       ideaError.style.display = 'none';
+      requesterError.style.display = 'none';
       clearSuccessMessage();
     });
 
@@ -453,6 +466,7 @@
       updateEmailVisibility();
       categoryError.style.display = 'none';
       ideaError.style.display = 'none';
+      requesterError.style.display = 'none';
       clearSuccessMessage();
     });
   </script>
