@@ -543,7 +543,11 @@ function updateSelection(newIndex) {
     row.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }
 }
-
+function highlightMatch(text, query) {
+  if (!query) return text || '';
+  const regex = new RegExp(`(${query})`, 'gi');
+  return (text || '').toString().replace(regex, `<mark>$1</mark>`);
+}
 async function searchEmployee() {
   searchTip.style.display = "none";
   const query = document.getElementById('search').value.trim();
@@ -595,24 +599,33 @@ async function searchEmployee() {
             <th>Last Name</th>
             <th>Employee Code</th>
             <th>Email</th>
+            <th>Mobile No</th>
+            <th>Department | Location</th>
           </tr>
         </thead>
         <tbody></tbody>
       `;
       const tbody = table.querySelector('tbody');
 
-      employeeList.forEach((emp, index) => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-          <td>${index + 1}</td>
-          <td>${emp.first_name || ''}</td>
-          <td>${emp.last_name || ''}</td>
-          <td>${emp.employee_code || ''}</td>
-          <td>${emp.mail_id || ''}</td>
-        `;
-        row.addEventListener('click', () => showEmployeeDetails(emp));
-        tbody.appendChild(row);
-      });
+employeeList.forEach((emp, index) => {
+  const row = document.createElement('tr');
+  row.innerHTML = `
+    <td>${index + 1}</td>
+    <td>${highlightMatch(emp.first_name, query)}</td>
+    <td>${highlightMatch(emp.last_name, query)}</td>
+    <td>${highlightMatch(emp.employee_code, query)}</td>
+    <td>${highlightMatch(emp.mail_id, query)}</td>
+    <td>${highlightMatch(emp.mobile_no, query)}</td>
+    <td>${highlightMatch(
+      emp.department_name && emp.location_name
+        ? `${emp.department_name} | ${emp.location_name}`
+        : (emp.department_name || emp.location_name), 
+      query
+    )}</td>
+  `;
+  row.addEventListener('click', () => showEmployeeDetails(emp));
+  tbody.appendChild(row);
+});
       resultsEl.appendChild(container);
       resultsEl.appendChild(table);
 
