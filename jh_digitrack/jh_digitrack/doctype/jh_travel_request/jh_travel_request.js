@@ -105,7 +105,7 @@ frappe.ui.form.on("JH Travel Request", {
                     [
                       {
                         label: "Assign To",
-                        fieldname: "po_assigned_to",
+                        fieldname: "assigned_to",
                         fieldtype: "Link",
                         options: "JH User Master",
                         reqd: 1,
@@ -118,7 +118,7 @@ frappe.ui.form.on("JH Travel Request", {
                       },
                     ],
                     (values) => {
-                      frm.set_value("po_assigned_to", values.po_assigned_to);
+                      frm.set_value("assigned_to", values.assigned_to);
                       frm.set_value("final_amount", values.final_amount);
                       frm.set_value("request_status", "Assigned for PO / IEM");
                       frm.save();
@@ -160,7 +160,7 @@ frappe.ui.form.on("JH Travel Request", {
               });
             }
           }
-          if (role === "po_assignee") {
+          if (role === "assignee") {
             // role is assignee
             // if request is assigned for PO / IEM, add a button to complete the request
             if (frm.doc.request_status === "Assigned for PO / IEM") {
@@ -182,7 +182,7 @@ frappe.ui.form.on("JH Travel Request", {
                     },
                   ],
                   (values) => {
-                    console.log(values.grn_assigned_to, values.po_iem);
+                    console.log(values.assigned_to, values.po_iem);
                     frm.set_value("request_status", "Assigned for GRN / Miro");
                     frm.set_value("assigned_to", values.assigned_to);
                     frm.set_value("po_iem", values.po_iem);
@@ -191,8 +191,6 @@ frappe.ui.form.on("JH Travel Request", {
                 );
               });
             }
-          }
-          if (role === "assignee") {
             if (frm.doc.request_status === "Assigned for GRN / Miro") {
               frm.add_custom_button(__("Complete"), function () {
                 frappe.prompt(
