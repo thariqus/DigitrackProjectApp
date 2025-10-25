@@ -27,10 +27,15 @@ def whoami(req_id: str, is_new: bool = False):
     is_travel_request_owner = travel_request.owner == user
     is_reporting_manager = travel_requested_by.reporting_manager == jh_user
     is_assigned_to = travel_request.assigned_to == jh_user
+    is_po_assigned_to = travel_request.po_assigned_to == jh_user
 
     if is_assigned_to:
         return {
             "role": "assignee",
+        }
+    if is_po_assigned_to:
+        return {
+            "role": "po_assignee",
         }
 
     if is_cc_holder:
