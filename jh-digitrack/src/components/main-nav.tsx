@@ -10,6 +10,7 @@ import {
   LayoutDashboard,
   Gauge,
   Users,
+  LineChart,
 } from "lucide-react";
 import { Link, useLocation } from "react-router";
 import JHLogo from "@/assets/digitrack-logo.png";
@@ -108,6 +109,15 @@ export function MainNav() {
               >
               <Users className="h-5 w-5" />
                 <span>Employee Lookup</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => {
+                  window.location.href =
+                    "/PMS";
+                }}
+              >
+              <LineChart className="h-5 w-5" />
+                <span>PMS Lite</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

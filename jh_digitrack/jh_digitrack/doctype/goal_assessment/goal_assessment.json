@@ -1,0 +1,92 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-10-30 07:09:07.043149",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_fxcz",
+  "year",
+  "employee_code",
+  "employee_name",
+  "column_break_kml4",
+  "status",
+  "section_break_vp0b",
+  "employee_goals",
+  "manager"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_fxcz",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "year",
+   "fieldtype": "Data",
+   "label": "Year"
+  },
+  {
+   "fieldname": "employee_code",
+   "fieldtype": "Link",
+   "label": "Employee Code",
+   "options": "PMS Employees"
+  },
+  {
+   "fetch_from": "employee_code.full_name",
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "label": "Employee Name"
+  },
+  {
+   "fieldname": "column_break_kml4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Goal Pending\nGoal Started\nGoal Submitted\nEvaluation Pending\nEvaluation Started\nEvaluation Submitted"
+  },
+  {
+   "fieldname": "section_break_vp0b",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "employee_goals",
+   "fieldtype": "Table",
+   "label": "Employee Goals",
+   "options": "Employee Goals"
+  },
+  {
+   "fieldname": "manager",
+   "fieldtype": "Data",
+   "label": "Manager"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-10-30 07:58:24.403208",
+ "modified_by": "Administrator",
+ "module": "JH Digitrack",
+ "name": "Goal Assessment",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
