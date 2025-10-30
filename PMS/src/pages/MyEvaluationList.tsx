@@ -1,0 +1,95 @@
+import React, { useState } from "react";
+import { IoIosArrowRoundDown } from "react-icons/io";
+import { useNavigate } from "react-router";
+import Pagination from "../components/Pagination";
+
+interface AssignmentsList {
+    id: string;
+    evaluation: string;
+    status: string;
+    assignedto: string;
+}
+
+function MyEvaluationList() {
+    const [assignments, setAssignments] = useState<AssignmentsList[]>([
+        { id: "1", evaluation: "2024", status: "Completed", assignedto: "Tharique" },
+        { id: "2", evaluation: "2025", status: "Submitted", assignedto: "Adhil" },
+        { id: "3", evaluation: "2026", status: "Pending", assignedto: "Swetha" },
+    ]);
+
+    const [currentPage, setCurrentPage] = useState(1);
+    const [rowsPerPage, setRowsPerPage] = useState(5);
+    const navigate = useNavigate()
+
+    const indexOfLastRow = currentPage * rowsPerPage;
+    const indexOfFirstRow = indexOfLastRow - rowsPerPage;
+    const currentRows = assignments.slice(indexOfFirstRow, indexOfLastRow);
+
+    const totalPages = Math.ceil(assignments.length / rowsPerPage);
+
+    const handlePageChange = (page: number) => {
+        if (page >= 1 && page <= totalPages) {
+            setCurrentPage(page);
+        }
+    };
+
+    const handleNavigation = () => {
+        navigate("/goalevaluation")
+    }
+
+    return (
+        <div className="bg-white border rounded-lg px-6 py-6 h-full">
+            <h1 className="text-xl font-medium pb-5">Evaluation List</h1>
+
+            <div className="border rounded-lg w-full overflow-x-auto">
+                <table className="w-full text-left z-10">
+                    <thead className="text-gray-500 border-b ">
+                        <tr>
+                            <th className="py-3 font-medium px-4">#</th>
+                            <th className="py-3 font-medium px-4">
+                                <div className="flex items-center gap-1">
+                                    <span>Evaluation</span>
+                                    <IoIosArrowRoundDown />
+                                </div>
+                            </th>
+
+                            <th className="py-3 font-medium px-4">
+                                <div className="flex items-center gap-1">
+                                    <span>Status</span>
+                                    <IoIosArrowRoundDown />
+                                </div>
+                            </th>
+                            <th className="py-3 font-medium px-4">Assigned To</th>
+
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {assignments.map((item) => (
+                            <tr
+                                key={item.id}
+                                className="border-b hover:bg-gray-50  transition"
+                            >
+                                <td className="py-3 px-4">{item.id}</td>
+                                <td className="py-3 px-4 underline text-blue-500 cursor-pointer" onClick={handleNavigation}>{item.evaluation}</td>
+                                <td className="py-3 px-4">{item.status}</td>
+                                <td className="py-3 px-4">{item.assignedto}</td>
+
+                            </tr>
+                        ))}
+                    </tbody>
+
+                </table>
+                {/* Pagination Controls */}
+                <Pagination rowsPerPage={rowsPerPage} setRowsPerPage={setRowsPerPage}
+                    currentPage={currentPage} setCurrentPage={setCurrentPage}
+                    totalPages={totalPages} handlePageChange={handlePageChange} />
+
+            </div>
+
+
+        </div>
+    );
+}
+
+export default MyEvaluationList;

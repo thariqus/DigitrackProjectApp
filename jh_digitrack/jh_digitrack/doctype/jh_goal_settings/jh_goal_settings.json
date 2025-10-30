@@ -1,0 +1,59 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "GS-.#",
+ "creation": "2025-10-13 18:52:03.118184",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_w7fr",
+  "minimum_no_of_goals",
+  "assesment_year"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_w7fr",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "minimum_no_of_goals",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Minimum No:of Goals",
+   "length": 2,
+   "reqd": 1
+  },
+  {
+   "fieldname": "assesment_year",
+   "fieldtype": "Data",
+   "label": "Assesment Year",
+   "reqd": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2025-10-22 08:15:35.354261",
+ "modified_by": "Administrator",
+ "module": "JH Digitrack",
+ "name": "JH Goal Settings",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

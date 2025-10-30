@@ -29,7 +29,8 @@
   "user",
   "active",
   "is_admin",
-  "is_head_of_department"
+  "is_head_of_department",
+  "pms_user"
  ],
  "fields": [
   {
@@ -164,11 +165,17 @@
   {
    "fieldname": "column_break_txyx",
    "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "pms_user",
+   "fieldtype": "Check",
+   "label": "PMS User"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-05-19 22:30:56.696671",
+ "modified": "2025-10-13 19:00:18.595199",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH User Master",
@@ -210,6 +217,7 @@
   }
  ],
  "quick_entry": 1,
+ "row_format": "Dynamic",
  "search_fields": "full_name,employee_code",
  "show_preview_popup": 1,
  "show_title_field_in_link": 1,

@@ -71,7 +71,7 @@ export function MeetingSheet({
     .object({
       title: z
         .string()
-        .min(1, "Meeting title is required")
+        .min(1, "Meeting title is required !")
         .max(140, "Meeting title cannot be longer than 140 characters"),
       type: z.string().optional(),
       organizer: z.string(),
