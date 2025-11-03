@@ -55,7 +55,7 @@ export function useGoalMaster() {
 
         setGoals(normalized);
       } catch (error) {
-        console.error("❌ Error fetching goal master:", error);
+        console.error(" Error fetching goal master:", error);
       } finally {
         setLoading(false);
       }
@@ -82,7 +82,7 @@ export function useEmployeeGoals(employeeCode: string, year: string) {
         const data = await res.json();
         setEmployeeGoals(data.message || []);
       } catch (error) {
-        console.error("❌ Error fetching employee goals:", error);
+        console.error(" Error fetching employee goals:", error);
       } finally {
         setLoading(false);
       }
@@ -131,7 +131,6 @@ export function useGoalAssessment() {
       const data = await response.json();
       return data;
     } catch (error) {
-      console.error("❌ Error creating Goal Assessment:", error);
       return { error: "Failed to create goal assessment." };
     } finally {
       setLoading(false);
@@ -164,11 +163,10 @@ export async function deleteEmployeeGoals({
     );
     return await response.json();
   } catch (error) {
-    console.error("❌ Error deleting goals:", error);
+    console.error(" Error deleting goals:", error);
     return { error: "Failed to delete goals." };
   }
 }
-
 
 
 export async function submitGoalAssessment(
@@ -194,7 +192,7 @@ export async function submitGoalAssessment(
     const data = await res.json();
     return data;
   } catch (err) {
-    console.error("❌ Error submitting Goal Assessment:", err);
+    console.error(" Error submitting Goal Assessment:", err);
     return { error: String(err) };
   }
 }

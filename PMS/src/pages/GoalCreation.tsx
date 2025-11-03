@@ -64,7 +64,7 @@ const GoalCreation: React.FC = () => {
 
   // --- Hooks ---
   const { goals: goalOptions } = useGoalMaster();
-  const { employees: assignableEmployees, defaultYear } = useGoalAssignment();
+  const { employees: assignableEmployees, baseYear } = useGoalAssignment();
   const { employeeGoals: modalGoals, loading: modalGoalsLoading, refetch: refetchModalGoals } = useEmployeeGoals(selectedEmployee || "", selectedCopyYear);
   const { employeeGoals: fetchedEmployeeGoals } = useEmployeeGoals(employee?.id || "", year);
   const isDuplicateGoal = (goalId: string, goalName: string) => {
@@ -82,8 +82,8 @@ useEffect(() => {
 
   // --- Effects ---
   useEffect(() => {
-    if (defaultYear) setSelectedCopyYear(defaultYear);
-  }, [defaultYear]);
+    if (baseYear) setSelectedCopyYear(baseYear);
+  }, [baseYear]);
 
   useEffect(() => {
     const empData = localStorage.getItem("SelectedEmployee");
@@ -302,26 +302,24 @@ const handleSubmit = async () => {
 };
 
 
-  const handleDeleteGoals = async () => {
-    if (selectedGoals.length === 0) {
-      setMessage({ text: "Please select at least one goal to delete.", type: "warning" });
-      return;
-    }
+const handleDeleteGoals = async () => {
+  if (selectedGoals.length === 0) {
+    setMessage({ text: "Please select at least one goal to delete.", type: "warning" });
+    return;
+  }
 
-    // 🧹 Remove from UI
-    const updatedGoals = goals.filter((g) => !selectedGoals.includes(g.id));
-    setGoals(updatedGoals);
-    setSelectedGoals([]);
+      const updatedGoals = goals.filter((g) => !selectedGoals.includes(g.id));
+      setGoals(updatedGoals);
+      setSelectedGoals([]);
     setMessage({ text: "Selected goals deleted.", type: "success" });
 
-    // 💾 Save the updated doc (sync with backend)
     try {
       await handleSave();
-    } catch (err) {
+  } catch (err) {
       console.error("Error saving after deletion:", err);
       setMessage({ text: "Deleted locally, but failed to update the backend.", type: "error" });
-    }
-  };
+  }
+};
 
 
   const handleCopySelectedGoals = () => {
@@ -595,18 +593,37 @@ const handleSubmit = async () => {
               })()}
             
               <div className="flex gap-4">
-                {/* Employee List */}
-                <div className="w-1/3 border rounded p-2 max-h-[300px] overflow-y-auto">
-                  {assignableEmployees.filter((e) => e.name.toLowerCase().includes(employeeSearch.toLowerCase())).map((e) => (
+              {/* Employee List */}
+              <div
+                className={`w-1/3 border rounded p-2 ${
+                  assignableEmployees.filter(
+                    (e) =>
+                      e.id !== employee?.id &&
+                      e.name.toLowerCase().includes(employeeSearch.toLowerCase())
+                  ).length > 7
+                    ? "max-h-[300px] overflow-y-auto"
+                    : ""
+                }`}
+              >
+                {assignableEmployees
+                  .filter(
+                    (e) =>
+                      e.id !== employee?.id &&
+                      e.name.toLowerCase().includes(employeeSearch.toLowerCase())
+                  )
+                  .map((e) => (
                     <div
                       key={e.id}
-                      className={`cursor-pointer p-2 ${selectedEmployee === e.id ? "bg-gray-200" : ""}`}
+                      className={`cursor-pointer p-2 ${
+                        selectedEmployee === e.id ? "bg-gray-200" : ""
+                      }`}
                       onClick={() => setSelectedEmployee(e.id)}
                     >
                       {e.name}
                     </div>
                   ))}
-                </div>
+              </div>
+
 
                 {/* Employee Goals */}
                 <div className="w-2/3 border rounded p-2 max-h-[300px] overflow-y-auto">
@@ -670,7 +687,6 @@ const handleSubmit = async () => {
 };
 
 export default GoalCreation;
-
 
 
 

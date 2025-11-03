@@ -12,6 +12,7 @@ export interface ManagerSummary {
   manager_name: string;
   manager_code: string;
   employee_count: number;
+  employees_under_manager: EmployeeSummary[];
 
   goals_pending: number;
   goals_pending_employees: EmployeeSummary[];
@@ -55,27 +56,21 @@ export function useGoalAssessment(selectedYear?: string) {
 
       const res = await fetch(url);
       const json = await res.json();
-
       json.message.message = json.message.message.map((manager: any) => ({
         ...manager,
-        goals_pending_employees:
-          JSON.parse(manager.goals_pending_employees || "[]") || [],
-        goals_started_employees:
-          JSON.parse(manager.goals_started_employees || "[]") || [],
-        goals_submitted_employees:
-          JSON.parse(manager.goals_submitted_employees || "[]") || [],
-        evaluation_pending_employees:
-          JSON.parse(manager.evaluation_pending_employees || "[]") || [],
-        evaluation_started_employees:
-          JSON.parse(manager.evaluation_started_employees || "[]") || [],
-        evaluation_submitted_employees:
-          JSON.parse(manager.evaluation_submitted_employees || "[]") || [],
+        employees_under_manager: manager.employees_under_manager || [],
+        goals_pending_employees: manager.goals_pending_employees || [],
+        goals_started_employees: manager.goals_started_employees || [],
+        goals_submitted_employees: manager.goals_submitted_employees || [],
+        evaluation_pending_employees: manager.evaluation_pending_employees || [],
+        evaluation_started_employees: manager.evaluation_started_employees || [],
+        evaluation_submitted_employees: manager.evaluation_submitted_employees || [],
       }));
+
 
       return json;
     },
     enabled: !!currentUser, 
-    staleTime: 1000 * 60 * 5,
   });
 
   const apiYear = data?.message?.year;

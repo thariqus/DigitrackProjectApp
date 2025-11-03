@@ -20,6 +20,7 @@ function GoalMaster() {
     target: "",
   });
   const [isEdit, setIsEdit] = useState<boolean>(false);
+  const [message, setMessage] = useState<{ text: string; type: "success" | "error" | "warning" | "" }>({ text: "", type: "" });
 
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
@@ -30,6 +31,12 @@ function GoalMaster() {
   }, [isOpenModal]
   
 );
+  useEffect(() => {
+    if (message.text) {
+      const timer = setTimeout(() => setMessage({ text: "", type: "" }), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [message]);
 
   const handleCloseModal = () => {
     setIsOpenModal(false);
@@ -38,17 +45,30 @@ function GoalMaster() {
   };
 
   const handleSave = async () => {
-    if (!newGoal.name.trim() || !newGoal.description.trim()) return;
+    const { name, description, measurement } = newGoal;
 
-    if (isEdit) {
-      await editGoal(newGoal);
-      refetch();
-    } else {
-      await addGoal(newGoal);
-      refetch();
+    if (!name.trim() || !description.trim() || !measurement.trim()) {
+      setMessage({
+        text: "Fill in all required fields to add this goal.",
+        type: "error",
+      });
+      return;
     }
 
-    handleCloseModal();
+    try {
+      if (isEdit) {
+        await editGoal(newGoal);
+        setMessage({ text: "Goal updated successfully!", type: "success" });
+      } else {
+        await addGoal(newGoal);
+        setMessage({ text: "Goal added successfully!", type: "success" });
+      }
+
+      refetch();
+      handleCloseModal();
+    } catch (err) {
+      setMessage({ text: "Something went wrong while saving.", type: "error" });
+    }
   };
 
 
@@ -137,6 +157,23 @@ function GoalMaster() {
           handlePageChange={handlePageChange}
         />
       </div>
+      {message.text && (
+        <div className="fixed top-20 right-10 z-[2000] transition-all duration-300">
+          <div
+            className={`px-4 py-2 rounded-md text-sm font-medium shadow-lg border max-w-sm ${
+              message.type === "success"
+                ? "bg-green-100 text-green-700 border-green-300"
+                : message.type === "error"
+                ? "bg-red-100 text-red-700 border-red-300"
+                : message.type === "warning"
+                ? "bg-yellow-100 text-yellow-700 border-yellow-300"
+                : "bg-gray-100 text-gray-700"
+            }`}
+          >
+            {message.text}
+          </div>
+        </div>
+      )}
 
       {/* Modal */}
       {isOpenModal && (
@@ -144,10 +181,11 @@ function GoalMaster() {
           className="fixed top-20 left-0 inset-0 flex justify-end bg-black/20 backdrop-blur-sm z-20"
           onClick={handleCloseModal}
         >
-          <div
-            className="bg-white w-full max-w-2xl h-full shadow-2xl px-5 py-10 relative border-l border-gray-200 animate-slideIn flex flex-col"
-            onClick={(e) => e.stopPropagation()}
-          >
+            <div
+              className="bg-white w-full max-w-2xl h-full shadow-2xl px-5 pt-6 pb-8 relative border-l border-gray-200 animate-slideIn flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
+
             <button
               className="absolute top-3 right-3 text-gray-500 hover:text-gray-800 transition"
               onClick={handleCloseModal}
@@ -155,7 +193,7 @@ function GoalMaster() {
               <IoMdClose size={20} />
             </button>
 
-            <h2 className="text-lg font-semibold text-gray-800 mb-6 mt-2">
+            <h2 className="text-lg font-semibold text-gray-800 mb-4 mt-0">
               {isEdit
                 ? newGoal.goal_assigned
                   ? "View Goal"
@@ -164,8 +202,12 @@ function GoalMaster() {
             </h2>
 
             <div className="space-y-5 overflow-y-auto flex-1 pr-2">
+
               <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">Goal Name</label>
+                <label className="block text-sm font-medium text-gray-600 mb-1">
+                  Goal Name <span className="text-red-500">*</span>
+                </label>
+
                 <input
                   type="text"
                   placeholder="Enter Goal Name"
@@ -178,7 +220,7 @@ function GoalMaster() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">Description</label>
+                <label className="block text-sm font-medium text-gray-600 mb-1">Description <span className="text-red-500">*</span></label>
                 <textarea
                   placeholder="Enter Description"
                   value={newGoal.description}
@@ -190,7 +232,7 @@ function GoalMaster() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">Measurement Criteria</label>
+                <label className="block text-sm font-medium text-gray-600 mb-1">Measurement Criteria <span className="text-red-500">*</span></label>
                 <input
                   type="text"
                   placeholder="Enter Measurement Criteria"
@@ -203,7 +245,7 @@ function GoalMaster() {
               </div>
             </div>
 
-            <div className="flex gap-3 pt-6 border-t mt-4">
+            <div className="flex gap-2 pt-2 border-t mt-2">
               <button
                 onClick={handleCloseModal}
                 className="px-4 w-1/2 py-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-100"
@@ -235,5 +277,3 @@ function GoalMaster() {
 }
 
 export default GoalMaster;
-
-

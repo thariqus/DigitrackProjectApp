@@ -96,7 +96,7 @@ def create_goal_assessment(data=None, session_user=None):
 
             doc.set("employee_goals", [])
 
-            msg = f"Updated Goal Assessment {existing_name}"
+            msg = f"Updated Goal Assessment"
 
         else:
             doc = frappe.new_doc("Goal Assessment")
@@ -198,9 +198,6 @@ from frappe import _
 
 @frappe.whitelist()
 def delete_employee_goals(employee_code, year, goal_ids):
-    """
-    Deletes selected goals (by goal_id) from the Goal Assessment child table.
-    """
 
     try:
         if not employee_code or not year or not goal_ids:
