@@ -15,15 +15,13 @@ export interface Employee {
 
 function GoalAssignment() {
   const navigate = useNavigate();
-  const { employees, loading, defaultYear, refetch } = useGoalAssignment();
-
-  const [selectedYear, setSelectedYear] = useState<string>(defaultYear || "");
+  const [selectedYear, setSelectedYear] = useState<string>("");
+  const { employees, baseYear, years, loading, refetch } = useGoalAssignment(selectedYear);
   const [dropdownfilterOpen, setDropdownfilterOpen] = useState(false);
   const [dropdownYearOpen, setDropdownYearOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const currentYear = new Date().getFullYear();
-  const yearOptions = [currentYear, currentYear - 1, currentYear - 2, currentYear - 3];
   const [selectedStatus, setSelectedStatus] = useState("");
 
   const [sortField, setSortField] = useState<"id" | "status" | null>(null);
@@ -35,8 +33,10 @@ function GoalAssignment() {
   }, [employees]);
 
   useEffect(() => {
-    setSelectedYear(defaultYear || currentYear.toString());
-  }, [defaultYear]);
+    if (baseYear && !selectedYear) {
+      setSelectedYear(baseYear);
+    }
+  }, [baseYear]);
 
   useEffect(() => {
     const closeDropdown = (e: any) => {
@@ -125,7 +125,7 @@ function GoalAssignment() {
           </button>
           {dropdownYearOpen && (
             <ul className="absolute text-sm bg-white border rounded-md mt-1 w-40 z-10">
-              {yearOptions.map((year) => (
+              {years.map((year) => (
                 <li
                   key={year}
                   className="hover:bg-gray-200 cursor-pointer px-4 py-2"

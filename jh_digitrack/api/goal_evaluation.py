@@ -2,12 +2,12 @@ import frappe
 from frappe import _
 
 @frappe.whitelist()
-def get_goal_evaluation(user):
+def get_goal_evaluation(user,year=None):
     if not user:
         frappe.throw(_("User email is required"))
 
     settings = frappe.get_single("JH Goal Settings")
-    assessment_year = settings.assesment_year
+    assessment_year = year or settings.assesment_year
 
     allowed_statuses = ("Evaluation Pending", "Evaluation Started", "Evaluation Submitted", "Goal Submitted")
 
@@ -111,9 +111,7 @@ import frappe
 
 @frappe.whitelist()
 def get_employee_goals(employee_code, year):
-    """
-    Return goals assigned for an employee from the child table using SQL
-    """
+   
     try:
         query = """
             SELECT 
@@ -144,9 +142,7 @@ from frappe import _
 
 @frappe.whitelist()
 def submit_goal_evaluation(employee_code, year):
-    """
-    Submit Goal Evaluation for given employee and year.
-    """
+  
     if not employee_code or not year:
         frappe.throw(_("Employee code and year are required."))
 

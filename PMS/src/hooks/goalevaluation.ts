@@ -18,7 +18,9 @@ export interface GoalDetail {
   achievement_score: string;
   remark: string;
 }
-export function useGoalEvaluation() {
+
+export function useGoalEvaluation(selectedYear?: string) {
+  const [baseYear, setBaseYear] = useState<string>("");
   const { data: currentUser } = useCurrentUser();
   const queryClient = useQueryClient();
 
@@ -30,84 +32,54 @@ export function useGoalEvaluation() {
     assessment_year: string;
     evaluations: GoalAssessment[];
   }>({
-    queryKey: ["goal-evaluation", currentUser],
+    queryKey: ["goal-evaluation", currentUser, selectedYear],
     queryFn: async () => {
       if (!currentUser) {
         return {
-          assessment_year: new Date().getFullYear().toString(),
+          assessment_year: "",
           evaluations: [],
         };
       }
 
-      const res = await fetch(
-        `/api/method/jh_digitrack.api.goal_evaluation.get_goal_evaluation?user=${currentUser}`
-      );
+      const url = selectedYear
+        ? `/api/method/jh_digitrack.api.goal_evaluation.get_goal_evaluation?user=${currentUser}&year=${selectedYear}`
+        : `/api/method/jh_digitrack.api.goal_evaluation.get_goal_evaluation?user=${currentUser}`;
+
+      const res = await fetch(url);
       const json = await res.json();
 
       return {
-        assessment_year:
-          json.message?.assessment_year?.toString() ||
-          new Date().getFullYear().toString(),
+        assessment_year: json.message?.assessment_year?.toString() || "",
         evaluations: json.message?.evaluations || [],
       };
     },
     enabled: !!currentUser,
-    staleTime: 1000 * 60 * 5,
   });
 
-  const evaluations = data?.evaluations || [];
-  const defaultYear =
-    data?.assessment_year || new Date().getFullYear().toString();
-
-  const updateEvaluationStatus = async (
-    evaluation: GoalAssessment,
-    status: string
-  ) => {
-    try {
-      const res = await fetch(
-        `/api/method/jh_digitrack.api.goalevaluation.update_status`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-Frappe-CSRF-Token": (window as any).csrf_token || "",
-          },
-          body: JSON.stringify({
-            employee_code: evaluation.employee_code,
-            status,
-            updated_by: currentUser,
-          }),
-        }
-      );
-      const data = await res.json();
-
-      if (data.message?.updated) {
-        queryClient.setQueryData<
-          { assessment_year: string; evaluations: GoalAssessment[] }
-        >(["goal-evaluation", currentUser], (old) => {
-          if (!old) return old;
-          return {
-            ...old,
-            evaluations:
-              old.evaluations?.map((e) =>
-                e.employee_code === evaluation.employee_code
-                  ? { ...e, status }
-                  : e
-              ) || [],
-          };
-        });
-      }
-    } catch (err) {
-      console.error(" Error updating evaluation status:", err);
+  useEffect(() => {
+    if (!baseYear && data?.assessment_year) {
+      setBaseYear(data.assessment_year);
     }
-  };
+  }, [data?.assessment_year, baseYear]);
+
+  const years = baseYear
+    ? [
+        baseYear,
+        (parseInt(baseYear, 10) - 1).toString(),
+        (parseInt(baseYear, 10) - 2).toString(),
+      ]
+    : [];
+
+  const evaluations = data?.evaluations || [];
+  const defaultYear = data?.assessment_year || "";
 
   return {
     evaluations,
     loading,
     defaultYear,
+    baseYear,
+    years,
     refetch,
-    updateEvaluationStatus,
   };
 }
 export function useGoalAssessment() {

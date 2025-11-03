@@ -1,7 +1,7 @@
 {
  "actions": [],
  "allow_rename": 1,
- "autoname": "field:employee_code",
+ "autoname": "PMS-EMP.#######",
  "creation": "2025-10-13 19:01:13.576433",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -76,11 +76,11 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-10-24 07:43:42.469210",
+ "modified": "2025-10-31 11:28:34.589863",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "PMS Employees",
- "naming_rule": "By fieldname",
+ "naming_rule": "Expression (old style)",
  "owner": "Administrator",
  "permissions": [
   {

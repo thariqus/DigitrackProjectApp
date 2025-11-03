@@ -16,17 +16,15 @@ function GoalEvaluation() {
   const [selectedStatus, setSelectedStatus] = useState("");
   const [sortField, setSortField] = useState<"id" | "status" | null>(null);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [selectedYear, setSelectedYear] = useState<string>("");
+  const { evaluations, loading, defaultYear, baseYear, years, refetch } = useGoalEvaluation(selectedYear);
 
-  const { evaluations, loading, defaultYear, refetch } = useGoalEvaluation();
-
-  const currentYear = new Date().getFullYear();
-  const yearOptions = [currentYear, currentYear - 1, currentYear - 2];
-
-  const [selectedYear, setSelectedYear] = useState<string>(defaultYear || currentYear.toString());
 
   useEffect(() => {
-    setSelectedYear(defaultYear || currentYear.toString());
-  }, [defaultYear]);
+    if (defaultYear && !selectedYear) {
+      setSelectedYear(defaultYear);
+    }
+  }, [defaultYear, selectedYear]);
 
   useEffect(() => {
     const closeDropdown = (e: any) => {
@@ -117,14 +115,14 @@ function GoalEvaluation() {
           </button>
           {dropdownYearOpen && (
             <ul className="absolute text-sm bg-white border rounded-md mt-1 w-40 z-10">
-              {yearOptions.map((year) => (
+              {years.map((year) => (
                 <li
                   key={year}
                   className="hover:bg-gray-200 cursor-pointer px-4 py-2"
                   onClick={() => {
                     setSelectedYear(year.toString());
                     setDropdownYearOpen(false);
-                    refetch(); // Re-fetch evaluations for the selected year
+                    refetch();
                   }}
                 >
                   {year}

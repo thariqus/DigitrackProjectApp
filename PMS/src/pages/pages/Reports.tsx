@@ -102,10 +102,7 @@ function Reports() {
         list = manager.evaluation_submitted_employees;
         break;
       case "employees":
-        list = Array.from({ length: manager.employee_count }, (_, i) => ({
-          employee_code: `-`,
-          employee_name: `Employee ${i + 1}`,
-        }));
+        list = manager.employees_under_manager || [];
         break;
       default:
         list = [];
@@ -148,6 +145,22 @@ function Reports() {
 
   const handlePageChange = (page: number) => {
     if (page >= 1 && page <= totalPages) setCurrentPage(page);
+  };
+  const renderCountCell = (count: number, manager: ManagerSummary, type: string) => {
+    if (!count || count === 0) {
+      // show plain text (not clickable)
+      return <span>{count}</span>;
+    }
+
+    // clickable link when count > 0
+    return (
+      <span
+        className="text-black-500 underline cursor-pointer"
+        onClick={() => openSingleColumnModal(manager, type)}
+      >
+        {count}
+      </span>
+    );
   };
 
   return (
@@ -268,48 +281,28 @@ function Reports() {
                 >
                   {manager.manager_name}
                 </td>
-                <td
-                  className="px-1 py-3 underline decoration-gray-400 cursor-pointer hover:underline"
-                  onClick={() => openSingleColumnModal(manager, "employees")}
-                >
-                  {manager.employee_count}
+                <td className="px-1 py-3">
+                  {renderCountCell(manager.employee_count, manager, "employees")}
                 </td>
-                <td
-                  className="px-1 py-3 underline decoration-gray-400 cursor-pointer hover:underline"
-                  onClick={() => openSingleColumnModal(manager, "goals_pending")}
-                >
-                  {manager.goals_pending}
+                <td className="px-1 py-3">
+                  {renderCountCell(manager.goals_pending, manager, "goals_pending")}
                 </td>
-                <td
-                  className="px-1 py-3 underline decoration-gray-400 cursor-pointer hover:underline"
-                  onClick={() => openSingleColumnModal(manager, "goals_started")}
-                >
-                  {manager.goals_started}
+                <td className="px-1 py-3">
+                  {renderCountCell(manager.goals_started, manager, "goals_started")}
                 </td>
-                <td
-                  className="px-1 py-3 underline decoration-gray-400 cursor-pointer hover:underline"
-                  onClick={() => openSingleColumnModal(manager, "goals_submitted")}
-                >
-                  {manager.goals_submitted}
+                <td className="px-1 py-3">
+                  {renderCountCell(manager.goals_submitted, manager, "goals_submitted")}
                 </td>
-                <td
-                  className="px-1 py-3 underline decoration-gray-400 cursor-pointer hover:underline"
-                  onClick={() => openSingleColumnModal(manager, "evaluation_pending")}
-                >
-                  {manager.evaluation_pending}
+                <td className="px-1 py-3">
+                  {renderCountCell(manager.evaluation_pending, manager, "evaluation_pending")}
                 </td>
-                <td
-                  className="px-1 py-3 underline decoration-gray-400 cursor-pointer hover:underline"
-                  onClick={() => openSingleColumnModal(manager, "evaluation_started")}
-                >
-                  {manager.evaluation_started}
+                <td className="px-1 py-3">
+                  {renderCountCell(manager.evaluation_started, manager, "evaluation_started")}
                 </td>
-                <td
-                  className="px-1 py-3 underline decoration-gray-400 cursor-pointer hover:underline"
-                  onClick={() => openSingleColumnModal(manager, "evaluation_submitted")}
-                >
-                  {manager.evaluation_submitted}
+                <td className="px-1 py-3">
+                  {renderCountCell(manager.evaluation_submitted, manager, "evaluation_submitted")}
                 </td>
+
                 <td className="px-3 py-3 text-primary text-center cursor-pointer">
                   <CiMail className="text-lg" />
                 </td>
