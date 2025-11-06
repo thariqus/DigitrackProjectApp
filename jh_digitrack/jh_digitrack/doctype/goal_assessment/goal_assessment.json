@@ -11,6 +11,7 @@
   "employee_name",
   "column_break_kml4",
   "status",
+  "total_score",
   "section_break_vp0b",
   "employee_goals",
   "manager"
@@ -61,12 +62,17 @@
    "fieldname": "manager",
    "fieldtype": "Data",
    "label": "Manager"
+  },
+  {
+   "fieldname": "total_score",
+   "fieldtype": "Float",
+   "label": "Total Score"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-10-30 07:58:24.403208",
+ "modified": "2025-11-04 18:41:26.050857",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "Goal Assessment",

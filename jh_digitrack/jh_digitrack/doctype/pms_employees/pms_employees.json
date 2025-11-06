@@ -1,21 +1,33 @@
 {
  "actions": [],
  "allow_rename": 1,
- "autoname": "PMS-EMP.#######",
+ "autoname": "field:employee_code",
  "creation": "2025-10-13 19:01:13.576433",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
   "section_break_t4t9",
-  "employee_code",
   "first_name",
   "middle_name",
   "last_name",
   "full_name",
   "column_break_8u0s",
-  "manager_name",
+  "employee_code",
+  "employee_email",
+  "band",
+  "business_unit",
+  "section_break_kdgh",
   "manager_code",
-  "manager_email"
+  "manager_name",
+  "manager_email",
+  "column_break_qkdj",
+  "self_assessment",
+  "pms_admin",
+  "pms_manager",
+  "pms_employee",
+  "pms_master",
+  "section_break_7gls",
+  "manager_list"
  ],
  "fields": [
   {
@@ -71,16 +83,79 @@
    "fieldname": "manager_email",
    "fieldtype": "Data",
    "label": "Manager Email"
+  },
+  {
+   "fieldname": "section_break_kdgh",
+   "fieldtype": "Section Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "self_assessment",
+   "fieldtype": "Check",
+   "label": "Self Assessment"
+  },
+  {
+   "fieldname": "band",
+   "fieldtype": "Data",
+   "label": "Band"
+  },
+  {
+   "fieldname": "business_unit",
+   "fieldtype": "Data",
+   "label": "Business Unit"
+  },
+  {
+   "fieldname": "section_break_7gls",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "manager_list",
+   "fieldtype": "Table",
+   "label": "Manager List",
+   "options": "Manager List"
+  },
+  {
+   "fieldname": "column_break_qkdj",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "employee_email",
+   "fieldtype": "Data",
+   "label": "Employee Email"
+  },
+  {
+   "default": "0",
+   "fieldname": "pms_admin",
+   "fieldtype": "Check",
+   "label": "PMS Admin"
+  },
+  {
+   "default": "0",
+   "fieldname": "pms_manager",
+   "fieldtype": "Check",
+   "label": "PMS Manager"
+  },
+  {
+   "default": "0",
+   "fieldname": "pms_employee",
+   "fieldtype": "Check",
+   "label": "PMS Employee"
+  },
+  {
+   "default": "0",
+   "fieldname": "pms_master",
+   "fieldtype": "Check",
+   "label": "PMS Master"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-10-31 11:28:34.589863",
+ "modified": "2025-11-05 10:04:58.105502",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "PMS Employees",
- "naming_rule": "Expression (old style)",
+ "naming_rule": "By fieldname",
  "owner": "Administrator",
  "permissions": [
   {

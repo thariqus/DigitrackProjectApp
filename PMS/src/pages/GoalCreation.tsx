@@ -7,7 +7,7 @@ import { IoAdd, IoCloseOutline, IoSaveOutline } from "react-icons/io5";
 import { IoMdClose } from "react-icons/io";
 import { useNavigate } from "react-router-dom";
 import Pagination from "../components/Pagination";
-import { useGoalMaster, useEmployeeGoals, useGoalAssessment, submitGoalAssessment} from "../hooks/goalcreation";
+import { useGoalMaster, useEmployeeGoals, useGoalAssessment, submitGoalAssessment, deleteEmployeeGoals} from "../hooks/goalcreation";
 import { useGoalAssignment } from "../hooks/goalassignment";
 
 interface Goal {
@@ -36,7 +36,7 @@ interface EmployeeGoalData {
   measurement_criteria: string;
   target?: string;
   uom?: string;
-  seletedvalueOfUorD?: string;
+  upward_downward?: string; 
 }
 
 const GoalCreation: React.FC = () => {
@@ -63,8 +63,10 @@ const GoalCreation: React.FC = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
 
   // --- Hooks ---
+  
   const { goals: goalOptions } = useGoalMaster();
   const { employees: assignableEmployees, baseYear } = useGoalAssignment();
+  const isBaseYear = year === baseYear;
   const { employeeGoals: modalGoals, loading: modalGoalsLoading, refetch: refetchModalGoals } = useEmployeeGoals(selectedEmployee || "", selectedCopyYear);
   const { employeeGoals: fetchedEmployeeGoals } = useEmployeeGoals(employee?.id || "", year);
   const isDuplicateGoal = (goalId: string, goalName: string) => {
@@ -73,6 +75,9 @@ const GoalCreation: React.FC = () => {
         g.goal_id === goalId ||
         g.name === `${goalId} (${goalName})` // compare formatted
     );
+  };
+  const isEditableStatus = (status: string) => {
+    return (status === "Goal Pending" || status === "Goal Started") && isBaseYear;
   };
 
 
@@ -111,7 +116,7 @@ useEffect(() => {
         targetvalue: g.target || "",
         uom: g.uom || "",
         goal_id: g.goal_id, 
-        // upward_downward: g.seletedvalueOfUorD || "",                  // ✅ Keep real id for backend use
+        seletedvalueOfUorD: g.upward_downward || "",// ✅ Keep real id for backend use
         copied: false,
       }));
       setGoals(mappedGoals);
@@ -267,7 +272,7 @@ const handleSubmit = async () => {
       measurement_criteria: g.measurement,
       target: g.targetvalue,
       uom: g.uom,
-      upward_downward: g.seletedvalueOfUorD || "",
+      seletedvalueOfUorD: g.seletedvalueOfUorD || "",
     }));
 
     const res = await submitGoalAssessment(employee.id,year, newGoals);
@@ -305,67 +310,119 @@ const handleSubmit = async () => {
 const handleDeleteGoals = async () => {
   if (selectedGoals.length === 0) {
     setMessage({ text: "Please select at least one goal to delete.", type: "warning" });
+    console.warn("⚠️ No goals selected for deletion");
     return;
   }
 
+  // Get the IDs to delete
+  const goalIdsToDelete = goals
+    .filter((g) => selectedGoals.includes(g.id))
+    .map((g) => g.goal_id)
+    .filter((id): id is string => !!id); // ✅ type guard ensures it's string[]
+
+  if (goalIdsToDelete.length === 0) {
+    setMessage({ text: "No valid goals selected for deletion.", type: "warning" });
+    console.warn("⚠️ No valid goal_ids found in selectedGoals");
+    return;
+  }
+
+  console.log("🗑 Deleting goals:", goalIdsToDelete);
+  console.log("👤 Employee Code:", employee?.id);
+  console.log("📅 Assessment Year:", year);
+
+  try {
+    // ✅ Call delete API
+    const res = await deleteEmployeeGoals({
+      employee_code: employee?.id || "",
+      year: year, // ✅ FIXED
+      goal_ids: goalIdsToDelete, // ✅ FIXED typing
+    });
+
+    console.log("✅ Delete API response:", res);
+
+    if (res?.message) {
+      // 🧹 Update UI
       const updatedGoals = goals.filter((g) => !selectedGoals.includes(g.id));
       setGoals(updatedGoals);
       setSelectedGoals([]);
-    setMessage({ text: "Selected goals deleted.", type: "success" });
-
-    try {
-      await handleSave();
+      setMessage({ text: "Selected goals deleted successfully.", type: "success" });
+      console.log("✅ Goals deleted from UI and backend synced.");
+    } else {
+      throw new Error(res?.error || "Unknown delete error");
+    }
   } catch (err) {
-      console.error("Error saving after deletion:", err);
-      setMessage({ text: "Deleted locally, but failed to update the backend.", type: "error" });
+    console.error("❌ Error deleting goals:", err);
+    setMessage({ text: "Failed to delete goals.", type: "error" });
   }
 };
 
 
-  const handleCopySelectedGoals = () => {
-    if (!selectedEmployee || modalGoals.length === 0) return;
 
-    const selectedGoalsToCopy = modalGoals.filter((g) =>
-      checkedGoalsModal.includes(g.goal_name)
-    );
+const handleCopySelectedGoals = () => {
+  if (!selectedEmployee || modalGoals.length === 0) return;
 
-    const currentGoals = [...goals];
-    const newGoals: any[] = [];
+  const selectedGoalsToCopy = modalGoals.filter((g) =>
+    checkedGoalsModal.includes(g.goal_name)
+  );
 
-    selectedGoalsToCopy.forEach((g, idx) => {
-      const goalId = g.goal_id || "";
-      const goalName = g.goal_name || "";
-      const displayName = goalId && goalName ? `${goalName}` : goalId || goalName;
+  const currentGoals = [...goals];
+  const newGoals: any[] = [];
 
-      if (isDuplicateGoal(goalId, goalName)) {
-        setMessage({
-          text: `Goal ${displayName} already exists.`,
-          type: "warning",
-        });
-      } else {
-        newGoals.push({
-          id: `${currentGoals.length + idx}-${Date.now()}`,
-          name: displayName,
-          desc: g.description || "",
-          measurement: g.measurement_criteria || "",
-          targetvalue: g.target || "",
-          uom: g.uom || "",
-          copied: true,
-          goal_id: goalId, 
-        });
-      }
-    });
+  selectedGoalsToCopy.forEach((g, idx) => {
+    const goalId = g.goal_id || "";
+    const goalName = g.goal_name || "";
+    const displayName = goalId && goalName ? `${goalName}` : goalId || goalName;
 
+    if (isDuplicateGoal(goalId, goalName)) {
+      setMessage({
+        text: `Goal ${displayName} already exists.`,
+        type: "warning",
+      });
+    } else {
+      newGoals.push({
+        id: `${currentGoals.length + idx}-${Date.now()}`,
+        name: displayName,
+        desc: g.description || "",
+        measurement: g.measurement_criteria || "",
+        targetvalue: g.target || "",
+        uom: g.uom || "",
+        copied: true,
+        goal_id: goalId,
+        seletedvalueOfUorD: g.upward_downward || "",
+      });
+    }
+  });
 
+  // 🧠 Check if the first row is just an empty placeholder
+  const isFirstRowEmpty =
+    currentGoals.length === 1 &&
+    !currentGoals[0].name &&
+    !currentGoals[0].desc &&
+    !currentGoals[0].measurement &&
+    !currentGoals[0].targetvalue &&
+    !currentGoals[0].uom;
 
-    if (newGoals.length > 0) {
+  if (newGoals.length > 0) {
+    if (isFirstRowEmpty) {
+      console.log("🧹 First empty row detected — replacing it with copied goals");
+      setGoals(newGoals);
+    } else {
+      console.log("➕ Appending copied goals to existing list");
       setGoals([...currentGoals, ...newGoals]);
-      setMessage({ text: "Goals copied successfully!", type: "success" });
     }
 
-    setShowModal(false);
-    setCheckedGoalsModal([]);
-  };
+    setMessage({ text: "Goals copied successfully!", type: "success" });
+  } else {
+    setMessage({
+      text: "No new goals were copied (possible duplicates).",
+      type: "warning",
+    });
+  }
+
+  // 🧼 Close modal and reset
+  setShowModal(false);
+  setCheckedGoalsModal([]);
+};
 
 
 
@@ -381,7 +438,7 @@ const handleDeleteGoals = async () => {
           <h1 className="text-xl text-primary font-medium pb-5 mb-4">Employee Goal Assignment</h1>
           <div className="flex items-center gap-10 justify-end mb-5">
             <div className="flex items-start gap-3">
-              {!isSubmitted && (
+              {isEditableStatus(employee?.status || "") && !isSubmitted && (
                 <>
                 <button onClick={() => setShowModal(true)} className="bg-secondary text-sm flex items-center gap-2 text-primary rounded-lg px-4 py-2 hover:shadow-sm transition-all">
                   <MdOutlineContentCopy /> Copy Goals
@@ -434,10 +491,10 @@ const handleDeleteGoals = async () => {
             <thead className="bg-gray-100 text-gray-500 text-sm">
               <tr>
                 <th className="py-2 px-2 text-center w-[2%]"></th>
-                <th className="py-2 px-4 text-center w-[20%]">Goal Name</th>
-                <th className="py-2 px-4 text-center w-[50%]">Goal Description</th>
-                <th className="py-2 px-4 text-center w-[30%]">Measurement Criteria</th>
-                <th className="py-2 px-4 text-center w-[2%]">UOM</th>
+                <th className="py-2 px-4 text-center w-[40%]">Goal Name / Goal Description</th>
+                {/* <th className="py-2 px-4 text-center w-[50%]">Goal Description</th> */}
+                <th className="py-2 px-4 text-center w-[23%]">Measurement Criteria</th>
+                <th className="py-2 px-4 text-center w-[7%]">UOM</th>
                 <th className="py-2 px-4 text-center w-[5%]">Target</th>
                 <th className="py-2 px-4 text-center w-[2%]">Upward(U)/ Downward(D)</th>
               </tr>
@@ -445,13 +502,15 @@ const handleDeleteGoals = async () => {
             <tbody>
               {currentRows.map((goal, index) => (
                 <tr key={goal.id} className="border-b text-sm">
-                  <td className="text-center px-1 py-3">
+                    <td className="text-center px-1 py-3">
                     <input type="checkbox" checked={selectedGoals.includes(goal.id)} onChange={(e) => {
                       if (e.target.checked) setSelectedGoals([...selectedGoals, goal.id]);
                       else setSelectedGoals(selectedGoals.filter(id => id !== goal.id));
                     }} />
                   </td>
-                  <td className="relative py-3 px-1">
+
+                  <div className="flex  flex-col justify-center">
+                    <td className="relative py-1 px-1">
                     <div className={`border w-full flex items-center justify-between gap-2 rounded px-2 py-1 cursor-pointer bg-gray-50`} onClick={(e) => {
     if (!isSubmitted) handleGoalClick(goal.id, index, e);
   }}>
@@ -459,7 +518,7 @@ const handleDeleteGoals = async () => {
                       {!isSubmitted &&<RiArrowDropDownLine className="text-2xl" />}
                     </div>
                     {dropdownOpen === goal.id && dropdownPos && createPortal(
-                      <div className="absolute bg-white border rounded-lg shadow-lg z-[1000] w-[400px]" style={{ top: dropdownPos.top, left: dropdownPos.left }}>
+                      <div className="absolute bg-white border rounded-lg shadow-lg z-[1000] w-[550px]" style={{ top: dropdownPos.top, left: dropdownPos.left }}>
                         <div className="p-2 border-b sticky top-0 bg-white z-10">
                           <input type="text" placeholder="Search goal..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full border rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
                         </div>
@@ -495,29 +554,54 @@ const handleDeleteGoals = async () => {
                     )}
                   </td>
 
-                  <td className="py-3 px-1">
+                   <td className="flex items-center gap-1 py-1 px-1">
                     <textarea value={goal.desc} onChange={(e) => { const updated = [...goals]; updated[indexOfFirstRow + index].desc = e.target.value; setGoals(updated); setIsEdited(true);
- }}readOnly className={`border p-1 w-full rounded focus:outline-none focus:ring-1 focus:ring-primary ${employee?.status === "Goal Submitted" ? " cursor-not-allowed border-none focus:outline-none" : "bg-white cursor-text"}`} rows={1} />
+ }}readOnly className={`border p-1 w-full rounded focus:outline-none focus:ring-1 focus:ring-primary ${employee?.status === "Goal Submitted" || "Evaluation Started" || "Evaluation Submitted" ? " cursor-not-allowed border-none focus:outline-none" : "bg-white cursor-text"}`} rows={1} />
                   </td>
+                  </div>
+                
+
+
+                  
 
                   <td className="py-3 px-1">
                     <input type="text" value={goal.measurement} onChange={(e) => { const updated = [...goals]; updated[indexOfFirstRow + index].measurement = e.target.value; setGoals(updated); setIsEdited(true);
 }}readOnly className={`border p-1 w-full rounded ${employee?.status === "Goal Submitted" ? " cursor-not-allowed border-none focus:outline-none" : "bg-white"}`} />
                   </td>
 
-                  <td className="py-3 px-1">
+                  {/* <td className="py-3 px-1">
                     <input type="text" value={goal.uom} onChange={(e) => { const updated = [...goals]; updated[indexOfFirstRow + index].uom = e.target.value; setGoals(updated); setIsEdited(true);
 }} className="border p-1 w-full rounded" readOnly={isSubmitted}/>
+                  </td> */}
+                  <td className="py-3 px-1">
+                    <select
+                      value={goal.uom || ""}
+                      onChange={(e) => {
+                        const updated = [...goals];
+                        updated[indexOfFirstRow + index].uom = e.target.value;
+                        setGoals(updated);
+                        setIsEdited(true);
+                      }}
+                      className="border p-1 w-full rounded bg-white"
+                      disabled={isSubmitted || !isEditableStatus(employee?.status || "")}
+                    >
+                      <option value="">Select</option>
+                      <option value="Percentage">Percentage</option>
+                      <option value="Number">Number</option>
+                    </select>
                   </td>
+
 
                   <td className="py-3 px-1">
                     <input type="text" value={goal.targetvalue} onChange={(e) => { const updated = [...goals]; updated[indexOfFirstRow + index].targetvalue = e.target.value; setGoals(updated); setIsEdited(true);
-}} className="border p-1 w-full rounded" readOnly={isSubmitted}/>
+}} className="border p-1 w-full rounded" readOnly={isSubmitted || !isEditableStatus(employee?.status || "")}
+/>
                   </td>
 
                   <td className="py-3 px-1">
                     <select value={goal.seletedvalueOfUorD || ""} onChange={(e) => { const updated = [...goals]; updated[indexOfFirstRow + index].seletedvalueOfUorD = e.target.value; setGoals(updated); setIsEdited(true);
-}} className="border p-1 w-full rounded" readOnly={isSubmitted}>
+}} className="border p-1 w-full rounded" disabled={isSubmitted || !isEditableStatus(employee?.status || "")}
+>
                       <option value="">Select</option>
                       <option value="U">U</option>
                       <option value="D">D</option>
@@ -533,7 +617,7 @@ const handleDeleteGoals = async () => {
         <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />
 
         {/* Save / Submit */}
-        {!isSubmitted && (
+        {!isSubmitted && isEditableStatus(employee?.status || "") && (
         <div className="flex justify-end mt-4 gap-3">
           <button
             onClick={handleDeleteGoals}
@@ -564,9 +648,9 @@ const handleDeleteGoals = async () => {
         {showModal && createPortal(
           <div className="fixed inset-0 z-50 flex items-center justify-center">
             <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowModal(false)}></div>
-            <div className="bg-white w-[700px] rounded-lg p-6 relative z-10">
+            <div className="bg-white w-[1000px] rounded-lg p-6 relative z-10">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-medium">Copy Goals</h2>
+                <h2 className="text-lg font-medium text-primary">Copy Goals</h2>
                 <IoMdClose className="text-2xl cursor-pointer" onClick={() => setShowModal(false)} />
               </div>
       
@@ -578,7 +662,7 @@ const handleDeleteGoals = async () => {
 
                 return (
                   <select
-                    className="border px-2 py-1 rounded"
+                    className="border px-2 py-1  mb-2 rounded"
                     value={selectedCopyYear}
                     onChange={(e) => setSelectedCopyYear(e.target.value)}
                   >
@@ -592,77 +676,77 @@ const handleDeleteGoals = async () => {
               
               })()}
             
-              <div className="flex gap-4">
-              {/* Employee List */}
-              <div
-                className={`w-1/3 border rounded p-2 ${
-                  assignableEmployees.filter(
-                    (e) =>
-                      e.id !== employee?.id &&
-                      e.name.toLowerCase().includes(employeeSearch.toLowerCase())
-                  ).length > 7
-                    ? "max-h-[300px] overflow-y-auto"
-                    : ""
-                }`}
-              >
-                {assignableEmployees
-                  .filter(
-                    (e) =>
-                      e.id !== employee?.id &&
-                      e.name.toLowerCase().includes(employeeSearch.toLowerCase())
-                  )
-                  .map((e) => (
-                    <div
-                      key={e.id}
-                      className={`cursor-pointer p-2 ${
-                        selectedEmployee === e.id ? "bg-gray-200" : ""
-                      }`}
-                      onClick={() => setSelectedEmployee(e.id)}
-                    >
-                      {e.name}
-                    </div>
-                  ))}
-              </div>
+<div className="flex gap-4">
+  {/* Employee List */}
+  <div
+                className={`w-[30%] border shadow-md rounded p-2 ${
+      assignableEmployees.filter(
+        (e) =>
+          e.id !== employee?.id &&
+          e.name.toLowerCase().includes(employeeSearch.toLowerCase())
+      ).length > 7
+        ? "max-h-[300px] overflow-y-auto"
+        : ""
+    }`}
+  >
+    {assignableEmployees
+      .filter(
+        (e) =>
+          e.id !== employee?.id &&
+          e.name.toLowerCase().includes(employeeSearch.toLowerCase())
+      )
+      .map((e) => (
+        <div
+          key={e.id}
+          className={`cursor-pointer p-2 ${
+            selectedEmployee === e.id ? "bg-primary/20 text-primary border border-primary rounded-md" : ""
+          }`}
+          onClick={() => setSelectedEmployee(e.id)}
+        >
+          {e.name}
+        </div>
+      ))}
+  </div>
 
 
-                {/* Employee Goals */}
-                <div className="w-2/3 border rounded p-2 max-h-[300px] overflow-y-auto">
-                  {modalGoalsLoading ? (
+  {/* Employee Goals */}
+                <div className="w-[70%] border rounded shadow-md p-2 max-h-[300px] overflow-y-auto">
+    {modalGoalsLoading ? (
                     <p><div className="flex items-center justify-center h-full text-gray-500 italic">Select an employee to view their goals.</div></p>
-                  ) : modalGoals.length > 0 ? (
-                  <ul>
-                    {modalGoals.map((g) => (
-                      <li key={g.goal_name} className="flex items-center gap-2 py-1">
-                        <input
-                          type="checkbox"
+    ) : modalGoals.length > 0 ? (
+      <ul>
+        {modalGoals.map((g) => (
+          <li key={g.goal_name} className="flex items-start gap-2 px-2 text-gray-400 py-2 border border-gray-200 shadow-md rounded-md">
+            <input
+              type="checkbox"
                           checked={checkedGoalsModal.includes(g.goal_name)} // track by goal_name
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setCheckedGoalsModal([...checkedGoalsModal, g.goal_name]);
-                            } else {
+              onChange={(e) => {
+                if (e.target.checked) {
+                  setCheckedGoalsModal([...checkedGoalsModal, g.goal_name]);
+                } else {
                               setCheckedGoalsModal(checkedGoalsModal.filter((name) => name !== g.goal_name));
-                            }
-                          }}
-                        />
-                        <div className="flex flex-col">
-                          <span className="font-medium">{g.goal_name}</span>
+                }
+              }}
+            />
+            <div className="flex flex-col">
+              <span className="font-medium">{g.goal_name}</span>
                           <span className="text-gray-500 text-sm">{g.measurement_criteria}</span>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
+            </div>
+          </li>
+        ))}
+      </ul>
 
 
-                  ) : (
-                    <p className="text-gray-500 italic">No goals found</p>
-                  )}
-                </div>
+    ) : (
+      <p className="text-gray-500 italic">No goals found</p>
+    )}
+  </div>
 
-              </div>
+</div>
 
             <div className="flex gap-4 mt-4">
               <button
-                className="w-1/3 bg-gray-300 px-4 py-2 rounded"
+                className="w-[30%] bg-gray-300 px-4 py-2 rounded"
                 onClick={() => setShowModal(false)}
               >
                 Cancel
@@ -670,7 +754,7 @@ const handleDeleteGoals = async () => {
 
               <button
                 onClick={handleCopySelectedGoals}
-                className="w-2/3 bg-[#972E26] text-white text-sm py-2 rounded-lg hover:bg-[#7D241E] transition-all"
+                className="w-[70%] bg-[#972E26] text-white text-sm py-2 rounded-lg hover:bg-[#7D241E] transition-all"
               >
                 Copy Selected Goals
               </button>

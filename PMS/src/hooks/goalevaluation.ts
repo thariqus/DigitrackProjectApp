@@ -7,6 +7,7 @@ export interface GoalAssessment {
   employee_name: string;
   employee_code: string;
   status: string;
+  total_score?: number;
 }
 export interface GoalDetail {
   goal_name: string;
@@ -180,8 +181,23 @@ export function useSubmitGoalEvaluation() {
       const data = await res.json();
 
       if (!res.ok || data.exc) {
-        throw new Error(data._server_messages || "Failed to submit goal evaluation");
+        let errorMessage = "Failed to submit goal evaluation";
+
+        if (data._server_messages) {
+          try {
+            const serverMessages = JSON.parse(data._server_messages);
+            if (Array.isArray(serverMessages) && serverMessages.length > 0) {
+              const parsed = JSON.parse(serverMessages[0]);
+              errorMessage = parsed.message || errorMessage;
+            }
+          } catch (e) {
+            console.error("Error parsing frappe server message:", e);
+          }
+        }
+
+        throw new Error(errorMessage);
       }
+
 
       return data.message || {};
     } catch (error: any) {

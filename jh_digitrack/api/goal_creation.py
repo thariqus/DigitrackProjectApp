@@ -13,7 +13,9 @@ def get_employee_goals(employee_code, year):
                 g.description,
                 g.measurement_criteria,
                 g.target,
-                g.uom
+                g.uom,
+                g.upwarddownward AS upward_downward
+            
             FROM `tabEmployee Goals` g
             INNER JOIN `tabGoal Assessment` ga ON ga.name = g.parent
             WHERE ga.employee_code = %s
@@ -113,6 +115,7 @@ def create_goal_assessment(data=None, session_user=None):
                 "measurement_criteria": g.get("measurement_criteria"),
                 "target": g.get("target"),
                 "uom": g.get("uom"),
+                "upwarddownward": g.get("upward_downward")
             })
 
         doc.save(ignore_permissions=True, ignore_version=True)
@@ -150,7 +153,7 @@ def submit_goal_assessment(employee_code=None, year=None, new_goals=None):
         )
 
         if not goal_assessment_name:
-            frappe.throw(_(f"Goal Assessment for Employee {employee_code} ({year}) not found."))
+            frappe.throw(_(f"You need to save the Goal Assignment before it can be submitted."))
 
         doc = frappe.get_doc("Goal Assessment", goal_assessment_name)
 
@@ -198,40 +201,22 @@ from frappe import _
 
 @frappe.whitelist()
 def delete_employee_goals(employee_code, year, goal_ids):
+    goal_ids = frappe.parse_json(goal_ids)
 
-    try:
-        if not employee_code or not year or not goal_ids:
-            frappe.throw(_("Employee Code, Year, and Goal IDs are required."))
+    doc = frappe.get_doc("Goal Assessment", {"employee_code": employee_code, "year": year})
+    if not doc:
+        return {"error": "Goal Assessment not found"}
 
-        if isinstance(goal_ids, str):
-            import json
-            goal_ids = json.loads(goal_ids)
+    remaining = [d for d in doc.employee_goals if d.goal_id not in goal_ids]
 
-        goal_assessment = frappe.get_all(
-            "Goal Assessment",
-            filters={"employee_code": employee_code, "year": year},
-            fields=["name"],
-            limit=1,
-        )
+    if not remaining:
+        frappe.delete_doc("Goal Assessment", doc.name, force=1, ignore_permissions=True)
+        frappe.db.commit()
+        return {"message": "All goals deleted. Goal Assessment removed as well."}
 
-        if not goal_assessment:
-            frappe.throw(_("No Goal Assessment found for this employee and year."))
+    doc.set("employee_goals", remaining)
+    doc.save(ignore_permissions=True)
+    frappe.db.commit()
 
-        doc = frappe.get_doc("Goal Assessment", goal_assessment[0].name)
+    return {"message": "Selected goals deleted"}
 
-        before_count = len(doc.goals)
-        doc.goals = [g for g in doc.goals if g.goal_id not in goal_ids]
-        after_count = len(doc.goals)
-
-        if before_count != after_count:
-            doc.save(ignore_permissions=True)
-            frappe.db.commit()
-
-        return {
-            "message": f"Deleted {before_count - after_count} goals successfully.",
-            "remaining_goals": after_count,
-        }
-
-    except Exception as e:
-        frappe.log_error(frappe.get_traceback(), "delete_employee_goals_error")
-        return {"error": str(e)}
