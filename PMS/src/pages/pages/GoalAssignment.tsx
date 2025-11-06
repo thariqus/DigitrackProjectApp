@@ -36,7 +36,8 @@ function GoalAssignment() {
     if (baseYear && !selectedYear) {
       setSelectedYear(baseYear);
     }
-  }, [baseYear]);
+  }, [baseYear, selectedYear]);
+
 
   useEffect(() => {
     const closeDropdown = (e: any) => {
@@ -113,7 +114,9 @@ function GoalAssignment() {
       </h1>
 
       {/* === Header Row (Year Dropdown + Legends) === */}
-      <div className="flex justify-between mb-3 items-start flex-wrap gap-3">
+      <div className="flex justify-between mb-3 items-start gap-0">
+      {/* <div className="flex justify-between mb-3 items-center gap-3 overflow-hidden"> */}
+
         {/* Year Dropdown */}
         <div className="relative inline-block year-dropdown">
           <button
@@ -143,19 +146,28 @@ function GoalAssignment() {
         </div>
 
         {/* Legends */}
-        <div className="flex flex-wrap gap-x-2 gap-y-3 items-center justify-end">
+        {/* <div className="flex flex-wrap gap-x-2 gap-y-3 items-center justify-end"> */}
+        {/* <div className="flex gap-x-2 items-center justify-end overflow-x-auto whitespace-nowrap scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 px-1"> */}
+        <div
+            className="flex items-center gap-1 flex-shrink-0"         
+            style={{
+            gap: '0.25rem', // tighter spacing
+          }}
+        >
+
+
           {[
             { label: "Employees", count: employees.length },
             { label: "Goal Pending", count: employees.filter(e => e.status === "Goal Pending").length },
             { label: "Goal Started", count: employees.filter(e => e.status === "Goal Started").length },
             { label: "Goal Submitted", count: employees.filter(e => e.status === "Goal Submitted").length },
-            { label: "Evaluation Pending", count: employees.filter(e => e.status === "Evaluation Pending").length },
-            { label: "Evaluation Started", count: employees.filter(e => e.status === "Evaluation Started").length },
-            { label: "Evaluation Submitted", count: employees.filter(e => e.status === "Evaluation Submitted").length },
+            { label: "Eval. Pending", count: employees.filter(e => e.status === "Evaluation Pending").length },
+            { label: "Eval. Started", count: employees.filter(e => e.status === "Evaluation Started").length },
+            { label: "Eval. Submitted", count: employees.filter(e => e.status === "Evaluation Submitted").length },
 
           ].map((stat) => (
             <div key={stat.label} className="flex items-center justify-center text-center text-primary shadow-sm border-secondary rounded-md">
-              <p className="text-xs bg-secondary px-2 py-2 rounded-l-md">{stat.label}</p>
+              <p className="text-[9px] bg-secondary px-2 py-2 rounded-l-md">{stat.label}</p>
               <p className="font-bold text-xs bg-secondary/30 px-2 py-2 rounded-r-md">{stat.count}</p>
             </div>
           ))}

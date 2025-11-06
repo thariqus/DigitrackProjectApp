@@ -16,6 +16,7 @@ def get_goal_evaluation(user,year=None):
             name AS docname,
             employee_name,
             employee_code,
+            COALESCE(total_score, 0) AS total_score,
             CASE
                 WHEN status = 'Goal Submitted' THEN 'Evaluation Pending'
                 ELSE status
@@ -36,7 +37,6 @@ def get_goal_evaluation(user,year=None):
         "assessment_year": assessment_year,
         "evaluations": result
     }
-
 
 import frappe
 from frappe.utils import now
@@ -74,7 +74,6 @@ def create_goal_evaluation(data=None, session_user=None):
                 doc.status = "Evaluation Started"
 
             doc.set("employee_goals", [])
-
             msg = f"Updated Goal Evaluation {existing_name}"
 
         else:
@@ -85,27 +84,33 @@ def create_goal_evaluation(data=None, session_user=None):
             doc.status = "Evaluation Started"
             msg = "Created new Goal Assessment"
 
+        total_score = 0  
+
         for g in goals:
+            score = frappe.utils.flt(g.get("achievement_score") or 0)
+            total_score += score  
+
             doc.append("employee_goals", {
                 "goal_id": g.get("goal_name"),
                 "description": g.get("description"),
                 "measurement_criteria": g.get("measurement_criteria"),
                 "target": g.get("target"),
                 "uom": g.get("uom"),
-                "achievement_score": g.get("achievement_score"),
+                "achievement_score": score,
                 "remark": g.get("remarks"),
             })
+
+        doc.total_score = total_score
 
         doc.save(ignore_permissions=True, ignore_version=True)
         frappe.db.commit()
 
-        return {"message": msg, "name": doc.name}
+        return {"message": msg, "name": doc.name, "total_score": total_score}
 
     except Exception as e:
-        frappe.db.rollback()
         frappe.log_error(frappe.get_traceback(), "Goal Evaluation Creation Failed")
-        return {"error": str(e)}
-    
+        frappe.throw(_("Failed to create or update goal evaluation."))
+
 
 import frappe
 
@@ -156,10 +161,16 @@ def submit_goal_evaluation(employee_code, year):
         frappe.throw(_("Goal Evaluation record not found."))
 
     doc = frappe.get_doc("Goal Assessment", goal_eval)
-
+    if doc.status == "Goal Submitted":
+        frappe.throw(_("Please save the evaluation before submitting."))
     if doc.docstatus == 1:
         return {"message": "Goal Evaluation already submitted."}
     doc.status = "Evaluation Submitted"
-    doc.submit(ignore_permissions=True)
+
+    doc.flags.ignore_permissions = True
+
+    doc.submit()
+
     frappe.db.commit()
     return {"message": "Goal Evaluation submitted successfully.", "docname": doc.name}
+

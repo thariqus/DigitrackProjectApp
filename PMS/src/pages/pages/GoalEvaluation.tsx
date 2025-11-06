@@ -238,7 +238,12 @@ function GoalEvaluation() {
                   <td className={`px-4 py-3 font-medium ${getStatusStyles(emp.status)}`}>
                     {emp.status}
                   </td>
-                  <td className="px-4 py-3 text-center">700</td>
+                  <td className="px-4 py-3 text-center">
+                    {emp.total_score !== undefined && emp.total_score !== null
+                      ? emp.total_score.toFixed(2)
+                      : "-"}
+                  </td>
+
                   <td className="px-4 py-3 text-center">
                     <button
                       className="px-2 py-2 rounded-md transition text-gray-600"

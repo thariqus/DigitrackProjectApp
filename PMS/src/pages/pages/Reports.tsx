@@ -164,13 +164,13 @@ function Reports() {
   };
 
   return (
-    <div className="bg-white min-h-screen border rounded-lg px-6 py-6 relative">
-      <h1 className="text-xl text-[#972E26] font-semibold pb-5 mb-5">
+    <div className="bg-white min-h-screen border rounded-lg px-6 py-3 relative">
+      <h1 className="text-xl text-[#972E26] font-semibold pb-1 mb-1">
         Reports
       </h1>
 
       {/* Filters */}
-      <div className="flex items-center gap-4 flex-wrap p-3">
+      <div className="flex items-center gap-2 flex-wrap py-2">
         {/* Year Filter */}
         <select
           value={selectedYear}

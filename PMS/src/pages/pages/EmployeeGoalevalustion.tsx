@@ -109,7 +109,18 @@ useEffect(() => {
       setMessage({ text: "Missing employee or year.", type: "error" });
       return;
     }
+  // ✅ Validation before submitting
+  const missingFields = goals.filter(
+    (g) => !g.score || g.score.trim() === "" || !g.remark || g.remark.trim() === ""
+  );
 
+  if (missingFields.length > 0) {
+    setMessage({
+      text: "Please fill all required fields before saving.",
+      type: "error",
+    });
+    return;
+  }
     const payload = {
       employee_code: employee.id,
       year: year,
@@ -139,6 +150,18 @@ useEffect(() => {
   const handleSubmit = async () => {
     if (!employee || !year) return;
 
+  // ✅ Validation before submitting
+  const missingFields = goals.filter(
+    (g) => !g.score || g.score.trim() === "" || !g.remark || g.remark.trim() === ""
+  );
+
+  if (missingFields.length > 0) {
+    setMessage({
+      text: "Please fill all required fields before submitting.",
+      type: "error",
+    });
+    return;
+  }
     const response = await submitGoalEvaluation(employee.id, year);
 
     if (response.error) {
@@ -209,8 +232,8 @@ useEffect(() => {
           <table className="w-full text-left table-auto border-collapse">
             <thead className="bg-gray-100 text-gray-700 text-sm font-normal">
               <tr>
-                <th className="py-3 px-1 w-[35%] sticky left-0 bg-gray-100 z-10">Goal Name/Goal Description</th>
-                <th className="py-3 px-1 w-[15%]">Measurement Criteria</th>
+                <th className="py-3 px-1 w-[27%] sticky left-0 bg-gray-100 z-10">Goal Name/Goal Description</th>
+                <th className="py-3 px-1 w-[23%]">Measurement Criteria</th>
                 <th className="py-3 px-1 w-[8%] text-center">Target Value / UOM</th>
                 <th className="py-3 px-1 w-[5%] text-center">Achievement Score</th>
                 <th className="py-3 px-1 w-[30%] text-center">Remark</th>
@@ -231,7 +254,7 @@ useEffect(() => {
                   </td>
                   <td className="py-2 px-1">
                     <input
-                      type="text"
+                      type="number"
                       value={goal.score || ""}
                       readOnly={isSubmitted}
                       onChange={(e) => !isSubmitted && handleInputChange(idx, "score", e.target.value)}
@@ -270,7 +293,7 @@ useEffect(() => {
             <label className="flex items-center bg-secondary gap-2 px-4 py-2 rounded-sm cursor-pointer hover:bg-gray-100 transition">
               <input type="file" className="hidden" multiple onChange={handleFileChange} />
               <IoCloudUploadOutline className="text-gray-500" />
-              <span className="text-gray-500 text-sm font-medium">Upload File</span>
+              <span className="text-gray-500 text-sm font-medium">Attach File</span>
             </label>
 
             {files.length > 0 && (
