@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router";
 import JHICON from "../images/JH.png";
 import jaleelholdings from "../images/jaleel holdings.png";
+import { useCurrentPmsEmployee } from "../hooks/auth";
 
 import {
   ChevronDown,
@@ -77,11 +78,14 @@ const adminItems: NavItem[] = [
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered } = useSidebar();
   const location = useLocation();
+  const { data: employee } = useCurrentPmsEmployee();
 
   const isActive = useCallback(
     (path: string) => location.pathname === path,
     [location.pathname]
   );
+
+
 
   const renderMenuItems = (items: NavItem[], hasLink = true) => (
     <ul className="flex flex-col gap-4">
@@ -184,27 +188,34 @@ const AppSidebar: React.FC = () => {
 
       <div className="flex flex-col overflow-y-auto duration-300 ease-linear no-scrollbar">
         <nav className="mb-6">
-          {/* Master Section */}
-          {renderSectionHeader("Master")}
-          {renderMenuItems(masterItems)}
+          {/* Conditionally render based on PMS Employee flags */}
+          {employee?.pms_master ? (
+            <>
+              {renderSectionHeader("Master")}
+              {renderMenuItems(masterItems)}
+            </>
+          ) : null}
 
-          {/* Manager Section */}
-          <div className="mt-8">
-            {renderSectionHeader("Manager")}
-            {renderMenuItems(managerItems)}
-          </div>
+          {employee?.pms_manager ? (
+            <div className="mt-8">
+              {renderSectionHeader("Manager")}
+              {renderMenuItems(managerItems)}
+            </div>
+          ) : null}
 
-          {/* Self Section */}
-          <div className="mt-8">
-            {renderSectionHeader("Self")}
-            {renderMenuItems(selfItems, false)}
-          </div>
+          {employee?.pms_employee || employee?.self_assessment ? (
+            <div className="mt-8">
+              {renderSectionHeader("Self")}
+              {renderMenuItems(selfItems, false)}
+            </div>
+          ) : null}
 
-          {/* Admin Section */}
-          <div className="mt-8">
-            {renderSectionHeader("Admin")}
-            {renderMenuItems(adminItems, false)}
-          </div>
+          {employee?.pms_admin ? (
+            <div className="mt-8">
+              {renderSectionHeader("Admin")}
+              {renderMenuItems(adminItems, false)}
+            </div>
+          ) : null}
         </nav>
       </div>
     </aside>

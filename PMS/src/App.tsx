@@ -2,7 +2,8 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/utils/query-client";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router";
-import { Suspense } from "react";
+import { Suspense, useEffect, useRef } from "react";
+
 import { ScrollToTop } from "./components/common/ScrollToTop";
 import AppLayout from "./layout/AppLayout";
 
@@ -44,6 +45,26 @@ import AuthProvider from "@/components/auth";
 import Reports from "./pages/pages/Reports";
 
 function AppWrapper() {
+  const idleTimer = useRef<NodeJS.Timeout | null>(null);
+  const IDLE_TIME = 10 * 60 * 1000; 
+
+  const resetIdleTimer = () => {
+    if (idleTimer.current) clearTimeout(idleTimer.current);
+    idleTimer.current = setTimeout(() => {
+      window.location.href = "/api/method/jh_digitrack.api.idle_logout.idle_logout";
+    }, IDLE_TIME);
+  };
+
+  useEffect(() => {
+    const events = ["mousemove", "keydown", "click", "scroll"];
+    events.forEach((event) => window.addEventListener(event, resetIdleTimer));
+    resetIdleTimer();
+
+    return () => {
+      events.forEach((event) => window.removeEventListener(event, resetIdleTimer));
+      if (idleTimer.current) clearTimeout(idleTimer.current);
+    };
+  }, []);
   return (
     <Router basename="/PMS">
       <ScrollToTop />
@@ -109,3 +130,6 @@ export default function App() {
     </QueryClientProvider>
   );
 }
+
+
+

@@ -130,8 +130,11 @@ export function useGoalAssessment() {
 
   return { createGoalAssessment, loading };
 }
+
+
 export function useEmployeeGoals(employeeCode: string, year: string) {
   const [employeeGoals, setEmployeeGoals] = useState<GoalDetail[]>([]);
+  const [attachments, setAttachments] = useState<{ file_name: string; file_url: string }[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -143,9 +146,11 @@ export function useEmployeeGoals(employeeCode: string, year: string) {
           `/api/method/jh_digitrack.api.goal_evaluation.get_employee_goals?employee_code=${employeeCode}&year=${year}`
         );
         const data = await res.json();
-        setEmployeeGoals(data.message || []);
+
+        setEmployeeGoals(data.message?.goals || []);
+        setAttachments(data.message?.attachments || []);
       } catch (error) {
-        console.error(" Error fetching employee goals:", error);
+        console.error("Error fetching employee goals:", error);
       } finally {
         setLoading(false);
       }
@@ -154,8 +159,9 @@ export function useEmployeeGoals(employeeCode: string, year: string) {
     fetchEmployeeGoals();
   }, [employeeCode, year]);
 
-  return { employeeGoals, loading };
+  return { employeeGoals, attachments, loading };
 }
+
 
 export function useSubmitGoalEvaluation() {
   const [loading, setLoading] = useState(false);
@@ -210,3 +216,82 @@ export function useSubmitGoalEvaluation() {
 
   return { submitGoalEvaluation, loading };
 }
+
+
+
+export function useUploadGoalAttachment() {
+  const [loading, setLoading] = useState(false);
+
+  const uploadGoalAttachment = async (employeeCode: string, year: string, file: File) => {
+    try {
+      setLoading(true);
+
+      const formData = new FormData();
+      formData.append("employee_code", employeeCode);
+      formData.append("year", year);
+      formData.append("file", file);
+
+      const res = await fetch("/api/method/jh_digitrack.api.goal_evaluation.upload_goal_attachment", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok || data.exc) {
+        throw new Error(data.message || "Failed to upload file");
+      }
+
+      return data.message || {};
+    } catch (error: any) {
+      console.error("Error uploading goal attachment:", error);
+      return { error: error.message };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { uploadGoalAttachment, loading };
+}
+
+
+export function useDeleteGoalAttachment() {
+  const [loading, setLoading] = useState(false);
+
+  const deleteGoalAttachment = async (
+    employeeCode: string,
+    year: string,
+    fileUrl: string
+  ) => {
+    try {
+      setLoading(true);
+
+      const res = await fetch(
+        "/api/method/jh_digitrack.api.goal_evaluation.delete_goal_attachment",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            employee_code: employeeCode,
+            year: year,
+            file_url: fileUrl,
+          }),
+        }
+      );
+
+      const data = await res.json();
+      if (!res.ok || data.exc) {
+        throw new Error(data.message || "Failed to delete attachment");
+      }
+
+      return data.message || {};
+    } catch (error: any) {
+      console.error("Error deleting goal attachment:", error);
+      return { error: error.message };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { deleteGoalAttachment, loading };
+}
+

@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from "react";
 import { HiOutlineSearch, HiChevronDown } from "react-icons/hi";
 import { IoMdClose } from "react-icons/io";
-import { IoCloseOutline } from "react-icons/io5";
+import { IoCloseOutline, IoCloudDownloadOutline } from "react-icons/io5";
 import { CiMail, CiSearch } from "react-icons/ci";
 import Pagination from "../../components/Pagination";
 import { useGoalAssessment, ManagerSummary, EmployeeSummary } from "../../hooks/pmsreports";
+import { useCurrentUser } from "../../hooks/auth";
 
 interface Goal {
   id: string;
@@ -41,6 +42,7 @@ function Reports() {
   const dropdownRef = useRef<HTMLDivElement | null>(null);
 
   const { managers, baseYear, years, loading, refetch } = useGoalAssessment(selectedYear);
+  const { data: currentUser } = useCurrentUser();
 
   useEffect(() => {
     if (baseYear && !selectedYear) {
@@ -254,6 +256,43 @@ function Reports() {
             <span>Clear Filters</span> <IoCloseOutline />
           </button>
         )}
+        {/* Email Button */}
+        <button
+          onClick={() => {
+            // add your email sending logic here
+            console.log("Send email clicked");
+          }}
+          className="px-3 py-2 text-sm flex items-center gap-1 bg-[#972E26] text-white rounded-md hover:bg-[#7d241f]"
+        >
+          <CiMail className="text-lg" />
+          <span>Send Email</span>
+        </button>
+        <button
+          onClick={() => {
+            const managerToSend =
+              selectedManager === "All"
+                ? currentUser || ""
+                : selectedManager;
+
+            console.log("Manager selected for report:", managerToSend);
+            console.log("Year selected for report:", selectedYear);
+
+            window.open(
+              `/api/method/jh_digitrack.api.report_download.download_excel?year=${selectedYear}&manager=${encodeURIComponent(
+                managerToSend
+              )}`,
+              "_blank"
+            );
+          }}
+          className="px-3 py-2 text-sm flex items-center gap-1 bg-[#972E26] text-white rounded-md hover:bg-[#7d241f]"
+        >
+          <IoCloudDownloadOutline className="text-lg" />
+          <span>Download</span>
+        </button>
+
+
+
+
       </div>
 
       {/* Table */}
@@ -269,7 +308,7 @@ function Reports() {
               <th className="py-3 px-1">Evaluation Pending</th>
               <th className="py-3 px-1">Evaluation Started</th>
               <th className="py-3 px-1">Evaluation Submitted</th>
-              <th className="py-3 px-1">Email</th>
+              {/* <th className="py-3 px-1">Email</th> */}
             </tr>
           </thead>
           <tbody>
@@ -303,9 +342,9 @@ function Reports() {
                   {renderCountCell(manager.evaluation_submitted, manager, "evaluation_submitted")}
                 </td>
 
-                <td className="px-3 py-3 text-primary text-center cursor-pointer">
+                {/* <td className="px-3 py-3 text-primary text-center cursor-pointer">
                   <CiMail className="text-lg" />
-                </td>
+                </td> */}
               </tr>
             ))}
           </tbody>
