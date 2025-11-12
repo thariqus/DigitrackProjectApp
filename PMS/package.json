@@ -33,6 +33,7 @@
     "flatpickr": "^4.6.13",
     "framer-motion": "^12.23.14",
     "frappe-js-sdk": "^1.11.0",
+    "html2canvas": "^1.4.1",
     "lucide-react": "^0.546.0",
     "path-browserify": "^1.0.1",
     "react": "^19.0.0",

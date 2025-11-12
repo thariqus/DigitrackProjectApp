@@ -15,6 +15,7 @@ export interface GoalDetail {
   measurement_criteria: string;
   target: string | null;
   uom: string | null;
+  weightage: string;
   upward_downward: string;
 }
 
@@ -35,15 +36,21 @@ interface DeleteGoalsPayload {
   parent: string;
   goal_ids: string[];
 }
-
-export function useGoalMaster() {
+export function useGoalMaster(filters?: { created_by_me?: boolean }) {
   const [goals, setGoals] = useState<GoalMaster[]>([]);
   const [loading, setLoading] = useState(true);
+  const { data: currentUser } = useCurrentUser(); 
 
   useEffect(() => {
     const fetchGoals = async () => {
       try {
-        const res = await fetch("/api/method/jh_digitrack.api.goal_master.get_goals");
+        let query = "/api/method/jh_digitrack.api.goal_master.get_goals";
+
+        if (filters?.created_by_me && currentUser) {
+          query += `?created_by=${encodeURIComponent(currentUser)}`;
+        }
+
+        const res = await fetch(query);
         const data = await res.json();
 
         const normalized = (data.message || []).map((g: any) => ({
@@ -55,17 +62,18 @@ export function useGoalMaster() {
 
         setGoals(normalized);
       } catch (error) {
-        console.error(" Error fetching goal master:", error);
+        console.error("Error fetching goal master:", error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchGoals();
-  }, []);
+    if (currentUser) fetchGoals(); 
+  }, [filters?.created_by_me, currentUser]);
 
   return { goals, loading };
 }
+
 
 export function useEmployeeGoals(employeeCode: string, year: string) {
   const [employeeGoals, setEmployeeGoals] = useState<GoalDetail[]>([]);
@@ -108,6 +116,7 @@ export function useGoalAssessment() {
       target: string;
       uom: string;
       upward_downward: string;
+      weightage: string;
     }[];
   }) => {
     setLoading(true);

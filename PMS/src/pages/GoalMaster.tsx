@@ -135,7 +135,13 @@ function GoalMaster() {
           <tbody>
             {currentRows.map((item) => (
               <tr key={item.id} className="border-b text-sm transition">
-                <td className="py-3 px-4">{item.id}</td>
+                <td
+                  className="py-3 px-4 text-black-600 cursor-pointer hover:underline"
+                  onClick={() => handleEdit(item)}
+                >
+                  {item.id}
+                </td>
+
                 <td className="py-3 px-4">{item.name}</td>
                 <td className="py-3 px-4">{item.description}</td>
                 <td className="py-3 px-4">{item.measurement}</td>

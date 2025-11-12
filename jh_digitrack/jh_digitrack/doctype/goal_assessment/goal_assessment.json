@@ -14,7 +14,13 @@
   "total_score",
   "section_break_vp0b",
   "employee_goals",
-  "manager"
+  "section_break_z11k",
+  "manager",
+  "column_break_tseo",
+  "attach1",
+  "attach2",
+  "column_break_tbtm",
+  "attach3"
  ],
  "fields": [
   {
@@ -67,12 +73,39 @@
    "fieldname": "total_score",
    "fieldtype": "Float",
    "label": "Total Score"
+  },
+  {
+   "fieldname": "attach1",
+   "fieldtype": "Attach",
+   "label": "Attach1"
+  },
+  {
+   "fieldname": "attach2",
+   "fieldtype": "Attach",
+   "label": "Attach2"
+  },
+  {
+   "fieldname": "attach3",
+   "fieldtype": "Attach",
+   "label": "Attach3"
+  },
+  {
+   "fieldname": "column_break_tseo",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_z11k",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_tbtm",
+   "fieldtype": "Column Break"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-11-04 18:41:26.050857",
+ "modified": "2025-11-08 12:22:46.123033",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "Goal Assessment",

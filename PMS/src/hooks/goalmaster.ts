@@ -106,14 +106,13 @@ export function useGoalMaster() {
         setGoals((prev) =>
           prev.map((g) => (g.id === goal.id ? goal : g))
         );
-        // Optionally: refetch() to reload from server
       }
     } catch (error) {
       console.error(error);
     }
   };
 
-  return { goals, setGoals, loading, addGoal, editGoal, refetch }; // ✅ include refetch
+  return { goals, setGoals, loading, addGoal, editGoal, refetch };
 }
 
 

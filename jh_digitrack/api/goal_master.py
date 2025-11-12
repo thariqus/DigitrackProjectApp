@@ -1,16 +1,35 @@
 
 import frappe
-from frappe import _
 
-@frappe.whitelist()
-def get_goals():
-   
-    return frappe.get_all(
+@frappe.whitelist(allow_guest=True)
+def get_goals(created_by=None):
+    """
+    Fetch all active goals. Optionally filter by the user who created them.
+    Example calls:
+      /api/method/jh_digitrack.api.goal_master.get_goals
+      /api/method/jh_digitrack.api.goal_master.get_goals?created_by=adhil@example.com
+    """
+    query_filters = {"inactive": 0}
+
+    if created_by:
+        query_filters["owner"] = created_by
+
+    goals = frappe.get_all(
         "JH Goal Master",
-        filters={"inactive": 0},
-        fields=["name", "goal_name", "goal_description", "measurement_criteria", "goal_assigned"],
+        filters=query_filters,
+        fields=[
+            "name",
+            "goal_name",
+            "goal_description",
+            "measurement_criteria",
+            "goal_assigned"
+        ],
         order_by="creation desc"
     )
+
+    return goals
+
+
 
 @frappe.whitelist()
 def add_goal(goal_name, goal_description, measurement_criteria, target="", created_by=None, created_date=None):

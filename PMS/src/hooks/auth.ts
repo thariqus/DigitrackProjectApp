@@ -1,6 +1,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import frappe from "@/utils/frappe-client";
 import { JHUserMaster } from "@/types/PMS/JHUserMaster";
+import { PMSEmployee } from "@/types/PMS/PMS Employees";
 
 /**
  * Get logged in User's Name: Used for checking login status
@@ -57,8 +58,22 @@ export const useLogout = () => {
   return useMutation({
     mutationFn: async () => {
       await frappe.auth.logout();
-      // Redirect to login page after successful logout
       window.location.href = "/login";
     },
   });
 };
+
+
+export const useCurrentPmsEmployee = () => {
+  return useQuery({
+    queryKey: ["current-pms-employee"],
+    queryFn: async () => {
+      const currentUser = await frappe.auth.getLoggedInUser();
+      return frappe.db.getLastDoc<PMSEmployee>("PMS Employees", {
+        filters: [["employee_email", "=", currentUser]],
+      });
+    },
+    staleTime: 1000 * 60 * 60, 
+  });
+};
+

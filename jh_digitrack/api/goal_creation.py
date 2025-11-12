@@ -14,7 +14,8 @@ def get_employee_goals(employee_code, year):
                 g.measurement_criteria,
                 g.target,
                 g.uom,
-                g.upwarddownward AS upward_downward
+                g.upwarddownward AS upward_downward,
+                g.weightage
             
             FROM `tabEmployee Goals` g
             INNER JOIN `tabGoal Assessment` ga ON ga.name = g.parent
@@ -115,7 +116,8 @@ def create_goal_assessment(data=None, session_user=None):
                 "measurement_criteria": g.get("measurement_criteria"),
                 "target": g.get("target"),
                 "uom": g.get("uom"),
-                "upwarddownward": g.get("upward_downward")
+                "upwarddownward": g.get("upward_downward"),
+                "weightage": g.get("weightage")
             })
 
         doc.save(ignore_permissions=True, ignore_version=True)
@@ -167,7 +169,23 @@ def submit_goal_assessment(employee_code=None, year=None, new_goals=None):
                     "measurement_criteria": g.get("measurement_criteria"),
                     "target": g.get("target"),
                     "uom": g.get("uom"),
+                    "upwarddownward": g.get("seletedvalueOfUorD"),
+                    "weightage": g.get("weightage")
                 })
+            has_weightage = any(g.get("weightage") not in [None, "", 0] for g in new_goals)
+            total_weightage = sum(float(g.get("weightage") or 0) for g in new_goals)
+
+            if has_weightage:
+                missing = [g.get("goal_id") for g in new_goals if g.get("weightage") in [None, ""]]
+                if missing:
+                    frappe.throw(_(f"All goals must have a weightage if any goal has a weightage. Missing in: {', '.join(missing)}"))
+
+                if total_weightage > 100:
+                    frappe.throw(_(f"Total weightage cannot exceed 100. Current total: {total_weightage}"))
+
+                negative = [g.get("goal_id") for g in new_goals if float(g.get('weightage') or 0) < 0]
+                if negative:
+                    frappe.throw(_(f"Weightage cannot be negative. Found invalid values in: {', '.join(negative)}"))
 
         settings = frappe.get_single("JH Goal Settings")
         min_goals = settings.minimum_no_of_goals or 0

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Pagination from "../../components/Pagination";
 import { IoCloseOutline, IoCloudUploadOutline } from "react-icons/io5";
 import { MdOutlineDelete } from "react-icons/md";
-import { useGoalAssessment, useEmployeeGoals ,useSubmitGoalEvaluation} from "../../hooks/goalevaluation";
+import { useGoalAssessment, useEmployeeGoals ,useSubmitGoalEvaluation, useUploadGoalAttachment, useDeleteGoalAttachment} from "../../hooks/goalevaluation";
 
 interface Goal {
   id: string;
@@ -37,7 +37,9 @@ function EmployeeGoalEvaluation() {
   const { createGoalAssessment, loading } = useGoalAssessment();
   const [isSubmitted, setIsSubmitted] = useState(false);
   const { submitGoalEvaluation } = useSubmitGoalEvaluation();
-
+  const { uploadGoalAttachment } = useUploadGoalAttachment();
+  const [attachments, setAttachments] = useState<{ file_url: string; file_name: string }[]>([]);
+  const { deleteGoalAttachment, loading: deleteLoading } = useDeleteGoalAttachment();
 useEffect(() => {
   const empData = localStorage.getItem("SelectedEmployee");
   const selectedYear = localStorage.getItem("SelectedYear");
@@ -65,12 +67,39 @@ useEffect(() => {
   }
 }, [navigate]);
 
+useEffect(() => {
+  const empData = localStorage.getItem("SelectedEmployee");
+  const selectedYear = localStorage.getItem("SelectedYear");
+  const savedStatus = localStorage.getItem("SelectedStatus"); 
+  if (empData) {
+    try {
+      const emp = JSON.parse(empData);
+      setEmployee({
+        id: emp.employee_code || emp.id || "",
+        name: emp.employee_name || emp.name || "",
+      });
+    } catch (error) {
+      console.error("Failed to parse employee data:", error);
+    }
+  } else {
+    console.warn("No SelectedEmployee found in localStorage, navigating back.");
+    navigate("/goalevaluation");
+  }
 
-  const { employeeGoals: fetchedEmployeeGoals } = useEmployeeGoals(employee?.id || "", year || "");
+  if (selectedYear) setYear(selectedYear);
+
+  if (savedStatus && savedStatus === "Evaluation Submitted") {
+    setIsSubmitted(true);
+  } else {
+    setIsSubmitted(false);
+  }
+}, [navigate]);
+
+
+  const { employeeGoals: fetchedEmployeeGoals, attachments: fetchedAttachments } = useEmployeeGoals(employee?.id || "", year || "");
 
   useEffect(() => {
     if (fetchedEmployeeGoals && fetchedEmployeeGoals.length > 0) {
-
       const formattedGoals = fetchedEmployeeGoals.map((goal: any, index: number) => ({
         id: `${index + 1}`,
         name: goal.goal_name || "",
@@ -81,22 +110,87 @@ useEffect(() => {
         uom: goal.uom || "",
         achievement_score: goal.achievement_score || "",
         score: goal.achievement_score || "",
-        remark: goal.remark || "", 
+        remark: goal.remark || "",
       }));
       setGoals(formattedGoals);
     }
-  }, [fetchedEmployeeGoals]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFiles = Array.from(e.target.files || []);
-    const updatedFiles = [...files, ...selectedFiles].slice(0, 5);
-    setFiles(updatedFiles);
+    if (fetchedAttachments && fetchedAttachments.length > 0) {
+      setAttachments(fetchedAttachments);
+    }
+  }, [fetchedEmployeeGoals, fetchedAttachments]);
+
+
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (!selectedFile) return;
+
+    if (selectedFile.size > 2 * 1024 * 1024) {
+      setMessage({ text: "File must be less than 2MB.", type: "error" });
+      return;
+    }
+
+    if (!employee || !year) {
+      setMessage({ text: "Missing employee or year.", type: "error" });
+      return;
+    }
+
+    try {
+      const result = await uploadGoalAttachment(employee.id, year, selectedFile);
+      if (result.error) {
+        setMessage({ text: result.error, type: "error" });
+      } else {
+        setMessage({ text: "File uploaded successfully!", type: "success" });
+        setTimeout(() => setMessage({ text: "", type: "" }), 4000);
+
+        // ✅ Append the uploaded file to the local UI list
+        setAttachments((prev) => [
+          ...prev,
+          { file_name: selectedFile.name, file_url: result.file_url || "" },
+        ]);
+
+      }
+    } catch (err) {
+      setMessage({ text: "File upload failed.", type: "error" });
+      setTimeout(() => setMessage({ text: "", type: "" }), 4000);
+
+    }
   };
+
+
 
   const removeFile = (index: number) => {
     const updatedFiles = files.filter((_, i) => i !== index);
     setFiles(updatedFiles);
   };
+  const handleDeleteAttachment = async (fileUrl: string) => {
+    if (!employee || !year) {
+      setMessage({ text: "Missing employee or year.", type: "error" });
+      setTimeout(() => setMessage({ text: "", type: "" }), 4000);
+      return;
+    }
+
+    try {
+      const result = await deleteGoalAttachment(employee.id, year, fileUrl);
+
+      if (result?.error) {
+        setMessage({ text: result.error, type: "error" });
+      } else {
+        setMessage({ text: "Attachment deleted successfully!", type: "success" });
+
+        // ✅ Update UI like you do for upload success
+        setAttachments((prev) => prev.filter((a) => a.file_url !== fileUrl));
+      }
+    } catch (error) {
+      console.error("Delete failed:", error);
+      setMessage({ text: "Failed to delete attachment.", type: "error" });
+    }
+
+    // ✅ Match same timeout style as save/submit
+    setTimeout(() => setMessage({ text: "", type: "" }), 4000);
+  };
+
 
   const handleInputChange = (index: number, field: "score" | "remark", value: string) => {
     const updatedGoals = [...goals];
@@ -107,6 +201,8 @@ useEffect(() => {
   const handleSave = async () => {
     if (!employee || !year) {
       setMessage({ text: "Missing employee or year.", type: "error" });
+      setTimeout(() => setMessage({ text: "", type: "" }), 4000);
+
       return;
     }
   // ✅ Validation before submitting
@@ -119,6 +215,8 @@ useEffect(() => {
       text: "Please fill all required fields before saving.",
       type: "error",
     });
+    setTimeout(() => setMessage({ text: "", type: "" }), 4000);
+
     return;
   }
     const payload = {
@@ -150,7 +248,6 @@ useEffect(() => {
   const handleSubmit = async () => {
     if (!employee || !year) return;
 
-  // ✅ Validation before submitting
   const missingFields = goals.filter(
     (g) => !g.score || g.score.trim() === "" || !g.remark || g.remark.trim() === ""
   );
@@ -175,9 +272,14 @@ useEffect(() => {
   };
 
 
+  // const handleNavigation = () => {
+  //   navigate("/goalevaluation");
+  // };
   const handleNavigation = () => {
-    navigate("/goalevaluation");
-  };
+  localStorage.removeItem("SelectedStatus");
+  navigate("/goalevaluation");
+};
+
 
   const averageScore = useMemo(() => {
     const numericScores = goals.map((g) => parseFloat(g.score || "")).filter((s) => !isNaN(s));
@@ -243,13 +345,13 @@ useEffect(() => {
               {currentRows.map((goal, idx) => (
                 <tr key={goal.id} className="border-b text-sm">
                   <td className="py-2 px-1 flex flex-col gap-1 sticky left-0 bg-white z-5">
-                    <span>{goal.name} / </span>
+                    <span>{goal.name}   </span>
                     <span>{goal.desc}</span>
                     <input type="hidden" value={goal.goal_id} readOnly />
                   </td>
                   <td className="py-2 px-1">{goal.measurement}</td>
                   <td className="py-2 px-1 text-center">
-                    <span>{goal.targetvalue}/</span>
+                    <span>{goal.targetvalue} </span>
                     <span>{goal.uom}</span>
                   </td>
                   <td className="py-2 px-1">
@@ -287,29 +389,52 @@ useEffect(() => {
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end items-center gap-4 mt-6">
+        <div className={`flex items-center gap-4 mt-6 ${isSubmitted ? "justify-start" : "justify-end"}`}>
+
           {/* File Upload */}
-          <div className="relative">
+          
+            
+          <div className="relative min-w-[250px]">
+            {!isSubmitted && (
             <label className="flex items-center bg-secondary gap-2 px-4 py-2 rounded-sm cursor-pointer hover:bg-gray-100 transition">
               <input type="file" className="hidden" multiple onChange={handleFileChange} />
               <IoCloudUploadOutline className="text-gray-500" />
               <span className="text-gray-500 text-sm font-medium">Attach File</span>
             </label>
+            )}
+            
+            {attachments.length > 0 && (
+              <div className="absolute  left-280 mt-1 w-full border border-gray-200 rounded-sm p-2 bg-white">
 
-            {files.length > 0 && (
-              <div className="absolute mt-1 border border-gray-200 rounded-sm p-2 bg-white">
                 <ul className="flex flex-col gap-2">
-                  {files.map((file, index) => (
-                    <li key={index} className="flex items-center gap-1 text-sm text-gray-700 border-b pb-1 last:border-none">
-                      <span className="truncate w-3/4">{file.name}</span>
-                      <button onClick={() => removeFile(index)} className="text-red-500 hover:text-red-700 text-xs font-medium">
+                  {attachments.map((file, index) => (
+                    <li
+                      key={index}
+                      className="flex items-center justify-between text-sm text-gray-700 border-b pb-1 last:border-none"
+                    >
+                      <a
+                        href={file.file_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="truncate w-3/4 text-blue-600 hover:underline"
+                      >
+                        {file.file_name}
+                      </a>
+                      {!isSubmitted && (
+                      <button
+                        onClick={() => handleDeleteAttachment(file.file_url)}
+                        className="text-red-500 hover:text-red-700 text-xs font-medium"
+                      >
                         <MdOutlineDelete className="text-lg" />
                       </button>
+                      )}
                     </li>
                   ))}
                 </ul>
               </div>
             )}
+
+
           </div>
           {!isSubmitted && (
             <>

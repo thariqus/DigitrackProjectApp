@@ -121,10 +121,11 @@ function GoalAssignment() {
         <div className="relative inline-block year-dropdown">
           <button
             className="flex justify-between text-sm items-center gap-2 border px-2 py-1 rounded-md bg-gray-50 hover:bg-gray-100"
-            onClick={() => setDropdownYearOpen(!dropdownYearOpen)}
+            // onClick={() => setDropdownYearOpen(!dropdownYearOpen)}
+            disabled
           >
             {selectedYear}
-            <RiArrowDropDownLine className="text-2xl" />
+            {/* <RiArrowDropDownLine className="text-2xl" /> */}
           </button>
           {dropdownYearOpen && (
             <ul className="absolute text-sm bg-white border rounded-md mt-1 w-40 z-10">

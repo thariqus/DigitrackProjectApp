@@ -14,6 +14,7 @@
   "uom",
   "target",
   "section_break_mgff",
+  "weightage",
   "achievement_score",
   "upwarddownward",
   "column_break_wnx7",
@@ -127,13 +128,18 @@
    "fieldname": "upwarddownward",
    "fieldtype": "Data",
    "label": "Upward/Downward"
+  },
+  {
+   "fieldname": "weightage",
+   "fieldtype": "Int",
+   "label": "Weightage"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-11-04 18:01:53.935847",
+ "modified": "2025-11-07 10:15:33.292000",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "Employee Goals",
