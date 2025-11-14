@@ -39,7 +39,7 @@ def get_goal_evaluation(user,year=None):
     }
 
 import frappe
-from frappe.utils import now
+from frappe.utils import flt
 from frappe import _
 
 @frappe.whitelist()
@@ -55,61 +55,82 @@ def create_goal_evaluation(data=None, session_user=None):
         year = data.get("year")
         goals = data.get("goals") or []
         session_user = session_user or frappe.session.user
-        timestamp = now()
 
         if not employee_code or not year:
             frappe.throw(_("Employee code and year are required."))
 
-        existing_name = frappe.db.get_value(
+        # Fetch existing Goal Assessment
+        doc_name = frappe.db.get_value(
             "Goal Assessment",
             {"employee_code": employee_code, "year": year},
             "name"
         )
+        if not doc_name:
+            frappe.throw(_("Goal Assessment not found for Employee {0}, Year {1}").format(employee_code, year))
 
-        if existing_name:
-            doc = frappe.get_doc("Goal Assessment", existing_name)
-            doc.manager = session_user
+        doc = frappe.get_doc("Goal Assessment", doc_name)
+        doc.manager = session_user
 
-            if doc.status != "Evaluation Started":
-                doc.status = "Evaluation Started"
-
-            doc.set("employee_goals", [])
-            msg = f"Updated Goal Evaluation {existing_name}"
-
-        else:
-            doc = frappe.new_doc("Goal Assessment")
-            doc.employee_code = employee_code
-            doc.year = year
-            doc.manager = session_user
+        if doc.status != "Evaluation Started":
             doc.status = "Evaluation Started"
-            msg = "Created new Goal Assessment"
 
-        total_score = 0  
+        settings = frappe.get_single("JH Goal Settings")
+        min_value = flt(settings.min_value or 10)
+        max_value = flt(settings.max_value or 100)
 
+        total_score = 0.0
+        achieved_map = {}  
         for g in goals:
-            score = frappe.utils.flt(g.get("achievement_score") or 0)
-            total_score += score  
+            goal_id = g.get("goal_name")
+            achievement_score = flt(g.get("achievement_score") or 0)
+            remark = g.get("remarks") or ""
 
-            doc.append("employee_goals", {
-                "goal_id": g.get("goal_name"),
-                "description": g.get("description"),
-                "measurement_criteria": g.get("measurement_criteria"),
-                "target": g.get("target"),
-                "uom": g.get("uom"),
-                "achievement_score": score,
-                "remark": g.get("remarks"),
-            })
+            total_score += achievement_score
+
+            goal_row = next((row for row in doc.employee_goals if row.goal_id == goal_id), None)
+
+            if not goal_row:
+                continue  
+            target = flt(goal_row.target)
+            upwarddownward = (goal_row.upwarddownward or "").upper()
+
+            achieved_score = 0
+            if target > 0 and achievement_score > 0:
+                if upwarddownward == "U":
+                    achieved_score = (achievement_score / target) * 100
+                elif upwarddownward == "D":
+                    achieved_score = (target / achievement_score) * 100
+
+                achieved_score = max(min_value, min(max_value, achieved_score))
+
+            frappe.log_error(
+                f"CALC DEBUG: goal_id={goal_id}, target={target}, "
+                f"achievement_score={achievement_score}, upwarddownward={upwarddownward}, "
+                f"achieved_score={achieved_score}",
+                "Goal Evaluation Debug"
+            )
+
+            achieved_map[goal_id] = achieved_score   
+
+            goal_row.achievement_score = achievement_score
+            goal_row.achieved_score = achieved_score
+            goal_row.remark = remark
 
         doc.total_score = total_score
 
         doc.save(ignore_permissions=True, ignore_version=True)
         frappe.db.commit()
 
-        return {"message": msg, "name": doc.name, "total_score": total_score}
+        return {
+            "message": _("Goal Evaluation updated successfully."),
+            "name": doc.name,
+            "total_score": total_score,
+            "achieved_scores": achieved_map,  
+        }
 
     except Exception as e:
-        frappe.log_error(frappe.get_traceback(), "Goal Evaluation Creation Failed")
-        frappe.throw(_("Failed to create or update goal evaluation."))
+        frappe.log_error(frappe.get_traceback(), "Goal Evaluation Update Failed")
+        frappe.throw(_("Failed to update goal evaluation."))
 
 
 import frappe
@@ -141,6 +162,7 @@ def get_employee_goals(employee_code, year):
                 measurement_criteria,
                 target,
                 uom,
+                upwarddownward,              
                 achievement_score,
                 remark
             FROM `tabEmployee Goals`

@@ -267,6 +267,11 @@ const handleSave = async () => {
 
 
 const handleSubmit = async () => {
+  const userConfirmed = window.confirm(
+    "Are you sure you want to submit the goals? Once submitted, you cannot edit."
+  );
+
+  if (!userConfirmed) return;
   try {
 
     if (!employee || !year) {

@@ -1,5 +1,3 @@
-
-
 import frappe
 import io
 from datetime import datetime

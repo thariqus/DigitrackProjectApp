@@ -200,7 +200,7 @@ export default function UserDropdown() {
         </button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent className="w-60" align="end">
+      <DropdownMenuContent className="bg-white w-60" align="end">
         {/* User Info */}
         <div className="flex items-center gap-3 p-3">
           <div className="rounded-full bg-gray-100 w-10 h-10 flex items-center justify-center">
