@@ -18,6 +18,7 @@ export interface GoalDetail {
   uom: string | null;
   achievement_score: string;
   remark: string;
+  upwarddownward?: "U" | "D";
 }
 
 export function useGoalEvaluation(selectedYear?: string) {

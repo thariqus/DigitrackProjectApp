@@ -15,8 +15,9 @@ interface Goal {
   uom: string;
   score?: string;
   achievement_score: string;
-
+  achieved?: string;
   remark?: string;
+  upwarddownward?: "U" | "D"; 
 }
 
 interface Employee {
@@ -108,6 +109,7 @@ useEffect(() => {
         measurement: goal.measurement_criteria || "",
         targetvalue: goal.target || "",
         uom: goal.uom || "",
+        upwarddownward: goal.upwarddownward || "", 
         achievement_score: goal.achievement_score || "",
         score: goal.achievement_score || "",
         remark: goal.remark || "",
@@ -210,15 +212,15 @@ useEffect(() => {
     (g) => !g.score || g.score.trim() === "" || !g.remark || g.remark.trim() === ""
   );
 
-  if (missingFields.length > 0) {
-    setMessage({
-      text: "Please fill all required fields before saving.",
-      type: "error",
-    });
-    setTimeout(() => setMessage({ text: "", type: "" }), 4000);
+  // if (missingFields.length > 0) {
+  //   setMessage({
+  //     text: "Please fill all required fields before saving.",
+  //     type: "error",
+  //   });
+  //   setTimeout(() => setMessage({ text: "", type: "" }), 4000);
 
-    return;
-  }
+  //   return;
+  // }
     const payload = {
       employee_code: employee.id,
       year: year,
@@ -235,17 +237,40 @@ useEffect(() => {
 
   const result = await createGoalAssessment(payload);
 
+//   if (result?.error) {
+//     console.error(" Error from API:", result.error);
+//     setMessage({ text: "Failed to save goal evaluation.", type: "error" });
+//   } else {
+//     setMessage({ text: "Goal Evaluation saved successfully!", type: "success" });
+//   }
+
+//   setTimeout(() => setMessage({ text: "", type: "" }), 3000);
+// };
+
   if (result?.error) {
-    console.error(" Error from API:", result.error);
     setMessage({ text: "Failed to save goal evaluation.", type: "error" });
   } else {
     setMessage({ text: "Goal Evaluation saved successfully!", type: "success" });
-  }
 
-  setTimeout(() => setMessage({ text: "", type: "" }), 3000);
-};
+    // 🆕 Update achieved scores in UI
+    const achievedScores = result?.message?.achieved_scores || result?.achieved_scores || {};
+
+    setGoals((prevGoals) =>
+      prevGoals.map((g) => ({
+        ...g,
+        achieved: achievedScores[g.goal_id]?.toFixed(2) || g.achieved || "",
+      }))
+      
+    );
+  }
+  };
 
   const handleSubmit = async () => {
+    const userConfirmed = window.confirm(
+      "Are you sure you want to submit the goals? Once submitted, you cannot edit."
+    );
+
+    if (!userConfirmed) return;
     if (!employee || !year) return;
 
   const missingFields = goals.filter(
@@ -338,6 +363,7 @@ useEffect(() => {
                 <th className="py-3 px-1 w-[23%]">Measurement Criteria</th>
                 <th className="py-3 px-1 w-[8%] text-center">Target Value / UOM</th>
                 <th className="py-3 px-1 w-[5%] text-center">Achievement Score</th>
+                <th className="py-3 px-1 w-[5%] text-center">Achieved Score</th> {/* 🆕 */}
                 <th className="py-3 px-1 w-[30%] text-center">Remark</th>
               </tr>
             </thead>
@@ -353,6 +379,12 @@ useEffect(() => {
                   <td className="py-2 px-1 text-center">
                     <span>{goal.targetvalue} </span>
                     <span>{goal.uom}</span>
+                      {goal.upwarddownward === "U" && (
+                        <span className="text-green-500 ml-1">↑</span>
+                      )}
+                      {goal.upwarddownward === "D" && (
+                        <span className="text-red-500 ml-1">↓</span>
+                      )}
                   </td>
                   <td className="py-2 px-1">
                     <input
@@ -363,6 +395,16 @@ useEffect(() => {
                       className="border p-1 w-full rounded"
                     />
                   </td>
+                  <td className="py-2 px-1 text-center">
+                    <input
+                      type="text"
+                      value={goal.achieved || ""}
+                      readOnly
+                      className="border p-1 w-20 rounded text-center bg-gray-50"
+                    />
+                  </td>
+
+
                   <td className="py-2 px-4 break-words max-w-[300px]">
                     <textarea
                       value={goal.remark || ""}
