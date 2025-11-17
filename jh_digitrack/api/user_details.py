@@ -103,7 +103,7 @@ def map_employee_fields(emp):
         "last_name": emp.get("LAST_NAME"),
         "middle_name": emp.get("MIDDLE_NAME"),
         "company_name": emp.get("COMPANY_NAME"),
-        "mobile_no": emp.get("WORK_TELEPHONE_NO"),
+        "mobile_no": emp.get("PER_MOBILE"),
         "date_of_joining": format_date(emp.get("DATE_OF_JOINING")),
         "dob": format_date(emp.get("DOB")),
         "gender": gender_map.get(emp.get("GENDER"), emp.get("GENDER") or "N/A"),

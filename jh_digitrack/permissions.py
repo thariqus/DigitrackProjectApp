@@ -9,6 +9,7 @@ def travel_request_query(user):
     return f"""
         (`tabJH Travel Request`.owner = {frappe.db.escape(user)}
         OR `tabJH Travel Request`.assigned_to = {frappe.db.escape(jh_user)}
+        OR `tabJH Travel Request`.po_assigned_to = {frappe.db.escape(jh_user)}
         OR {frappe.db.escape(user)} IN (
             SELECT parent FROM `tabHas Role` WHERE role = 'JH Credit Card Holder'
         ))
