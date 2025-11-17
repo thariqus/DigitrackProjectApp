@@ -112,6 +112,7 @@ useEffect(() => {
         upwarddownward: goal.upwarddownward || "", 
         achievement_score: goal.achievement_score || "",
         score: goal.achievement_score || "",
+        achieved: goal.achieved || "",
         remark: goal.remark || "",
       }));
       setGoals(formattedGoals);
@@ -122,6 +123,29 @@ useEffect(() => {
     }
   }, [fetchedEmployeeGoals, fetchedAttachments]);
 
+  const calculateAchievedScore = (
+    achievement: string,
+    target: string,
+    direction?: "U" | "D"
+  ): string => {
+    const ach = parseFloat(achievement);
+    const tar = parseFloat(target);
+
+    if (isNaN(ach) || isNaN(tar) || tar === 0) return "";
+
+    let score = 0;
+
+    if (direction === "U") {
+      score = (ach / tar) * 100;
+    } else if (direction === "D") {
+      score = (tar / ach) * 100;
+    } else {
+      return "";
+    }
+
+    if (!isFinite(score)) return "";
+    return score.toFixed(2);
+  };
 
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -194,9 +218,27 @@ useEffect(() => {
   };
 
 
-  const handleInputChange = (index: number, field: "score" | "remark", value: string) => {
+  // const handleInputChange = (index: number, field: "score" | "remark", value: string) => {
+  //   const updatedGoals = [...goals];
+  //   updatedGoals[index][field] = value;
+  //   setGoals(updatedGoals);
+  // };
+  const handleInputChange = (
+    index: number,
+    field: "score" | "remark",
+    value: string
+  ) => {
     const updatedGoals = [...goals];
     updatedGoals[index][field] = value;
+
+    if (field === "score") {
+      updatedGoals[index].achieved = calculateAchievedScore(
+        value,
+        updatedGoals[index].targetvalue,
+        updatedGoals[index].upwarddownward
+      );
+    }
+
     setGoals(updatedGoals);
   };
 
@@ -307,7 +349,7 @@ useEffect(() => {
 
 
   const averageScore = useMemo(() => {
-    const numericScores = goals.map((g) => parseFloat(g.score || "")).filter((s) => !isNaN(s));
+    const numericScores = goals.map((g) => parseFloat(g.achieved || "")).filter((s) => !isNaN(s));
     if (numericScores.length === 0) return 0;
     const total = numericScores.reduce((acc, curr) => acc + curr, 0);
     return parseFloat((total / numericScores.length).toFixed(2));

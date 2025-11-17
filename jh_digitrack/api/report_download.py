@@ -1,3 +1,4 @@
+
 import frappe
 import io
 from datetime import datetime
@@ -10,10 +11,6 @@ from jh_digitrack.api.pms_report import get_goal_assessment_summary
 
 @frappe.whitelist()
 def download_excel(year=None, manager=None):
-    """
-    Generate and download the PMS summary report as an Excel file (.xlsx)
-    using the same data source as the frontend summary.
-    """
     try:
         summary_response = get_goal_assessment_summary(year=year, manager=manager)
         data = summary_response.get("message", [])
@@ -26,6 +23,18 @@ def download_excel(year=None, manager=None):
         ws = wb.active
         ws.title = "PMS Summary"
 
+        # ----------------------------
+        # HEADER: REPORT TITLE
+        # ----------------------------
+        ws.merge_cells("A1:H1")
+        ws["A1"] = f"PMS Summary Report - {year}"
+        ws["A1"].font = Font(bold=True, size=14)
+        ws["A1"].alignment = Alignment(horizontal="center", vertical="center")
+        ws.append([])
+
+        # ----------------------------
+        # MANAGER SUMMARY SECTION
+        # ----------------------------
         headers = [
             {"label": "Manager Name", "key": "manager_name"},
             {"label": "No. of Employees", "key": "employee_count"},
@@ -36,12 +45,6 @@ def download_excel(year=None, manager=None):
             {"label": "Evaluation Started", "key": "evaluation_started"},
             {"label": "Evaluation Submitted", "key": "evaluation_submitted"},
         ]
-
-        ws.merge_cells("A1:H1")
-        ws["A1"] = f"PMS Summary Report - {year}"
-        ws["A1"].font = Font(bold=True, size=14)
-        ws["A1"].alignment = Alignment(horizontal="center", vertical="center")
-        ws.append([])
 
         ws.append([h["label"] for h in headers])
         header_fill = PatternFill(start_color="D9D9D9", end_color="D9D9D9", fill_type="solid")
@@ -54,11 +57,58 @@ def download_excel(year=None, manager=None):
         for row in data:
             ws.append([row.get(h["key"], 0) for h in headers])
 
-   
-        for i, column_cells in enumerate(ws.columns, 1):
-            max_length = max(len(str(cell.value or "")) for cell in column_cells)
+        # ----------------------------
+        # SPACE BEFORE EMPLOYEE SECTION
+        # ----------------------------
+        ws.append([])
+        ws.append([])
+
+        # ----------------------------
+        # EMPLOYEE DETAILS SECTION
+        # ----------------------------
+
+        emp_headers = ["Employee Name", "Manager Name", "Status"]
+        ws.append(emp_headers)
+
+        for cell in ws[ws.max_row]:
+            cell.font = Font(bold=True)
+            cell.fill = header_fill
+            cell.alignment = Alignment(horizontal="center")
+
+        # Build a flat employee list
+        for row in data:
+            manager_name = row.get("manager_name")
+
+            employee_groups = [
+                ("Goals Pending", row.get("goals_pending_employees") or []),
+                ("Goals Started", row.get("goals_started_employees") or []),
+                ("Goals Submitted", row.get("goals_submitted_employees") or []),
+                ("Evaluation Pending", row.get("evaluation_pending_employees") or []),
+                ("Evaluation Started", row.get("evaluation_started_employees") or []),
+                ("Evaluation Submitted", row.get("evaluation_submitted_employees") or []),
+            ]
+
+            for status_label, emp_list in employee_groups:
+                if not emp_list:
+                    continue
+                for emp in emp_list:
+                    ws.append([
+                        emp.get("employee_name", ""),
+                        manager_name,
+                        status_label
+                    ])
+
+
+        # ----------------------------
+        # AUTO ADJUST COLUMN WIDTHS
+        # ----------------------------
+        for i, col in enumerate(ws.columns, 1):
+            max_length = max(len(str(cell.value or "")) for cell in col)
             ws.column_dimensions[get_column_letter(i)].width = max_length + 2
 
+        # ----------------------------
+        # RETURN FILE
+        # ----------------------------
         output = io.BytesIO()
         wb.save(output)
         output.seek(0)
