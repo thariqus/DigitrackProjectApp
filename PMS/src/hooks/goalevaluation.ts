@@ -18,6 +18,7 @@ export interface GoalDetail {
   uom: string | null;
   achievement_score: string;
   remark: string;
+  achieved?: string;
   upwarddownward?: "U" | "D";
 }
 

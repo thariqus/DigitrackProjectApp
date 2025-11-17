@@ -164,6 +164,7 @@ def get_employee_goals(employee_code, year):
                 uom,
                 upwarddownward,              
                 achievement_score,
+                achieved_score as achieved,             
                 remark
             FROM `tabEmployee Goals`
             WHERE parent = %s
