@@ -114,7 +114,7 @@ function Pagination({
   const options = [10, 20, 30];
 
   return (
-    <div className="flex gap-20 items-center mt-2 px-2">
+    <div className="flex gap-20 items-center  px-2">
       <div className="flex items-center gap-2 relative">
         <span>Show</span>
 

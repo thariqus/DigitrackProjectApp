@@ -59,7 +59,6 @@ def create_goal_evaluation(data=None, session_user=None):
         if not employee_code or not year:
             frappe.throw(_("Employee code and year are required."))
 
-        # Fetch existing Goal Assessment
         doc_name = frappe.db.get_value(
             "Goal Assessment",
             {"employee_code": employee_code, "year": year},
@@ -85,7 +84,6 @@ def create_goal_evaluation(data=None, session_user=None):
             achievement_score = flt(g.get("achievement_score") or 0)
             remark = g.get("remarks") or ""
 
-            total_score += achievement_score
 
             goal_row = next((row for row in doc.employee_goals if row.goal_id == goal_id), None)
 
@@ -93,6 +91,7 @@ def create_goal_evaluation(data=None, session_user=None):
                 continue  
             target = flt(goal_row.target)
             upwarddownward = (goal_row.upwarddownward or "").upper()
+            weightage = flt(goal_row.weightage or 0)
 
             achieved_score = 0
             if target > 0 and achievement_score > 0:
@@ -115,7 +114,8 @@ def create_goal_evaluation(data=None, session_user=None):
             goal_row.achievement_score = achievement_score
             goal_row.achieved_score = achieved_score
             goal_row.remark = remark
-
+            weighted_score = (achieved_score * weightage) / 100
+            total_score += weighted_score
         doc.total_score = total_score
 
         doc.save(ignore_permissions=True, ignore_version=True)
@@ -143,14 +143,15 @@ def get_employee_goals(employee_code, year):
                 name,
                 attach1,
                 attach2,
-                attach3
+                attach3,
+                comment                       
             FROM `tabGoal Assessment`
             WHERE employee_code = %s AND year = %s
             LIMIT 1
         """, (employee_code, year), as_dict=True)
 
         if not goal_assessment:
-            return {"goals": [], "attachments": []}
+            return {"goals": [], "attachments": [], "comment": ""}
 
         goal_assessment = goal_assessment[0]
 
@@ -162,6 +163,7 @@ def get_employee_goals(employee_code, year):
                 measurement_criteria,
                 target,
                 uom,
+                weightage,             
                 upwarddownward,              
                 achievement_score,
                 achieved_score as achieved,             
@@ -188,7 +190,7 @@ def get_employee_goals(employee_code, year):
             "a3": goal_assessment.attach3 or "",
         }, as_dict=True)
 
-        return {"goals": goals, "attachments": attachments}
+        return {"goals": goals, "attachments": attachments,"comment": goal_assessment.comment or ""}
 
     except Exception as e:
         frappe.log_error(frappe.get_traceback(), "get_employee_goals_sql_error")
@@ -201,7 +203,7 @@ import frappe
 from frappe import _
 
 @frappe.whitelist()
-def submit_goal_evaluation(employee_code, year):
+def submit_goal_evaluation(employee_code, year, comment=None):
   
     if not employee_code or not year:
         frappe.throw(_("Employee code and year are required."))
@@ -221,9 +223,68 @@ def submit_goal_evaluation(employee_code, year):
     if doc.docstatus == 1:
         return {"message": "Goal Evaluation already submitted."}
     doc.status = "Evaluation Submitted"
-
+    if comment:
+        doc.comment = comment
     doc.flags.ignore_permissions = True
 
+    doc.submit()
+
+    frappe.db.commit()
+    return {"message": "Goal Evaluation submitted successfully.", "docname": doc.name}
+
+
+import frappe
+from frappe import _
+
+@frappe.whitelist()
+def submit_goal_evaluation(employee_code, year, goals=None, comment=None):
+
+    if not employee_code or not year:
+        frappe.throw(_("Employee code and year are required."))
+
+    if isinstance(goals, str):
+        goals = frappe.parse_json(goals)
+
+    goal_eval = frappe.db.get_value(
+        "Goal Assessment",
+        {"employee_code": employee_code, "year": year},
+        "name"
+    )
+    if not goal_eval:
+        frappe.throw(_("Goal Evaluation record not found."))
+
+    doc = frappe.get_doc("Goal Assessment", goal_eval)
+
+    if doc.docstatus == 1:
+        return {"message": "Goal Evaluation already submitted."}
+
+    # ==========================
+    # 🆕 UPDATE EMPLOYEE GOALS
+    # ==========================
+    if goals:
+        doc.set("employee_goals", [])
+        for g in goals:
+            doc.append("employee_goals", {
+                "goal_id": g.get("goal_id"),
+                "description": g.get("description"),
+                "measurement_criteria": g.get("measurement_criteria"),
+                "target": g.get("target"),
+                "uom": g.get("uom"),
+                "achievement_score": g.get("achievement_score"),
+                "achieved": g.get("achieved"),
+                "remark": g.get("remark"),
+                "upwarddownward": g.get("upwarddownward")
+            })
+
+    # ==========================
+    # STATUS + COMMENT
+    # ==========================
+    doc.status = "Evaluation Submitted"
+
+    if comment:
+        doc.comment = comment
+
+    doc.flags.ignore_permissions = True
     doc.submit()
 
     frappe.db.commit()

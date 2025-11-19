@@ -20,7 +20,9 @@
   "attach1",
   "attach2",
   "column_break_tbtm",
-  "attach3"
+  "attach3",
+  "section_break_p7p9",
+  "comment"
  ],
  "fields": [
   {
@@ -100,12 +102,21 @@
   {
    "fieldname": "column_break_tbtm",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_p7p9",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "comment",
+   "fieldtype": "Small Text",
+   "label": "comment"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-11-08 12:22:46.123033",
+ "modified": "2025-11-17 17:11:23.482758",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "Goal Assessment",

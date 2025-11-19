@@ -288,7 +288,16 @@ const handleSubmit = async () => {
         return;
       }
     }
-
+    for (let g of goals) {
+      const w = Number(g.weightage);
+      if (!g.weightage || isNaN(w) || w <= 0) {
+        setMessage({
+          text: "Weightage cannot be 0 or empty for any goal.",
+          type: "error",
+        });
+        return;
+      }
+    }
     // --- Prepare goals ---
     const newGoals = goals.map((g) => ({
       goal_id: g.goal_id,
