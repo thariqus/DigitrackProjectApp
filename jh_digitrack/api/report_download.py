@@ -1,4 +1,3 @@
-
 import frappe
 import io
 from datetime import datetime
@@ -23,18 +22,16 @@ def download_excel(year=None, manager=None):
         ws = wb.active
         ws.title = "PMS Summary"
 
-        # ----------------------------
-        # HEADER: REPORT TITLE
-        # ----------------------------
+        # ==============================================
+        # SHEET 1 - SUMMARY
+        # ==============================================
+
         ws.merge_cells("A1:H1")
         ws["A1"] = f"PMS Summary Report - {year}"
         ws["A1"].font = Font(bold=True, size=14)
         ws["A1"].alignment = Alignment(horizontal="center", vertical="center")
         ws.append([])
 
-        # ----------------------------
-        # MANAGER SUMMARY SECTION
-        # ----------------------------
         headers = [
             {"label": "Manager Name", "key": "manager_name"},
             {"label": "No. of Employees", "key": "employee_count"},
@@ -57,25 +54,17 @@ def download_excel(year=None, manager=None):
         for row in data:
             ws.append([row.get(h["key"], 0) for h in headers])
 
-        # ----------------------------
-        # SPACE BEFORE EMPLOYEE SECTION
-        # ----------------------------
         ws.append([])
         ws.append([])
 
-        # ----------------------------
-        # EMPLOYEE DETAILS SECTION
-        # ----------------------------
-
-        emp_headers = ["Employee Name", "Manager Name", "Status"]
+        emp_headers = ["Employee Name", "Manager Name", "Status", "Total Score"]
         ws.append(emp_headers)
 
         for cell in ws[ws.max_row]:
             cell.font = Font(bold=True)
-            cell.fill = header_fill
+            cell.fill = header_fill  
             cell.alignment = Alignment(horizontal="center")
 
-        # Build a flat employee list
         for row in data:
             manager_name = row.get("manager_name")
 
@@ -92,23 +81,119 @@ def download_excel(year=None, manager=None):
                 if not emp_list:
                     continue
                 for emp in emp_list:
+                    total_score = ""
+
+                    if status_label == "Evaluation Submitted":
+                        total_score = frappe.db.get_value(
+                            "Goal Assessment",
+                            {"employee_code": emp.get("employee_code"), "year": year},
+                            "total_score"
+                        ) or ""
                     ws.append([
                         emp.get("employee_name", ""),
                         manager_name,
-                        status_label
+                        status_label,
+                        total_score 
+
                     ])
 
-
-        # ----------------------------
-        # AUTO ADJUST COLUMN WIDTHS
-        # ----------------------------
         for i, col in enumerate(ws.columns, 1):
             max_length = max(len(str(cell.value or "")) for cell in col)
             ws.column_dimensions[get_column_letter(i)].width = max_length + 2
 
-        # ----------------------------
-        # RETURN FILE
-        # ----------------------------
+        # ==============================================
+        # SHEET 2 - FULL GOAL ASSESSMENT DUMP
+        # ==============================================
+
+        dump = wb.create_sheet("Goal Assessment Details")
+
+        manager_fields = {
+            "manager_code": "Manager Code",
+            "manager_name": "Manager Name"
+        }
+
+        parent_fields = {
+            "year": "Year",
+            "employee_code": "Employee Code",
+            "employee_name": "Employee Name",
+            "status": "Status",
+            "total_score": "Total Score",
+            "comment": "Comment"
+        }
+
+        child_fields = {
+            "goal_id": "Goal ID",
+            "goal_name": "Goal Name",
+            "description": "Description",
+            "measurement_criteria": "Measurement Criteria",
+            "uom": "UOM",
+            "target": "Target",
+            "weightage": "Weightage",
+            "achievement_score": "Achievement Score",
+            "achieved_score": "Achieved Score",
+            "upwarddownward": "Upward Downward",
+            "remark": "Remark"
+        }
+
+        headers = list(manager_fields.values()) + list(parent_fields.values()) + list(child_fields.values())
+        dump.append(headers)
+
+        for cell in dump[1]:
+            cell.font = Font(bold=True)
+            cell.fill = header_fill
+            cell.alignment = Alignment(horizontal="center")
+
+        ga_docs = frappe.get_all(
+            "Goal Assessment",
+            filters={"year": year, "manager": manager},
+            fields="*"
+        )
+
+        for ga in ga_docs:
+
+            manager_code = ""
+            manager_name = ""
+
+            if ga.manager:
+                pms = frappe.db.get_value(
+                    "PMS Employees",
+                    {"employee_email": ga.manager},
+                    ["name", "full_name"],
+                    as_dict=True
+                )
+                if pms:
+                    manager_code = pms.name
+                    manager_name = pms.full_name
+
+            manager_values = [manager_code, manager_name]
+
+            parent_values = [ga.get(field) for field in parent_fields.keys()]
+
+            child_rows = frappe.get_all(
+                "Employee Goals",
+                filters={"parent": ga.name},
+                fields="*"
+            )
+
+            if child_rows:
+                for child in child_rows:
+                    dump.append(
+                        manager_values +
+                        parent_values +
+                        [child.get(field) for field in child_fields.keys()]
+                    )
+            else:
+                dump.append(
+                    manager_values +
+                    parent_values +
+                    [""] * len(child_fields)
+                )
+
+        for i, col in enumerate(dump.columns, 1):
+            max_length = max(len(str(cell.value or "")) for cell in col)
+            dump.column_dimensions[get_column_letter(i)].width = max_length + 3
+
+
         output = io.BytesIO()
         wb.save(output)
         output.seek(0)

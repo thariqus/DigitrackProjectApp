@@ -20,6 +20,7 @@ export interface GoalDetail {
   remark: string;
   achieved?: string;
   upwarddownward?: "U" | "D";
+  weightage: string | null;
 }
 
 export function useGoalEvaluation(selectedYear?: string) {
@@ -138,6 +139,7 @@ export function useEmployeeGoals(employeeCode: string, year: string) {
   const [employeeGoals, setEmployeeGoals] = useState<GoalDetail[]>([]);
   const [attachments, setAttachments] = useState<{ file_name: string; file_url: string }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [comment, setComment] = useState("");
 
   useEffect(() => {
     if (!employeeCode || !year) return;
@@ -151,6 +153,7 @@ export function useEmployeeGoals(employeeCode: string, year: string) {
 
         setEmployeeGoals(data.message?.goals || []);
         setAttachments(data.message?.attachments || []);
+        setComment(data.message?.comment || "");
       } catch (error) {
         console.error("Error fetching employee goals:", error);
       } finally {
@@ -161,14 +164,14 @@ export function useEmployeeGoals(employeeCode: string, year: string) {
     fetchEmployeeGoals();
   }, [employeeCode, year]);
 
-  return { employeeGoals, attachments, loading };
+  return { employeeGoals, attachments, comment, loading };
 }
 
 
 export function useSubmitGoalEvaluation() {
   const [loading, setLoading] = useState(false);
 
-  const submitGoalEvaluation = async (employeeCode: string, year: string) => {
+  const submitGoalEvaluation = async (employeeCode: string, year: string, comment: string) => {
     try {
       setLoading(true);
 
@@ -182,24 +185,25 @@ export function useSubmitGoalEvaluation() {
           body: JSON.stringify({
             employee_code: employeeCode,
             year: year,
+            comment: comment
           }),
         }
       );
 
       const data = await res.json();
 
-      if (!res.ok || data.exc) {
+      if (!res.ok || data.exc || data._server_messages) {
         let errorMessage = "Failed to submit goal evaluation";
 
         if (data._server_messages) {
           try {
-            const serverMessages = JSON.parse(data._server_messages);
-            if (Array.isArray(serverMessages) && serverMessages.length > 0) {
-              const parsed = JSON.parse(serverMessages[0]);
+            const messages = JSON.parse(data._server_messages);
+            if (messages.length > 0) {
+              const parsed = JSON.parse(messages[0]);
               errorMessage = parsed.message || errorMessage;
             }
-          } catch (e) {
-            console.error("Error parsing frappe server message:", e);
+          } catch (err) {
+            console.error("Failed to parse server message", err);
           }
         }
 
