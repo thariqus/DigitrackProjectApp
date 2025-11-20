@@ -166,14 +166,16 @@ function Reports() {
   };
 
   return (
-    <div className="bg-white min-h-screen border rounded-lg px-6 py-3 relative">
-      <h1 className="text-xl text-[#972E26] font-semibold pb-1 mb-1">
+    <div className="bg-white min-h-screen border rounded-lg px-6 py-2 relative">
+      <h1 className=" text-primary font-semibold pb-1">
         Reports
       </h1>
 
       {/* Filters */}
-      <div className="flex items-center gap-2 flex-wrap py-2">
-        {/* Year Filter */}
+      <div className="flex items-center  justify-between  pb-2">
+
+<div className="flex gap-3">
+  {/* Year Filter */}
         <select
           value={selectedYear}
           onChange={(e) => {
@@ -181,7 +183,7 @@ function Reports() {
             setSelectedYear(newYear);
             refetch();
           }}
-          className="px-3 py-2 border rounded-md text-sm focus:outline-none"
+          className="px-2 py-1 border rounded-md text-[0.65rem] focus:outline-none"
         >
           {years.map((year) => (
             <option key={year} value={year}>
@@ -194,20 +196,20 @@ function Reports() {
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setShowManagerDropdown(!showManagerDropdown)}
-            className="px-3 py-2 border rounded-md text-sm flex items-center justify-between w-56 focus:outline-none"
+            className="px-2 py-1 border rounded-md text-[0.65rem] flex items-center justify-between w-56 focus:outline-none"
           >
-            <span>{selectedManager}</span>
+            <span className="text-[0.65rem]">{selectedManager}</span>
             <HiChevronDown className="text-gray-500" />
           </button>
 
           {showManagerDropdown && (
             <div className="absolute mt-1 bg-white border rounded-lg shadow-lg w-56 z-50">
               <div className="relative p-2 border-b">
-                <HiOutlineSearch className="absolute left-4 top-4 text-gray-400 text-lg" />
+                <HiOutlineSearch className="absolute left-4 top-4 text-gray-400 text-sm" />
                 <input
                   type="text"
                   placeholder="Search manager..."
-                  className="pl-7 pr-3 py-2 rounded-md border w-full text-sm focus:outline-none"
+                  className="pl-7 pr-3 py-1 rounded-md placeholder:text-[0.65rem] border w-full text-sm focus:outline-none"
                   value={managerSearch}
                   onChange={(e) => setManagerSearch(e.target.value)}
                 />
@@ -219,7 +221,7 @@ function Reports() {
                     setShowManagerDropdown(false);
                     setManagerSearch("");
                   }}
-                  className={`px-4 py-2 cursor-pointer hover:bg-gray-100 ${selectedManager === "All" ? "bg-gray-100 font-medium" : ""
+                  className={`px-2 text-[0.65rem] py-1 cursor-pointer hover:bg-gray-100 ${selectedManager === "All" ? "bg-gray-100 font-medium" : ""
                     }`}
                 >
                   All
@@ -236,7 +238,7 @@ function Reports() {
                         setShowManagerDropdown(false);
                         setManagerSearch("");
                       }}
-                      className={`px-4 py-2 cursor-pointer hover:bg-gray-100 ${selectedManager === m.manager_name ? "bg-gray-100 font-medium" : ""
+                      className={`px-2 py-1 text-[0.65rem] cursor-pointer hover:bg-gray-100 ${selectedManager === m.manager_name ? "bg-gray-100 font-medium" : ""
                         }`}
                     >
                       {m.manager_name}
@@ -251,21 +253,25 @@ function Reports() {
         {(selectedManager !== "All" || (baseYear && selectedYear !== baseYear)) && (
           <button
             onClick={clearFilters}
-            className="px-3 py-2 text-sm flex items-center gap-1 text-red-500 rounded-md hover:bg-gray-100"
+            className="px-3 py-2 text-xs flex items-center gap-1 text-red-500 rounded-md hover:bg-gray-100"
           >
-            <span>Clear Filters</span> <IoCloseOutline />
+            <span className="text-xs">Clear Filters</span> <IoCloseOutline />
           </button>
         )}
-        {/* Email Button */}
+        </div>
+
+         <div className="flex items-center gap-3">
+
+{/* Email Button */}
         <button
           onClick={() => {
             // add your email sending logic here
             console.log("Send email clicked");
           }}
-          className="px-3 py-2 text-sm flex items-center gap-1 bg-[#972E26] text-white rounded-md hover:bg-[#7d241f]"
+          className="px-3 py-2 text-sm flex items-center gap-1 bg-primary text-xs text-white rounded-md hover:bg-[#7d241f]"
         >
-          <CiMail className="text-lg" />
-          <span>Send Email</span>
+          <CiMail className="text-md" />
+          <span className="text-[0.65rem]">Send Email</span>
         </button>
         <button
           onClick={() => {
@@ -284,13 +290,21 @@ function Reports() {
               "_blank"
             );
           }}
-          className="px-3 py-2 text-sm flex items-center gap-1 bg-[#972E26] text-white rounded-md hover:bg-[#7d241f]"
+          className="px-3 py-2 text-xs flex items-center gap-1 bg-primary text-white rounded-md hover:bg-[#7d241f]"
         >
-          <IoCloudDownloadOutline className="text-lg" />
-          <span>Download</span>
+          <IoCloudDownloadOutline className="text-md" />
+          <span className="text-[0.65rem]">Download</span>
         </button>
 
 
+        </div>
+        
+</div>
+       
+        
+        
+
+        <div>
 
 
       </div>
@@ -298,7 +312,7 @@ function Reports() {
       {/* Table */}
       <div className="border rounded-lg w-full overflow-x-auto">
         <table className="w-full text-center text-sm">
-          <thead className="bg-gray-100 text-sm text-gray-700">
+          <thead className="bg-gray-100 text-xs text-gray-700">
             <tr>
               <th className="py-3 px-1 text-left">Manager Name</th>
               <th className="py-3 px-1">No. of Employees</th>
@@ -313,32 +327,32 @@ function Reports() {
           </thead>
           <tbody>
             {currentRows.map((manager) => (
-              <tr key={manager.manager_email} className="border-b text-center transition">
+              <tr key={manager.manager_email} className="border-b text-xs text-center transition">
                 <td
-                  className={`px-1 py-3 text-left ${manager.evaluation_submitted < manager.employee_count ? "text-red-600 font-semibold" : ""
+                  className={`px-1 py-2 text-left ${manager.evaluation_submitted < manager.employee_count ? "text-red-600 font-semibold" : ""
                     }`}
                 >
                   {manager.manager_name}
                 </td>
-                <td className="px-1 py-3">
+                <td className="px-1 py-2">
                   {renderCountCell(manager.employee_count, manager, "employees")}
                 </td>
-                <td className="px-1 py-3">
+                <td className="px-1 py-2">
                   {renderCountCell(manager.goals_pending, manager, "goals_pending")}
                 </td>
-                <td className="px-1 py-3">
+                <td className="px-1 py-2">
                   {renderCountCell(manager.goals_started, manager, "goals_started")}
                 </td>
-                <td className="px-1 py-3">
+                <td className="px-1 py-2">
                   {renderCountCell(manager.goals_submitted, manager, "goals_submitted")}
                 </td>
-                <td className="px-1 py-3">
+                <td className="px-1 py-2">
                   {renderCountCell(manager.evaluation_pending, manager, "evaluation_pending")}
                 </td>
-                <td className="px-1 py-3">
+                <td className="px-1 py-2">
                   {renderCountCell(manager.evaluation_started, manager, "evaluation_started")}
                 </td>
-                <td className="px-1 py-3">
+                <td className="px-1 py-2">
                   {renderCountCell(manager.evaluation_submitted, manager, "evaluation_submitted")}
                 </td>
 
@@ -365,28 +379,28 @@ function Reports() {
       {openSingleShowModal && selectedModalManager && (
         <div className="fixed inset-0 z-400 flex items-center justify-center">
           <div
-            className="absolute top-20 inset-0 bg-black/40 backdrop-blur-sm"
+            className="absolute top-13 inset-0 bg-black/40 backdrop-blur-sm"
             onClick={closeModal}
           />
           <div className="bg-white rounded-xl shadow-lg w-[450px] mt-25 max-w-full h-[80vh] flex flex-col z-50 overflow-hidden">
             <div className="flex justify-between items-center border-b px-5 py-4">
-              <h2 className="text-lg font-semibold text-primary">{selectedModalManager.manager_name}</h2>
-              <div className="text-primary text-sm"> Total Number of Employees: {selectedModalManager.employee_count}</div>
+              <h2 className=" font-semibold text-xs text-primary">{selectedModalManager.manager_name}</h2>
+              <div className="text-primary text-xs"> Total Number of Employees: {selectedModalManager.employee_count}</div>
               <button onClick={closeModal} className="text-gray-500 hover:text-black">
-                <IoMdClose className="text-lg" />
+                <IoMdClose className="text-md" />
               </button>
             </div>
 
             <div className="p-4 overflow-y-auto">
               <div className="flex items-center border mb-2 rounded-full px-2 relative">
                 <input
-                  className="px-5 placeholder:text-sm py-1 rounded-full focus:outline-none"
+                  className="px-5 placeholder:text-[0.65rem] py-1 rounded-full focus:outline-none"
                   type="text"
                   placeholder="Search Employees"
                   value={employeeSearch}
                   onChange={(e) => setEmployeeSearch(e.target.value)}
                 />
-                <CiSearch className="absolute text-gray-500" />
+                <CiSearch className="absolute text-sm text-gray-500" />
               </div>
 
               <ul className="space-y-2">
@@ -397,7 +411,7 @@ function Reports() {
                   .map((emp) => (
                     <li
                       key={emp.employee_name}
-                      className="px-3 my-2 bg-secondary/50 backdrop-blur-xs py-2 text-sm text-gray-700 rounded-sm"
+                      className="px-3 my-2 bg-secondary/50 backdrop-blur-xs py-2 text-xs text-gray-700 rounded-sm"
                     >
                       {emp.employee_name} ({emp.employee_code})
                     </li>

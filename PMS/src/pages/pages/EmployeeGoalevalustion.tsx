@@ -368,9 +368,9 @@ useEffect(() => {
     <div className="fixed top-0 py-5 px-10 inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setOpenModal(false)}></div>
 
-      <div className="bg-white w-full h-full border rounded-lg px-6 py-5 relative">
+      <div className="bg-white w-full h-full border rounded-lg px-6 py-2 relative overflow-y-auto">
         <div className="flex items-start justify-between">
-          <h1 className="text-xl text-primary font-medium mb-5">Employee Goal Evaluation</h1>
+          <h1 className=" text-primary font-medium mb-3">Employee Goal Evaluation</h1>
           <IoCloseOutline className="text-2xl cursor-pointer" onClick={() => navigate("/goalevaluation")} />
         </div>
 

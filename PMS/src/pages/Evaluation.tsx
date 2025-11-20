@@ -107,7 +107,7 @@ function Evaluation() {
                 <div className="flex justify-between">
                     <div className="flex gap-2">
                         <label>Title :</label>
-                        <p>2024</p>
+                        <p className="text-xs">2024</p>
                     </div>
 
 
