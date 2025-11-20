@@ -4,7 +4,7 @@ import { RiArrowDropDownLine } from "react-icons/ri";
 import { createPortal } from "react-dom";
 import { MdOutlineContentCopy ,MdDeleteOutline} from "react-icons/md";
 import { IoAdd, IoCloseOutline, IoSaveOutline } from "react-icons/io5";
-import { IoMdClose } from "react-icons/io";
+import { IoIosSearch, IoMdClose } from "react-icons/io";
 import { useNavigate } from "react-router-dom";
 import Pagination from "../components/Pagination";
 import { useGoalMaster, useEmployeeGoals, useGoalAssessment, submitGoalAssessment, deleteEmployeeGoals} from "../hooks/goalcreation";
@@ -479,21 +479,21 @@ const handleCopySelectedGoals = () => {
 
 
   return (
-    <div className="fixed top-0 py-5 px-10 inset-0 z-50 flex items-center justify-center">
+    <div className="fixed top-0 py-5 px-10 inset-0 z-50 flex items-center justify-center ">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowModal(false)}></div>
-      <div className="bg-white w-full border rounded-lg px-6 py-6 h-full relative">
+      <div className="bg-white w-full border rounded-lg px-6 py-6 h-full relative overflow-y-auto">
 
         {/* Header */}
         <div className="flex items-start justify-between">
-          <h1 className="text-xl text-primary font-medium pb-5 mb-4">Employee Goal Assignment</h1>
-          <div className="flex items-center gap-10 justify-end mb-5">
+          <h1 className="text-primary font-medium pb-5 mb-4">Employee Goal Assignment</h1>
+          <div className="flex items-center gap-10 justify-end mb-2">
             <div className="flex items-start gap-3">
               {isEditableStatus(employee?.status || "") && !isSubmitted && (
                 <>
-                <button onClick={() => setShowModal(true)} className="bg-secondary text-sm flex items-center gap-2 text-primary rounded-lg px-4 py-2 hover:shadow-sm transition-all">
+                <button onClick={() => setShowModal(true)} className="bg-secondary text-xs flex items-center gap-1 text-primary rounded-lg px-2 py-2 hover:shadow-sm transition-all">
                   <MdOutlineContentCopy /> Copy Goals
                 </button>
-                <button onClick={() => handleAddGoal()} className="bg-[#972E26] text-sm flex items-center gap-1 hover:bg-[#7d241f] transition text-white rounded-lg px-4 py-2">
+                <button onClick={() => handleAddGoal()} className="bg-[#972E26] text-xs flex items-center gap-1 hover:bg-[#7d241f] transition text-white rounded-lg px-4 py-2">
                   <IoAdd className="text-lg" /> Add New Goal
                 </button>
                 </>
@@ -525,7 +525,7 @@ const handleCopySelectedGoals = () => {
         {/* Employee breadcrumb */}
         {employee && (
 <div className="flex items-center gap-6 mb-2">
-  <div className="text-sm text-gray-500">
+  <div className="text-xs text-gray-500">
     <span
       className="cursor-pointer hover:text-primary underline decoration-gray-400"
       onClick={() => navigate("/goalevaluation")}
@@ -561,7 +561,7 @@ Goals created by me
         {/* Table */}
         <div className="border rounded-lg w-full overflow-x-auto overflow-visible">
           <table className="w-full text-left table-auto">
-            <thead className="bg-gray-100 text-gray-500 text-sm">
+            <thead className="bg-gray-100 text-gray-500 text-xs">
               <tr>
                 <th className="py-2 px-2 text-center w-[2%]"></th>
                 <th className="py-2 px-4 text-center w-[40%]">Goal Name / Goal Description</th>
@@ -575,8 +575,8 @@ Goals created by me
             </thead>
             <tbody>
               {currentRows.map((goal, index) => (
-                <tr key={goal.id} className="border-b text-sm align-top">
-                    <td className="text-center px-1 py-3 align-top">
+                <tr key={goal.id} className="border-b text-xs align-top">
+                    <td className="text-center px-1 py-2 align-top">
                     <input type="checkbox" checked={selectedGoals.includes(goal.id)} onChange={(e) => {
                       if (e.target.checked) setSelectedGoals([...selectedGoals, goal.id]);
                       else setSelectedGoals(selectedGoals.filter(id => id !== goal.id));
@@ -588,7 +588,7 @@ Goals created by me
                     <div className={`border w-full flex items-center justify-between gap-2 rounded px-2 py-1 cursor-pointer bg-gray-50`} onClick={(e) => {
     if (!isSubmitted) handleGoalClick(goal.id, index, e);
   }}>
-                      <span>{goal.name || "Select Goal Name"}</span>
+                      <span className="text-xs">{goal.name || "Select Goal Name"}</span>
                       {!isSubmitted &&<RiArrowDropDownLine className="text-2xl" />}
                     </div> */}
                   <td className="relative py-1 px-1 align-top">
@@ -608,7 +608,7 @@ Goals created by me
                     {dropdownOpen === goal.id && dropdownPos && createPortal(
                       <div className="absolute bg-white border rounded-lg shadow-lg z-[1000] w-[630px]" style={{ top: dropdownPos.top, left: dropdownPos.left }}>
                         <div className="p-2 border-b sticky top-0 bg-white z-10">
-                          <input type="text" placeholder="Search goal..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full border rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
+                          <input type="text" placeholder="Search goal..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full border rounded-md px-3 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary" />
                         </div>
                         {/* <ul className="max-h-60 overflow-y-auto">
                           {goalOptions.filter((g) => g.name.toLowerCase().includes(search.toLowerCase())).map((g) => (
@@ -622,7 +622,7 @@ Goals created by me
                             .map((g) => (
                               <li
                                 key={g.name}
-                                className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
+                                className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-xs"
                                 onClick={() => handleSelectGoal(indexOfFirstRow + index, g.name)}
                               >
                                 <div className="flex flex-col">
@@ -634,7 +634,7 @@ Goals created by me
                           {goalOptions.filter((g) =>
                             g.goal_name.toLowerCase().includes(search.toLowerCase()) || g.name.toLowerCase().includes(search.toLowerCase())
                           ).length === 0 && (
-                            <li className="px-3 py-2 text-gray-500 italic text-sm">No goals found</li>
+                            <li className="px-3 py-1 text-gray-500 italic text-xs">No goals found</li>
                           )}
                         </ul>
 
@@ -644,7 +644,7 @@ Goals created by me
 
                    <td className="flex items-center gap-1 py-1 px-1 align-top">
                     <textarea value={goal.desc} onChange={(e) => { const updated = [...goals]; updated[indexOfFirstRow + index].desc = e.target.value; setGoals(updated); setIsEdited(true);
- }}readOnly className={`border p-1 w-full rounded focus:outline-none focus:ring-1 focus:ring-primary ${employee?.status === "Goal Submitted" || "Evaluation Started" || "Evaluation Submitted" ? " cursor-not-allowed border-none focus:outline-none" : "bg-white cursor-text"}`} rows={1} />
+ }}readOnly className={`border p-1 w-full text-xs rounded focus:outline-none focus:ring-1 focus:ring-primary ${employee?.status === "Goal Submitted" || "Evaluation Started" || "Evaluation Submitted" ? " cursor-not-allowed border-none focus:outline-none" : "bg-white cursor-text"}`} rows={1} />
                   </td>
                   </div>
                 
@@ -654,12 +654,12 @@ Goals created by me
 
                   <td className="py-1 px-1 align-top">
                     <input type="text" value={goal.measurement} onChange={(e) => { const updated = [...goals]; updated[indexOfFirstRow + index].measurement = e.target.value; setGoals(updated); setIsEdited(true);
-}}readOnly className={`border p-1 w-full rounded ${employee?.status === "Goal Submitted" ? " cursor-not-allowed border-none focus:outline-none" : "bg-white"}`} />
+}}readOnly className={`border text-xs p-1 w-full rounded ${employee?.status === "Goal Submitted" ? " cursor-not-allowed border-none focus:outline-none" : "bg-white"}`} />
                   </td>
 
 
 
-                  <td className="py-1 px-1 lign-top" >
+                  <td className="py-1 px-1 text-xs lign-top" >
                     <select
                       value={goal.uom || ""}
                       onChange={(e) => {
@@ -668,7 +668,7 @@ Goals created by me
                         setGoals(updated);
                         setIsEdited(true);
                       }}
-                      className="border p-1 w-full rounded bg-white"
+                      className="border text-xs p-1 w-full rounded bg-white"
                       disabled={isSubmitted || !isEditableStatus(employee?.status || "")}
                     >
                       <option value="">Select</option>
@@ -686,20 +686,20 @@ Goals created by me
       setGoals(updated);
       setIsEdited(true);
     }}
-    className="border p-1 w-full rounded"
+    className="border text-xs p-1 w-full rounded"
     readOnly={isSubmitted || !isEditableStatus(employee?.status || "")}
   />
 </td>
                 
                   <td className="py-1 px-1 align-top">
                     <input type="text" value={goal.targetvalue} onChange={(e) => { const updated = [...goals]; updated[indexOfFirstRow + index].targetvalue = e.target.value; setGoals(updated); setIsEdited(true);
-}} className="border p-1 w-full rounded" readOnly={isSubmitted || !isEditableStatus(employee?.status || "")}
+}} className="border text-xs p-1 w-full rounded" readOnly={isSubmitted || !isEditableStatus(employee?.status || "")}
 />
                   </td>
 
                   <td className="py-1 px-1 align-top">
                     <select value={goal.seletedvalueOfUorD || ""} onChange={(e) => { const updated = [...goals]; updated[indexOfFirstRow + index].seletedvalueOfUorD = e.target.value; setGoals(updated); setIsEdited(true);
-}} className="border p-1 w-full rounded" disabled={isSubmitted || !isEditableStatus(employee?.status || "")}
+}} className="border text-xs p-1 w-full rounded" disabled={isSubmitted || !isEditableStatus(employee?.status || "")}
 >
                       <option value="">Select</option>
                       <option value="U">U</option>
@@ -717,10 +717,10 @@ Goals created by me
 
         {/* Save / Submit */}
         {!isSubmitted && isEditableStatus(employee?.status || "") && (
-        <div className="flex justify-end mt-4 gap-3">
+        <div className="flex justify-end mt-2 gap-3">
           <button
             onClick={handleDeleteGoals}
-            className="flex items-center gap-1 px-3 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300 active:scale-95 transition-all"
+            className="flex items-center text-xs gap-1 px-2 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300 active:scale-95 transition-all"
           >
             <MdDeleteOutline className="text-lg" /> Delete
           </button>
@@ -728,14 +728,14 @@ Goals created by me
           <button
             onClick={handleSave}
             disabled={!isEdited} // 🔒 Disable until edited
-            className="flex items-center gap-1 px-4 py-2 rounded bg-yellow-100 text-yellow-700 hover:bg-yellow-200 active:scale-95 transition-all"
+            className="flex items-center gap-1 px-2 py-2 text-xs rounded bg-yellow-100 text-yellow-700 hover:bg-yellow-200 active:scale-95 transition-all"
           >
             <IoSaveOutline className="text-lg" /> Save
           </button>
 
           <button
             onClick={handleSubmit}
-            className="px-4 py-2 rounded bg-primary text-white hover:bg-primary/90 active:scale-95 transition-all"
+            className="px-2 py-2 rounded text-xs bg-primary text-white hover:bg-primary/90 active:scale-95 transition-all"
           >
             Submit
           </button>
@@ -747,21 +747,23 @@ Goals created by me
         {showModal && createPortal(
           <div className="fixed inset-0 z-50 flex items-center justify-center">
             <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowModal(false)}></div>
-            <div className="bg-white w-[1000px] rounded-lg p-6 relative z-10">
+            <div className="bg-white w-[1000px] rounded-lg px-4 py-2 relative z-10">
               <div className="flex justify-between  border-b px-5 py-4 items-center mb-4">
-                <h2 className="text-lg font-medium text-primary">Copy Goals</h2>
-                <IoMdClose className="text-2xl cursor-pointer" onClick={() => setShowModal(false)} />
+                <h2 className=" font-medium text-primary">Copy Goals</h2>
+                <IoMdClose className="text-xl cursor-pointer" onClick={() => setShowModal(false)} />
               </div>
       
               {/* --- Dynamic Year Dropdown --- */}
-              {(() => {
+              <div className="flex items-center gap-3">
+
+{(() => {
                 const storedYear = localStorage.getItem("assessment_year");
                 const baseYear = storedYear ? parseInt(storedYear) : new Date().getFullYear();
                 const availableYears = [baseYear, baseYear - 1, baseYear - 2];
 
                 return (
                   <select
-                    className="border px-2 py-1  mb-2 rounded"
+                    className="border  text-xs px-2 py-1  mb-2 rounded"
                     value={selectedCopyYear}
                     onChange={(e) => setSelectedCopyYear(e.target.value)}
                   >
@@ -774,6 +776,14 @@ Goals created by me
                 );
               
               })()}
+
+
+              {/* <div className="border border-gray-200 flex items-center gap-2 w-full px-2 py-1 rounded-md">
+                <IoIosSearch className="text-gray-500 "/>
+                <input type="text" placeholder="Search here..."  className="focus:outline-none text-sm "/>
+              </div> */}
+              </div>
+              
             
             <div>
                 <h3 className="text-sm font-medium text-gray-700 mb-2">Select Employee</h3>
@@ -813,7 +823,7 @@ Goals created by me
   {/* Employee Goals */}
                 <div className="w-[70%] border rounded shadow-md p-2 max-h-[300px] overflow-y-auto">
     {modalGoalsLoading ? (
-                    <p><div className="flex items-center justify-center h-full text-gray-500 italic">Select an employee to view their goals.</div></p>
+                    <p><div className="flex items-center text-sm justify-center h-full text-gray-500 italic">Select an employee to view their goals.</div></p>
     ) : modalGoals.length > 0 ? (
       <ul>
         {modalGoals.map((g) => (

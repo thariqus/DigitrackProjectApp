@@ -194,8 +194,8 @@ export default function UserDropdown() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button className="flex items-center gap-2 text-gray-700 dark:text-gray-400">
-          <span className="overflow-hidden rounded-full h-10 w-10 bg-gray-100 flex items-center justify-center">
-            <User className="h-6 w-6" />
+          <span className="overflow-hidden rounded-full h-5 w-5 bg-gray-100 flex items-center justify-center">
+            <User className="h-4 w-4" />
           </span>
         </button>
       </DropdownMenuTrigger>

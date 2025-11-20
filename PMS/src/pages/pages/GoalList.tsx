@@ -137,12 +137,12 @@ function GoalList() {
 
     return (
         <div className="bg-white min-h-screen border rounded-lg px-6 py-6 h-full">
-            <h1 className="text-xl text-primary font-medium pb-5 mb-8">Goal Master</h1>
+            <h1 className=" text-primary font-medium pb-5 mb-8">Goal Master</h1>
 
             {/* Copy Button */}
             <div className="flex justify-end mb-5">
                 <button
-                    className="bg-secondary flex items-center gap-2 text-primary rounded-lg px-4 py-2 shadow-sm hover:shadow-md transition-all"
+                    className="bg-secondary flex items-center gap-2 text-sm text-primary rounded-lg px-4 py-2 shadow-sm hover:shadow-md transition-all"
                     onClick={() => setShowModal(true)}
                 >
                     <MdOutlineContentCopy />
@@ -153,7 +153,7 @@ function GoalList() {
             {/* Table */}
             <div className="border rounded-lg w-full overflow-x-auto overflow-visible">
                 <table className="w-full text-left table-auto">
-                    <thead className="bg-gray-100 text-left text-gray-700 ">
+                    <thead className="bg-gray-100 text-xs  text-left text-gray-700 ">
                         <tr>
                             <th className="py-3 px-2 font-medium text-center">#</th>
                             <th className="py-3 px-4 font-medium text-center">Goal Name</th>
@@ -168,12 +168,12 @@ function GoalList() {
 
                     <tbody>
                         {goals.map((goal, index) => (
-                            <tr key={goal.id} className="border-b hover:bg-gray-50">
+                            <tr key={goal.id} className="border-b text-xs  hover:bg-gray-50">
                                 <td className="py-3 px-2">{index + 1}</td>
 
                                 <td className="relative py-3 px-2">
                                     <div
-                                        className="border flex items-center gap-2 rounded px-2 py-1 cursor-pointer bg-gray-50"
+                                        className="border text-xs  flex items-center gap-2 rounded px-2 py-1 cursor-pointer bg-gray-50"
                                         onClick={(e) => handleGoalClick(goal.id, index, e)}
                                     >
                                         {goal.name || "Select Goal Name"}
@@ -285,9 +285,9 @@ function GoalList() {
 
             {/* Action Buttons */}
             <div className="flex justify-end gap-4 mt-10">
-                <button onClick={handleDeleteAll} className="px-4 py-1 flex items-center gap-1 rounded-sm bg-gray-200 text-gray-500"><MdOutlineDeleteOutline className="text-xl"/><span>Delete</span></button>
-                <button onClick={handleSave} className="px-4 py-2 flex items-center gap-1 rounded-sm bg-secondary text-primary/80"><span><IoSaveOutline /></span>Save</button>
-                <button onClick={handleSubmit} className="px-4 py-2 rounded-sm bg-primary text-white">Submit</button>
+                <button onClick={handleDeleteAll} className="px-4 py-1 text-xs  flex items-center gap-1 rounded-sm bg-gray-200 text-gray-500"><MdOutlineDeleteOutline className="text-xl"/><span>Delete</span></button>
+                <button onClick={handleSave} className="px-4 py-2 flex text-xs  items-center gap-1 rounded-sm bg-secondary text-primary/80"><span><IoSaveOutline /></span>Save</button>
+                <button onClick={handleSubmit} className="px-4 py-2 text-xs  rounded-sm bg-primary text-white">Submit</button>
             </div>
 
             {/* --- Copy button  Modal --- */}
@@ -302,25 +302,25 @@ function GoalList() {
                     {/* Modal Content */}
                     <div className="relative bg-white rounded-xl shadow-lg w-[700px] max-w-full max-h-[80vh] flex flex-col z-50 overflow-hidden">
                         <div className="flex justify-between items-center border-b px-5 py-4">
-                            <h2 className="text-lg font-semibold text-[#972E26]">Copy Employee Goals</h2>
+                            <h2 className="font-semibold text-[#972E26] ">Copy Employee Goals</h2>
                             <button
                                 onClick={() => setShowModal(false)}
                                 className="text-gray-500 hover:text-black"
                             >
-                                <IoMdClose className="text-2xl" />
+                                <IoMdClose className="text-xl" />
                             </button>
                         </div>
 
                         <div className="flex flex-1 divide-x overflow-hidden">
                             {/* Left: Employee List */}
                             <div className="w-1/2 p-4 overflow-y-auto">
-                                <h3 className="text-sm font-medium text-gray-700 mb-2">Select Employee</h3>
+                                <h3 className="text-xsfont-medium text-gray-700 mb-2">Select Employee</h3>
                                 <ul className="space-y-2">
                                     {employeeGoals.map((emp) => (
                                         <li
                                             key={emp.employee}
                                             onClick={() => setSelectedEmployee(emp.employee)}
-                                            className={`px-3 py-2 rounded-lg cursor-pointer transition-all border ${selectedEmployee === emp.employee
+                                            className={`px-3 py-2 text-xs  rounded-lg cursor-pointer transition-all border ${selectedEmployee === emp.employee
                                                 ? "bg-[#F8E9E8] border-[#972E26] text-[#972E26]"
                                                 : "hover:bg-gray-100 border-gray-200"
                                                 }`}
@@ -335,10 +335,10 @@ function GoalList() {
                             <div className="w-1/2 p-4 overflow-y-auto">
                                 {selectedEmployee ? (
                                     <>
-                                        <h3 className="text-sm font-medium text-gray-700 mb-3">
+                                        <h3 className="text-xs  font-medium text-gray-700 mb-3">
                                             {selectedEmployee}'s Goals
                                         </h3>
-                                        <ul className="space-y-2 text-sm">
+                                        <ul className="space-y-2 text-xs ">
                                             {employeeGoals
                                                 .find((e) => e.employee === selectedEmployee)
                                                 ?.goals.map((g) => (
@@ -347,7 +347,7 @@ function GoalList() {
                                                         className="border border-gray-200 rounded-lg p-3 shadow-sm bg-gray-50"
                                                     >
                                                         <p className="font-medium text-gray-800">{g.name}</p>
-                                                        <p className="text-gray-600 text-sm">{g.desc}</p>
+                                                        <p className="text-gray-600 text-xs ">{g.desc}</p>
                                                     </li>
                                                 ))}
                                         </ul>
@@ -369,7 +369,7 @@ function GoalList() {
                         <div className="flex justify-end p-4 border-t">
                             <button
                                 onClick={() => setShowModal(false)}
-                                className="text-sm text-gray-600 hover:text-gray-900"
+                                className="text-xs  text-gray-600 hover:text-gray-900"
                             >
                                 Close
                             </button>

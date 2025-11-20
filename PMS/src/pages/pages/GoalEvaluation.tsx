@@ -100,15 +100,15 @@ function GoalEvaluation() {
   };
 
   return (
-    <div className="bg-white min-h-screen border rounded-lg px-6 py-6 relative">
-      <h1 className="text-xl text-primary font-medium pb-2 mb-2">Goal Evaluation</h1>
+    <div className="bg-white min-h-screen border rounded-lg px-6 py-2 relative">
+      <h1 className=" text-primary font-medium  mb-2">Goal Evaluation</h1>
 
       {/* === Header Row (Year Dropdown + Legends) === */}
       <div className="flex justify-between mb-3 items-start flex-wrap gap-3">
         {/* Year Dropdown */}
         <div className="relative inline-block year-dropdown">
           <button
-            className="flex justify-between text-sm items-center gap-2 border px-2 py-1 rounded-md bg-gray-50 hover:bg-gray-100"
+            className="flex text-xs  justify-between text-sm items-center gap-2 border px-2 py-1 rounded-md bg-gray-50 hover:bg-gray-100"
             // onClick={() => setDropdownYearOpen(!dropdownYearOpen)}
             disabled
           >
@@ -116,7 +116,7 @@ function GoalEvaluation() {
             {/* <RiArrowDropDownLine className="text-2xl" /> */}
           </button>
           {dropdownYearOpen && (
-            <ul className="absolute text-sm bg-white border rounded-md mt-1 w-40 z-10">
+            <ul className="absolute text-xs  bg-white border rounded-md mt-1 w-40 z-10">
               {years.map((year) => (
                 <li
                   key={year}
@@ -154,9 +154,9 @@ function GoalEvaluation() {
       <div className="border rounded-lg w-full overflow-x-auto mt-2">
         <div className="flex items-center gap-3">
           {/* Status Filter */}
-          <div className="relative inline-block filter-dropdown m-2">
+          <div className="relative inline-block filter-dropdown m-1">
             <button
-              className="px-2 py-1 border text-sm rounded-md flex items-center gap-2 hover:bg-gray-100"
+              className="px-2 py-1 border text-xs  rounded-md flex items-center gap-2 hover:bg-gray-100"
               onClick={() => setDropdownfilterOpen(!dropdownfilterOpen)}
             >
               {selectedStatus || "Status"}
@@ -168,7 +168,7 @@ function GoalEvaluation() {
                 {statusOptions.map((status) => (
                   <li
                     key={status}
-                    className={`hover:bg-secondary cursor-pointer px-4 py-2 text-sm ${getStatusStyles(status)}`}
+                    className={`hover:bg-secondary cursor-pointer px-4 py-2 text-xs  ${getStatusStyles(status)}`}
                     onClick={() => {
                       setSelectedStatus(status);
                       setDropdownfilterOpen(false);
@@ -190,7 +190,7 @@ function GoalEvaluation() {
                 setCurrentPage(1);
               }}
             >
-              <span>Clear Filters</span>
+              <span className="text-xs ">Clear Filters</span>
               <IoCloseOutline />
             </div>
           )}
@@ -198,23 +198,23 @@ function GoalEvaluation() {
 
         {/* Table */}
         <table className="w-full text-left table-auto">
-          <thead className="bg-gray-100 text-gray-700 text-sm">
+          <thead className="bg-gray-100 text-gray-700 text-xs ">
             <tr>
               <th className="py-3 px-4 cursor-pointer" onClick={() => handleSort("id")}>
                 <div className="flex items-center gap-2">
                   Employee ID / Name
                   <HiArrowNarrowDown
-                    className={`text-gray-400 text-sm transition-transform ${
+                    className={`text-gray-400 text-xs  transition-transform ${
                       sortField === "id" && sortOrder === "asc" ? "rotate-180" : ""
                     }`}
                   />
                 </div>
               </th>
               <th className="py-3 px-4 cursor-pointer" onClick={() => handleSort("status")}>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 text-xs " >
                   Status
                   <HiArrowNarrowDown
-                    className={`text-gray-400 text-sm transition-transform ${
+                    className={`text-gray-400 text-xs  transition-transform ${
                       sortField === "status" && sortOrder === "asc" ? "rotate-180" : ""
                     }`}
                   />
@@ -233,22 +233,22 @@ function GoalEvaluation() {
               </tr>
             ) : (
               currentRows.map((emp) => (
-                <tr key={emp.docname} className="border-b text-sm transition">
-                  <td className="px-4 py-3 whitespace-nowrap">
+                <tr key={emp.docname} className="border-b text-xs  transition">
+                  <td className="px-4 py-1 whitespace-nowrap">
                     {emp.employee_code} / {emp.employee_name}
                   </td>
-                  <td className={`px-4 py-3 font-medium ${getStatusStyles(emp.status)}`}>
+                  <td className={`px-4 py-1 font-medium ${getStatusStyles(emp.status)}`}>
                     {emp.status}
                   </td>
-                  <td className="px-4 py-3 text-center">
+                  <td className="px-4 py-1 text-center">
                     {emp.total_score !== undefined && emp.total_score !== null
                       ? emp.total_score.toFixed(2)
                       : "-"}
                   </td>
 
-                  <td className="px-4 py-3 text-center">
+                  <td className="px-4 py-1 text-center">
                     <button
-                      className="px-2 py-2 rounded-md transition text-gray-600"
+                      className="px-2 py-1 rounded-md transition text-gray-600"
                       onClick={() => handleEdit(emp)}
                     >
                       <MdEdit />
