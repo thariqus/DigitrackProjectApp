@@ -179,9 +179,10 @@ def submit_goal_assessment(employee_code=None, year=None, new_goals=None):
                 missing = [g.get("goal_id") for g in new_goals if g.get("weightage") in [None, ""]]
                 if missing:
                     frappe.throw(_(f"All goals must have a weightage if any goal has a weightage. Missing in: {', '.join(missing)}"))
+                    
+                if total_weightage != 100:
+                    frappe.throw(_(f"Total weightage must be exactly 100. Current total: {total_weightage}"))
 
-                if total_weightage > 100:
-                    frappe.throw(_(f"Total weightage cannot exceed 100. Current total: {total_weightage}"))
 
                 negative = [g.get("goal_id") for g in new_goals if float(g.get('weightage') or 0) < 0]
                 if negative:
