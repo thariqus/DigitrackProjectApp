@@ -6,6 +6,7 @@ import Pagination from "../../components/Pagination";
 import { HiArrowNarrowDown } from "react-icons/hi";
 import { IoAdd, IoCloseOutline } from "react-icons/io5";
 import { useGoalEvaluation, GoalAssessment } from "../../hooks/goalevaluation";
+import { useGoalAssignment } from "../../hooks/goalassignment";
 
 function GoalEvaluation() {
   const navigate = useNavigate();
@@ -18,6 +19,7 @@ function GoalEvaluation() {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [selectedYear, setSelectedYear] = useState<string>("");
   const { evaluations, loading, defaultYear, baseYear, years, refetch } = useGoalEvaluation(selectedYear);
+  const { employees } = useGoalAssignment();
 
 
   useEffect(() => {
@@ -137,7 +139,9 @@ function GoalEvaluation() {
         {/* Legends */}
         <div className="flex flex-wrap gap-x-2 gap-y-3 items-center justify-end">
           {[
-            { label: "Employees", count: evaluations.length },
+            // { label: "Employees", count: evaluations.length },
+            { label: "Employees", count: employees?.length || 0 },
+
             { label: "Evaluation Pending", count: evaluations.filter(e => e.status === "Evaluation Pending").length },
             { label: "Evaluation Started", count: evaluations.filter(e => e.status === "Evaluation Started").length },
             { label: "Evaluation Submitted", count: evaluations.filter(e => e.status === "Evaluation Submitted").length },

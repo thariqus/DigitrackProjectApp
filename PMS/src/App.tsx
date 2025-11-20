@@ -117,7 +117,6 @@ function AppWrapper() {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<SignUp />} />
 
-          {/* Fallback */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>
