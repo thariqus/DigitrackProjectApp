@@ -108,8 +108,8 @@ function GoalAssignment() {
   };
 
   return (
-    <div className="bg-white min-h-screen border rounded-lg px-6 py-6 relative">
-      <h1 className="text-xl text-primary font-medium pb-3 mb-3">
+    <div className="bg-white min-h-screen border rounded-lg px-6 py-2 relative">
+      <h1 className=" text-primary font-medium  mb-2">
         Goal Assignment
       </h1>
 
@@ -120,7 +120,7 @@ function GoalAssignment() {
         {/* Year Dropdown */}
         <div className="relative inline-block year-dropdown">
           <button
-            className="flex justify-between text-sm items-center gap-2 border px-2 py-1 rounded-md bg-gray-50 hover:bg-gray-100"
+            className="flex justify-between text-[0.65rem] items-center gap-2 border px-2 py-1 rounded-md bg-gray-50 hover:bg-gray-100"
             // onClick={() => setDropdownYearOpen(!dropdownYearOpen)}
             disabled
           >
@@ -132,7 +132,7 @@ function GoalAssignment() {
               {years.map((year) => (
                 <li
                   key={year}
-                  className="hover:bg-gray-200 cursor-pointer px-4 py-2"
+                  className="hover:bg-gray-200 text-[0.65rem] cursor-pointer px-4 py-2"
                   onClick={() => {
                     setSelectedYear(year.toString());
                     setDropdownYearOpen(false);
@@ -179,9 +179,9 @@ function GoalAssignment() {
       <div className="border rounded-lg w-full overflow-x-auto mt-2">
         <div className="flex items-center gap-3">
           {/* Status Filter */}
-          <div className="relative inline-block filter-dropdown m-2">
+          <div className="relative inline-block filter-dropdown m-1">
             <button
-              className="px-2 py-1 border text-sm rounded-md flex items-center gap-2 hover:bg-gray-100"
+              className="px-2 py-1 border text-[0.65rem] rounded-md flex items-center gap-2 hover:bg-gray-100"
               onClick={() => setDropdownfilterOpen(!dropdownfilterOpen)}
             >
               {selectedStatus || "Status"}
@@ -193,7 +193,7 @@ function GoalAssignment() {
                 {statusOptions.map((status) => (
                   <li
                     key={status}
-                    className={`hover:bg-secondary cursor-pointer px-4 py-2 text-sm ${getStatusStyles(status)}`}
+                    className={`hover:bg-secondary text-[0.65rem] cursor-pointer px-4 py-2 text-sm ${getStatusStyles(status)}`}
                     onClick={() => {
                       setSelectedStatus(status);
                       setDropdownfilterOpen(false);
@@ -209,23 +209,23 @@ function GoalAssignment() {
 
           {selectedStatus && (
             <div
-              className="flex items-center gap-1 text-red-600 text-sm cursor-pointer"
+              className="flex items-center gap-1 text-red-600 text-[0.65rem] cursor-pointer"
               onClick={() => {
                 setSelectedStatus("");
                 setCurrentPage(1);
               }}
             >
-              <span>Clear Filters</span>
+              <span className="text-[0.65rem]">Clear Filters</span>
               <IoCloseOutline />
             </div>
           )}
         </div>
 
         <table className="w-full text-left table-auto">
-          <thead className="bg-gray-100 text-gray-700 text-sm">
+          <thead className="bg-gray-100 text-gray-700 text-xs">
             <tr>
-              <th className="py-3 px-4 cursor-pointer" onClick={() => handleSort("id")}>
-                <div className="flex items-center gap-2">
+              <th className="py-2 px-4 text-xs cursor-pointer" onClick={() => handleSort("id")}>
+                <div className="flex items-center  gap-2">
                   Employee ID / Name
                   <HiArrowNarrowDown
                     className={`text-gray-400 text-sm transition-transform ${
@@ -234,31 +234,31 @@ function GoalAssignment() {
                   />
                 </div>
               </th>
-              <th className="py-3 px-4 cursor-pointer" onClick={() => handleSort("status")}>
+              <th className="py-2 px-4 cursor-pointer" onClick={() => handleSort("status")}>
                 <div className="flex items-center gap-2">
                   Status
                   <HiArrowNarrowDown
-                    className={`text-gray-400 text-sm transition-transform ${
+                    className={`text-gray-400  transition-transform ${
                       sortField === "status" && sortOrder === "asc" ? "rotate-180" : ""
                     }`}
                   />
                 </div>
               </th>
-              <th className="py-3 px-4 text-center">Action</th>
+              <th className="py-2 px-4 text-center">Action</th>
             </tr>
           </thead>
           <tbody>
             {currentRows.map((emp) => (
-              <tr key={emp.id} className="border-b text-sm transition">
-                <td className="px-4 py-3 whitespace-nowrap">
+              <tr key={emp.id} className="border-b text-[0.65rem] transition">
+                <td className="px-4 py-1 whitespace-nowrap">
                   {emp.id} / {emp.name}
                 </td>
-                <td className={`px-4 py-3 font-medium ${getStatusStyles(emp.status)}`}>
+                <td className={`px-4 py-1 font-medium ${getStatusStyles(emp.status)}`}>
                   {emp.status}
                 </td>
-                <td className="px-4 py-3 text-center">
+                <td className="px-4 py-1 text-center">
                   <button
-                    className="px-2 py-2 rounded-md transition text-gray-600"
+                    className="px-2 py-1 rounded-md transition text-gray-600"
                     onClick={() => handleEdit(emp)}
                   >
                     <MdEdit />

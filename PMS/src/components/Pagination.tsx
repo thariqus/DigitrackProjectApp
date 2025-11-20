@@ -114,20 +114,20 @@ function Pagination({
   const options = [10, 20, 30];
 
   return (
-    <div className="flex gap-20 items-center  px-2">
+    <div className="flex gap-20 items-center px-2 py-2">
       <div className="flex items-center gap-2 relative">
-        <span>Show</span>
+        <span className="text-[0.65rem] ">Show</span>
 
         {/* Dropdown button */}
         <div className="relative">
           <button
             type="button"
             onClick={() => setOpen(!open)}
-            className="border rounded px-3 py-1 flex items-center gap-1"
+            className="border rounded text-[0.65rem] px-3 py-1 flex items-center gap-1"
           >
             {rowsPerPage}
             <svg
-              className={`w-4 h-4 transition-transform ${open ? "rotate-180" : ""}`}
+              className={`w-2 h-2 transition-transform ${open ? "rotate-180" : ""}`}
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -147,7 +147,7 @@ function Pagination({
                     setCurrentPage(1);
                     setOpen(false);
                   }}
-                  className={`block w-full text-left px-3 py-1 hover:bg-gray-100 ${
+                  className={`block text-[0.65rem] w-full text-left px-3 py-1 hover:bg-gray-100 ${
                     rowsPerPage === opt ? "bg-gray-200 font-medium" : ""
                   }`}
                 >
@@ -158,15 +158,15 @@ function Pagination({
           )}
         </div>
 
-        <span>entries</span>
+        <span className="text-[0.65rem]">entries</span>
       </div>
 
       {/* Pagination buttons */}
-      <div className="flex items-center gap-2 my-4">
+      <div className="flex items-center gap-2 ">
         <button
           onClick={() => handlePageChange(currentPage - 1)}
           disabled={currentPage === 1}
-          className="px-3 py-1 border rounded disabled:opacity-50"
+          className="px-3 py-1 border text-[0.65rem] rounded disabled:opacity-50"
         >
           Previous
         </button>
@@ -175,7 +175,7 @@ function Pagination({
           <button
             key={i}
             onClick={() => handlePageChange(i + 1)}
-            className={`px-3 py-1 border rounded ${
+            className={`px-3 py-1 text-[0.65rem] border rounded ${
               currentPage === i + 1 ? "bg-[#ffe4e6] text-gray-600" : ""
             }`}
           >
@@ -186,7 +186,7 @@ function Pagination({
         <button
           onClick={() => handlePageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
-          className="px-3 py-1 border rounded disabled:opacity-50"
+          className="px-3 py-1  text-[0.65rem] border rounded disabled:opacity-50"
         >
           Next
         </button>
