@@ -5,6 +5,7 @@
 <title>Idle Assets</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
 
 <style>
 body {
@@ -140,16 +141,24 @@ tr:hover { background-color: #f1f7ff; cursor: pointer; }
 .search-row {
   margin-top: 40px;
   width: 100%;
-  max-width: 900px;
+  /* max-width: 900px; */
+  padding: 5px;
   display: flex;
   align-items: center;
-  justify-content: flex-start; 
-  gap: 20px;
+  justify-content: center; 
+  gap: 10px;
+  border-radius: 50px;
 }
 
+.create-btn-div{
+  display: flex;
+  justify-content: end;
+  width: 100%;
+}
+
+
 .create-btn {
-  display: inline-block;
-  padding: 12px 20px;
+  padding: 12px 18px;
   background: linear-gradient(90deg, #8b0000, #ff4d4d);
   color: white;
   font-size: 16px;
@@ -157,15 +166,34 @@ tr:hover { background-color: #f1f7ff; cursor: pointer; }
   text-decoration: none;
   border-radius: 50px;
   box-shadow: 0 3px 6px rgba(0,0,0,0.15);
-  transition: all 0.2s ease;
   position: relative;
-  top: 20px;   
+  top: 20px;
+  margin: 5px;
+
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  width: 15px;       
+  overflow: hidden;
+  white-space: nowrap;
+
+  transition: width 0.3s ease, background 0.2s ease, transform 0.2s ease;
 }
 
-
 .create-btn:hover {
+  width: 150px;       
   background: linear-gradient(90deg, #a00000, #ff1a1a);
   transform: translateY(-2px);
+}
+
+.create-btn span {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.create-btn:hover span {
+  opacity: 1;
 }
 
 </style>
@@ -176,13 +204,18 @@ tr:hover { background-color: #f1f7ff; cursor: pointer; }
 <h1 class="page-title">Idle Assets</h1>
 
 <div class="search-row">
+  <a href="https://digitrack.jaleelholdings.com/jh-digitrack/idle-assets" class="create-btn">
+      <i class="fa-solid fa-plus"></i>
+      <span>Create Idle Asset</span>
+  </a>
+
   <div class="search-container">
     <input type="text" id="search" placeholder="Idle Assets Name" autocomplete="off">
     <button onclick="searchEmployee()" class="search-btn">
       <span class="material-icons">search</span>
     </button>
   </div>
-  <a href="https://digitrack.jaleelholdings.com/jh-digitrack/idle-assets" class="create-btn">+ Create Idle Assets</a>
+
 </div>
 
 <div id="resultHint" class="result-hint">

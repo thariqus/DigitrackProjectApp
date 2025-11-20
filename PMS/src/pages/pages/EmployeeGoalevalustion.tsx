@@ -18,6 +18,7 @@ interface Goal {
   achieved?: string;
   remark?: string;
   upwarddownward?: "U" | "D"; 
+  weightage: string;
 }
 
 interface Employee {
@@ -41,6 +42,20 @@ function EmployeeGoalEvaluation() {
   const { uploadGoalAttachment } = useUploadGoalAttachment();
   const [attachments, setAttachments] = useState<{ file_url: string; file_name: string }[]>([]);
   const { deleteGoalAttachment, loading: deleteLoading } = useDeleteGoalAttachment();
+  const [showCommentPopup, setShowCommentPopup] = useState(false);
+  const [commentText, setCommentText] = useState("");
+  const [submittedComment, setSubmittedComment] = useState("");
+  const [isDirty, setIsDirty] = useState(false);
+useEffect(() => {
+  if (message.text !== "") {
+    const timer = setTimeout(() => {
+      setMessage({ text: "", type: "" });
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }
+}, [message]);
+
 useEffect(() => {
   const empData = localStorage.getItem("SelectedEmployee");
   const selectedYear = localStorage.getItem("SelectedYear");
@@ -97,7 +112,7 @@ useEffect(() => {
 }, [navigate]);
 
 
-  const { employeeGoals: fetchedEmployeeGoals, attachments: fetchedAttachments } = useEmployeeGoals(employee?.id || "", year || "");
+  const { employeeGoals: fetchedEmployeeGoals, attachments: fetchedAttachments, comment: fetchedComment } = useEmployeeGoals(employee?.id || "", year || "");
 
   useEffect(() => {
     if (fetchedEmployeeGoals && fetchedEmployeeGoals.length > 0) {
@@ -109,6 +124,7 @@ useEffect(() => {
         measurement: goal.measurement_criteria || "",
         targetvalue: goal.target || "",
         uom: goal.uom || "",
+        weightage: goal.weightage || "",
         upwarddownward: goal.upwarddownward || "", 
         achievement_score: goal.achievement_score || "",
         score: goal.achievement_score || "",
@@ -121,7 +137,10 @@ useEffect(() => {
     if (fetchedAttachments && fetchedAttachments.length > 0) {
       setAttachments(fetchedAttachments);
     }
-  }, [fetchedEmployeeGoals, fetchedAttachments]);
+    if (fetchedComment) {
+      setSubmittedComment(fetchedComment);
+    }
+  }, [fetchedEmployeeGoals, fetchedAttachments, fetchedComment]);
 
   const calculateAchievedScore = (
     achievement: string,
@@ -205,7 +224,6 @@ useEffect(() => {
       } else {
         setMessage({ text: "Attachment deleted successfully!", type: "success" });
 
-        // ✅ Update UI like you do for upload success
         setAttachments((prev) => prev.filter((a) => a.file_url !== fileUrl));
       }
     } catch (error) {
@@ -213,16 +231,10 @@ useEffect(() => {
       setMessage({ text: "Failed to delete attachment.", type: "error" });
     }
 
-    // ✅ Match same timeout style as save/submit
     setTimeout(() => setMessage({ text: "", type: "" }), 4000);
   };
 
 
-  // const handleInputChange = (index: number, field: "score" | "remark", value: string) => {
-  //   const updatedGoals = [...goals];
-  //   updatedGoals[index][field] = value;
-  //   setGoals(updatedGoals);
-  // };
   const handleInputChange = (
     index: number,
     field: "score" | "remark",
@@ -240,6 +252,7 @@ useEffect(() => {
     }
 
     setGoals(updatedGoals);
+    setIsDirty(true);
   };
 
   const handleSave = async () => {
@@ -249,20 +262,10 @@ useEffect(() => {
 
       return;
     }
-  // ✅ Validation before submitting
   const missingFields = goals.filter(
     (g) => !g.score || g.score.trim() === "" || !g.remark || g.remark.trim() === ""
   );
 
-  // if (missingFields.length > 0) {
-  //   setMessage({
-  //     text: "Please fill all required fields before saving.",
-  //     type: "error",
-  //   });
-  //   setTimeout(() => setMessage({ text: "", type: "" }), 4000);
-
-  //   return;
-  // }
     const payload = {
       employee_code: employee.id,
       year: year,
@@ -279,24 +282,15 @@ useEffect(() => {
 
   const result = await createGoalAssessment(payload);
 
-//   if (result?.error) {
-//     console.error(" Error from API:", result.error);
-//     setMessage({ text: "Failed to save goal evaluation.", type: "error" });
-//   } else {
-//     setMessage({ text: "Goal Evaluation saved successfully!", type: "success" });
-//   }
-
-//   setTimeout(() => setMessage({ text: "", type: "" }), 3000);
-// };
 
   if (result?.error) {
+    setIsDirty(false);
     setMessage({ text: "Failed to save goal evaluation.", type: "error" });
   } else {
     setMessage({ text: "Goal Evaluation saved successfully!", type: "success" });
 
-    // 🆕 Update achieved scores in UI
     const achievedScores = result?.message?.achieved_scores || result?.achieved_scores || {};
-
+    setIsDirty(false);
     setGoals((prevGoals) =>
       prevGoals.map((g) => ({
         ...g,
@@ -307,12 +301,15 @@ useEffect(() => {
   }
   };
 
-  const handleSubmit = async () => {
-    const userConfirmed = window.confirm(
-      "Are you sure you want to submit the goals? Once submitted, you cannot edit."
-    );
+  const handleSubmit = async (comment: string = "") => {
+    if (isDirty) {
+      setMessage({
+        text: "You have unsaved changes. Please save before submitting.",
+        type: "error",
+      });
+      return;
+    }
 
-    if (!userConfirmed) return;
     if (!employee || !year) return;
 
   const missingFields = goals.filter(
@@ -326,34 +323,48 @@ useEffect(() => {
     });
     return;
   }
-    const response = await submitGoalEvaluation(employee.id, year);
+  const userConfirmed = window.confirm(
+    "Are you sure you want to submit the goals? Once submitted, you cannot edit."
+  );
+
+  if (!userConfirmed) return;
+  setShowCommentPopup(true);
+
+  };
+  const handleFinalSubmit = async (comment: string) => {
+    if (!employee || !year) return;
+    const response = await submitGoalEvaluation(employee.id, year, comment);
 
     if (response.error) {
       setMessage({ text: response.error, type: "error" });
     } else {
       setMessage({ text: response.message || "Goal Evaluation submitted!", type: "success" });
-      setIsSubmitted(true); 
+      setIsSubmitted(true);
+      setSubmittedComment(comment);
     }
 
     setTimeout(() => setMessage({ text: "", type: "" }), 3000);
   };
 
 
-  // const handleNavigation = () => {
-  //   navigate("/goalevaluation");
-  // };
   const handleNavigation = () => {
   localStorage.removeItem("SelectedStatus");
   navigate("/goalevaluation");
 };
+  const finalScore = useMemo(() => {
+    const scores = goals.map((g) => {
+      const achieved = parseFloat(g.achieved || "0");
+      const weight = parseFloat(g.weightage || "0");
 
+      if (isNaN(achieved) || isNaN(weight)) return 0;
 
-  const averageScore = useMemo(() => {
-    const numericScores = goals.map((g) => parseFloat(g.achieved || "")).filter((s) => !isNaN(s));
-    if (numericScores.length === 0) return 0;
-    const total = numericScores.reduce((acc, curr) => acc + curr, 0);
-    return parseFloat((total / numericScores.length).toFixed(2));
+      return (achieved * weight) / 100;
+    });
+
+    const total = scores.reduce((sum, val) => sum + val, 0);
+    return parseFloat(total.toFixed(2));
   }, [goals]);
+
 
   const totalPages = Math.ceil(goals.length / rowsPerPage);
   const indexOfLastRow = currentPage * rowsPerPage;
@@ -387,25 +398,24 @@ useEffect(() => {
             </div>
           )}
 
-          {averageScore !== null && (
-            <div className="text-sm font-medium text-gray-700">
-              <p>
-                Average Score: <span className="text-primary">{averageScore.toFixed(2)}</span>
-              </p>
-            </div>
-          )}
+          <div className="text-sm font-medium text-gray-700">
+            <p>
+              Final Score: <span className="text-primary">{finalScore}</span>
+            </p>
+          </div>
+
         </div>
 
         {/* Table */}
         <div className="border rounded-lg w-full mt-2 overflow-x-auto">
           <table className="w-full text-left table-auto border-collapse">
-            <thead className="bg-gray-100 text-gray-700 text-sm font-normal">
+            <thead className="bg-gray-100 text-gray-700 text-xs font-normal">
               <tr>
                 <th className="py-3 px-1 w-[27%] sticky left-0 bg-gray-100 z-10">Goal Name/Goal Description</th>
                 <th className="py-3 px-1 w-[23%]">Measurement Criteria</th>
-                <th className="py-3 px-1 w-[8%] text-center">Target Value / UOM</th>
+                <th className="py-3 px-1 w-[8%] text-center">Target Value / UOM </th>
                 <th className="py-3 px-1 w-[5%] text-center">Achievement Score</th>
-                <th className="py-3 px-1 w-[5%] text-center">Achieved Score</th> {/* 🆕 */}
+                <th className="py-3 px-1 w-[5%] text-center">Weightage/ Achieved Score</th> 
                 <th className="py-3 px-1 w-[30%] text-center">Remark</th>
               </tr>
             </thead>
@@ -418,33 +428,62 @@ useEffect(() => {
                     <input type="hidden" value={goal.goal_id} readOnly />
                   </td>
                   <td className="py-2 px-1">{goal.measurement}</td>
+                 
                   <td className="py-2 px-1 text-center">
-                    <span>{goal.targetvalue} </span>
-                    <span>{goal.uom}</span>
+                    <div className="flex items-center justify-center gap-2">
+                      {/* Target Value */}
+                      <span>{goal.targetvalue}</span>
+
+                      {/* UOM */}
+                      <span>
+                        {goal.uom === "Percentage"
+                          ? "%"
+                          : goal.uom === "Number"
+                          ? "Num"
+                          : goal.uom}
+                      </span>
+
+                      {/* Upward / Downward */}
                       {goal.upwarddownward === "U" && (
-                        <span className="text-green-500 ml-1">↑</span>
+                        <span className="text-green-500">↑</span>
                       )}
                       {goal.upwarddownward === "D" && (
-                        <span className="text-red-500 ml-1">↓</span>
+                        <span className="text-red-500">↓</span>
                       )}
+                    </div>
                   </td>
-                  <td className="py-2 px-1">
+
+
+                  {/* SCORE INPUT */}
+                  <td className="py-2 px-1 text-center">
                     <input
                       type="number"
                       value={goal.score || ""}
                       readOnly={isSubmitted}
-                      onChange={(e) => !isSubmitted && handleInputChange(idx, "score", e.target.value)}
-                      className="border p-1 w-full rounded"
+                      onChange={(e) =>
+                        !isSubmitted && handleInputChange(idx, "score", e.target.value)
+                      }
+                      className="border p-1 w-20 rounded text-center"
                     />
                   </td>
+
+
+                  {/* WEIGHTAGE + ACHIEVED IN SINGLE LINE */}
                   <td className="py-2 px-1 text-center">
-                    <input
-                      type="text"
-                      value={goal.achieved || ""}
-                      readOnly
-                      className="border p-1 w-20 rounded text-center bg-gray-50"
-                    />
+                    <div className="flex items-center justify-center gap-2">
+                      {/* Weightage */}
+                      <span className="font-semibold">{goal.weightage}</span>
+
+                      {/* Smaller Achieved Box */}
+                      <input
+                        type="text"
+                        value={goal.achieved || ""}
+                        readOnly
+                        className="border p-1 w-16 rounded text-center bg-gray-50"
+                      />
+                    </div>
                   </td>
+
 
 
                   <td className="py-2 px-4 break-words max-w-[300px]">
@@ -470,7 +509,15 @@ useEffect(() => {
             totalPages={totalPages}
             handlePageChange={handlePageChange}
           />
+                  {/* Submitted Comment */}
+        {isSubmitted && submittedComment && (
+          <div className="mx-2  mb-2 px-4 py-2 border rounded-lg bg-gray-50">
+            <h3 className="text-md font-medium text-gray-800 mb-1">Comment</h3>
+            <p className="text-gray-700 text-sm h-20 overflow-x-none overflow-y-auto whitespace-pre-line">{submittedComment}</p>
+          </div>
+        )}
         </div>
+
 
         {/* Footer */}
         <div className={`flex items-center gap-4 mt-6 ${isSubmitted ? "justify-start" : "justify-end"}`}>
@@ -523,13 +570,23 @@ useEffect(() => {
           {!isSubmitted && (
             <>
           {/* Buttons */}
-          <button onClick={handleSave} className="px-4 py-2 text-sm rounded-sm bg-secondary text-gray-600 hover:bg-secondary/80">
+          <button onClick={handleSave} className="px-4 mx-2 py-2 text-sm rounded-sm bg-secondary text-gray-600 hover:bg-secondary/80">
             Save
           </button>
 
-          <button onClick={handleSubmit} className="px-4 py-2 text-sm rounded-sm bg-primary text-white hover:bg-primary/80">
+          <button
+            onClick={() => {
+
+              // open comment popup instead of submitting
+              handleSubmit();
+            }}
+            className="px-4 py-2 text-sm rounded-sm bg-primary text-white hover:bg-primary/80"
+          >
             Submit
           </button>
+
+      
+
           </>
           )}
         </div>
@@ -550,6 +607,51 @@ useEffect(() => {
             </button>
           </div>
         )}
+        {showCommentPopup && (
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[9999]">
+            <div className="bg-white p-6 rounded-lg w-[870px]  shadow-lg">
+              <h2 className="text-lg font-medium mb-3 text-primary">Add Comment</h2>
+
+              <textarea
+                rows={3}
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                className="w-full border rounded p-2  h-50 text-sm"
+                placeholder="Add comment (optional)"
+              ></textarea>
+
+              <div className="flex justify-end gap-3 mt-4">
+                <button
+                  className="px-4 py-2 text-sm rounded bg-gray-200 text-gray-700 hover:bg-gray-300"
+                  onClick={() => {
+                    setShowCommentPopup(false);
+                  }}
+                >
+                  Close
+                </button>
+
+                <button
+                  className="px-4 py-2 text-sm rounded bg-primary text-white hover:bg-primary/80"
+                  onClick={() => {
+                    if (!commentText.trim()) {
+                      setMessage({
+                        text: "Comment cannot be empty while submitting.",
+                        type: "error",
+                      });
+                      return; // ⛔ stop here
+                    }
+
+                    setShowCommentPopup(false);
+                    handleFinalSubmit(commentText);
+                  }}
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );

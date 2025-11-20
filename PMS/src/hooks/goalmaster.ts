@@ -20,7 +20,7 @@ export function useGoalMaster() {
   const fetchGoals = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/method/jh_digitrack.api.goal_master.get_goals");
+      const res = await fetch(`/api/method/jh_digitrack.api.goal_master.get_goals?created_by=${currentUser}`);
       const data = await res.json();
       setGoals(
         (data.message || []).map((g: any, index: number) => ({

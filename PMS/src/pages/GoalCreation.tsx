@@ -62,8 +62,10 @@ const GoalCreation: React.FC = () => {
   const [selectedCopyYear, setSelectedCopyYear] = useState<string>("");
   const [isEdited, setIsEdited] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [createdByMe, setCreatedByMe] = useState(false);
-  const { goals: goalOptions, loading } = useGoalMaster({ created_by_me: createdByMe });
+  // const [createdByMe, setCreatedByMe] = useState(false);
+  // const { goals: goalOptions, loading } = useGoalMaster({ created_by_me: createdByMe });
+  const { goals: goalOptions, loading } = useGoalMaster({ created_by_me: true });
+
 
 
   const { employees: assignableEmployees, baseYear } = useGoalAssignment();
@@ -74,7 +76,7 @@ const GoalCreation: React.FC = () => {
     return goals.some(
       (g) =>
         g.goal_id === goalId ||
-        g.name === `${goalId} (${goalName})` // compare formatted
+        g.name === `${goalId} (${goalName})` 
     );
   };
   const isEditableStatus = (status: string) => {
@@ -83,7 +85,13 @@ const GoalCreation: React.FC = () => {
 
 
 useEffect(() => {
-  if (employee?.status === "Goal Submitted") setIsSubmitted(true);
+  if (
+    employee?.status === "Goal Submitted" ||
+    employee?.status === "Evaluation Submitted" ||
+    employee?.status === "Evaluation Started" 
+  ) {
+    setIsSubmitted(true);
+  }
 }, [employee]);
 
   // --- Effects ---
@@ -288,7 +296,16 @@ const handleSubmit = async () => {
         return;
       }
     }
-
+    for (let g of goals) {
+      const w = Number(g.weightage);
+      if (!g.weightage || isNaN(w) || w <= 0) {
+        setMessage({
+          text: "Weightage cannot be 0 or empty for any goal.",
+          type: "error",
+        });
+        return;
+      }
+    }
     // --- Prepare goals ---
     const newGoals = goals.map((g) => ({
       goal_id: g.goal_id,
@@ -521,8 +538,8 @@ const handleCopySelectedGoals = () => {
     </span>
   </div>
 
-  {/* ✅ Checkbox comes immediately after employee details */}
-  <label className="flex items-center gap-1 text-xs text-gray-600 cursor-pointer select-none">
+  {/* ✅ Checkbox comes immediately after employee details
+  <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer select-none">
 <input
   type="checkbox"
   className="accent-primary cursor-pointer"
@@ -532,7 +549,7 @@ const handleCopySelectedGoals = () => {
 Goals created by me
 
 
-  </label>
+  </label> */}
 </div>
 
         )}
@@ -567,13 +584,27 @@ Goals created by me
                   </td>
 
                   <div className="flex  flex-col justify-center align-top">
-                    <td className="relative py-1 px-1 align-top">
+                    {/* <td className="relative py-1 px-1 align-top">
                     <div className={`border w-full flex items-center justify-between gap-2 rounded px-2 py-1 cursor-pointer bg-gray-50`} onClick={(e) => {
     if (!isSubmitted) handleGoalClick(goal.id, index, e);
   }}>
                       <span className="text-xs">{goal.name || "Select Goal Name"}</span>
                       {!isSubmitted &&<RiArrowDropDownLine className="text-2xl" />}
+                    </div> */}
+                  <td className="relative py-1 px-1 align-top">
+                  <div
+                    className={`border w-full flex items-center justify-between gap-2 rounded px-2 py-1 
+                                ${isSubmitted ? "bg-gray-200 text-gray-500 pointer-events-none" 
+                                              : "cursor-pointer bg-gray-50"}`}
+                    onClick={(e) => handleGoalClick(goal.id, index, e)}
+                  >
+
+                      <span>{goal.name || "Select Goal Name"}</span>
+
+                      {!isSubmitted && <RiArrowDropDownLine className="text-2xl" />}
                     </div>
+
+
                     {dropdownOpen === goal.id && dropdownPos && createPortal(
                       <div className="absolute bg-white border rounded-lg shadow-lg z-[1000] w-[630px]" style={{ top: dropdownPos.top, left: dropdownPos.left }}>
                         <div className="p-2 border-b sticky top-0 bg-white z-10">
