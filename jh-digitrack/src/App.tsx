@@ -26,12 +26,18 @@ import Dashboard from "./components/dashboard";
 
 function AppWrapper() {
   const idleTimer = useRef<NodeJS.Timeout | null>(null);
-  const IDLE_TIME = 10 * 60 * 1000; 
+
+
+  const IDLE_TIME = 15 * 60 * 1000; // 15 minutes
+
   const resetIdleTimer = () => {
     if (idleTimer.current) clearTimeout(idleTimer.current);
 
     idleTimer.current = setTimeout(() => {
-      window.location.href = "/api/method/jh_digitrack.api.idle_logout.idle_logout";
+      fetch("/api/method/logout", { method: "POST" })
+        .finally(() => {
+          window.location.href = "/login";
+        });
     }, IDLE_TIME);
   };
 
