@@ -1,12 +1,11 @@
 import frappe
 import io
-import zipfile
 from datetime import datetime
 from frappe import _
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, PatternFill
-from openpyxl.utils import get_column_letter
 from werkzeug.wrappers import Response
+from openpyxl.utils import get_column_letter
 from jh_digitrack.api.pms_report import get_goal_assessment_summary
 
 @frappe.whitelist()
@@ -19,84 +18,84 @@ def download_excel(year=None, manager=None):
         if not data:
             frappe.throw("No summary data available for this selection.")
 
+        wb = Workbook()
         header_fill = PatternFill(start_color="D9D9D9", end_color="D9D9D9", fill_type="solid")
 
-        # =====================================================================
-        # FILE 1 – PMS SUMMARY
-        # =====================================================================
-        wb1 = Workbook()
-        ws1 = wb1.active
-        ws1.title = "PMS Summary"
+        # =====================================================
+        # SHEET 1 - PMS SUMMARY REPORT - {year}
+        # =====================================================
+        ws = wb.active
+        ws.title = f"PMS Summary Report - {year}"
 
-        ws1.merge_cells("A1:H1")
-        ws1["A1"] = f"PMS Summary Report - {year}"
-        ws1["A1"].font = Font(bold=True, size=14)
-        ws1["A1"].alignment = Alignment(horizontal="center")
-
-        ws1.append([])
-
-        summary_headers = [
-            {"label": "Manager Name", "key": "manager_name"},
-            {"label": "No. of Employees", "key": "employee_count"},
-            {"label": "Goals Pending", "key": "goals_pending"},
-            {"label": "Goals Started", "key": "goals_started"},
-            {"label": "Goals Submitted", "key": "goals_submitted"},
-            {"label": "Evaluation Pending", "key": "evaluation_pending"},
-            {"label": "Evaluation Started", "key": "evaluation_started"},
-            {"label": "Evaluation Submitted", "key": "evaluation_submitted"},
+        sheet1_headers = [
+            "Year",
+            "Manager Name",
+            "No. of Employees",
+            "Goals Pending",
+            "Goals Started",
+            "Goals Submitted",
+            "Evaluation Pending",
+            "Evaluation Started",
+            "Evaluation Submitted",
         ]
 
-        ws1.append([h["label"] for h in summary_headers])
-        for cell in ws1[3]:
+        ws.append(sheet1_headers)
+
+        for cell in ws[1]:
             cell.font = Font(bold=True)
             cell.fill = header_fill
+            cell.alignment = Alignment(horizontal="center")
 
         for row in data:
-            ws1.append([row.get(h["key"], 0) for h in summary_headers])
+            ws.append([
+                year,
+                row.get("manager_name"),
+                row.get("employee_count"),
+                row.get("goals_pending"),
+                row.get("goals_started"),
+                row.get("goals_submitted"),
+                row.get("evaluation_pending"),
+                row.get("evaluation_started"),
+                row.get("evaluation_submitted"),
+            ])
 
-        for i, col in enumerate(ws1.columns, 1):
-            ws1.column_dimensions[get_column_letter(i)].width = 20
+        # Auto width
+        for i, col in enumerate(ws.columns, 1):
+            max_length = max(len(str(cell.value or "")) for cell in col)
+            ws.column_dimensions[get_column_letter(i)].width = max_length + 2
 
-        out1 = io.BytesIO()
-        wb1.save(out1)
-        out1.seek(0)
+        # =====================================================
+        # SHEET 2 - EMPLOYEE STATUS REPORT - {year}
+        # =====================================================
+    
+        ws2 = wb.create_sheet(f"Employee Status Report - {year}")
 
-        # =====================================================================
-        # FILE 2 – EMPLOYEE STATUS
-        # =====================================================================
-        wb2 = Workbook()
-        ws2 = wb2.active
-        ws2.title = "Employee Status"
-
-        ws2.merge_cells("A1:F1")
-        ws2["A1"] = f"Employee Status Report - {year}"
-        ws2["A1"].font = Font(bold=True, size=14)
-        ws2["A1"].alignment = Alignment(horizontal="center")
-
-        ws2.append([])
-
-        emp_headers = [
-            "Employee Name", "Manager Name", "Manager Code",
-            "Manager Comment", "Status", "Total Score"
+        sheet2_headers = [
+            "Year",
+            "Employee Code",
+            "Employee Name",
+            "Manager Code",
+            "Manager Name",
+            "Status",
+            "Total Score",
+            "Comment",
         ]
+        ws2.append(sheet2_headers)
 
-        ws2.append(emp_headers)
-        for cell in ws2[3]:
+        for cell in ws2[1]:
             cell.font = Font(bold=True)
             cell.fill = header_fill
+            cell.alignment = Alignment(horizontal="center")
 
         for row in data:
             manager_name = row.get("manager_name")
+            manager_email = row.get("manager")
 
-            manager_code = ""
-            pms_doc = frappe.db.get_value(
+            manager_code = frappe.db.get_value(
                 "PMS Employees",
-                {"full_name": manager_name},
-                ["name"],
-                as_dict=True
-            )
-            if pms_doc:
-                manager_code = pms_doc.name
+                {"employee_email": manager_email},
+                "name"
+            ) or ""
 
             employee_groups = [
                 ("Goals Pending", row.get("goals_pending_employees") or []),
@@ -109,117 +108,130 @@ def download_excel(year=None, manager=None):
 
             for status_label, emp_list in employee_groups:
                 for emp in emp_list:
+                    employee_code = emp.get("employee_code") or ""
+                    employee_name = emp.get("employee_name") or ""
 
-                    manager_comment = frappe.db.get_value(
+                    assessment = frappe.db.get_value(
                         "Goal Assessment",
-                        {"employee_code": emp.get("employee_code"), "year": year},
-                        "comment"
-                    ) or ""
+                        {"employee_code": employee_code, "year": year},
+                        ["comment", "total_score"],
+                        as_dict=True
+                    ) or {}
 
+                    comment = assessment.get("comment") or ""
                     total_score = ""
+
                     if status_label == "Evaluation Submitted":
-                        total_score = frappe.db.get_value(
-                            "Goal Assessment",
-                            {"employee_code": emp.get("employee_code"), "year": year},
-                            "total_score"
-                        ) or ""
+                        total_score = assessment.get("total_score") or ""
 
                     ws2.append([
-                        emp.get("employee_name"),
-                        manager_name,
+                        year,
+                        employee_code,
+                        employee_name,
                         manager_code,
-                        manager_comment,
+                        manager_name,
                         status_label,
-                        total_score
+                        total_score,
+                        comment,
                     ])
 
         for i, col in enumerate(ws2.columns, 1):
-            ws2.column_dimensions[get_column_letter(i)].width = 25
+            max_length = max(len(str(cell.value or "")) for cell in col)
+            ws2.column_dimensions[get_column_letter(i)].width = max_length + 3
 
-        out2 = io.BytesIO()
-        wb2.save(out2)
-        out2.seek(0)
 
-        # =====================================================================
-        # FILE 3 – GOAL ASSESSMENT DETAILS
-        # =====================================================================
-        wb3 = Workbook()
-        ws3 = wb3.active
-        ws3.title = "Goal Assessment Details"
+        # =====================================================
+        # SHEET 3 - GOAL ASSESSMENT DETAILS - {year}
+        # =====================================================
+        ws3 = wb.create_sheet(f"Goal Assessment Details - {year}")
 
-        ws3.merge_cells("A1:Q1")
-        ws3["A1"] = f"Goal Assessment Details - {year}"
-        ws3["A1"].font = Font(bold=True, size=14)
-        ws3["A1"].alignment = Alignment(horizontal="center")
+        manager_fields = {
+            "manager_code": "Manager Code",
+            "manager_name": "Manager Name"
+        }
 
-        ws3.append([])
-
-        manager_fields = {"manager_code": "Manager Code", "manager_name": "Manager Name"}
         parent_fields = {
-            "year": "Year", "employee_code": "Employee Code", "employee_name": "Employee Name",
-            "status": "Status", "total_score": "Total Score", "comment": "Comment"
-        }
-        child_fields = {
-            "goal_id": "Goal ID", "goal_name": "Goal Name", "description": "Description",
-            "measurement_criteria": "Measurement Criteria", "uom": "UOM", "target": "Target",
-            "weightage": "Weightage", "achievement_score": "Achievement Score",
-            "achieved_score": "Achieved Score", "upwarddownward": "Upward/Downward", "remark": "Remark"
+            "year": "Year",
+            "employee_code": "Employee Code",
+            "employee_name": "Employee Name",
+            "status": "Status",
+            "total_score": "Total Score",
+            "comment": "Comment"
         }
 
-        ws3.append(list(manager_fields.values()) + list(parent_fields.values()) + list(child_fields.values()))
-        for cell in ws3[3]:
+        child_fields = {
+            "goal_id": "Goal ID",
+            "goal_name": "Goal Name",
+            "description": "Description",
+            "measurement_criteria": "Measurement Criteria",
+            "uom": "UOM",
+            "target": "Target",
+            "weightage": "Weightage",
+            "achievement_score": "Achievement Score",
+            "achieved_score": "Achieved Score",
+            "upwarddownward": "Upward Downward",
+            "remark": "Remark"
+        }
+
+        headers = list(manager_fields.values()) + list(parent_fields.values()) + list(child_fields.values())
+        ws3.append(headers)
+
+        for cell in ws3[1]:
             cell.font = Font(bold=True)
             cell.fill = header_fill
+            cell.alignment = Alignment(horizontal="center")
 
-        ga_docs = frappe.get_all("Goal Assessment", filters={"year": year, "manager": manager}, fields="*")
+        ga_docs = frappe.get_all(
+            "Goal Assessment",
+            filters={"year": year, "manager": manager},
+            fields="*"
+        )
 
         for ga in ga_docs:
-            manager_code, manager_name = "", ""
-            if ga.manager:
-                pms = frappe.db.get_value(
-                    "PMS Employees", {"employee_email": ga.manager},
-                    ["name", "full_name"], as_dict=True
-                )
-                if pms:
-                    manager_code, manager_name = pms.name, pms.full_name
+            mdata = frappe.db.get_value(
+                "PMS Employees",
+                {"employee_email": ga.manager},
+                ["name", "full_name"],
+                as_dict=True
+            ) or {}
 
+            manager_code = mdata.get("name", "")
+            manager_name = mdata.get("full_name", "")
+
+            manager_values = [manager_code, manager_name]
             parent_values = [ga.get(f) for f in parent_fields.keys()]
-            child_rows = frappe.get_all("Employee Goals", filters={"parent": ga.name}, fields="*")
+
+            child_rows = frappe.get_all(
+                "Employee Goals",
+                filters={"parent": ga.name},
+                fields="*"
+            )
 
             if child_rows:
                 for child in child_rows:
-                    ws3.append([manager_code, manager_name] + parent_values +
-                               [child.get(f) for f in child_fields.keys()])
+                    ws3.append(manager_values + parent_values + [child.get(f) for f in child_fields.keys()])
             else:
-                ws3.append([manager_code, manager_name] + parent_values + [""] * len(child_fields))
+                ws3.append(manager_values + parent_values + [""] * len(child_fields))
 
-        out3 = io.BytesIO()
-        wb3.save(out3)
-        out3.seek(0)
+        for i, col in enumerate(ws3.columns, 1):
+            max_length = max(len(str(cell.value or "")) for cell in col)
+            ws3.column_dimensions[get_column_letter(i)].width = max_length + 3
 
-        # =====================================================================
-        # CREATE ZIP FILE
-        # =====================================================================
-        zip_buffer = io.BytesIO()
+        # =====================================================
+        # OUTPUT FILE
+        # =====================================================
+        output = io.BytesIO()
+        wb.save(output)
+        output.seek(0)
 
-        with zipfile.ZipFile(zip_buffer, "w") as z:
-            z.writestr(f"PMS_Summary_{year}.xlsx", out1.getvalue())
-            z.writestr(f"PMS_Employee_Status_{year}.xlsx", out2.getvalue())
-            z.writestr(f"PMS_Goal_Assessment_{year}.xlsx", out3.getvalue())
-
-        zip_buffer.seek(0)
-
-        filename = f"PMS_Report_{year}_{datetime.now().strftime('%d%b%Y-%I%M%p')}.zip"
-
-        response = Response(zip_buffer.getvalue())
-        response.headers["Content-Type"] = "application/zip"
+        filename = f"PMS_Report_{year}_{datetime.now().strftime('%d%b%Y-%I%M%p')}.xlsx"
+        response = Response(output.getvalue())
+        response.headers["Content-Type"] = \
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         response.headers["Content-Disposition"] = f'attachment; filename="{filename}"'
 
         return response
 
     except Exception as e:
-        frappe.log_error(frappe.get_traceback(), "PMS Multi-Excel Report Error")
+        frappe.log_error(frappe.get_traceback(), "PMS Report Excel Generation Error")
         frappe.throw(_("Error generating Excel: ") + str(e))
-
-
-
