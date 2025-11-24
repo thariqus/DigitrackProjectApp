@@ -49,7 +49,10 @@ export function useGoalEvaluation(selectedYear?: string) {
         ? `/api/method/jh_digitrack.api.goal_evaluation.get_goal_evaluation?user=${currentUser}&year=${selectedYear}`
         : `/api/method/jh_digitrack.api.goal_evaluation.get_goal_evaluation?user=${currentUser}`;
 
-      const res = await fetch(url);
+      const res = await fetch(url, {
+        method: "GET",
+        credentials: "include"
+      });
       const json = await res.json();
 
       return {
@@ -110,9 +113,11 @@ export function useGoalAssessment() {
         "/api/method/jh_digitrack.api.goal_evaluation.create_goal_evaluation",
         {
           method: "POST",
+          credentials: "include",
           headers: {
             "Content-Type": "application/json",
-            "X-Frappe-CSRF-Token": (window as any).csrf_token || "",
+            "X-Frappe-CSRF-Token": (window as any).frappe?.csrf_token || ""
+
           },
           body: JSON.stringify({
             data: payload, 
@@ -179,8 +184,11 @@ export function useSubmitGoalEvaluation() {
         `/api/method/jh_digitrack.api.goal_evaluation.submit_goal_evaluation`,
         {
           method: "POST",
+          credentials: "include",
           headers: {
             "Content-Type": "application/json",
+            "X-Frappe-CSRF-Token": (window as any).frappe?.csrf_token || ""
+
           },
           body: JSON.stringify({
             employee_code: employeeCode,
@@ -239,6 +247,7 @@ export function useUploadGoalAttachment() {
 
       const res = await fetch("/api/method/jh_digitrack.api.goal_evaluation.upload_goal_attachment", {
         method: "POST",
+        credentials: "include",
         body: formData,
       });
 
@@ -275,7 +284,12 @@ export function useDeleteGoalAttachment() {
         "/api/method/jh_digitrack.api.goal_evaluation.delete_goal_attachment",
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Frappe-CSRF-Token": (window as any).frappe?.csrf_token || ""
+
+          },
           body: JSON.stringify({
             employee_code: employeeCode,
             year: year,

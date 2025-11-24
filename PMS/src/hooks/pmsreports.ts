@@ -54,7 +54,11 @@ export function useGoalAssessment(selectedYear?: string) {
         ? `/api/method/jh_digitrack.api.pms_report.get_goal_assessment_summary?year=${selectedYear}&manager=${currentUser}`
         : `/api/method/jh_digitrack.api.pms_report.get_goal_assessment_summary?manager=${currentUser}`;
 
-      const res = await fetch(url);
+      const res = await fetch(url, {
+        method: "GET",
+        credentials: "include"
+      });
+
       const json = await res.json();
       json.message.message = json.message.message.map((manager: any) => ({
         ...manager,

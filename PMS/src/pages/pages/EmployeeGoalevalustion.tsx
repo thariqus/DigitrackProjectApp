@@ -128,7 +128,10 @@ useEffect(() => {
         upwarddownward: goal.upwarddownward || "", 
         achievement_score: goal.achievement_score || "",
         score: goal.achievement_score || "",
-        achieved: goal.achieved || "",
+        // achieved: goal.achieved || "",
+        achieved: goal.achieved 
+        ? parseFloat(goal.achieved).toFixed(2)
+        : "",
         remark: goal.remark || "",
       }));
       setGoals(formattedGoals);
@@ -294,7 +297,11 @@ useEffect(() => {
     setGoals((prevGoals) =>
       prevGoals.map((g) => ({
         ...g,
-        achieved: achievedScores[g.goal_id]?.toFixed(2) || g.achieved || "",
+        // achieved: achievedScores[g.goal_id]?.toFixed(2) || g.achieved || "",
+        achieved: achievedScores[g.goal_id] 
+          ? parseFloat(achievedScores[g.goal_id]).toFixed(2)
+          : g.achieved || "",
+
       }))
       
     );
@@ -411,23 +418,30 @@ useEffect(() => {
           <table className="w-full text-left table-auto border-collapse">
             <thead className="bg-gray-100 text-gray-700 text-xs font-normal">
               <tr>
-                <th className="py-3 px-1 w-[27%] sticky left-0 bg-gray-100 z-10">Goal Name/Goal Description</th>
-                <th className="py-3 px-1 w-[23%]">Measurement Criteria</th>
+                <th className="py-3 px-1 w-[40%] sticky left-0 bg-gray-100 z-10">Goal Name/Goal Description</th>
+                <th className="py-3 px-1 w-[15%]">Measurement Criteria</th>
                 <th className="py-3 px-1 w-[8%] text-center">Target Value / UOM </th>
                 <th className="py-3 px-1 w-[5%] text-center">Achievement Score</th>
                 <th className="py-3 px-1 w-[5%] text-center">Weightage/ Achieved Score</th> 
-                <th className="py-3 px-1 w-[30%] text-center">Remark</th>
+                <th className="py-3 px-1 w-[27%] text-center">Remark</th>
               </tr>
             </thead>
             <tbody>
               {currentRows.map((goal, idx) => (
                 <tr key={goal.id} className="border-b text-sm">
-                  <td className="py-2 px-1 flex flex-col gap-1 sticky left-0 bg-white z-5">
+                  {/* <td className="py-2 px-1 flex flex-col gap-1 sticky left-0 bg-white z-5"> */}
+                  <td className="py-2 px-1 flex flex-col gap-1 sticky left-0 bg-white z-5 
+                  max-w-[520px] break-words whitespace-pre-wrap overflow-hidden">
+
                     <span>{goal.name}   </span>
                     <span>{goal.desc}</span>
                     <input type="hidden" value={goal.goal_id} readOnly />
                   </td>
-                  <td className="py-2 px-1">{goal.measurement}</td>
+                  {/* <td className="py-2 px-1">{goal.measurement}</td> */}
+                  <td className="py-2 px-1 max-w-[180px] break-words whitespace-pre-wrap overflow-hidden">
+                    {goal.measurement}
+                  </td>
+
                  
                   <td className="py-2 px-1 text-center">
                     <div className="flex items-center justify-center gap-2">
@@ -457,14 +471,23 @@ useEffect(() => {
                   {/* SCORE INPUT */}
                   <td className="py-2 px-1 text-center">
                     <input
-                      type="number"
+                      type="text"
                       value={goal.score || ""}
                       readOnly={isSubmitted}
-                      onChange={(e) =>
-                        !isSubmitted && handleInputChange(idx, "score", e.target.value)
-                      }
+                      onChange={(e) => {
+                        if (isSubmitted) return;
+
+                        let value = e.target.value;
+
+                        value = value.replace(/[^0-9]/g, "");
+
+                        value = value.slice(0, 3);
+
+                        handleInputChange(idx, "score", value);
+                      }}
                       className="border p-1 w-20 rounded text-center"
                     />
+
                   </td>
 
 
@@ -472,9 +495,14 @@ useEffect(() => {
                   <td className="py-2 px-1 text-center">
                     <div className="flex items-center justify-center gap-2">
                       {/* Weightage */}
-                      <span className="font-semibold">{goal.weightage}</span>
-
-                      {/* Smaller Achieved Box */}
+                      <span className="font-semibold">
+                        {goal.weightage}
+                        {goal.uom === "Percentage"
+                          ? "%"
+                          : goal.uom === "Number"
+                          ? " Num"
+                          : ` ${goal.uom}`}
+                      </span>
                       <input
                         type="text"
                         value={goal.achieved || ""}
@@ -484,17 +512,31 @@ useEffect(() => {
                     </div>
                   </td>
 
-
-
                   <td className="py-2 px-4 break-words max-w-[300px]">
-                    <textarea
-                      value={goal.remark || ""}
+
+                    {/* When submitted → show remark as plain text */}
+                    {isSubmitted ? (
+                      <p className="text-gray-700 text-sm whitespace-pre-wrap break-words bg-gray-50 p-2 rounded border">
+                        {goal.remark || "-"}
+                      </p>
+                    ) : (
+                      /* Before submit → show textarea */
+                      <textarea
+                        value={goal.remark || ""}
                         readOnly={isSubmitted}
-                        onChange={(e) => !isSubmitted && handleInputChange(idx, "remark", e.target.value)}  
+                        onChange={(e) => {
+                          if (isSubmitted) return;
+
+                          const value = e.target.value.slice(0, 250);
+                          handleInputChange(idx, "remark", value);
+                        }}
                         className="border p-1 w-full rounded"
-                      rows={2}
-                    />
+                        rows={2}
+                      />
+                    )}
+
                   </td>
+
                 </tr>
               ))}
             </tbody>
@@ -510,33 +552,33 @@ useEffect(() => {
             handlePageChange={handlePageChange}
           />
                   {/* Submitted Comment */}
-        {isSubmitted && submittedComment && (
+        {/* {isSubmitted && submittedComment && (
           <div className="mx-2  mb-2 px-4 py-2 border rounded-lg bg-gray-50">
             <h3 className="text-md font-medium text-gray-800 mb-1">Comment</h3>
             <p className="text-gray-700 text-sm h-20 overflow-x-none overflow-y-auto whitespace-pre-line">{submittedComment}</p>
           </div>
+        )} */}
+        
+
+        {isSubmitted && submittedComment && (
+          <div className="mx-2 mb-2 px-4 py-2 border rounded-lg bg-gray-50">
+            <h3 className="text-md font-medium text-gray-800 mb-1">Comment</h3>
+
+            <p className="text-gray-700 text-sm max-h-40 overflow-y-auto whitespace-pre-wrap break-words leading-5 p-2 border rounded bg-white">
+              {submittedComment}
+            </p>
+          </div>
         )}
         </div>
-
-
         {/* Footer */}
-        <div className={`flex items-center gap-4 mt-6 ${isSubmitted ? "justify-start" : "justify-end"}`}>
 
-          {/* File Upload */}
-          
-            
-          <div className="relative min-w-[250px]">
-            {!isSubmitted && (
-            <label className="flex items-center bg-secondary gap-2 px-4 py-2 rounded-sm cursor-pointer hover:bg-gray-100 transition">
-              <input type="file" className="hidden" multiple onChange={handleFileChange} />
-              <IoCloudUploadOutline className="text-gray-500" />
-              <span className="text-gray-500 text-sm font-medium">Attach File</span>
-            </label>
-            )}
-            
+
+        <div className="flex items-start justify-between mt-2 w-full">
+
+          {/* ---------------- LEFT SIDE: ATTACHMENTS LIST ---------------- */}
+          <div className="min-w-[260px] relative">
             {attachments.length > 0 && (
-              <div className="absolute  left-280 mt-1 w-full border border-gray-200 rounded-sm p-2 bg-white">
-
+              <div className="border border-gray-200 rounded-sm p-2 bg-white w-full">
                 <ul className="flex flex-col gap-2">
                   {attachments.map((file, index) => (
                     <li
@@ -547,50 +589,67 @@ useEffect(() => {
                         href={file.file_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="truncate w-3/4 text-blue-600 hover:underline"
+                        className="truncate w-3/4 text-primary hover:underline"
                       >
                         {file.file_name}
                       </a>
+
                       {!isSubmitted && (
-                      <button
-                        onClick={() => handleDeleteAttachment(file.file_url)}
-                        className="text-red-500 hover:text-red-700 text-xs font-medium"
-                      >
-                        <MdOutlineDelete className="text-lg" />
-                      </button>
+                        <button
+                          onClick={() => handleDeleteAttachment(file.file_url)}
+                          className="text-red-500 hover:text-red-700 text-xs font-medium"
+                        >
+                          <MdOutlineDelete className="text-lg" />
+                        </button>
                       )}
                     </li>
                   ))}
                 </ul>
               </div>
             )}
-
-
           </div>
+
           {!isSubmitted && (
-            <>
-          {/* Buttons */}
-          <button onClick={handleSave} className="px-4 mx-2 py-2 text-sm rounded-sm bg-secondary text-gray-600 hover:bg-secondary/80">
-            Save
-          </button>
+            <div className="flex items-center gap-4">
 
-          <button
-            onClick={() => {
+              {/* Attach File */}
+              <label
+                className="flex items-center bg-secondary gap-2 px-4 py-2 rounded-sm cursor-pointer hover:bg-gray-100 transition"
+                title="Allowed file types: PDF, JPG, PNG, DOCX, XLSX, CSV, SVG(Max 2MB)"
+              >
+                <input
+                  type="file"
+                  className="hidden"
+                  multiple
+                  onChange={handleFileChange}
+                />
+                <IoCloudUploadOutline className="text-gray-500" />
+                <span className="text-gray-600 text-sm font-medium">Attach File</span>
+              </label>
 
-              // open comment popup instead of submitting
-              handleSubmit();
-            }}
-            className="px-4 py-2 text-sm rounded-sm bg-primary text-white hover:bg-primary/80"
-          >
-            Submit
-          </button>
+              {/* Save */}
+              <button
+                onClick={handleSave}
+                className="px-4 py-2 text-sm rounded-sm bg-secondary text-gray-600 hover:bg-secondary/80"
+              >
+                Save
+              </button>
 
-      
+              {/* Submit */}
+                  <button
+                    onClick={() => {
 
-          </>
+                      handleSubmit();
+                    }}
+                    className="px-4 py-2 text-sm rounded-sm bg-primary text-white hover:bg-primary/80"
+                  >
+                    Submit
+                  </button>
+            </div>
           )}
         </div>
-        
+
+
         {/* Alert message */}
         {message.text && (
           <div
@@ -615,8 +674,11 @@ useEffect(() => {
               <textarea
                 rows={3}
                 value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-                className="w-full border rounded p-2  h-50 text-sm"
+                onChange={(e) => {
+                  const value = e.target.value.slice(0, 500); 
+                  setCommentText(value);
+                }}
+                className="w-full border rounded p-2 h-50 text-sm"
                 placeholder="Add comment (optional)"
               ></textarea>
 

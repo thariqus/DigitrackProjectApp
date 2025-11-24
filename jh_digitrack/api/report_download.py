@@ -30,6 +30,7 @@ def download_excel(year=None, manager=None):
         sheet1_headers = [
             "Year",
             "Manager Name",
+            "Status",
             "No. of Employees",
             "Goals Pending",
             "Goals Started",
@@ -47,9 +48,20 @@ def download_excel(year=None, manager=None):
             cell.alignment = Alignment(horizontal="center")
 
         for row in data:
+            employee_count = row.get("employee_count") or 0
+            goals_pending = row.get("goals_pending") or 0
+            evaluation_submitted = row.get("evaluation_submitted") or 0
+
+            if employee_count == evaluation_submitted:
+                status = "Completed"
+            elif employee_count == goals_pending:
+                status = "Yet to start"
+            else:
+                status = "In Progress"
             ws.append([
                 year,
                 row.get("manager_name"),
+                status,
                 row.get("employee_count"),
                 row.get("goals_pending"),
                 row.get("goals_started"),

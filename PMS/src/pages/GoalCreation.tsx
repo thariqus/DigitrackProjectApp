@@ -83,6 +83,16 @@ const GoalCreation: React.FC = () => {
     return (status === "Goal Pending" || status === "Goal Started") && isBaseYear;
   };
 
+useEffect(() => {
+  const handleEsc = (e: KeyboardEvent) => {
+    if (e.key === "Escape") {
+      setDropdownOpen(null);
+    }
+  };
+
+  window.addEventListener("keydown", handleEsc);
+  return () => window.removeEventListener("keydown", handleEsc);
+}, []);
 
 useEffect(() => {
   if (
@@ -254,7 +264,7 @@ const handleSave = async () => {
     if (response?.message) {
       const msgText = typeof response.message === "string"
         ? response.message
-        : response.message.message || "Goal Assessment saved successfully";
+        : response.message.message || "Goal Assignment saved successfully";
 
       setMessage({ text: msgText, type: "success" });
 
@@ -268,18 +278,14 @@ const handleSave = async () => {
     }
 
   } catch (error) {
-    console.error("❌ Error creating Goal Assessment:", error);
+    console.error("❌ Error creating Goal Assignment:", error);
     setMessage({ text: "Something went wrong while saving.", type: "error" });
   }
 };
 
 
 const handleSubmit = async () => {
-  const userConfirmed = window.confirm(
-    "Are you sure you want to submit the goals? Once submitted, you cannot edit."
-  );
 
-  if (!userConfirmed) return;
   try {
 
     if (!employee || !year) {
@@ -290,22 +296,33 @@ const handleSubmit = async () => {
 
 
     for (let g of goals) {
-      if (!g.goal_id || !g.desc || !g.measurement || !g.targetvalue || !g.uom) {
+      if (!g.goal_id || !g.desc || !g.measurement || !g.targetvalue || !g.uom || !g.weightage || !g.seletedvalueOfUorD) {
         console.warn("⚠️ Missing data in goal:", g);
         setMessage({ text: "All fields must be filled to submit.", type: "error" });
         return;
       }
     }
+// --- Total Weightage Validation BEFORE Submit Confirmation ---
+    let totalWeightage = 0;
+
     for (let g of goals) {
       const w = Number(g.weightage);
-      if (!g.weightage || isNaN(w) || w <= 0) {
-        setMessage({
-          text: "Weightage cannot be 0 or empty for any goal.",
-          type: "error",
-        });
-        return;
-      }
+      totalWeightage += isNaN(w) ? 0 : w;
     }
+
+    if (totalWeightage !== 100) {
+      setMessage({
+        text: `Total weightage must be exactly 100. Current total: ${totalWeightage}`,
+        type: "error",
+      });
+      return;
+    }
+
+    const userConfirmed = window.confirm(
+      "Are you sure you want to submit the goals? Once submitted, you cannot edit."
+    );
+
+    if (!userConfirmed) return;
     // --- Prepare goals ---
     const newGoals = goals.map((g) => ({
       goal_id: g.goal_id,
@@ -377,10 +394,6 @@ const handleDeleteGoals = async () => {
     console.warn("⚠️ No valid goal_ids found in selectedGoals");
     return;
   }
-
-  console.log("🗑 Deleting goals:", goalIdsToDelete);
-  console.log("👤 Employee Code:", employee?.id);
-  console.log("📅 Assessment Year:", year);
 
   try {
     const res = await deleteEmployeeGoals({
@@ -564,13 +577,13 @@ Goals created by me
             <thead className="bg-gray-100 text-gray-500 text-xs">
               <tr>
                 <th className="py-2 px-2 text-center w-[2%]"></th>
-                <th className="py-2 px-4 text-center w-[40%]">Goal Name / Goal Description</th>
+                <th className="py-2 px-4 text-center w-[48%]">Goal Name / Goal Description</th>
                 {/* <th className="py-2 px-4 text-center w-[50%]">Goal Description</th> */}
-                <th className="py-2 px-4 text-center w-[23%]">Measurement Criteria</th>
-                <th className="py-2 px-4 text-center w-[7%]">UOM</th>
-                <th className="py-2 px-4 text-center w-[7%]">Weightage</th>
-                <th className="py-2 px-4 text-center w-[5%]">Target</th>
-                <th className="py-2 px-4 text-center w-[2%]">Upward(U)/ Downward(D)</th>
+                <th className="py-2 px-4 text-center w-[30%]">Measurement Criteria</th>
+                <th className="py-2 px-4 text-center w-[6%]">UOM</th>
+                <th className="py-2 px-4 text-center w-[4%]">Target</th>
+                <th className="py-2 px-4 text-center w-[4%]">Weightage</th>
+                <th className="py-2 px-4 text-center w-[6%]">Upward(U)/ Downward(D)</th>
               </tr>
             </thead>
             <tbody>
@@ -584,13 +597,7 @@ Goals created by me
                   </td>
 
                   <div className="flex  flex-col justify-center align-top">
-                    {/* <td className="relative py-1 px-1 align-top">
-                    <div className={`border w-full flex items-center justify-between gap-2 rounded px-2 py-1 cursor-pointer bg-gray-50`} onClick={(e) => {
-    if (!isSubmitted) handleGoalClick(goal.id, index, e);
-  }}>
-                      <span className="text-xs">{goal.name || "Select Goal Name"}</span>
-                      {!isSubmitted &&<RiArrowDropDownLine className="text-2xl" />}
-                    </div> */}
+                 
                   <td className="relative py-1 px-1 align-top">
                   <div
                     className={`border w-full flex items-center justify-between gap-2 rounded px-2 py-1 
@@ -610,12 +617,7 @@ Goals created by me
                         <div className="p-2 border-b sticky top-0 bg-white z-10">
                           <input type="text" placeholder="Search goal..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full border rounded-md px-3 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary" />
                         </div>
-                        {/* <ul className="max-h-60 overflow-y-auto">
-                          {goalOptions.filter((g) => g.name.toLowerCase().includes(search.toLowerCase())).map((g) => (
-                            <li key={g.name} className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm" onClick={() => handleSelectGoal(indexOfFirstRow + index, g.name)}>{g.name}</li>
-                          ))}
-                          {goalOptions.filter((g) => g.name.toLowerCase().includes(search.toLowerCase())).length === 0 && <li className="px-3 py-2 text-gray-500 italic text-sm">No goals found</li>}
-                        </ul> */}
+                       
                         <ul className="max-h-60 overflow-y-auto">
                           {goalOptions
                             .filter((g) => g.goal_name.toLowerCase().includes(search.toLowerCase()) || g.name.toLowerCase().includes(search.toLowerCase()))
@@ -676,26 +678,70 @@ Goals created by me
                       <option value="Number">Number</option>
                     </select>
                   </td>
+
 <td className="py-1 px-1 align-top">
   <input
     type="text"
-    value={goal.weightage}
+    value={goal.targetvalue}
     onChange={(e) => {
+      let value = e.target.value;
+
+      // Allow only numbers
+      value = value.replace(/[^0-9]/g, "");
+
+      // Limit to max 3 digits
+      value = value.slice(0, 3);
+
       const updated = [...goals];
-      updated[indexOfFirstRow + index].weightage = e.target.value;
+      updated[indexOfFirstRow + index].targetvalue = value;
+
       setGoals(updated);
       setIsEdited(true);
     }}
-    className="border text-xs p-1 w-full rounded"
+    className="border text-xs p-1 w-full rounded text-center"
     readOnly={isSubmitted || !isEditableStatus(employee?.status || "")}
   />
 </td>
-                
-                  <td className="py-1 px-1 align-top">
-                    <input type="text" value={goal.targetvalue} onChange={(e) => { const updated = [...goals]; updated[indexOfFirstRow + index].targetvalue = e.target.value; setGoals(updated); setIsEdited(true);
-}} className="border text-xs p-1 w-full rounded" readOnly={isSubmitted || !isEditableStatus(employee?.status || "")}
-/>
-                  </td>
+
+
+<td className="py-1 px-1 align-top">
+  
+  <div className="flex items-center border rounded w-full bg-white px-1">
+    <input
+      type="text"
+      value={goal.weightage}
+      onChange={(e) => {
+        let val = e.target.value;
+
+        if (val === "") {
+          const updated = [...goals];
+          updated[indexOfFirstRow + index].weightage = "";
+          setGoals(updated);
+          setIsEdited(true);
+          return;
+        }
+
+        if (!/^\d+$/.test(val)) {
+          return;
+        }
+
+        let num = Number(val);
+        if (num < 1) num = 1;
+        if (num > 100) num = 100;
+
+        const updated = [...goals];
+        updated[indexOfFirstRow + index].weightage = String(num);
+        setGoals(updated);
+        setIsEdited(true);
+      }}
+      className="text-xs p-1 w-full outline-none text-center"
+      readOnly={isSubmitted || !isEditableStatus(employee?.status || "")}
+    />
+
+    <span className="text-[10px] text-gray-700">%</span>
+  </div>
+</td>
+
 
                   <td className="py-1 px-1 align-top">
                     <select value={goal.seletedvalueOfUorD || ""} onChange={(e) => { const updated = [...goals]; updated[indexOfFirstRow + index].seletedvalueOfUorD = e.target.value; setGoals(updated); setIsEdited(true);

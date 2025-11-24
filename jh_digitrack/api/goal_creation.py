@@ -73,7 +73,7 @@ def create_goal_assessment(data=None, session_user=None):
             data = frappe.parse_json(data)
 
         if not data:
-            frappe.throw(_("No data received for goal assessment."))
+            frappe.throw(_("No data received for goal assignment."))
 
         employee_code = data.get("employee_code")
         year = data.get("year")
@@ -99,7 +99,7 @@ def create_goal_assessment(data=None, session_user=None):
 
             doc.set("employee_goals", [])
 
-            msg = f"Updated Goal Assessment"
+            msg = f"Updated Goal Assignment"
 
         else:
             doc = frappe.new_doc("Goal Assessment")
@@ -107,7 +107,7 @@ def create_goal_assessment(data=None, session_user=None):
             doc.year = year
             doc.manager = session_user
             doc.status = "Goal Started"
-            msg = "Created new Goal Assessment"
+            msg = "Created new Goal Assignment"
 
         for g in goals:
             doc.append("employee_goals", {
@@ -137,7 +137,7 @@ from frappe.utils import now
 @frappe.whitelist()
 def submit_goal_assessment(employee_code=None, year=None, new_goals=None):
     try:
-        frappe.logger().info(f" Submit Goal Assessment: emp={employee_code}, year={year}")
+        frappe.logger().info(f" Submit Goal Assignment: emp={employee_code}, year={year}")
 
         if not employee_code or not year:
             frappe.throw(_("Employee code and year are required."))
@@ -201,7 +201,7 @@ def submit_goal_assessment(employee_code=None, year=None, new_goals=None):
         doc.save(ignore_permissions=True)
         frappe.db.commit()
 
-        frappe.logger().info(f"Successfully submitted Goal Assessment: {doc.name}")
+        frappe.logger().info(f"Successfully submitted Goal Assignment: {doc.name}")
         return {
             "message": {
                 "status": "success",
@@ -211,8 +211,8 @@ def submit_goal_assessment(employee_code=None, year=None, new_goals=None):
 
     except Exception as e:
         frappe.db.rollback()
-        frappe.log_error(frappe.get_traceback(), "Goal Assessment Submit Failed")
-        frappe.logger().error(f" Error submitting Goal Assessment: {str(e)}")
+        frappe.log_error(frappe.get_traceback(), "Goal Assignment Submit Failed")
+        frappe.logger().error(f" Error submitting Goal Assignment: {str(e)}")
         return {"error": str(e)}
 
 import frappe
@@ -231,7 +231,7 @@ def delete_employee_goals(employee_code, year, goal_ids):
     if not remaining:
         frappe.delete_doc("Goal Assessment", doc.name, force=1, ignore_permissions=True)
         frappe.db.commit()
-        return {"message": "All goals deleted. Goal Assessment removed as well."}
+        return {"message": "All goals deleted. Goal Assignment removed as well."}
 
     doc.set("employee_goals", remaining)
     doc.save(ignore_permissions=True)

@@ -8,11 +8,11 @@
   "section_break_dmxl",
   "goal_id",
   "goal_name",
-  "description",
   "measurement_criteria",
-  "column_break_5s17",
   "uom",
   "target",
+  "column_break_5s17",
+  "description",
   "section_break_mgff",
   "weightage",
   "achievement_score",
@@ -49,25 +49,25 @@
   },
   {
    "fieldname": "description",
-   "fieldtype": "Data",
-   "in_list_view": 1,
+   "fieldtype": "Small Text",
    "label": "Description"
   },
   {
    "fieldname": "measurement_criteria",
    "fieldtype": "Data",
-   "in_list_view": 1,
    "label": "Measurement Criteria"
   },
   {
    "fieldname": "uom",
    "fieldtype": "Select",
+   "in_list_view": 1,
    "label": "UOM",
    "options": "Percentage\nNumber"
   },
   {
    "fieldname": "target",
    "fieldtype": "Data",
+   "in_list_view": 1,
    "label": "Target"
   },
   {
@@ -133,6 +133,7 @@
   {
    "fieldname": "weightage",
    "fieldtype": "Int",
+   "in_list_view": 1,
    "label": "Weightage"
   },
   {
@@ -145,7 +146,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-11-20 10:46:59.289946",
+ "modified": "2025-11-22 18:10:08.721995",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "Employee Goals",

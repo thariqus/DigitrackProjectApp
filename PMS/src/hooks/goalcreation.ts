@@ -126,9 +126,11 @@ export function useGoalAssessment() {
         "/api/method/jh_digitrack.api.goal_creation.create_goal_assessment",
         {
           method: "POST",
+          credentials: "include",
           headers: {
             "Content-Type": "application/json",
-            "X-Frappe-CSRF-Token": (window as any).csrf_token || "",
+            "X-Frappe-CSRF-Token": (window as any).frappe?.csrf_token || ""
+
           },
           body: JSON.stringify({
             data: payload,
@@ -163,9 +165,11 @@ export async function deleteEmployeeGoals({
       "/api/method/jh_digitrack.api.goal_creation.delete_employee_goals",
       {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
-          "X-Frappe-CSRF-Token": (window as any).csrf_token || "",
+          "X-Frappe-CSRF-Token": (window as any).frappe?.csrf_token || ""
+
         },
         body: JSON.stringify({ employee_code, year, goal_ids }),
       }
@@ -187,9 +191,11 @@ export async function submitGoalAssessment(
 
     const res = await fetch("/api/method/jh_digitrack.api.goal_creation.submit_goal_assessment", {
       method: "POST",
+      credentials: "include",
       headers: {
         "Content-Type": "application/json",
-        "X-Frappe-CSRF-Token": (window as any).csrf_token || "",
+        "X-Frappe-CSRF-Token": (window as any).frappe?.csrf_token || ""
+
       },
       body: JSON.stringify({
         employee_code: employee_code,
