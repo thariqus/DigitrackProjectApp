@@ -26,7 +26,11 @@ export function useGoalAssignment(selectedYear?: string) {
         ? `/api/method/jh_digitrack.api.goal_assignment.get_employees_with_status?user=${currentUser}&year=${selectedYear}`
         : `/api/method/jh_digitrack.api.goal_assignment.get_employees_with_status?user=${currentUser}`;
 
-      const res = await fetch(url);
+      const res = await fetch(url, {
+        method: "GET",
+        credentials: "include"
+      });
+
       const json = await res.json();
 
       return {

@@ -20,7 +20,14 @@ export function useGoalMaster() {
   const fetchGoals = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/method/jh_digitrack.api.goal_master.get_goals?created_by=${currentUser}`);
+      const res = await fetch(
+        `/api/method/jh_digitrack.api.goal_master.get_goals?created_by=${currentUser}`,
+        {
+          method: "GET",
+          credentials: "include"
+        }
+      );
+
       const data = await res.json();
       setGoals(
         (data.message || []).map((g: any, index: number) => ({
@@ -42,17 +49,19 @@ export function useGoalMaster() {
   };
 
   useEffect(() => {
+    if (!currentUser) return;   
     fetchGoals();
-  }, []);
+  }, [currentUser]);
 
   const refetch = () => fetchGoals(); 
   const addGoal = async (goal: Partial<GoalMaster>) => {
     try {
       const res = await fetch("/api/method/jh_digitrack.api.goal_master.add_goal", {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
-          "X-Frappe-CSRF-Token": (window as any).csrf_token || ""
+          "X-Frappe-CSRF-Token": (window as any).frappe?.csrf_token || ""
         },
         body: JSON.stringify({
           goal_name: goal.name,
@@ -66,16 +75,16 @@ export function useGoalMaster() {
       const data = await res.json();
 
       if (res.ok && data.message?.goal) {
-        setGoals((prev) => [
-          {
+      setGoals((prev) => [
+        {
             id: data.message.goal.name,
             name: data.message.goal.goal_name,
             description: data.message.goal.goal_description,
             measurement: data.message.goal.measurement_criteria,
             target: data.message.goal.target,
-          },
-          ...prev,
-        ]);
+        },
+        ...prev,
+      ]);
       }
     } catch (error) {
       console.error(error);
@@ -86,9 +95,10 @@ export function useGoalMaster() {
     try {
       const res = await fetch("/api/method/jh_digitrack.api.goal_master.edit_goal", {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
-          "X-Frappe-CSRF-Token": (window as any).csrf_token || ""
+          "X-Frappe-CSRF-Token": (window as any).frappe?.csrf_token || ""
         },
         body: JSON.stringify({
           name: goal.id,
@@ -108,7 +118,7 @@ export function useGoalMaster() {
         );
       }
     } catch (error) {
-      console.error(error);
+      console.error(error); 
     }
   };
 

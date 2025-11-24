@@ -109,6 +109,7 @@ function GoalMaster() {
 
       {/* Table */}
       <div className="border rounded-lg w-full overflow-x-auto">
+      
         <div className="px-2 py-1 border-b flex items-center relative">
           <CiSearch className="absolute text-xs left-5 text-gray-400" />
           <input
@@ -122,29 +123,41 @@ function GoalMaster() {
           />
         </div>
 
-        <table className="w-full text-left">
+        {/* <table className="w-full text-left"> */}
+        <table className="w-full table-fixed text-left">
           <thead className="bg-gray-100 text-xs font-semibold text-gray-700 border-b">
             <tr>
-              <th className="py-2  px-4 w-[10%]">Goal Id</th>
-              <th className="py-2  px-4 w-[25%]">Goal Name</th>
-              <th className="py-2  px-4 w-[40%]">Description</th>
-              <th className="py-2  px-4 w-[20%]">Measurement Criteria</th>
+              <th className="py-2 px-4 whitespace-normal break-words overflow-wrap break-word w-[10%]">Goal Id</th>
+              <th className="py-2 px-4 whitespace-normal break-words overflow-wrap break-word w-[25%]">Goal Name</th>
+              <th className="py-2 px-4 whitespace-normal break-words overflow-wrap break-word w-[40%]">Description</th>
+              <th className="py-2 px-4 whitespace-normal break-words overflow-wrap break-word w-[20%]">Measurement Criteria</th>
               <th className="py-2  px-4 w-[5%]">Action</th>
             </tr>
           </thead>
+
           <tbody>
             {currentRows.map((item) => (
               <tr key={item.id} className="border-b text-xs transition">
+
                 <td
-                  className="py-2 px-4 text-black-600 cursor-pointer hover:underline"
+                  className="py-2 px-4 whitespace-normal break-words overflow-wrap break-word cursor-pointer hover:underline"
                   onClick={() => handleEdit(item)}
                 >
                   {item.id}
                 </td>
 
-                <td className="py-2 px-4">{item.name}</td>
-                <td className="py-2 px-4">{item.description}</td>
-                <td className="py-2 px-4">{item.measurement}</td>
+                <td className="py-2 px-4 whitespace-normal break-words overflow-wrap break-word">
+                  {item.name}
+                </td>
+
+                <td className="py-2 px-4 whitespace-normal break-words overflow-wrap break-word">
+                  {item.description}
+                </td>
+
+                <td className="py-2 px-4 whitespace-normal break-words overflow-wrap break-word">
+                  {item.measurement}
+                </td>
+
                 <td className="px-7 cursor-pointer" onClick={() => handleEdit(item)}>
                   <MdOutlineModeEditOutline />
                 </td>
@@ -218,6 +231,7 @@ function GoalMaster() {
                   type="text"
                   placeholder="Enter Goal Name"
                   value={newGoal.name}
+                  maxLength={140}
                   onChange={(e) => setNewGoal({ ...newGoal, name: e.target.value })}
                   className="w-full  text-xs border border-gray-300 rounded-lg px-3 py-2 focus:outline-none"
                   required
@@ -230,6 +244,7 @@ function GoalMaster() {
                 <textarea
                   placeholder="Enter Description"
                   value={newGoal.description}
+                  maxLength={500}
                   onChange={(e) => setNewGoal({ ...newGoal, description: e.target.value })}
                   className="w-full border text-xs border-gray-300 h-35 rounded-lg px-3 py-2 focus:outline-none"
                   required
@@ -243,6 +258,7 @@ function GoalMaster() {
                   type="text"
                   placeholder="Enter Measurement Criteria"
                   value={newGoal.measurement}
+                  maxLength={140}
                   onChange={(e) => setNewGoal({ ...newGoal, measurement: e.target.value })}
                   className="w-full text-xs border border-gray-300 rounded-lg px-3 py-2 focus:outline-none"
                   required

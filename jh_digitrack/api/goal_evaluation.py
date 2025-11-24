@@ -294,7 +294,19 @@ def submit_goal_evaluation(employee_code, year, goals=None, comment=None):
 import frappe
 from frappe.utils.file_manager import save_file
 from frappe import _
+import mimetypes
 
+ALLOWED_EXTENSIONS = {"pdf", "docx", "xlsx", "jpg", "jpeg", "png", "csv", "svg"}
+
+ALLOWED_MIME_TYPES = {
+    "application/pdf",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "image/jpeg",
+    "image/png",
+    "text/csv",
+    "image/svg+xml",
+}
 @frappe.whitelist(allow_guest=False)
 def upload_goal_attachment(employee_code, year):
     """Upload a single attachment and link it to the Goal Assessment."""
@@ -316,7 +328,18 @@ def upload_goal_attachment(employee_code, year):
             frappe.throw(_("No file received."))
 
         file_obj = list(files.values())[0]
+        filename = file_obj.filename.lower()
 
+        extension = filename.rsplit(".", 1)[-1] if "." in filename else ""
+        if extension not in ALLOWED_EXTENSIONS:
+            frappe.throw(_("File type not allowed: {0}").format(extension))
+
+        detected_mime, _ = mimetypes.guess_type(filename)
+        if detected_mime not in ALLOWED_MIME_TYPES:
+            frappe.throw(_("Invalid or mismatched file format."))
+
+        if file_obj.content_type not in ALLOWED_MIME_TYPES:
+            frappe.throw(_("Invalid MIME type: {0}").format(file_obj.content_type))
         content = file_obj.read()
         if len(content) > 2 * 1024 * 1024:
             frappe.throw(_(f"{file_obj.filename} exceeds the 2MB limit."))

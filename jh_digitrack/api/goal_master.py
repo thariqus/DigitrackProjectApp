@@ -1,14 +1,9 @@
 
 import frappe
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def get_goals(created_by=None):
-    """
-    Fetch all active goals. Optionally filter by the user who created them.
-    Example calls:
-      /api/method/jh_digitrack.api.goal_master.get_goals
-      /api/method/jh_digitrack.api.goal_master.get_goals?created_by=adhil@example.com
-    """
+   
     query_filters = {"inactive": 0}
 
     if created_by:
@@ -43,6 +38,24 @@ def add_goal(goal_name, goal_description, measurement_criteria, target="", creat
     goal_doc.insert(ignore_permissions=True)
     frappe.db.commit()
     return {"success": True, "goal": goal_doc.as_dict()}
+# @frappe.whitelist()
+# def add_goal(goal_name, goal_description, measurement_criteria, target="", created_by=None, created_date=None):
+#     try:
+#         goal_doc = frappe.new_doc("JH Goal Master")
+#         goal_doc.goal_name = goal_name
+#         goal_doc.goal_description = goal_description
+#         goal_doc.measurement_criteria = measurement_criteria
+#         goal_doc.target = target
+#         goal_doc.created_by = created_by or frappe.session.user
+#         goal_doc.created_date = created_date or frappe.utils.now_datetime()
+        
+#         goal_doc.insert(ignore_permissions=True)
+#         frappe.db.commit()
+#         return {"success": True, "goal": goal_doc.as_dict()}
+    
+#     except Exception as e:
+#         frappe.log_error(frappe.get_traceback(), "Goal Creation Failed")
+#         return {"success": False, "error": str(e)}
 
 
 @frappe.whitelist()

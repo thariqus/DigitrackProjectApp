@@ -153,13 +153,33 @@ const AppHeader: React.FC = () => {
           className={`${isApplicationMenuOpen ? "flex" : "hidden"
             } items-center justify-between w-full gap-4 px-5 py-4 lg:flex shadow-theme-md lg:justify-end lg:px-0 lg:shadow-none`}
         >
-          <div className="flex items-center gap-2 2xsm:gap-3">
+{/* <div className="flex items-center gap-2">
+  <h1 className="text-base font-bold tracking-wider text-gray-900 dark:text-white
+                 drop-shadow-sm select-none">
+    PMS<span className="text-red-600 dark:text-red-400 ml-1">Lite</span>
+  </h1>
+</div> */}
+
+<div className="flex items-center gap-1 select-none">
+  <span
+    className="text-xl font-extrabold tracking-wider drop-shadow-sm"
+    style={{ color: "var(--color-primary)" }}
+  >
+    PMS
+  </span>
+  <span className="text-sm font-semibold text-gray-500 dark:text-gray-300 mt-1">
+    Lite
+  </span>
+</div>
+
+
+
             {/* <!-- Dark Mode Toggler --> */}
             {/* <ThemeToggleButton /> */}
             {/* <!-- Dark Mode Toggler --> */}
             {/* <NotificationDropdown /> */}
             {/* <!-- Notification Menu Area --> */}
-          </div>
+          {/* </div> */}
 
           {/* NavItems */}
           {/* <ul className="flex justify-center gap-5">

@@ -90,8 +90,7 @@
 
 
 
-import React, { useState } from "react";
-
+import React, { useState, useEffect } from "react";
 interface PaginationProps {
   rowsPerPage: number;
   setRowsPerPage: (value: number) => void;
@@ -112,7 +111,16 @@ function Pagination({
   const [open, setOpen] = useState(false);
 
   const options = [10, 20, 30];
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    };
 
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, []);
   return (
     <div className="flex gap-20 items-center px-2 py-2">
       <div className="flex items-center gap-2 relative">
