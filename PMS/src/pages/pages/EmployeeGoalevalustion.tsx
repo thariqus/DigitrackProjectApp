@@ -495,13 +495,8 @@ useEffect(() => {
                   <td className="py-2 px-1 text-center">
                     <div className="flex items-center justify-center gap-2">
                       {/* Weightage */}
-                      <span className="font-semibold">
-                        {goal.weightage}
-                        {goal.uom === "Percentage"
-                          ? "%"
-                          : goal.uom === "Number"
-                          ? " Num"
-                          : ` ${goal.uom}`}
+                      <span>
+                        {goal.weightage}%
                       </span>
                       <input
                         type="text"
