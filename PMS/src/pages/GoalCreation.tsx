@@ -258,9 +258,7 @@ const handleSave = async () => {
         upward_downward: g.seletedvalueOfUorD || "",
       })),
     };
-
     const response = await createGoalAssessment(payload);
-
     if (response?.message) {
       const msgText = typeof response.message === "string"
         ? response.message
@@ -334,7 +332,6 @@ const handleSubmit = async () => {
       weightage: g.weightage,
     }));
 
-    console.log("🧩 Submitting goals payload:");
     newGoals.forEach((g, index) => {
       console.log(
         `Goal #${index + 1}`,
@@ -402,14 +399,11 @@ const handleDeleteGoals = async () => {
       goal_ids: goalIdsToDelete, 
     });
 
-    console.log("✅ Delete API response:", res);
-
     if (res?.message) {
       const updatedGoals = goals.filter((g) => !selectedGoals.includes(g.id));
       setGoals(updatedGoals);
       setSelectedGoals([]);
       setMessage({ text: "Selected goals deleted successfully.", type: "success" });
-      console.log("✅ Goals deleted from UI and backend synced.");
     } else {
       throw new Error(res?.error || "Unknown delete error");
     }
@@ -467,11 +461,9 @@ const handleCopySelectedGoals = () => {
 
   if (newGoals.length > 0) {
     if (isFirstRowEmpty) {
-      console.log("🧹 First empty row detected — replacing it with copied goals");
       setGoals(newGoals);
       setIsEdited(true);
     } else {
-      console.log("➕ Appending copied goals to existing list");
       setGoals([...currentGoals, ...newGoals]);
       setIsEdited(true);
     }
@@ -658,6 +650,7 @@ Goals created by me
                     <input type="text" value={goal.measurement} onChange={(e) => { const updated = [...goals]; updated[indexOfFirstRow + index].measurement = e.target.value; setGoals(updated); setIsEdited(true);
 }}readOnly className={`border text-xs p-1 w-full rounded ${employee?.status === "Goal Submitted" ? " cursor-not-allowed border-none focus:outline-none" : "bg-white"}`} />
                   </td>
+
 
 
 
