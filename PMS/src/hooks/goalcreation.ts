@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { useCurrentUser } from "../hooks/auth";
+import frappeClient from "@/utils/frappe-client";
 
 export interface GoalMaster {
   name: string;
-  goal_name: string; 
+  goal_name: string;
   description: string;
   measurement: string;
 }
@@ -32,28 +33,33 @@ export interface GoalAssessmentPayload {
   year: string;
   goals: GoalItem[];
 }
+
 interface DeleteGoalsPayload {
   parent: string;
   goal_ids: string[];
 }
+
+/* ---------------------------------------------------------
+   ✅ useGoalMaster (GET)
+--------------------------------------------------------- */
 export function useGoalMaster(filters?: { created_by_me?: boolean }) {
   const [goals, setGoals] = useState<GoalMaster[]>([]);
   const [loading, setLoading] = useState(true);
-  const { data: currentUser } = useCurrentUser(); 
+  const { data: currentUser } = useCurrentUser();
 
   useEffect(() => {
     const fetchGoals = async () => {
       try {
-        let query = "/api/method/jh_digitrack.api.goal_master.get_goals";
-
+        const params: any = {};
         if (filters?.created_by_me && currentUser) {
-          query += `?created_by=${encodeURIComponent(currentUser)}`;
+          params.created_by = currentUser;
         }
 
-        const res = await fetch(query);
-        const data = await res.json();
+        const res = await frappeClient.api.get<{
+          message: any[];
+        }>("jh_digitrack.api.goal_master.get_goals", params);
 
-        const normalized = (data.message || []).map((g: any) => ({
+        const normalized = (res.message || []).map((g: any) => ({
           name: g.name,
           goal_name: g.goal_name,
           description: g.goal_description,
@@ -68,13 +74,15 @@ export function useGoalMaster(filters?: { created_by_me?: boolean }) {
       }
     };
 
-    if (currentUser) fetchGoals(); 
+    if (currentUser) fetchGoals();
   }, [filters?.created_by_me, currentUser]);
 
   return { goals, loading };
 }
 
-
+/* ---------------------------------------------------------
+   ✅ useEmployeeGoals (GET)
+--------------------------------------------------------- */
 export function useEmployeeGoals(employeeCode: string, year: string) {
   const [employeeGoals, setEmployeeGoals] = useState<GoalDetail[]>([]);
   const [loading, setLoading] = useState(true);
@@ -84,13 +92,16 @@ export function useEmployeeGoals(employeeCode: string, year: string) {
 
     const fetchEmployeeGoals = async () => {
       try {
-        const res = await fetch(
-          `/api/method/jh_digitrack.api.goal_creation.get_employee_goals?employee_code=${employeeCode}&year=${year}`
-        );
-        const data = await res.json();
-        setEmployeeGoals(data.message || []);
+        const res = await frappeClient.api.get<{
+          message: GoalDetail[];
+        }>("jh_digitrack.api.goal_creation.get_employee_goals", {
+          employee_code: employeeCode,
+          year,
+        });
+
+        setEmployeeGoals(res.message || []);
       } catch (error) {
-        console.error(" Error fetching employee goals:", error);
+        console.error("Error fetching employee goals:", error);
       } finally {
         setLoading(false);
       }
@@ -102,10 +113,13 @@ export function useEmployeeGoals(employeeCode: string, year: string) {
   return { employeeGoals, loading };
 }
 
-
+/* ---------------------------------------------------------
+   ✅ useGoalAssessment (POST)
+--------------------------------------------------------- */
 export function useGoalAssessment() {
   const [loading, setLoading] = useState(false);
-  const { data: currentUser } = useCurrentUser(); 
+  const { data: currentUser } = useCurrentUser();
+
   const createGoalAssessment = async (payload: {
     employee_code: string;
     year: string;
@@ -121,27 +135,17 @@ export function useGoalAssessment() {
   }) => {
     setLoading(true);
     try {
-
-      const response = await fetch(
-        "/api/method/jh_digitrack.api.goal_creation.create_goal_assessment",
+      const res = await frappeClient.api.post(
+        "jh_digitrack.api.goal_creation.create_goal_assessment",
         {
-          method: "POST",
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-            "X-Frappe-CSRF-Token": (window as any).frappe?.csrf_token || ""
-
-          },
-          body: JSON.stringify({
-            data: payload,
-            session_user: currentUser || "Guest", 
-          }),
+          data: payload,
+          session_user: currentUser || "Guest",
         }
       );
 
-      const data = await response.json();
-      return data;
+      return res;
     } catch (error) {
+      console.error("Failed to create Goal Assessment:", error);
       return { error: "Failed to create goal assessment." };
     } finally {
       setLoading(false);
@@ -151,6 +155,9 @@ export function useGoalAssessment() {
   return { createGoalAssessment, loading };
 }
 
+/* ---------------------------------------------------------
+   ✅ deleteEmployeeGoals (POST)
+--------------------------------------------------------- */
 export async function deleteEmployeeGoals({
   employee_code,
   year,
@@ -161,53 +168,43 @@ export async function deleteEmployeeGoals({
   goal_ids: string[];
 }) {
   try {
-    const response = await fetch(
-      "/api/method/jh_digitrack.api.goal_creation.delete_employee_goals",
+    const res = await frappeClient.api.post(
+      "jh_digitrack.api.goal_creation.delete_employee_goals",
       {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Frappe-CSRF-Token": (window as any).frappe?.csrf_token || ""
-
-        },
-        body: JSON.stringify({ employee_code, year, goal_ids }),
+        employee_code,
+        year,
+        goal_ids,
       }
     );
-    return await response.json();
+
+    return res;
   } catch (error) {
-    console.error(" Error deleting goals:", error);
+    console.error("Error deleting goals:", error);
     return { error: "Failed to delete goals." };
   }
 }
 
-
+/* ---------------------------------------------------------
+   ✅ submitGoalAssessment (POST)
+--------------------------------------------------------- */
 export async function submitGoalAssessment(
   employee_code: string,
   year: string,
   newGoals: any[] = []
 ) {
   try {
-
-    const res = await fetch("/api/method/jh_digitrack.api.goal_creation.submit_goal_assessment", {
-      method: "POST",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Frappe-CSRF-Token": (window as any).frappe?.csrf_token || ""
-
-      },
-      body: JSON.stringify({
-        employee_code: employee_code,
-        year: year,
+    const res = await frappeClient.api.post(
+      "jh_digitrack.api.goal_creation.submit_goal_assessment",
+      {
+        employee_code,
+        year,
         new_goals: newGoals,
-      }),
-    });
+      }
+    );
 
-    const data = await res.json();
-    return data;
+    return res;
   } catch (err) {
-    console.error(" Error submitting Goal Assessment:", err);
+    console.error("Error submitting Goal Assessment:", err);
     return { error: String(err) };
   }
 }
