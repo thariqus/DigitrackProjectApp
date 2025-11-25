@@ -201,12 +201,12 @@ function GoalMaster() {
           onClick={handleCloseModal}
         >
             <div
-              className="bg-white w-full max-w-2xl h-full shadow-2xl px-5 pt-6 pb-8 relative border-l border-gray-200 animate-slideIn flex flex-col"
+              className="bg-white w-full max-w-2xl h-full shadow-2xl px-5 pt-10 pb-8 relative border-l border-gray-200 animate-slideIn flex flex-col"
               onClick={(e) => e.stopPropagation()}
             >
 
             <button
-              className="absolute top-3 right-3 text-gray-500 hover:text-gray-800 transition"
+              className="absolute top-10 right-3 text-gray-500 hover:text-gray-800 transition"
               onClick={handleCloseModal}
             >
               <IoMdClose size={20} />
@@ -227,13 +227,12 @@ function GoalMaster() {
                   Goal Name <span className="text-red-500">*</span>
                 </label>
 
-                <input
-                  type="text"
+                <textarea
                   placeholder="Enter Goal Name"
                   value={newGoal.name}
                   maxLength={140}
                   onChange={(e) => setNewGoal({ ...newGoal, name: e.target.value })}
-                  className="w-full  text-xs border border-gray-300 rounded-lg px-3 py-2 focus:outline-none"
+                  className="w-full text-xs  text-start border border-gray-300 rounded-lg px-3 py-2 focus:outline-none"
                   required
                   readOnly={newGoal.goal_assigned}
                 />
@@ -248,17 +247,17 @@ function GoalMaster() {
                   onChange={(e) => setNewGoal({ ...newGoal, description: e.target.value })}
                   className="w-full border text-xs border-gray-300 h-35 rounded-lg px-3 py-2 focus:outline-none"
                   required
+                  rows={4}
                   readOnly={newGoal.goal_assigned}
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Measurement Criteria <span className="text-red-500">*</span></label>
-                <input
-                  type="text"
+                <textarea
                   placeholder="Enter Measurement Criteria"
                   value={newGoal.measurement}
-                  maxLength={140}
+                  maxLength={160}
                   onChange={(e) => setNewGoal({ ...newGoal, measurement: e.target.value })}
                   className="w-full text-xs border border-gray-300 rounded-lg px-3 py-2 focus:outline-none"
                   required

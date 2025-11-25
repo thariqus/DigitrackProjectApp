@@ -519,14 +519,15 @@ useEffect(() => {
                       <textarea
                         value={goal.remark || ""}
                         readOnly={isSubmitted}
+                        maxLength={140}
                         onChange={(e) => {
                           if (isSubmitted) return;
 
                           const value = e.target.value.slice(0, 250);
                           handleInputChange(idx, "remark", value);
                         }}
-                        className="border p-1 w-full rounded"
-                        rows={2}
+                        className="border p-1 w-full rounded "
+                        rows={4}
                       />
                     )}
 
