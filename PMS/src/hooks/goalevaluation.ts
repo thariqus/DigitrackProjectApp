@@ -193,7 +193,11 @@ export function useSubmitGoalEvaluation() {
 export function useUploadGoalAttachment() {
   const [loading, setLoading] = useState(false);
 
-  const uploadGoalAttachment = async (employeeCode: string, year: string, file: File) => {
+  const uploadGoalAttachment = async (
+    employeeCode: string,
+    year: string,
+    file: File
+  ) => {
     try {
       setLoading(true);
 
@@ -202,20 +206,25 @@ export function useUploadGoalAttachment() {
       formData.append("year", year);
       formData.append("file", file);
 
-      const res = await fetch("/api/method/jh_digitrack.api.goal_evaluation.upload_goal_attachment", {
-        method: "POST",
-        credentials: "include",
-        body: formData,
-      });
+      const res = await fetch(
+        "/api/method/jh_digitrack.api.goal_evaluation.upload_goal_attachment",
+        {
+          method: "POST",
+          credentials: "include",
+          body: formData,
+        }
+      );
 
       const data = await res.json();
+
+      // ✅ RESTORED THE IMPORTANT OLD CHECK  
       if (!res.ok || data.exc) {
         throw new Error(data.message || "Failed to upload file");
       }
 
       return data.message || {};
     } catch (error: any) {
-      console.error("Error uploading goal attachment:", error);
+      console.error("Upload error:", error);
       return { error: error.message };
     } finally {
       setLoading(false);
@@ -224,6 +233,7 @@ export function useUploadGoalAttachment() {
 
   return { uploadGoalAttachment, loading };
 }
+
 
 /* ─────────────────────────────────────────────── */
 /*               Delete Goal Attachment            */
