@@ -321,28 +321,28 @@ def upload_goal_attachment(employee_code, year):
         )
 
         if not goal_assessment_name:
-            frappe.throw(_("Goal Assessment not found for the given employee and year."))
+            frappe.throw("Goal Assessment not found for the given employee and year.")
 
         files = frappe.request.files
         if not files:
-            frappe.throw(_("No file received."))
+            frappe.throw("No file received.")
 
         file_obj = list(files.values())[0]
         filename = file_obj.filename.lower()
 
         extension = filename.rsplit(".", 1)[-1] if "." in filename else ""
         if extension not in ALLOWED_EXTENSIONS:
-            frappe.throw(_("File type not allowed: {0}").format(extension))
+            frappe.throw("File type not allowed: {0}").format(extension)
 
         detected_mime, _ = mimetypes.guess_type(filename)
         if detected_mime not in ALLOWED_MIME_TYPES:
-            frappe.throw(_("Invalid or mismatched file format."))
+            frappe.throw("Invalid or mismatched file format.")
 
         if file_obj.content_type not in ALLOWED_MIME_TYPES:
-            frappe.throw(_("Invalid MIME type: {0}").format(file_obj.content_type))
+            frappe.throw("Invalid MIME type: {0}").format(file_obj.content_type)
         content = file_obj.read()
         if len(content) > 2 * 1024 * 1024:
-            frappe.throw(_(f"{file_obj.filename} exceeds the 2MB limit."))
+            frappe.throw(f"{file_obj.filename} exceeds the 2MB limit.")
         file_obj.seek(0)
 
         saved_file = save_file(file_obj.filename, content, "Goal Assessment", goal_assessment_name)
@@ -355,7 +355,7 @@ def upload_goal_attachment(employee_code, year):
         elif not doc.attach3:
             doc.attach3 = saved_file.file_url
         else:
-            frappe.throw(_("Maximum 3 attachments allowed."))
+            frappe.throw("Maximum 3 attachments allowed.")
 
         doc.save(ignore_permissions=True)
         frappe.db.commit()
@@ -397,7 +397,7 @@ def delete_goal_attachment(employee_code, year, file_url):
                 frappe.db.sql("DELETE FROM `tabFile` WHERE file_url=%s", file_url)
                 break
         else:
-            frappe.throw(_("Attachment not found in record."))
+            frappe.throw("Attachment not found in record.")
 
         doc.save(ignore_permissions=True)
         frappe.db.commit()

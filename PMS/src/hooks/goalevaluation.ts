@@ -217,10 +217,28 @@ export function useUploadGoalAttachment() {
 
       const data = await res.json();
 
-      // ✅ RESTORED THE IMPORTANT OLD CHECK  
-      if (!res.ok || data.exc) {
-        throw new Error(data.message || "Failed to upload file");
+      if (!res.ok || data.exc || data.exception) {
+        let errorMessage = "Failed to upload file";
+
+        if (data._server_messages) {
+          try {
+            const serverMsg = JSON.parse(data._server_messages);
+            if (Array.isArray(serverMsg) && serverMsg[0]?.message) {
+              errorMessage = serverMsg[0].message;
+            }
+          } catch {}
+        }
+
+        if (data.exception && errorMessage === "Failed to upload file") {
+          const parts = data.exception.split(":");
+          errorMessage = parts[parts.length - 1].trim();
+        }
+
+        throw new Error(errorMessage);
       }
+
+
+
 
       return data.message || {};
     } catch (error: any) {
@@ -233,6 +251,7 @@ export function useUploadGoalAttachment() {
 
   return { uploadGoalAttachment, loading };
 }
+
 
 
 /* ─────────────────────────────────────────────── */
