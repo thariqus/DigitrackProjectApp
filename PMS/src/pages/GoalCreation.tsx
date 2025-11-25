@@ -265,6 +265,7 @@ const handleSave = async () => {
         : response.message.message || "Goal Assignment saved successfully";
 
       setMessage({ text: msgText, type: "success" });
+      localStorage.setItem("GoalSavedFlag", "true");
 
       setIsEdited(false); 
       localStorage.setItem(
@@ -315,6 +316,15 @@ const handleSubmit = async () => {
       });
       return;
     }
+    const savedFlag = localStorage.getItem("GoalSavedFlag");
+    if (!savedFlag) {
+      setMessage({
+        text: "You need to save the Goal Assignment before it can be submitted.",
+        type: "error",
+      });
+      return;
+    }
+
 
     const userConfirmed = window.confirm(
       "Are you sure you want to submit the goals? Once submitted, you cannot edit."
@@ -672,29 +682,33 @@ Goals created by me
                     </select>
                   </td>
 
-<td className="py-1 px-1 align-top">
-  <input
-    type="text"
-    value={goal.targetvalue}
-    onChange={(e) => {
-      let value = e.target.value;
+                  <td className="py-1 px-1 align-top">
+                    <input
+                      type="text"
+                      value={goal.targetvalue}
+                      onChange={(e) => {
+                        let value = e.target.value;
 
-      // Allow only numbers
-      value = value.replace(/[^0-9]/g, "");
+                        value = value.replace(/[^0-9]/g, "");
 
-      // Limit to max 3 digits
-      value = value.slice(0, 3);
+                        value = value.slice(0, 3);
 
-      const updated = [...goals];
-      updated[indexOfFirstRow + index].targetvalue = value;
+                        if (value !== "") {
+                          let num = Number(value);
+                          if (num < 1) num = 1;   
+                          value = String(num);
+                        }
 
-      setGoals(updated);
-      setIsEdited(true);
-    }}
-    className="border text-xs p-1 w-full rounded text-center"
-    readOnly={isSubmitted || !isEditableStatus(employee?.status || "")}
-  />
-</td>
+                        const updated = [...goals];
+                        updated[indexOfFirstRow + index].targetvalue = value;
+
+                        setGoals(updated);
+                        setIsEdited(true);
+                      }}
+                      className="border text-xs p-1 w-full rounded text-center"
+                      readOnly={isSubmitted || !isEditableStatus(employee?.status || "")}
+                    />
+                  </td>
 
 
 <td className="py-1 px-1 align-top">
