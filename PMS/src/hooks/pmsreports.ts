@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import { useCurrentUser } from "../hooks/auth"; 
+import frappeClient from "@/utils/frappe-client";
 
 export interface EmployeeSummary {
   employee_code: string;
@@ -43,24 +44,26 @@ export interface GoalAssessmentResponse {
 export function useGoalAssessment(selectedYear?: string) {
   const [baseYear, setBaseYear] = useState<string>("");
   const { data: currentUser } = useCurrentUser(); 
+
   const { data, isLoading, refetch } = useQuery<GoalAssessmentResponse>({
     queryKey: ["goal-assessment-summary", selectedYear, currentUser],
+
     queryFn: async () => {
       if (!currentUser)
         return { message: { message: [], year: "" } } as GoalAssessmentResponse;
 
+      const params: any = {
+        manager: currentUser,
+      };
 
-      const url = selectedYear
-        ? `/api/method/jh_digitrack.api.pms_report.get_goal_assessment_summary?year=${selectedYear}&manager=${currentUser}`
-        : `/api/method/jh_digitrack.api.pms_report.get_goal_assessment_summary?manager=${currentUser}`;
+      if (selectedYear) params.year = selectedYear;
 
-      const res = await fetch(url, {
-        method: "GET",
-        credentials: "include"
-      });
+      const res = await frappeClient.api.get(
+        "jh_digitrack.api.pms_report.get_goal_assessment_summary",
+        params
+      );
 
-      const json = await res.json();
-      json.message.message = json.message.message.map((manager: any) => ({
+      res.message.message = res.message.message.map((manager: any) => ({
         ...manager,
         employees_under_manager: manager.employees_under_manager || [],
         goals_pending_employees: manager.goals_pending_employees || [],
@@ -71,10 +74,10 @@ export function useGoalAssessment(selectedYear?: string) {
         evaluation_submitted_employees: manager.evaluation_submitted_employees || [],
       }));
 
-
-      return json;
+      return res;
     },
-    enabled: !!currentUser, 
+
+    enabled: !!currentUser,
   });
 
   const apiYear = data?.message?.year;
@@ -101,4 +104,3 @@ export function useGoalAssessment(selectedYear?: string) {
     refetch,
   };
 }
-
