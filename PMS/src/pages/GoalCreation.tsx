@@ -164,6 +164,12 @@ useEffect(() => {
     if (page >= 1 && page <= totalPages) setCurrentPage(page);
   };
 
+  const autoResize = (el) => {
+  el.style.height = "auto";
+  el.style.height = el.scrollHeight + "px";
+};
+
+
   // --- Table Dropdown ---
   const handleGoalClick = (goalId: string, index: number, e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -494,9 +500,9 @@ const handleCopySelectedGoals = () => {
 
 
   return (
-    <div className="fixed top-0 py-5 px-10 inset-0 z-50 flex items-center justify-center ">
+    <div className="fixed top-0 py-5 px-5 inset-0 z-50 flex items-center justify-center ">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowModal(false)}></div>
-      <div className="bg-white w-full border rounded-lg px-6 py-6 h-full relative overflow-y-auto">
+      <div className="bg-white w-full border rounded-lg px-5 py-6 h-full relative overflow-y-auto">
 
         {/* Header */}
         <div className="flex items-start justify-between">
@@ -574,18 +580,18 @@ Goals created by me
 
 
         {/* Table */}
-        <div className="border rounded-lg w-full overflow-x-auto overflow-visible">
-          <table className="w-full text-left table-auto">
-            <thead className="bg-gray-100 text-gray-500 text-xs">
+        <div className="border rounded-lg w-full ">
+          <table className="w-full text-left table-auto table-fixed">
+            <thead className="bg-gray-100 text-gray-500 text-[11px]">
               <tr>
-                <th className="py-2 px-2 text-center w-[2%]"></th>
-                <th className="py-2 px-4 text-center w-[48%]">Goal Name / Goal Description</th>
-                {/* <th className="py-2 px-4 text-center w-[50%]">Goal Description</th> */}
-                <th className="py-2 px-4 text-center w-[30%]">Measurement Criteria</th>
-                <th className="py-2 px-4 text-center w-[6%]">UOM</th>
-                <th className="py-2 px-4 text-center w-[4%]">Target</th>
-                <th className="py-2 px-4 text-center w-[4%]">Weightage</th>
-                <th className="py-2 px-4 text-center w-[6%]">Upward(U)/ Downward(D)</th>
+                <th className="py-2 px-2  w-[2%]"></th>
+                <th className="py-2 px-2  w-[46%]">Goal Name / Goal Description</th>
+                {/* <th className="py-2 px-4  w-[50%]">Goal Description</th> */}
+                <th className="py-2 px-1  w-[30%]">Measurement Criteria</th>
+                <th className="py-2 px-1  w-[6%]">UOM</th>
+                <th className="py-2 px-1  w-[4%]">Target</th>
+                <th className="py-2 px-1  w-[4%]">Weightage</th>
+                <th className="py-2 px-1 text-center  w-[6%]">Upward(U)/ Downward(D)</th>
               </tr>
             </thead>
             <tbody>
@@ -598,20 +604,24 @@ Goals created by me
                     }} />
                   </td>
 
-                  <div className="flex  flex-col justify-center align-top">
+                
                  
                   <td className="relative py-1 px-1 align-top">
-                  <div
-                    className={`border w-full flex items-center justify-between gap-2 rounded px-2 py-1 
-                                ${isSubmitted ? "bg-gray-200 text-gray-500 pointer-events-none" 
-                                              : "cursor-pointer bg-gray-50"}`}
-                    onClick={(e) => handleGoalClick(goal.id, index, e)}
-                  >
+                    <div className="flex flex-col gap-2">
+                      <div
+                          className={`border w-full flex items-start  gap-2 rounded px-2 py-1 
+                                      ${isSubmitted ? "bg-gray-200 text-gray-500 pointer-events-none" 
+                                                    : "cursor-pointer bg-gray-50"}`}
+                          onClick={(e) => handleGoalClick(goal.id, index, e)}
+                        >
+                      
+                      <div className="whitespace-normal break-words flex-grow">{goal.name || "Select Goal Name"}</div>
 
-                      <span>{goal.name || "Select Goal Name"}</span>
-
-                      {!isSubmitted && <RiArrowDropDownLine className="text-2xl" />}
+                      {!isSubmitted && <RiArrowDropDownLine className="text-2xl shrink-0 " />}
+                      </div>
                     </div>
+                      
+                    
 
 
                     {dropdownOpen === goal.id && dropdownPos && createPortal(
@@ -644,27 +654,47 @@ Goals created by me
 
                       </div>, document.body
                     )}
-                  </td>
-
-                   <td className="flex items-center gap-1 py-1 px-1 align-top">
-                    <textarea value={goal.desc} onChange={(e) => { const updated = [...goals]; updated[indexOfFirstRow + index].desc = e.target.value; setGoals(updated); setIsEdited(true);
- }}readOnly className={`border p-1 w-full text-xs rounded focus:outline-none focus:ring-1 focus:ring-primary ${employee?.status === "Goal Submitted" || "Evaluation Started" || "Evaluation Submitted" ? " cursor-not-allowed border-none focus:outline-none" : "bg-white cursor-text"}`} rows={1} />
-                  </td>
-                  </div>
-                
-
-
+                    
                   
+                 
+
+                  <textarea
+                  ref={el => {
+                    if(el) autoResize(el);
+                  }}
+                      value={goal.desc}
+                      onChange={(e) => {
+                        const updated = [...goals];
+                        updated[indexOfFirstRow + index].desc = e.target.value;
+                        setGoals(updated);
+                        setIsEdited(true);
+
+                        autoResize(e.target)
+                      }}
+                      className={`border p-1 w-full text-xs rounded whitespace-normal break-words resize-none
+                        employee?.status === "Goal Submitted" ||
+                          employee?.status === "Evaluation Started" ||
+                          employee?.status === "Evaluation Submitted"
+                          ? "cursor-not-allowed border-none focus:outline-none"
+                          : "bg-white cursor-text"
+                        }`}
+                    />
+
+               
+                  </td>
 
                   <td className="py-1 px-1 align-top">
-                    <input type="text" value={goal.measurement} onChange={(e) => { const updated = [...goals]; updated[indexOfFirstRow + index].measurement = e.target.value; setGoals(updated); setIsEdited(true);
-}}readOnly className={`border text-xs p-1 w-full rounded ${employee?.status === "Goal Submitted" ? " cursor-not-allowed border-none focus:outline-none" : "bg-white"}`} />
+                    <textarea value={goal.measurement} 
+                    onChange={(e) => { const updated = [...goals]; updated[indexOfFirstRow + index].measurement = e.target.value; setGoals(updated); setIsEdited(true);
+}}
+readOnly
+ className={`border text-xs p-1 w-full rounded ${employee?.status === "Goal Submitted" ? " cursor-not-allowed border-none focus:outline-none" : "bg-white"}`} />
                   </td>
 
 
 
 
-                  <td className="py-1 px-1 text-xs lign-top" >
+                  <td className="py-1 px-1 text-xs align-top" >
                     <select
                       value={goal.uom || ""}
                       onChange={(e) => {
