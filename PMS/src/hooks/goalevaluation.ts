@@ -205,7 +205,14 @@ export function useUploadGoalAttachment() {
       formData.append("employee_code", employeeCode);
       formData.append("year", year);
       formData.append("file", file);
-
+      console.log("Uploading attachment...");
+      console.log("Employee Code:", employeeCode);
+      console.log("Year:", year);
+      console.log("File:", file);
+      console.log("FormData entries:");
+      for (let pair of formData.entries()) {
+        console.log(pair[0], pair[1]);
+      }
       const res = await fetch(
         "/api/method/jh_digitrack.api.goal_evaluation.upload_goal_attachment",
         {
