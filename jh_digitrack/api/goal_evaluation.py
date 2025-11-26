@@ -332,14 +332,15 @@ def upload_goal_attachment(employee_code, year):
 
         extension = filename.rsplit(".", 1)[-1] if "." in filename else ""
         if extension not in ALLOWED_EXTENSIONS:
-            frappe.throw("File type not allowed: {0}").format(extension)
+            frappe.throw(f"File type not allowed: {extension}")
 
         detected_mime, _ = mimetypes.guess_type(filename)
         if detected_mime not in ALLOWED_MIME_TYPES:
             frappe.throw("Invalid or mismatched file format.")
 
         if file_obj.content_type not in ALLOWED_MIME_TYPES:
-            frappe.throw("Invalid MIME type: {0}").format(file_obj.content_type)
+            frappe.throw(f"Invalid MIME type: {file_obj.content_type}")
+
         content = file_obj.read()
         if len(content) > 2 * 1024 * 1024:
             frappe.throw(f"{file_obj.filename} exceeds the 2MB limit.")
@@ -372,6 +373,8 @@ def upload_goal_attachment(employee_code, year):
         if isinstance(e, frappe.ValidationError):
             raise
         frappe.throw(str(e))
+
+
 
 @frappe.whitelist()
 def delete_goal_attachment(employee_code, year, file_url):
@@ -408,3 +411,11 @@ def delete_goal_attachment(employee_code, year, file_url):
         frappe.db.rollback()
         frappe.log_error(frappe.get_traceback(), "Goal Attachment Delete Failed")
         frappe.throw(str(e))
+
+
+@frappe.whitelist()
+def get_goal_assessment_name(employee_code, year):
+    name = frappe.db.get_value("Goal Assessment", {"employee_code": employee_code, "year": year}, "name")
+    if not name:
+        frappe.throw("Goal Assessment not found")
+    return {"name": name}
