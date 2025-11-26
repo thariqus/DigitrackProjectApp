@@ -185,20 +185,24 @@ useEffect(() => {
     }
 
     try {
-      const result = await uploadGoalAttachment(employee.id, year, selectedFile);
-      if (result.error) {
-        setMessage({ text: result.error, type: "error" });
-      } else {
-        setMessage({ text: "File uploaded successfully!", type: "success" });
-        setTimeout(() => setMessage({ text: "", type: "" }), 4000);
+        const result = await uploadGoalAttachment(employee.id, year, selectedFile);
 
-        // ✅ Append the uploaded file to the local UI list
+        if (result.error) {
+          // ❗ If it's the 3-file limit — do NOT push to UI
+          setMessage({ text: result.error, type: "error" });
+          return;
+        }
+
+        // SUCCESS → push to UI
+        setMessage({ text: "File uploaded successfully!", type: "success" });
+
         setAttachments((prev) => [
           ...prev,
           { file_name: selectedFile.name, file_url: result.file_url || "" },
         ]);
 
-      }
+
+     
     } catch (err) {
       setMessage({ text: "File upload failed.", type: "error" });
       setTimeout(() => setMessage({ text: "", type: "" }), 4000);

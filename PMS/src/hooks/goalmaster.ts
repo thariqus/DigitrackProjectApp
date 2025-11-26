@@ -1,5 +1,7 @@
+
 import { useState, useEffect } from "react";
-import { useCurrentUser } from "../hooks/auth"; 
+import { useCurrentUser } from "../hooks/auth";
+import frappeClient from "@/utils/frappe-client";
 
 export interface GoalMaster {
   id: string;
@@ -17,20 +19,20 @@ export function useGoalMaster() {
   const [loading, setLoading] = useState(true);
   const { data: currentUser } = useCurrentUser();
 
+  // -------------------------------
+  // Fetch Goals
+  // -------------------------------
   const fetchGoals = async () => {
     setLoading(true);
     try {
-      const res = await fetch(
-        `/api/method/jh_digitrack.api.goal_master.get_goals?created_by=${currentUser}`,
-        {
-          method: "GET",
-          credentials: "include"
-        }
-      );
+      const res = await frappeClient.api.get<{
+        message: any[];
+      }>("jh_digitrack.api.goal_master.get_goals", {
+        created_by: currentUser,
+      });
 
-      const data = await res.json();
       setGoals(
-        (data.message || []).map((g: any, index: number) => ({
+        (res.message || []).map((g: any, index: number) => ({
           id: g.name || `GM${index + 1}`,
           name: g.goal_name || "",
           description: g.goal_description || "",
@@ -38,94 +40,86 @@ export function useGoalMaster() {
           target: g.target || "",
           created_by: g.created_by || "",
           modified_by: g.modified_by || "",
-          goal_assigned: g.goal_assigned || false, 
+          goal_assigned: g.goal_assigned || false,
         }))
       );
     } catch (error) {
-      console.error(error);
+      console.error("❌ Error fetching goals:", error);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (!currentUser) return;   
+    if (!currentUser) return;
     fetchGoals();
   }, [currentUser]);
 
-  const refetch = () => fetchGoals(); 
+  const refetch = () => fetchGoals();
+
+
+  // -------------------------------
+  // Add Goal
+  // -------------------------------
   const addGoal = async (goal: Partial<GoalMaster>) => {
     try {
-      const res = await fetch("/api/method/jh_digitrack.api.goal_master.add_goal", {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Frappe-CSRF-Token": (window as any).frappe?.csrf_token || ""
-        },
-        body: JSON.stringify({
-          goal_name: goal.name,
-          goal_description: goal.description,
-          measurement_criteria: goal.measurement,
-          target: goal.target || "",
-          created_by: currentUser || "Guest",
-        }),
+      const res = await frappeClient.api.post<{
+        message: { goal: any };
+      }>("jh_digitrack.api.goal_master.add_goal", {
+        goal_name: goal.name,
+        goal_description: goal.description,
+        measurement_criteria: goal.measurement,
+        target: goal.target || "",
+        created_by: currentUser || "Guest",
       });
 
-      const data = await res.json();
+      if (res.message?.goal) {
+        const g = res.message.goal;
 
-      if (res.ok && data.message?.goal) {
-      setGoals((prev) => [
-        {
-            id: data.message.goal.name,
-            name: data.message.goal.goal_name,
-            description: data.message.goal.goal_description,
-            measurement: data.message.goal.measurement_criteria,
-            target: data.message.goal.target,
-        },
-        ...prev,
-      ]);
+        setGoals((prev) => [
+          {
+            id: g.name,
+            name: g.goal_name,
+            description: g.goal_description,
+            measurement: g.measurement_criteria,
+            target: g.target,
+          },
+          ...prev,
+        ]);
       }
     } catch (error) {
-      console.error(error);
+      console.error("❌ Error adding goal:", error);
     }
   };
 
+
+  // -------------------------------
+  // Edit Goal
+  // -------------------------------
   const editGoal = async (goal: GoalMaster) => {
     try {
-      const res = await fetch("/api/method/jh_digitrack.api.goal_master.edit_goal", {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Frappe-CSRF-Token": (window as any).frappe?.csrf_token || ""
-        },
-        body: JSON.stringify({
-          name: goal.id,
-          goal_name: goal.name,
-          goal_description: goal.description,
-          measurement_criteria: goal.measurement,
-          target: goal.target || "",
-          modified_by: currentUser || "Guest",
-        }),
+      const res = await frappeClient.api.post<{
+        message: { goal: any };
+      }>("jh_digitrack.api.goal_master.edit_goal", {
+        name: goal.id,
+        goal_name: goal.name,
+        goal_description: goal.description,
+        measurement_criteria: goal.measurement,
+        target: goal.target || "",
+        modified_by: currentUser || "Guest",
       });
 
-      const data = await res.json();
-
-      if (res.ok && data.message?.goal) {
+      if (res.message?.goal) {
         setGoals((prev) =>
           prev.map((g) => (g.id === goal.id ? goal : g))
         );
       }
     } catch (error) {
-      console.error(error); 
+      console.error("❌ Error editing goal:", error);
     }
   };
 
   return { goals, setGoals, loading, addGoal, editGoal, refetch };
 }
-
-
-
 
 

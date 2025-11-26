@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import { useCurrentUser } from "../hooks/auth";
+import frappeClient from "@/utils/frappe-client";
 
 export interface EmployeeGoal {
   id: string;
@@ -17,30 +18,36 @@ export function useGoalAssignment(selectedYear?: string) {
     employees: EmployeeGoal[];
   }>({
     queryKey: ["goal-assignment", selectedYear, currentUser],
+
     queryFn: async () => {
       if (!currentUser) {
         return { assignment_year: "", employees: [] };
       }
 
-      const url = selectedYear
-        ? `/api/method/jh_digitrack.api.goal_assignment.get_employees_with_status?user=${currentUser}&year=${selectedYear}`
-        : `/api/method/jh_digitrack.api.goal_assignment.get_employees_with_status?user=${currentUser}`;
+      // Build params instead of raw URL
+      const params: Record<string, any> = {
+        user: currentUser,
+      };
+      if (selectedYear) params.year = selectedYear;
 
-      const res = await fetch(url, {
-        method: "GET",
-        credentials: "include"
-      });
-
-      const json = await res.json();
+      // Use frappeClient.api.get (automatic: csrf, cookies, base url, errors)
+      const res = await frappeClient.api.get<{
+        message: {
+          assignment_year: string;
+          employees: EmployeeGoal[];
+        };
+      }>("jh_digitrack.api.goal_assignment.get_employees_with_status", params);
 
       return {
-        assignment_year: json.message?.assignment_year || "",
-        employees: json.message?.employees || [],
+        assignment_year: res.message?.assignment_year || "",
+        employees: res.message?.employees || [],
       };
     },
+
     enabled: !!currentUser,
   });
 
+  // Set base year once
   useEffect(() => {
     if (!baseYear && data?.assignment_year) {
       setBaseYear(data.assignment_year);
