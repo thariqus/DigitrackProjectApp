@@ -49,6 +49,7 @@ def get_goal_assessment_summary(year=None, manager=None):
                         JSON_OBJECT('employee_code', employee_code, 'employee_name', full_name)
                     ) AS employees_under_manager
                 FROM `tabPMS Employees`
+                WHERE pms_employee = 1
                 GROUP BY manager_email
             ) AS emp ON emp.manager_email = u.name
 
@@ -115,20 +116,47 @@ def get_goal_assessment_summary(year=None, manager=None):
         data = frappe.db.sql(query, tuple(params), as_dict=True)
 
         for d in data:
-            for field in [
+
+            json_fields = [
                 "employees_under_manager",
-                "goals_pending_employees",
                 "goals_started_employees",
                 "goals_submitted_employees",
                 "evaluation_pending_employees",
                 "evaluation_started_employees",
-                "evaluation_submitted_employees"
-            ]:
+                "evaluation_submitted_employees",
+            ]
+            for field in json_fields:
                 if d.get(field):
                     try:
                         d[field] = json.loads(d[field])
-                    except Exception:
-                        pass
+                    except:
+                        d[field] = []
+                else:
+                    d[field] = []
+
+            all_emps = {emp["employee_code"]: emp for emp in d["employees_under_manager"]}
+
+            ga_lists = [
+                d["goals_started_employees"],
+                d["goals_submitted_employees"],
+                d["evaluation_pending_employees"],
+                d["evaluation_started_employees"],
+                d["evaluation_submitted_employees"],
+            ]
+
+            ga_employees = set()
+            for grp in ga_lists:
+                for emp in grp:
+                    ga_employees.add(emp["employee_code"])
+
+            pending = []
+            for code, emp in all_emps.items():
+                if code not in ga_employees:
+                    pending.append(emp)
+
+            d["goals_pending"] = len(pending)
+            d["goals_pending_employees"] = pending
+
 
         return {"message": data, "year": year}
 
