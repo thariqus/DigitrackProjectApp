@@ -9,7 +9,21 @@
   "section_break_nt7p",
   "manager_id",
   "manager_employee_code",
-  "manager_email"
+  "manager_email",
+  "column_break_xsx4",
+  "self_assessment",
+  "pms_admin",
+  "pms_manager",
+  "pms_employee",
+  "pms_master",
+  "section_break_lhi7",
+  "grade_name",
+  "designation_name",
+  "department_name",
+  "column_break_rpti",
+  "cost_center_name",
+  "ou_name",
+  "entity__name"
  ],
  "fields": [
   {
@@ -36,13 +50,85 @@
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Manager Email"
+  },
+  {
+   "fieldname": "column_break_xsx4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "self_assessment",
+   "fieldtype": "Check",
+   "label": "Self Assessment"
+  },
+  {
+   "default": "0",
+   "fieldname": "pms_admin",
+   "fieldtype": "Check",
+   "label": "PMS Admin"
+  },
+  {
+   "default": "0",
+   "fieldname": "pms_manager",
+   "fieldtype": "Check",
+   "label": "PMS Manager"
+  },
+  {
+   "default": "0",
+   "fieldname": "pms_employee",
+   "fieldtype": "Check",
+   "label": "PMS Employee"
+  },
+  {
+   "default": "0",
+   "fieldname": "pms_master",
+   "fieldtype": "Check",
+   "label": "PMS Master"
+  },
+  {
+   "fieldname": "section_break_lhi7",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "grade_name",
+   "fieldtype": "Data",
+   "label": "Grade Name"
+  },
+  {
+   "fieldname": "designation_name",
+   "fieldtype": "Data",
+   "label": "Designation Name"
+  },
+  {
+   "fieldname": "department_name",
+   "fieldtype": "Data",
+   "label": "Department Name"
+  },
+  {
+   "fieldname": "column_break_rpti",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "cost_center_name",
+   "fieldtype": "Data",
+   "label": "Cost Center Name"
+  },
+  {
+   "fieldname": "ou_name",
+   "fieldtype": "Data",
+   "label": "OU Name"
+  },
+  {
+   "fieldname": "entity__name",
+   "fieldtype": "Data",
+   "label": "Entity  Name"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-11-04 07:57:00.332438",
+ "modified": "2025-11-26 13:04:42.107997",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "Manager List",

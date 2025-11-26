@@ -73,6 +73,7 @@ def get_employees_with_status(user, year=None):
             AND g.year = %s
         WHERE 
             e.manager_email = %s
+            AND e.pms_employee = 1
         """,
         (assignment_year, user),
         as_dict=True

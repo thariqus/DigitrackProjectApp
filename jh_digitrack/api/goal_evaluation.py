@@ -135,7 +135,7 @@ def create_goal_evaluation(data=None, session_user=None):
 
 import frappe
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def get_employee_goals(employee_code, year):
     try:
         goal_assessment = frappe.db.sql("""
@@ -307,7 +307,7 @@ ALLOWED_MIME_TYPES = {
     "text/csv",
     "image/svg+xml",
 }
-@frappe.whitelist(allow_guest=False)
+@frappe.whitelist()
 def upload_goal_attachment(employee_code, year):
     """Upload a single attachment and link it to the Goal Assessment."""
     try:
@@ -373,7 +373,7 @@ def upload_goal_attachment(employee_code, year):
             raise
         frappe.throw(str(e))
 
-@frappe.whitelist(allow_guest=False)
+@frappe.whitelist()
 def delete_goal_attachment(employee_code, year, file_url):
     """Delete an attachment from Goal Assessment and clear the corresponding attach field."""
     try:
