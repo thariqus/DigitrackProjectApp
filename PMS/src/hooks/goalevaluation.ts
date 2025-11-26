@@ -190,6 +190,7 @@ export function useSubmitGoalEvaluation() {
 /* ─────────────────────────────────────────────── */
 /*               Upload Goal Attachment            */
 /* ─────────────────────────────────────────────── */
+
 export function useUploadGoalAttachment() {
   const [loading, setLoading] = useState(false);
 
@@ -202,19 +203,10 @@ export function useUploadGoalAttachment() {
       setLoading(true);
 
       const formData = new FormData();
-      formData.append("employee_code", employeeCode);
-      formData.append("year", year);
       formData.append("file", file);
-      console.log("Uploading attachment...");
-      console.log("Employee Code:", employeeCode);
-      console.log("Year:", year);
-      console.log("File:", file);
-      console.log("FormData entries:");
-      for (let pair of formData.entries()) {
-        console.log(pair[0], pair[1]);
-      }
+
       const res = await fetch(
-        "/api/method/jh_digitrack.api.goal_evaluation.upload_goal_attachment",
+        `/api/method/jh_digitrack.api.goal_evaluation.upload_goal_attachment?employee_code=${employeeCode}&year=${year}`,
         {
           method: "POST",
           credentials: "include",
@@ -222,7 +214,14 @@ export function useUploadGoalAttachment() {
         }
       );
 
-      const data = await res.json();
+      let data: any = {};
+
+      try {
+        data = await res.json();
+      } catch {
+        throw new Error("Server returned invalid JSON");
+      }
+
 
       if (!res.ok || data.exc || data.exception) {
         let errorMessage = "Failed to upload file";
@@ -232,19 +231,31 @@ export function useUploadGoalAttachment() {
             const serverMsg = JSON.parse(data._server_messages);
             if (Array.isArray(serverMsg) && serverMsg[0]?.message) {
               errorMessage = serverMsg[0].message;
+              throw new Error(errorMessage);
             }
           } catch {}
         }
 
         if (data.exception && errorMessage === "Failed to upload file") {
-          const parts = data.exception.split(":");
-          errorMessage = parts[parts.length - 1].trim();
+          const msg = data.exception.split(":", 2)[1]?.trim();
+          if (msg) {
+            errorMessage = msg;   
+          }
+        }
+
+        if (data.exc && errorMessage === "Failed to upload file") {
+          try {
+            const trace = JSON.parse(data.exc);
+            const lastLine = trace[0].split("\n").pop();
+            const cleaned = lastLine.replace("frappe.exceptions.ValidationError:", "").trim();
+            if (cleaned) {
+              errorMessage = cleaned;  
+            }
+          } catch {}
         }
 
         throw new Error(errorMessage);
       }
-
-
 
 
       return data.message || {};
@@ -258,8 +269,6 @@ export function useUploadGoalAttachment() {
 
   return { uploadGoalAttachment, loading };
 }
-
-
 
 /* ─────────────────────────────────────────────── */
 /*               Delete Goal Attachment            */
