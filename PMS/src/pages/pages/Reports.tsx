@@ -262,11 +262,8 @@ function Reports() {
 
          <div className="flex items-center gap-3">
 
-{/* Email Button */}
         <button
           onClick={() => {
-            // add your email sending logic here
-            console.log("Send email clicked");
           }}
           className="px-3 py-2 text-sm flex items-center gap-1 bg-primary text-xs text-white rounded-md hover:bg-[#7d241f]"
         >
