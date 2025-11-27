@@ -179,7 +179,7 @@ def download_excel(year=None, manager=None):
             "uom": "UOM",
             "target": "Target",
             "weightage": "Weightage",
-            "achievement_score": "Achievement Score",
+            "achievement_score": "Achievement Value",
             "achieved_score": "Achieved Score",
             "upwarddownward": "Upward Downward",
             "remark": "Remark"

@@ -133,27 +133,19 @@ def create_goal_evaluation(data=None, session_user=None):
         frappe.throw(_("Failed to update goal evaluation."))
 
 
-import frappe
 
 @frappe.whitelist()
 def get_employee_goals(employee_code, year):
     try:
-        goal_assessment = frappe.db.sql("""
-            SELECT 
-                name,
-                attach1,
-                attach2,
-                attach3,
-                comment                       
-            FROM `tabGoal Assessment`
-            WHERE employee_code = %s AND year = %s
-            LIMIT 1
-        """, (employee_code, year), as_dict=True)
+        goal_assessment = frappe.db.get_value(
+            "Goal Assessment",
+            {"employee_code": employee_code, "year": year},
+            ["name", "comment"],
+            as_dict=True
+        )
 
         if not goal_assessment:
             return {"goals": [], "attachments": [], "comment": ""}
-
-        goal_assessment = goal_assessment[0]
 
         goals = frappe.db.sql("""
             SELECT 
@@ -172,32 +164,24 @@ def get_employee_goals(employee_code, year):
             WHERE parent = %s
         """, (goal_assessment.name,), as_dict=True)
 
-        attachments_query = """
-            SELECT file_url, SUBSTRING_INDEX(file_url, '/', -1) AS file_name
-            FROM (
-                SELECT %(a1)s AS file_url
-                UNION ALL
-                SELECT %(a2)s
-                UNION ALL
-                SELECT %(a3)s
-            ) AS files
-            WHERE file_url IS NOT NULL AND file_url != ''
-        """
+        attachments = frappe.get_all(
+            "File",
+            filters={
+                "attached_to_doctype": "Goal Assessment",
+                "attached_to_name": goal_assessment.name
+            },
+            fields=["file_url", "file_name"]
+        )
 
-        attachments = frappe.db.sql(attachments_query, {
-            "a1": goal_assessment.attach1 or "",
-            "a2": goal_assessment.attach2 or "",
-            "a3": goal_assessment.attach3 or "",
-        }, as_dict=True)
-
-        return {"goals": goals, "attachments": attachments,"comment": goal_assessment.comment or ""}
+        return {
+            "goals": goals,
+            "attachments": attachments,
+            "comment": goal_assessment.comment or ""
+        }
 
     except Exception as e:
-        frappe.log_error(frappe.get_traceback(), "get_employee_goals_sql_error")
+        frappe.log_error(frappe.get_traceback(), "get_employee_goals_error")
         return {"error": str(e)}
-
-
-
 
 import frappe
 from frappe import _
@@ -233,152 +217,9 @@ def submit_goal_evaluation(employee_code, year, comment=None):
     return {"message": "Goal Evaluation submitted successfully.", "docname": doc.name}
 
 
-import frappe
-from frappe import _
-
-@frappe.whitelist()
-def submit_goal_evaluation(employee_code, year, goals=None, comment=None):
-
-    if not employee_code or not year:
-        frappe.throw(_("Employee code and year are required."))
-
-    if isinstance(goals, str):
-        goals = frappe.parse_json(goals)
-
-    goal_eval = frappe.db.get_value(
-        "Goal Assessment",
-        {"employee_code": employee_code, "year": year},
-        "name"
-    )
-    if not goal_eval:
-        frappe.throw(_("Goal Evaluation record not found."))
-
-    doc = frappe.get_doc("Goal Assessment", goal_eval)
-
-    if doc.docstatus == 1:
-        return {"message": "Goal Evaluation already submitted."}
-
-    # ==========================
-    # 🆕 UPDATE EMPLOYEE GOALS
-    # ==========================
-    if goals:
-        doc.set("employee_goals", [])
-        for g in goals:
-            doc.append("employee_goals", {
-                "goal_id": g.get("goal_id"),
-                "description": g.get("description"),
-                "measurement_criteria": g.get("measurement_criteria"),
-                "target": g.get("target"),
-                "uom": g.get("uom"),
-                "achievement_score": g.get("achievement_score"),
-                "achieved": g.get("achieved"),
-                "remark": g.get("remark"),
-                "upwarddownward": g.get("upwarddownward")
-            })
-
-    # ==========================
-    # STATUS + COMMENT
-    # ==========================
-    doc.status = "Evaluation Submitted"
-
-    if comment:
-        doc.comment = comment
-
-    doc.flags.ignore_permissions = True
-    doc.submit()
-
-    frappe.db.commit()
-    return {"message": "Goal Evaluation submitted successfully.", "docname": doc.name}
-
-
-import frappe
-from frappe.utils.file_manager import save_file
-from frappe import _
-import mimetypes
-
-ALLOWED_EXTENSIONS = {"pdf", "docx", "xlsx", "jpg", "jpeg", "png", "csv", "svg"}
-
-ALLOWED_MIME_TYPES = {
-    "application/pdf",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    "image/jpeg",
-    "image/png",
-    "text/csv",
-    "image/svg+xml",
-}
-@frappe.whitelist()
-def upload_goal_attachment(employee_code, year):
-    """Upload a single attachment and link it to the Goal Assessment."""
-    try:
-        if not employee_code or not year:
-            frappe.throw(_("Employee code and year are required."))
-
-        goal_assessment_name = frappe.db.get_value(
-            "Goal Assessment",
-            {"employee_code": employee_code, "year": year},
-            "name"
-        )
-
-        if not goal_assessment_name:
-            frappe.throw("Goal Assessment not found for the given employee and year.")
-
-        files = frappe.request.files
-        if not files:
-            frappe.throw("No file received.")
-
-        file_obj = list(files.values())[0]
-        filename = file_obj.filename.lower()
-
-        extension = filename.rsplit(".", 1)[-1] if "." in filename else ""
-        if extension not in ALLOWED_EXTENSIONS:
-            frappe.throw(f"File type not allowed: {extension}")
-
-        detected_mime, _ = mimetypes.guess_type(filename)
-        if detected_mime not in ALLOWED_MIME_TYPES:
-            frappe.throw("Invalid or mismatched file format.")
-
-        if file_obj.content_type not in ALLOWED_MIME_TYPES:
-            frappe.throw(f"Invalid MIME type: {file_obj.content_type}")
-
-        content = file_obj.read()
-        if len(content) > 2 * 1024 * 1024:
-            frappe.throw(f"{file_obj.filename} exceeds the 2MB limit.")
-        file_obj.seek(0)
-
-        saved_file = save_file(file_obj.filename, content, "Goal Assessment", goal_assessment_name)
-
-        doc = frappe.get_doc("Goal Assessment", goal_assessment_name)
-        if not doc.attach1:
-            doc.attach1 = saved_file.file_url
-        elif not doc.attach2:
-            doc.attach2 = saved_file.file_url
-        elif not doc.attach3:
-            doc.attach3 = saved_file.file_url
-        else:
-            frappe.throw("Maximum 3 attachments allowed.")
-
-        doc.save(ignore_permissions=True)
-        frappe.db.commit()
-        return {
-            "message": f"File {file_obj.filename} uploaded successfully.",
-            "file_url": saved_file.file_url,
-            "file_name": file_obj.filename
-        }
-
-
-    except Exception as e:
-        frappe.db.rollback()
-        frappe.log_error(frappe.get_traceback(), "Goal Attachment Upload Failed")
-        if isinstance(e, frappe.ValidationError):
-            raise
-        frappe.throw(str(e))
-
-
-
 @frappe.whitelist()
 def delete_goal_attachment(employee_code, year, file_url):
-    """Delete an attachment from Goal Assessment and clear the corresponding attach field."""
+    """Delete an attachment from Goal Assessment (attachments section) and remove the File record."""
     try:
         if not employee_code or not year:
             frappe.throw(_("Employee code and year are required."))
@@ -392,30 +233,23 @@ def delete_goal_attachment(employee_code, year, file_url):
         if not goal_assessment_name:
             frappe.throw(_("Goal Assessment not found for the given employee and year."))
 
-        doc = frappe.get_doc("Goal Assessment", goal_assessment_name)
+        file_name = file_url.split("/")[-1]
 
-        for field in ["attach1", "attach2", "attach3"]:
-            if getattr(doc, field) == file_url:
-                setattr(doc, field, None)
-                frappe.db.sql("DELETE FROM `tabFile` WHERE file_url=%s", file_url)
-                break
-        else:
-            frappe.throw("Attachment not found in record.")
+        files = frappe.get_all(
+            "File",
+            filters={"attached_to_doctype": "Goal Assessment", "attached_to_name": goal_assessment_name},
+            fields=["name", "file_url", "file_name"]
+        )
 
-        doc.save(ignore_permissions=True)
-        frappe.db.commit()
+        for f in files:
+            if f["file_name"] == file_name or f["file_url"].endswith(file_name):
+                frappe.get_doc("File", f["name"]).delete(ignore_permissions=True)
+                frappe.db.commit()
+                return {"message": "Attachment deleted successfully.", "file_url": file_url}
 
-        return {"message": f"Attachment deleted successfully.", "file_url": file_url}
+        frappe.throw(_("Attachment not found in Goal Assessment."))
 
     except Exception as e:
         frappe.db.rollback()
         frappe.log_error(frappe.get_traceback(), "Goal Attachment Delete Failed")
         frappe.throw(str(e))
-
-
-@frappe.whitelist()
-def get_goal_assessment_name(employee_code, year):
-    name = frappe.db.get_value("Goal Assessment", {"employee_code": employee_code, "year": year}, "name")
-    if not name:
-        frappe.throw("Goal Assessment not found")
-    return {"name": name}

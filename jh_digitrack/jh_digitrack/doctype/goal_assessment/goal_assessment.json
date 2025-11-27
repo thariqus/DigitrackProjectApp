@@ -1,6 +1,7 @@
 {
  "actions": [],
  "allow_rename": 1,
+ "autoname": "format:{employee_code}_{year}",
  "creation": "2025-10-30 07:09:07.043149",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -16,11 +17,6 @@
   "employee_goals",
   "section_break_z11k",
   "manager",
-  "column_break_tseo",
-  "attach1",
-  "attach2",
-  "column_break_tbtm",
-  "attach3",
   "section_break_p7p9",
   "comment"
  ],
@@ -77,31 +73,8 @@
    "label": "Total Score"
   },
   {
-   "fieldname": "attach1",
-   "fieldtype": "Attach",
-   "label": "Attach1"
-  },
-  {
-   "fieldname": "attach2",
-   "fieldtype": "Attach",
-   "label": "Attach2"
-  },
-  {
-   "fieldname": "attach3",
-   "fieldtype": "Attach",
-   "label": "Attach3"
-  },
-  {
-   "fieldname": "column_break_tseo",
-   "fieldtype": "Column Break"
-  },
-  {
    "fieldname": "section_break_z11k",
    "fieldtype": "Section Break"
-  },
-  {
-   "fieldname": "column_break_tbtm",
-   "fieldtype": "Column Break"
   },
   {
    "fieldname": "section_break_p7p9",
@@ -116,10 +89,11 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-11-17 17:11:23.482758",
+ "modified": "2025-11-27 16:12:05.445943",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "Goal Assessment",
+ "naming_rule": "Expression",
  "owner": "Administrator",
  "permissions": [
   {

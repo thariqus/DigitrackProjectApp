@@ -4,17 +4,21 @@ import { toast } from "sonner";
 
 type Props = {
   files: File[];
-  employeeCode: string; // new
-  year: string;         // new
+  employeeCode: string; 
+  year: string;         
   onProgress: (progress: number) => void;
   onComplete: (status: boolean) => void;
   onError: (error: Error) => void;
   isPrivate?: 1 | 0;
   folder?: string;
   doctype: string;
-  docname?: string;     // optional, auto-generated if missing
+  docname?: string;    
   fieldname?: string;
 };
+
+const ALLOWED_FILE_TYPES = [
+  "pdf", "docx", "xlsx", "jpg", "jpeg", "png", "csv", "svg"
+];
 
 export const useFilesUpload = () => {
   return useMutation({
@@ -39,15 +43,17 @@ export const useFilesUpload = () => {
       }
 
       const file = frappe.file;
-
-      // auto-generate docname if not provided
       const targetDocname = docname || `${employeeCode}-${year}`;
 
       for (const [index, fileObj] of files.entries()) {
         try {
-          // Check file size <= 2MB
           if (fileObj.size > 2 * 1024 * 1024) {
             throw new Error(`File "${fileObj.name}" exceeds 2MB limit.`);
+          }
+
+          const extension = fileObj.name.split(".").pop()?.toLowerCase();
+          if (!extension || !["pdf", "docx", "xlsx", "jpg", "jpeg", "png", "csv", "svg"].includes(extension)) {
+            throw new Error("The attached file type is not allowed.");
           }
 
           await file.uploadFile(
@@ -69,6 +75,7 @@ export const useFilesUpload = () => {
             }
           );
         } catch (error: any) {
+          console.log("UPLOAD ERROR:", error);
           onError(error);
           toast.error(error.message || "File upload failed.");
           failed.push({ index, status: false });
@@ -91,7 +98,3 @@ export const useFileRemove = () => {
     },
   });
 };
-
-
-
-

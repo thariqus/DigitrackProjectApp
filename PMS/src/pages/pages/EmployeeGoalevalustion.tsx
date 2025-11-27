@@ -103,7 +103,6 @@ useEffect(() => {
   }
 
   if (selectedYear) setYear(selectedYear);
-
   if (savedStatus && savedStatus === "Evaluation Submitted") {
     setIsSubmitted(true);
   } else {
@@ -185,7 +184,16 @@ useEffect(() => {
     }
 
     try {
-        const result = await uploadGoalAttachment(employee.id, year, selectedFile);
+        const result = await uploadGoalAttachment(
+          employee.id,
+          year,
+          selectedFile,
+          {
+            attach1: attachments[0]?.file_url || null,
+            attach2: attachments[1]?.file_url || null,
+            attach3: attachments[2]?.file_url || null,
+          }
+        );
 
         if (result.error) {
           // ❗ If it's the 3-file limit — do NOT push to UI
@@ -353,7 +361,7 @@ useEffect(() => {
       setIsSubmitted(true);
       setSubmittedComment(comment);
     }
-
+    localStorage.setItem("SelectedStatus", "Evaluation Submitted");
     setTimeout(() => setMessage({ text: "", type: "" }), 3000);
   };
 
@@ -425,7 +433,7 @@ useEffect(() => {
                 <th className="py-3 px-1 w-[40%] sticky left-0 bg-gray-100 z-10">Goal Name/Goal Description</th>
                 <th className="py-3 px-1 w-[15%]">Measurement Criteria</th>
                 <th className="py-3 px-1 w-[8%] text-center">Target Value / UOM </th>
-                <th className="py-3 px-1 w-[5%] text-center">Achievement Score</th>
+                <th className="py-3 px-1 w-[5%] text-center">Achievement Value</th>
                 <th className="py-3 px-1 w-[5%] text-center">Weightage/ Achieved Score</th> 
                 <th className="py-3 px-1 w-[27%] text-center">Remark</th>
               </tr>
