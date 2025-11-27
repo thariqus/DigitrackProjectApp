@@ -191,84 +191,37 @@ export function useSubmitGoalEvaluation() {
 /*               Upload Goal Attachment            */
 /* ─────────────────────────────────────────────── */
 
-export function useUploadGoalAttachment() {
-  const [loading, setLoading] = useState(false);
+import { useFilesUpload } from "@/hooks/file";
+
+export const useUploadGoalAttachment = () => {
+  const fileUpload = useFilesUpload();
 
   const uploadGoalAttachment = async (
     employeeCode: string,
     year: string,
     file: File
   ) => {
-    try {
-      setLoading(true);
-
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const res = await fetch(
-        `/api/method/jh_digitrack.api.goal_evaluation.upload_goal_attachment?employee_code=${employeeCode}&year=${year}`,
-        {
-          method: "POST",
-          credentials: "include",
-          body: formData,
-        }
-      );
-
-      let data: any = {};
-
-      try {
-        data = await res.json();
-      } catch {
-        throw new Error("Server returned invalid JSON");
-      }
-
-
-      if (!res.ok || data.exc || data.exception) {
-        let errorMessage = "Failed to upload file";
-
-        if (data._server_messages) {
-          try {
-            const serverMsg = JSON.parse(data._server_messages);
-            if (Array.isArray(serverMsg) && serverMsg[0]?.message) {
-              errorMessage = serverMsg[0].message;
-              throw new Error(errorMessage);
-            }
-          } catch {}
-        }
-
-        if (data.exception && errorMessage === "Failed to upload file") {
-          const msg = data.exception.split(":", 2)[1]?.trim();
-          if (msg) {
-            errorMessage = msg;   
-          }
-        }
-
-        if (data.exc && errorMessage === "Failed to upload file") {
-          try {
-            const trace = JSON.parse(data.exc);
-            const lastLine = trace[0].split("\n").pop();
-            const cleaned = lastLine.replace("frappe.exceptions.ValidationError:", "").trim();
-            if (cleaned) {
-              errorMessage = cleaned;  
-            }
-          } catch {}
-        }
-
-        throw new Error(errorMessage);
-      }
-
-
-      return data.message || {};
-    } catch (error: any) {
-      console.error("Upload error:", error);
-      return { error: error.message };
-    } finally {
-      setLoading(false);
-    }
+    return new Promise<{ file_url?: string; error?: string }>((resolve) => {
+      fileUpload.mutate({
+        files: [file],
+        employeeCode,
+        year,
+        doctype: "Goal Assessment",
+        docname: `${employeeCode}_${year}`,
+        isPrivate: 1,
+        onProgress: (progress: number) => console.log("Upload Progress:", progress),
+        onComplete: (status: boolean) =>
+          status
+            ? resolve({ file_url: `/private/files/${file.name}` })
+            : resolve({ error: "Upload failed" }),
+        onError: (error: Error) => resolve({ error: error.message || "Upload error" }),
+      });
+    });
   };
 
-  return { uploadGoalAttachment, loading };
-}
+  return { uploadGoalAttachment };
+};
+
 
 /* ─────────────────────────────────────────────── */
 /*               Delete Goal Attachment            */
