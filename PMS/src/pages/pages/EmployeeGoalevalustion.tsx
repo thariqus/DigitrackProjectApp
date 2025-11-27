@@ -433,7 +433,7 @@ useEffect(() => {
                 <th className="py-3 px-1 w-[40%] sticky left-0 bg-gray-100 z-10">Goal Name/Goal Description</th>
                 <th className="py-3 px-1 w-[15%]">Measurement Criteria</th>
                 <th className="py-3 px-1 w-[8%] text-center">Target Value / UOM </th>
-                <th className="py-3 px-1 w-[5%] text-center">Achievement Score</th>
+                <th className="py-3 px-1 w-[5%] text-center">Achievement Value</th>
                 <th className="py-3 px-1 w-[5%] text-center">Weightage/ Achieved Score</th> 
                 <th className="py-3 px-1 w-[27%] text-center">Remark</th>
               </tr>
