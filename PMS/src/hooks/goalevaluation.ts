@@ -199,8 +199,16 @@ export const useUploadGoalAttachment = () => {
   const uploadGoalAttachment = async (
     employeeCode: string,
     year: string,
-    file: File
+    file: File,
+    existingAttachments: any   
   ) => {
+    let fieldname = null;
+
+    if (!existingAttachments.attach1) fieldname = "attach1";
+    else if (!existingAttachments.attach2) fieldname = "attach2";
+    else if (!existingAttachments.attach3) fieldname = "attach3";
+    else return { error: "Maximum 3 attachments reached." };
+
     return new Promise<{ file_url?: string; error?: string }>((resolve) => {
       fileUpload.mutate({
         files: [file],
@@ -208,6 +216,7 @@ export const useUploadGoalAttachment = () => {
         year,
         doctype: "Goal Assessment",
         docname: `${employeeCode}_${year}`,
+        fieldname,                 // <-- IMPORTANT
         isPrivate: 1,
         onProgress: (progress: number) => console.log("Upload Progress:", progress),
         onComplete: (status: boolean) =>
@@ -237,6 +246,12 @@ export function useDeleteGoalAttachment() {
     try {
       setLoading(true);
 
+      console.log("Deleting attachment with params:", {
+        employeeCode,
+        year,
+        fileUrl,
+      });
+
       const res = await frappeClient.api.post(
         "jh_digitrack.api.goal_evaluation.delete_goal_attachment",
         {
@@ -246,8 +261,11 @@ export function useDeleteGoalAttachment() {
         }
       );
 
+      console.log("Delete API response:", res);
+
       return res.message || {};
     } catch (error: any) {
+      console.error("Delete API error:", error);
       return { error: error.message };
     } finally {
       setLoading(false);
@@ -256,3 +274,4 @@ export function useDeleteGoalAttachment() {
 
   return { deleteGoalAttachment, loading };
 }
+

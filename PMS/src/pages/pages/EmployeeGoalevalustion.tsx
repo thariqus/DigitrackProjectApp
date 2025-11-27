@@ -103,7 +103,6 @@ useEffect(() => {
   }
 
   if (selectedYear) setYear(selectedYear);
-
   if (savedStatus && savedStatus === "Evaluation Submitted") {
     setIsSubmitted(true);
   } else {
@@ -185,7 +184,16 @@ useEffect(() => {
     }
 
     try {
-        const result = await uploadGoalAttachment(employee.id, year, selectedFile);
+        const result = await uploadGoalAttachment(
+          employee.id,
+          year,
+          selectedFile,
+          {
+            attach1: attachments[0]?.file_url || null,
+            attach2: attachments[1]?.file_url || null,
+            attach3: attachments[2]?.file_url || null,
+          }
+        );
 
         if (result.error) {
           // ❗ If it's the 3-file limit — do NOT push to UI
@@ -353,7 +361,7 @@ useEffect(() => {
       setIsSubmitted(true);
       setSubmittedComment(comment);
     }
-
+    localStorage.setItem("SelectedStatus", "Evaluation Submitted");
     setTimeout(() => setMessage({ text: "", type: "" }), 3000);
   };
 
