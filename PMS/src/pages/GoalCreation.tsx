@@ -82,6 +82,11 @@ const GoalCreation: React.FC = () => {
   const isEditableStatus = (status: string) => {
     return (status === "Goal Pending" || status === "Goal Started") && isBaseYear;
   };
+useEffect(() => {
+  if (!localStorage.getItem("GoalSavedFlag")) {
+    localStorage.setItem("GoalSavedFlag", "false");  
+  }
+}, []);
 
 useEffect(() => {
   const handleEsc = (e: KeyboardEvent) => {
@@ -104,7 +109,6 @@ useEffect(() => {
   }
 }, [employee]);
 
-  // --- Effects ---
   useEffect(() => {
     if (baseYear) setSelectedCopyYear(baseYear);
   }, [baseYear]);
@@ -128,7 +132,7 @@ useEffect(() => {
       const mappedGoals = fetchedEmployeeGoals.map((g, idx) => ({
         id: `${idx}-${Date.now()}`,
         name: g.goal_id && g.goal_name
-          ? `${g.goal_name}`   // ✅ Display format
+          ? `${g.goal_name}`   
           : g.goal_id || g.goal_name,
         desc: g.description,
         measurement: g.measurement_criteria,
@@ -271,7 +275,10 @@ const handleSave = async () => {
         : response.message.message || "Goal Assignment saved successfully";
 
       setMessage({ text: msgText, type: "success" });
-      localStorage.setItem("GoalSavedFlag", "true");
+      // localStorage.setItem("GoalSavedFlag", "true");
+      localStorage.setItem(`GoalSavedFlag_${employee.id}_${year}`, "true");
+
+      
 
       setIsEdited(false); 
       localStorage.setItem(
@@ -283,7 +290,7 @@ const handleSave = async () => {
     }
 
   } catch (error) {
-    console.error("❌ Error creating Goal Assignment:", error);
+    console.error(" Error creating Goal Assignment:", error);
     setMessage({ text: "Something went wrong while saving.", type: "error" });
   }
 };
@@ -294,11 +301,19 @@ const handleSubmit = async () => {
   try {
 
     if (!employee || !year) {
-      console.error("❌ Missing required fields: employee or year");
+      console.error(" Missing required fields: employee or year");
       setMessage({ text: "Employee and year are required.", type: "error" });
       return;
     }
+    const savedFlag = localStorage.getItem(`GoalSavedFlag_${employee.id}_${year}`);
 
+    if (savedFlag !== "true") {
+      setMessage({
+        text: "You need to save the Goal Assignment before it can be submitted.",
+        type: "error",
+      });
+      return;
+    }
 
     for (let g of goals) {
       if (!g.goal_id || !g.desc || !g.measurement || !g.targetvalue || !g.uom || !g.weightage || !g.seletedvalueOfUorD) {
@@ -307,7 +322,6 @@ const handleSubmit = async () => {
         return;
       }
     }
-// --- Total Weightage Validation BEFORE Submit Confirmation ---
     let totalWeightage = 0;
 
     for (let g of goals) {
@@ -322,14 +336,14 @@ const handleSubmit = async () => {
       });
       return;
     }
-    const savedFlag = localStorage.getItem("GoalSavedFlag");
-    if (!savedFlag) {
-      setMessage({
-        text: "You need to save the Goal Assignment before it can be submitted.",
-        type: "error",
-      });
-      return;
-    }
+    // const savedFlag = localStorage.getItem("GoalSavedFlag");
+    // if (!savedFlag) {
+    //   setMessage({
+    //     text: "You need to save the Goal Assignment before it can be submitted.",
+    //     type: "error",
+    //   });
+    //   return;
+    // }
 
 
     const userConfirmed = window.confirm(
@@ -347,16 +361,6 @@ const handleSubmit = async () => {
       seletedvalueOfUorD: g.seletedvalueOfUorD || "",
       weightage: g.weightage,
     }));
-
-    newGoals.forEach((g, index) => {
-      console.log(
-        `Goal #${index + 1}`,
-        "\nID:", g.goal_id,
-        "\nUpward/Downward:", g.seletedvalueOfUorD || "(empty)",
-        "\nDescription:", g.description,
-        "\nWeightage:", g.weightage
-      );
-    });
     const res = await submitGoalAssessment(employee.id,year, newGoals);
 
     const backendMessage = res?.message?.message || res?.message;
@@ -374,16 +378,16 @@ const handleSubmit = async () => {
       // setTimeout(() => navigate("/goalassignment"), 1200);
 
     } else if (backendMessage?.error) {
-      console.error("❌ Backend Error:", backendMessage.error);
+      console.error(" Backend Error:", backendMessage.error);
       setMessage({ text: backendMessage.error, type: "error" });
 
     } else {
-      console.error("❌ Unexpected response format:", res);
+      console.error(" Unexpected response format:", res);
       setMessage({ text: "Failed to submit goals.", type: "error" });
     }
 
   } catch (err) {
-    console.error("💥 Exception while submitting goal assessment:", err);
+    console.error(" Exception while submitting goal assessment:", err);
     setMessage({ text: "Error submitting goals. Please try again.", type: "error" });
   }
 };
@@ -392,11 +396,10 @@ const handleSubmit = async () => {
 const handleDeleteGoals = async () => {
   if (selectedGoals.length === 0) {
     setMessage({ text: "Please select at least one goal to delete.", type: "warning" });
-    console.warn("⚠️ No goals selected for deletion");
+    console.warn(" No goals selected for deletion");
     return;
   }
 
-  // Get the IDs to delete
   const goalIdsToDelete = goals
     .filter((g) => selectedGoals.includes(g.id))
     .map((g) => g.goal_id)
@@ -404,7 +407,7 @@ const handleDeleteGoals = async () => {
 
   if (goalIdsToDelete.length === 0) {
     setMessage({ text: "No valid goals selected for deletion.", type: "warning" });
-    console.warn("⚠️ No valid goal_ids found in selectedGoals");
+    console.warn(" No valid goal_ids found in selectedGoals");
     return;
   }
 
@@ -424,7 +427,7 @@ const handleDeleteGoals = async () => {
       throw new Error(res?.error || "Unknown delete error");
     }
   } catch (err) {
-    console.error("❌ Error deleting goals:", err);
+    console.error(" Error deleting goals:", err);
     setMessage({ text: "Failed to delete goals.", type: "error" });
   }
 };
@@ -495,8 +498,6 @@ const handleCopySelectedGoals = () => {
   setShowModal(false);
   setCheckedGoalsModal([]);
 };
-
-
 
 
   return (

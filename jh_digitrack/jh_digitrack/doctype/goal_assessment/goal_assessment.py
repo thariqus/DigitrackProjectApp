@@ -35,3 +35,21 @@ class GoalAssessment(Document):
                 goal_doc.save(ignore_permissions=True)
 
         frappe.db.commit()
+
+
+def on_trash(self):
+   
+    for row in self.employee_goals:
+        goal_id = row.goal_id
+        if goal_id:
+            still_exists = frappe.db.exists(
+                "Goal Assesment Employee Goals",
+                {"goal_id": goal_id, "parent": ["!=", self.name]}
+            )
+
+            if not still_exists:
+                goal_doc = frappe.get_doc("JH Goal Master", goal_id)
+                goal_doc.goal_assigned = 0
+                goal_doc.save(ignore_permissions=True)
+
+    frappe.db.commit()
