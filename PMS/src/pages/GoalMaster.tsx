@@ -257,7 +257,7 @@ function GoalMaster() {
                 <textarea
                   placeholder="Enter Measurement Criteria"
                   value={newGoal.measurement}
-                  maxLength={160}
+                  maxLength={140}
                   onChange={(e) => setNewGoal({ ...newGoal, measurement: e.target.value })}
                   className="w-full text-xs border border-gray-300 rounded-lg px-3 py-2 focus:outline-none"
                   required
