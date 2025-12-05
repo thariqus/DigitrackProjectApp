@@ -42,11 +42,12 @@ import Videos from "./pages/UiElements/Videos";
 import LineChart from "./pages/Charts/LineChart";
 import BarChart from "./pages/Charts/BarChart";
 import AuthProvider from "@/components/auth";
+import DashboardRedirect from "@/components/DashboardRedirect"
 import Reports from "./pages/pages/Reports";
 
 function AppWrapper() {
   const idleTimer = useRef<NodeJS.Timeout | null>(null);
-  const IDLE_TIME = 15 * 60 * 1000; // 15 minutes
+  const IDLE_TIME = 15 * 60 * 1000; 
 
   const resetIdleTimer = () => {
     if (idleTimer.current) clearTimeout(idleTimer.current);
@@ -76,7 +77,9 @@ function AppWrapper() {
       <Suspense fallback={<div>Loading...</div>}>
         <Routes>
           <Route element={<AppLayout />}>
-            <Route index element={<Reports />} />
+            {/* <Route index element={<Reports />} /> */}
+            <Route index element={<Navigate to="/dashboard-redirect" replace />} />
+            <Route path="/dashboard-redirect" element={<DashboardRedirect />} />
             <Route path="/pms" element={<Reports />} />
             <Route path="/goallist" element={<GoalList />} />
             <Route path="/goalassignment" element={<GoalAssignment />} />

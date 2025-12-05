@@ -2,7 +2,7 @@
 import frappe
 import json
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def get_goal_assessment_summary(year=None, manager=None):
     try:
         if not year:
@@ -162,4 +162,249 @@ def get_goal_assessment_summary(year=None, manager=None):
 
     except Exception as e:
         frappe.log_error(frappe.get_traceback(), "get_goal_assessment_summary_error")
+        return {"error": str(e)}
+
+
+@frappe.whitelist()
+def get_goal_assessment_summary_org(year=None, manager=None):
+    try:
+        if not year:
+            settings = frappe.get_single("JH Goal Settings")
+            year = settings.assesment_year
+
+        if not manager:
+            frappe.throw("Manager email is required")
+
+        hierarchy_rows = frappe.db.get_all(
+            "Manager Hierarchy",
+            filters={"reporting_manager_email": manager},
+            fields=["manager_email", "manager_name"]
+        )
+
+        if not hierarchy_rows:
+            return {"message": [], "year": year}
+
+        final_data = []
+
+        for row in hierarchy_rows:
+            mgr_email = row["manager_email"]
+            mgr_name = frappe.db.get_value("User", mgr_email, "full_name")
+
+            mgr_code = frappe.db.get_value(
+                "PMS Employees",
+                {"employee_email": mgr_email},
+                "employee_code"
+            )
+
+            employees = frappe.db.get_all(
+                "PMS Employees",
+                filters={"manager_email": mgr_email, "pms_employee": 1},
+                fields=["employee_code", "full_name as employee_name"]
+            )
+
+            employee_codes = [e["employee_code"] for e in employees]
+
+            summary = {
+                "manager_email": mgr_email,
+                "manager_name": mgr_name,
+                "manager_code": mgr_code,     
+
+                "employee_count": len(employees),
+                "employees_under_manager": employees,
+
+                "goals_pending": 0,
+                "goals_started": 0,
+                "goals_submitted": 0,
+                "evaluation_pending": 0,
+                "evaluation_started": 0,
+                "evaluation_submitted": 0,
+
+                "goals_pending_employees": [],
+                "goals_started_employees": [],
+                "goals_submitted_employees": [],
+                "evaluation_pending_employees": [],
+                "evaluation_started_employees": [],
+                "evaluation_submitted_employees": [],
+            }
+
+            if not employee_codes:
+                final_data.append(summary)
+                continue
+
+            ga_records = frappe.db.get_all(
+                "Goal Assessment",
+                filters={"year": year, "employee_code": ["in", employee_codes]},
+                fields=["employee_code", "employee_name", "status"]
+            )
+
+            classified = {
+                "Goal Started": "goals_started_employees",
+                "Goal Submitted": "goals_submitted_employees",
+                "Evaluation Pending": "evaluation_pending_employees",
+                "Evaluation Started": "evaluation_started_employees",
+                "Evaluation Submitted": "evaluation_submitted_employees",
+            }
+
+            for ga in ga_records:
+                emp = {"employee_code": ga["employee_code"], "employee_name": ga["employee_name"]}
+                key = classified.get(ga["status"])
+                if key:
+                    summary[key].append(emp)
+
+            summary["goals_started"] = len(summary["goals_started_employees"])
+            summary["goals_submitted"] = len(summary["goals_submitted_employees"])
+            summary["evaluation_pending"] = len(summary["evaluation_pending_employees"])
+            summary["evaluation_started"] = len(summary["evaluation_started_employees"])
+            summary["evaluation_submitted"] = len(summary["evaluation_submitted_employees"])
+
+            taken = set()
+            for key in [
+                "goals_started_employees",
+                "goals_submitted_employees",
+                "evaluation_pending_employees",
+                "evaluation_started_employees",
+                "evaluation_submitted_employees",
+            ]:
+                for e in summary[key]:
+                    taken.add(e["employee_code"])
+
+            pending = [e for e in employees if e["employee_code"] not in taken]
+
+            summary["goals_pending"] = len(pending)
+            summary["goals_pending_employees"] = pending
+
+            final_data.append(summary)
+
+        return {"message": final_data, "year": year}
+
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "get_goal_assessment_summary_org_error")
+        return {"error": str(e)}
+
+
+
+@frappe.whitelist(allow_guest=True)
+def get_goal_assessment_summary_admin(year=None, manager=None):
+    try:
+        if not year:
+            settings = frappe.get_single("JH Goal Settings")
+            year = settings.assesment_year
+
+        if not manager:
+            frappe.throw("Admin email is required")
+
+        # Step 1: Get rows from PMS Admin Access List
+        admin_rows = frappe.db.get_all(
+            "PMS Admin Access List",
+            filters={"admin_email": manager},
+            fields=["cost_center"]
+        )
+
+        if not admin_rows:
+            return {"message": [], "year": year}
+
+        final_data = []
+
+        # Step 2: For each costCenter -> get PMS managers of that costCenter
+        for row in admin_rows:
+            cost_center = row["cost_center"]
+
+            managers = frappe.db.get_all(
+                "PMS Employees",
+                filters={"cost_center_name": cost_center, "pms_manager": 1},
+                fields=["employee_email as manager_email", "full_name as manager_name", "employee_code"]
+            )
+
+            # Step 3: For each manager → fetch employees + GA summary
+            for mgr in managers:
+                mgr_email = mgr["manager_email"]
+                mgr_name = mgr["manager_name"]
+                mgr_code = mgr["employee_code"]
+
+                employees = frappe.db.get_all(
+                    "PMS Employees",
+                    filters={"manager_email": mgr_email, "pms_employee": 1},
+                    fields=["employee_code", "full_name as employee_name"]
+                )
+
+                employee_codes = [e["employee_code"] for e in employees]
+
+                summary = {
+                    "manager_email": mgr_email,
+                    "manager_name": mgr_name,
+                    "manager_code": mgr_code,
+
+                    "employee_count": len(employees),
+                    "employees_under_manager": employees,
+
+                    "goals_pending": 0,
+                    "goals_started": 0,
+                    "goals_submitted": 0,
+                    "evaluation_pending": 0,
+                    "evaluation_started": 0,
+                    "evaluation_submitted": 0,
+
+                    "goals_pending_employees": [],
+                    "goals_started_employees": [],
+                    "goals_submitted_employees": [],
+                    "evaluation_pending_employees": [],
+                    "evaluation_started_employees": [],
+                    "evaluation_submitted_employees": [],
+                }
+
+                if not employee_codes:
+                    final_data.append(summary)
+                    continue
+
+                # Step 4: Get GA records
+                ga_records = frappe.db.get_all(
+                    "Goal Assessment",
+                    filters={"year": year, "employee_code": ["in", employee_codes]},
+                    fields=["employee_code", "employee_name", "status"]
+                )
+
+                classified = {
+                    "Goal Started": "goals_started_employees",
+                    "Goal Submitted": "goals_submitted_employees",
+                    "Evaluation Pending": "evaluation_pending_employees",
+                    "Evaluation Started": "evaluation_started_employees",
+                    "Evaluation Submitted": "evaluation_submitted_employees",
+                }
+
+                for ga in ga_records:
+                    emp = {"employee_code": ga["employee_code"], "employee_name": ga["employee_name"]}
+                    key = classified.get(ga["status"])
+                    if key:
+                        summary[key].append(emp)
+
+                # Count the groups
+                summary["goals_started"] = len(summary["goals_started_employees"])
+                summary["goals_submitted"] = len(summary["goals_submitted_employees"])
+                summary["evaluation_pending"] = len(summary["evaluation_pending_employees"])
+                summary["evaluation_started"] = len(summary["evaluation_started_employees"])
+                summary["evaluation_submitted"] = len(summary["evaluation_submitted_employees"])
+
+                # Compute pending
+                taken = set()
+                for key in [
+                    "goals_started_employees",
+                    "goals_submitted_employees",
+                    "evaluation_pending_employees",
+                    "evaluation_started_employees",
+                    "evaluation_submitted_employees",
+                ]:
+                    for e in summary[key]:
+                        taken.add(e["employee_code"])
+
+                pending = [e for e in employees if e["employee_code"] not in taken]
+
+                summary["goals_pending"] = len(pending)
+                summary["goals_pending_employees"] = pending
+
+                final_data.append(summary)
+
+        return {"message": final_data, "year": year}
+
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "get_goal_assessment_summary_admin_error")
         return {"error": str(e)}

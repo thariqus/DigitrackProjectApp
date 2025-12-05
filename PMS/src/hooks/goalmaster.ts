@@ -44,7 +44,7 @@ export function useGoalMaster() {
         }))
       );
     } catch (error) {
-      console.error("❌ Error fetching goals:", error);
+      console.error(" Error fetching goals:", error);
     } finally {
       setLoading(false);
     }
@@ -64,7 +64,11 @@ export function useGoalMaster() {
   const addGoal = async (goal: Partial<GoalMaster>) => {
     try {
       const res = await frappeClient.api.post<{
-        message: { goal: any };
+        message: {
+          success: boolean;
+          error?: string;
+          goal?: any;
+        };
       }>("jh_digitrack.api.goal_master.add_goal", {
         goal_name: goal.name,
         goal_description: goal.description,
@@ -72,7 +76,9 @@ export function useGoalMaster() {
         target: goal.target || "",
         created_by: currentUser || "Guest",
       });
-
+      if (res.message?.success === false) {
+        throw new Error(res.message.error || "Failed to add goal.");
+      }
       if (res.message?.goal) {
         const g = res.message.goal;
 
@@ -87,9 +93,19 @@ export function useGoalMaster() {
           ...prev,
         ]);
       }
-    } catch (error) {
-      console.error("❌ Error adding goal:", error);
-    }
+    } catch (error: any) {
+  console.error(" Error adding goal:", error);
+
+  const cleanError = new Error(
+    error?.message ||
+    error?.error ||
+    error?.response?.data?.message ||
+    "Failed to add goal."
+  );
+
+  throw cleanError;
+}
+
   };
 
 
@@ -115,7 +131,7 @@ export function useGoalMaster() {
         );
       }
     } catch (error) {
-      console.error("❌ Error editing goal:", error);
+      console.error(" Error editing goal:", error);
     }
   };
 

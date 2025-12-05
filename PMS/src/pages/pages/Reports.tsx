@@ -6,7 +6,7 @@ import { CiMail, CiSearch } from "react-icons/ci";
 import Pagination from "../../components/Pagination";
 import { useGoalAssessment, ManagerSummary, EmployeeSummary } from "../../hooks/pmsreports";
 import { useCurrentUser } from "../../hooks/auth";
-
+import { useLocation } from "react-router";
 interface Goal {
   id: string;
   name: string;
@@ -38,10 +38,32 @@ function Reports() {
   const [rowsPerPage, setRowsPerPage] = useState<number>(10);
   const [selectedYear, setSelectedYear] = useState<string>("");
   const [selectedManager, setSelectedManager] = useState<string>("All");
+  const location = useLocation();
+
+  const initialMode =
+    location.state?.fromAdmin === true ? "admin" : "team";
+
+
+  const [reportMode, setReportMode] =
+    useState<"team" | "org" | "admin">(initialMode);
+
+  useEffect(() => {
+    const fromAdmin = location.state?.fromAdmin === true;
+    setReportMode(fromAdmin ? "admin" : "team");
+  }, [location.state?.fromAdmin]);
+
+  useEffect(() => {
+  refetch();
+}, [reportMode]);
+
+
+  // const [reportMode, setReportMode] = useState<"team" | "org">("team");
 
   const dropdownRef = useRef<HTMLDivElement | null>(null);
 
-  const { managers, baseYear, years, loading, refetch } = useGoalAssessment(selectedYear);
+  // const { managers, baseYear, years, loading, refetch } = useGoalAssessment(selectedYear);
+  const { managers, baseYear, years, loading, refetch } = useGoalAssessment(selectedYear, reportMode);
+
   const { data: currentUser } = useCurrentUser();
 
   useEffect(() => {
@@ -79,6 +101,8 @@ function Reports() {
     setEmployeeSearch("");
     setOpenSingleShowModal(true);
   };
+
+
 
   const employeeListForModal = (manager: ManagerSummary | null, type: string): EmployeeSummary[] => {
     if (!manager) return [];
@@ -167,9 +191,55 @@ function Reports() {
 
   return (
     <div className="bg-white min-h-screen border rounded-lg px-6 py-2 relative">
-      <h1 className=" text-primary font-semibold pb-1">
-        Reports
-      </h1>
+     
+<div className="flex items-center pb-1">
+  <h1 className="text-primary font-semibold mr-4">Reports</h1>
+
+  {/* {reportMode !== "admin" && ( */}
+  {location.state?.fromAdmin !== true && (
+    <div className="flex items-center gap-2">
+      {/* <span
+        className="text-[0.7rem] text-primary cursor-pointer hover:underline"
+        onClick={() => {
+        setReportMode("team");
+        
+        }}
+      >
+        Team
+      </span> */}
+      <span
+        className={
+          `text-[0.7rem] cursor-pointer hover:underline ` +
+          (reportMode === "team" ? "text-primary font-semibold underline" : "text-gray-500")
+        }
+        onClick={() => setReportMode("team")}
+      >
+        Team
+      </span>
+      <span className="text-[0.7rem] text-primary">/</span>
+      {/* <span
+        className="text-[0.7rem] text-primary cursor-pointer hover:underline"
+        onClick={() => {
+        setReportMode("org");
+        
+        }}
+      >
+        Org
+      </span> */}
+      <span
+        className={
+          `text-[0.7rem] cursor-pointer hover:underline ` +
+          (reportMode === "org" ? "text-primary font-semibold underline" : "text-gray-500")
+        }
+        onClick={() => setReportMode("org")}
+      >
+        Org
+      </span>
+    </div>
+  )}
+</div>
+
+
 
       {/* Filters */}
       <div className="flex items-center  justify-between  pb-2">
@@ -258,6 +328,7 @@ function Reports() {
             <span className="text-xs">Clear Filters</span> <IoCloseOutline />
           </button>
         )}
+   
         </div>
 
          <div className="flex items-center gap-3">
@@ -270,7 +341,7 @@ function Reports() {
           <CiMail className="text-md" />
           <span className="text-[0.65rem]">Send Email</span>
         </button>
-        <button
+        {/* <button
           onClick={() => {
             const managerToSend =
               selectedManager === "All"
@@ -284,6 +355,25 @@ function Reports() {
               `/api/method/jh_digitrack.api.report_download.download_excel?year=${selectedYear}&manager=${encodeURIComponent(
                 managerToSend
               )}`,
+              "_blank"
+            );
+          }}
+          className="px-3 py-2 text-xs flex items-center gap-1 bg-primary text-white rounded-md hover:bg-[#7d241f]"
+        >
+          <IoCloudDownloadOutline className="text-md" />
+          <span className="text-[0.65rem]">Download</span>
+        </button> */}
+        <button
+          onClick={() => {
+            const managerToSend =
+              selectedManager === "All"
+                ? currentUser || ""
+                : selectedManager;
+
+            window.open(
+              `/api/method/jh_digitrack.api.report_download.download_excel?year=${selectedYear}&manager=${encodeURIComponent(
+                managerToSend
+              )}&view_type=${reportMode}`,
               "_blank"
             );
           }}

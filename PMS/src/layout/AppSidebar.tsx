@@ -21,6 +21,7 @@ type NavItem = {
   name: string;
   icon: React.ReactNode;
   path?: string;
+  fromAdmin?: boolean;
 };
 
 const masterItems: NavItem[] = [
@@ -36,6 +37,7 @@ const managerItems: NavItem[] = [
     icon: <FaRegChartBar />,
     name: "View",
     path: "/reports",
+    fromAdmin: false,
   },
   {
     icon: <MdOutlineAssignmentTurnedIn />,
@@ -68,6 +70,8 @@ const adminItems: NavItem[] = [
   {
     icon: <FaRegChartBar />,
     name: "View",
+    path: "/reports",
+    fromAdmin: true,
   },
   {
     icon: <IoSettingsOutline />,
@@ -80,9 +84,18 @@ const AppSidebar: React.FC = () => {
   const location = useLocation();
   const { data: employee } = useCurrentPmsEmployee();
 
+  // const isActive = useCallback(
+  //   (path: string) => location.pathname === path,
+  //   [location.pathname]
+  // );
   const isActive = useCallback(
-    (path: string) => location.pathname === path,
-    [location.pathname]
+    (nav: NavItem) => {
+      return (
+        location.pathname === nav.path &&
+        (location.state?.fromAdmin ?? false) === (nav.fromAdmin ?? false)
+      );
+    },
+    [location.pathname, location.state]
   );
 
 
@@ -92,17 +105,25 @@ const AppSidebar: React.FC = () => {
       {items.map((nav) => (
         <li key={nav.name}>
           {hasLink && nav.path ? (
+            // <Link
+            //   to={nav.path}
+            //   className={`menu-item group text-xs ${
+            //     isActive(nav.path)
+            //       ? "menu-item-active"
+            //       : "menu-item-inactive"
+            //   }`}
+            // >
             <Link
               to={nav.path}
+              state={{ fromAdmin: nav.fromAdmin || false }}
               className={`menu-item group text-xs ${
-                isActive(nav.path)
-                  ? "menu-item-active"
-                  : "menu-item-inactive"
+                isActive(nav) ? "menu-item-active" : "menu-item-inactive"
               }`}
             >
+
               <span
                 className={`menu-item-icon-size ${
-                  isActive(nav.path)
+                  isActive(nav)
                     ? "menu-item-icon-active"
                     : "menu-item-icon-inactive"
                 }`}
@@ -213,7 +234,7 @@ const AppSidebar: React.FC = () => {
           {employee?.pms_admin ? (
             <div className="mt-8">
               {renderSectionHeader("Admin")}
-              {renderMenuItems(adminItems, false)}
+              {renderMenuItems(adminItems)}
             </div>
           ) : null}
         </nav>
