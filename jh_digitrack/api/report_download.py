@@ -9,14 +9,39 @@ from openpyxl.utils import get_column_letter
 from jh_digitrack.api.pms_report import get_goal_assessment_summary
 
 @frappe.whitelist()
-def download_excel(year=None, manager=None):
+def download_excel(year=None, manager=None, view_type="team"):
     try:
-        summary_response = get_goal_assessment_summary(year=year, manager=manager)
+        # =====================================================
+        # SELECT WHICH SUMMARY FUNCTION TO CALL
+        # =====================================================
+        if view_type == "org":
+            summary_response = frappe.call(
+                "jh_digitrack.api.pms_report.get_goal_assessment_summary_org",
+                year=year,
+                manager=manager
+            )
+        elif view_type == "admin":
+            summary_response = frappe.call(
+                "jh_digitrack.api.pms_report.get_goal_assessment_summary_admin",
+                year=year,
+                manager=manager
+            )
+        else:
+            summary_response = frappe.call(
+                "jh_digitrack.api.pms_report.get_goal_assessment_summary",
+                year=year,
+                manager=manager
+            )
+
+        if isinstance(summary_response, dict) and "message" in summary_response:
+            summary_response = summary_response
+
         data = summary_response.get("message", [])
         year = summary_response.get("year")
 
         if not data:
             frappe.throw("No summary data available for this selection.")
+
 
         wb = Workbook()
         header_fill = PatternFill(start_color="D9D9D9", end_color="D9D9D9", fill_type="solid")
@@ -91,7 +116,14 @@ def download_excel(year=None, manager=None):
             "Status",
             "Total Score",
             "Comment",
+            "Cost Center",
+            "Designation",
+            "Entity",
+            "Department",
+            "OU",
+            "Grade",
         ]
+
         ws2.append(sheet2_headers)
 
         for cell in ws2[1]:
@@ -123,6 +155,27 @@ def download_excel(year=None, manager=None):
                     employee_code = emp.get("employee_code") or ""
                     employee_name = emp.get("employee_name") or ""
 
+                    emp_details = frappe.db.get_value(
+                        "PMS Employees",
+                        {"name": employee_code},
+                        [
+                            "cost_center_name",
+                            "designation_name",
+                            "entity_name",
+                            "department_name",
+                            "ou_name",
+                            "grade_name"
+                        ],
+                        as_dict=True
+                    ) or {}
+
+                    cost_center = emp_details.get("cost_center_name") or ""
+                    designation = emp_details.get("designation_name") or ""
+                    entity = emp_details.get("entity_name") or ""
+                    department = emp_details.get("department_name") or ""
+                    ou = emp_details.get("ou_name") or ""
+                    grade = emp_details.get("grade_name") or ""
+
                     assessment = frappe.db.get_value(
                         "Goal Assessment",
                         {"employee_code": employee_code, "year": year},
@@ -145,6 +198,12 @@ def download_excel(year=None, manager=None):
                         status_label,
                         total_score,
                         comment,
+                        cost_center,
+                        designation,
+                        entity,
+                        department,
+                        ou,
+                        grade,
                     ])
 
         for i, col in enumerate(ws2.columns, 1):
@@ -193,9 +252,23 @@ def download_excel(year=None, manager=None):
             cell.fill = header_fill
             cell.alignment = Alignment(horizontal="center")
 
+        all_emp_codes = set()
+        for row in data:
+            groups = [
+                row.get("goals_pending_employees") or [],
+                row.get("goals_started_employees") or [],
+                row.get("goals_submitted_employees") or [],
+                row.get("evaluation_pending_employees") or [],
+                row.get("evaluation_started_employees") or [],
+                row.get("evaluation_submitted_employees") or [],
+            ]
+            for grp in groups:
+                for e in grp:
+                    all_emp_codes.add(e["employee_code"])
+
         ga_docs = frappe.get_all(
             "Goal Assessment",
-            filters={"year": year, "manager": manager},
+            filters={"year": year, "employee_code": ["in", list(all_emp_codes)]},
             fields="*"
         )
 
@@ -225,6 +298,7 @@ def download_excel(year=None, manager=None):
             else:
                 ws3.append(manager_values + parent_values + [""] * len(child_fields))
 
+
         for i, col in enumerate(ws3.columns, 1):
             max_length = max(len(str(cell.value or "")) for cell in col)
             ws3.column_dimensions[get_column_letter(i)].width = max_length + 3
@@ -247,3 +321,6 @@ def download_excel(year=None, manager=None):
     except Exception as e:
         frappe.log_error(frappe.get_traceback(), "PMS Report Excel Generation Error")
         frappe.throw(_("Error generating Excel: ") + str(e))
+
+
+

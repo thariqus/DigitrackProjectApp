@@ -1,0 +1,77 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-11-29 10:18:48.758735",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_38gh",
+  "reporting_manager_id",
+  "reporting_manager_name",
+  "reporting_manager_email",
+  "manager_id",
+  "manager_name",
+  "manager_email"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_38gh",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fetch_from": "manager_name.employee_code",
+   "fieldname": "manager_id",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Manager ID"
+  },
+  {
+   "fieldname": "manager_name",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Manager Name",
+   "options": "JH User Master"
+  },
+  {
+   "fetch_from": "manager_name.email",
+   "fieldname": "manager_email",
+   "fieldtype": "Data",
+   "label": "Manager Email"
+  },
+  {
+   "fetch_from": "reporting_manager_name.employee_code",
+   "fieldname": "reporting_manager_id",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Reporting Manager ID"
+  },
+  {
+   "fieldname": "reporting_manager_name",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Reporting Manager Name",
+   "options": "JH User Master"
+  },
+  {
+   "fetch_from": "reporting_manager_name.email",
+   "fieldname": "reporting_manager_email",
+   "fieldtype": "Data",
+   "label": "Reporting Manager Email"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-12-02 11:09:57.048392",
+ "modified_by": "Administrator",
+ "module": "JH Digitrack",
+ "name": "Manager Hierarchy",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

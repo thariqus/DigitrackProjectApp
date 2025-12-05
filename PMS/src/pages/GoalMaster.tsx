@@ -66,9 +66,14 @@ function GoalMaster() {
 
       refetch();
       handleCloseModal();
-    } catch (err) {
-      setMessage({ text: "Something went wrong while saving.", type: "error" });
-    }
+    } catch (err: any) {
+  const msg =
+    err?.error || err?.message || "Something went wrong while saving.";
+
+  setMessage({ text: msg, type: "error" });
+}
+
+
   };
 
 

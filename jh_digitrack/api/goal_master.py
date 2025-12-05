@@ -25,37 +25,36 @@ def get_goals(created_by=None):
     return goals
 
 
-
 @frappe.whitelist()
 def add_goal(goal_name, goal_description, measurement_criteria, target="", created_by=None, created_date=None):
+    user = created_by or frappe.session.user
+
+    existing = frappe.db.exists(
+        "JH Goal Master",
+        {
+            "goal_name": goal_name,
+            "created_by": user
+        }
+    )
+
+    if existing:
+        return {
+            "success": False,
+            "error": f"The Goal Name is already exists for this user."
+        }
+
     goal_doc = frappe.new_doc("JH Goal Master")
     goal_doc.goal_name = goal_name
     goal_doc.goal_description = goal_description
     goal_doc.measurement_criteria = measurement_criteria
     goal_doc.target = target
-    goal_doc.created_by = created_by or frappe.session.user
-    goal_doc.created_date = created_date or frappe.utils.now_datetime() 
+    goal_doc.created_by = user
+    goal_doc.created_date = created_date or frappe.utils.now_datetime()
     goal_doc.insert(ignore_permissions=True)
     frappe.db.commit()
+
     return {"success": True, "goal": goal_doc.as_dict()}
-# @frappe.whitelist()
-# def add_goal(goal_name, goal_description, measurement_criteria, target="", created_by=None, created_date=None):
-#     try:
-#         goal_doc = frappe.new_doc("JH Goal Master")
-#         goal_doc.goal_name = goal_name
-#         goal_doc.goal_description = goal_description
-#         goal_doc.measurement_criteria = measurement_criteria
-#         goal_doc.target = target
-#         goal_doc.created_by = created_by or frappe.session.user
-#         goal_doc.created_date = created_date or frappe.utils.now_datetime()
-        
-#         goal_doc.insert(ignore_permissions=True)
-#         frappe.db.commit()
-#         return {"success": True, "goal": goal_doc.as_dict()}
-    
-#     except Exception as e:
-#         frappe.log_error(frappe.get_traceback(), "Goal Creation Failed")
-#         return {"success": False, "error": str(e)}
+
 
 
 @frappe.whitelist()

@@ -41,29 +41,39 @@ export interface GoalAssessmentResponse {
   };
 }
 
-export function useGoalAssessment(selectedYear?: string) {
+export function useGoalAssessment(
+  selectedYear?: string,
+  reportMode: "team" | "org" | "admin" = "team"
+) {
   const [baseYear, setBaseYear] = useState<string>("");
-  const { data: currentUser } = useCurrentUser(); 
+  const { data: currentUser } = useCurrentUser();
 
   const { data, isLoading, refetch } = useQuery<GoalAssessmentResponse>({
-    queryKey: ["goal-assessment-summary", selectedYear, currentUser],
+    queryKey: ["goal-assessment-summary", selectedYear, reportMode, currentUser],
 
     queryFn: async () => {
       if (!currentUser)
-        return { message: { message: [], year: "" } } as GoalAssessmentResponse;
+        return { message: { message: [], year: "" } };
 
-      const params: any = {
-        manager: currentUser,
-      };
-
+      const params: any = { manager: currentUser };
       if (selectedYear) params.year = selectedYear;
 
-      const res = await frappeClient.api.get(
-        "jh_digitrack.api.pms_report.get_goal_assessment_summary",
-        params
-      );
+      let apiMethod = "";
 
-      res.message.message = res.message.message.map((manager: any) => ({
+      if (reportMode === "admin") {
+        apiMethod =
+          "jh_digitrack.api.pms_report.get_goal_assessment_summary_admin";
+      } else if (reportMode === "team") {
+        apiMethod =
+          "jh_digitrack.api.pms_report.get_goal_assessment_summary";
+      } else {
+        apiMethod =
+          "jh_digitrack.api.pms_report.get_goal_assessment_summary_org";
+      }
+
+      const res: any = await frappeClient.api.get(apiMethod, params);
+
+      res.message.message = res.message.message?.map((manager: any) => ({
         ...manager,
         employees_under_manager: manager.employees_under_manager || [],
         goals_pending_employees: manager.goals_pending_employees || [],
@@ -72,7 +82,7 @@ export function useGoalAssessment(selectedYear?: string) {
         evaluation_pending_employees: manager.evaluation_pending_employees || [],
         evaluation_started_employees: manager.evaluation_started_employees || [],
         evaluation_submitted_employees: manager.evaluation_submitted_employees || [],
-      }));
+      })) || [];
 
       return res;
     },

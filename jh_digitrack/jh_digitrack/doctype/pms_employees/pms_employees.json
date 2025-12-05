@@ -27,7 +27,13 @@
   "pms_employee",
   "pms_master",
   "section_break_7gls",
-  "manager_list"
+  "cost_center_name",
+  "entity_name",
+  "ou_name",
+  "column_break_cpwo",
+  "designation_name",
+  "department_name",
+  "grade_name"
  ],
  "fields": [
   {
@@ -58,6 +64,8 @@
   {
    "fieldname": "full_name",
    "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
    "label": "Full Name",
    "read_only": 1
   },
@@ -109,12 +117,6 @@
    "fieldtype": "Section Break"
   },
   {
-   "fieldname": "manager_list",
-   "fieldtype": "Table",
-   "label": "Manager List",
-   "options": "Manager List"
-  },
-  {
    "fieldname": "column_break_qkdj",
    "fieldtype": "Column Break"
   },
@@ -146,12 +148,46 @@
    "fieldname": "pms_master",
    "fieldtype": "Check",
    "label": "PMS Master"
+  },
+  {
+   "fieldname": "cost_center_name",
+   "fieldtype": "Data",
+   "label": "Cost Center Name"
+  },
+  {
+   "fieldname": "entity_name",
+   "fieldtype": "Data",
+   "label": "Entity Name"
+  },
+  {
+   "fieldname": "ou_name",
+   "fieldtype": "Data",
+   "label": "OU Name"
+  },
+  {
+   "fieldname": "designation_name",
+   "fieldtype": "Data",
+   "label": "Designation Name"
+  },
+  {
+   "fieldname": "department_name",
+   "fieldtype": "Data",
+   "label": "Department Name"
+  },
+  {
+   "fieldname": "grade_name",
+   "fieldtype": "Data",
+   "label": "Grade Name"
+  },
+  {
+   "fieldname": "column_break_cpwo",
+   "fieldtype": "Column Break"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-11-05 10:04:58.105502",
+ "modified": "2025-11-29 13:41:23.302491",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "PMS Employees",
