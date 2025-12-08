@@ -188,8 +188,8 @@ def get_goal_assessment_summary_org(year=None, manager=None):
 
         for row in hierarchy_rows:
             mgr_email = row["manager_email"]
-            mgr_name = frappe.db.get_value("User", mgr_email, "full_name")
-
+            mgr_name = frappe.db.get_value("User ", mgr_email, "full_name")
+            # mgr_name = row["manager_name"]
             mgr_code = frappe.db.get_value(
                 "PMS Employees",
                 {"employee_email": mgr_email},

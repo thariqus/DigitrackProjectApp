@@ -7,11 +7,11 @@
  "engine": "InnoDB",
  "field_order": [
   "section_break_38gh",
-  "reporting_manager_id",
   "reporting_manager_name",
+  "reporting_manager_id",
   "reporting_manager_email",
-  "manager_id",
   "manager_name",
+  "manager_id",
   "manager_email"
  ],
  "fields": [
@@ -24,7 +24,8 @@
    "fieldname": "manager_id",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Manager ID"
+   "label": "Manager ID",
+   "read_only": 1
   },
   {
    "fieldname": "manager_name",
@@ -34,17 +35,18 @@
    "options": "JH User Master"
   },
   {
-   "fetch_from": "manager_name.email",
    "fieldname": "manager_email",
    "fieldtype": "Data",
-   "label": "Manager Email"
+   "label": "Manager Email",
+   "read_only": 1
   },
   {
    "fetch_from": "reporting_manager_name.employee_code",
    "fieldname": "reporting_manager_id",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Reporting Manager ID"
+   "label": "Reporting Manager ID",
+   "read_only": 1
   },
   {
    "fieldname": "reporting_manager_name",
@@ -57,14 +59,15 @@
    "fetch_from": "reporting_manager_name.email",
    "fieldname": "reporting_manager_email",
    "fieldtype": "Data",
-   "label": "Reporting Manager Email"
+   "label": "Reporting Manager Email",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-12-02 11:09:57.048392",
+ "modified": "2025-12-08 10:33:08.419682",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "Manager Hierarchy",

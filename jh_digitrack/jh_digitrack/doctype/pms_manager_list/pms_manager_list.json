@@ -1,16 +1,16 @@
 {
  "actions": [],
  "allow_rename": 1,
- "creation": "2025-11-29 10:13:32.747880",
+ "creation": "2025-12-05 18:13:17.277983",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
-  "section_break_syrb",
+  "section_break_yoc6",
   "manager_hierarchy"
  ],
  "fields": [
   {
-   "fieldname": "section_break_syrb",
+   "fieldname": "section_break_yoc6",
    "fieldtype": "Section Break"
   },
   {
@@ -22,8 +22,9 @@
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
+ "issingle": 1,
  "links": [],
- "modified": "2025-11-29 10:23:22.398030",
+ "modified": "2025-12-05 18:13:34.850706",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "PMS Manager List",
@@ -33,10 +34,8 @@
    "create": 1,
    "delete": 1,
    "email": 1,
-   "export": 1,
    "print": 1,
    "read": 1,
-   "report": 1,
    "role": "System Manager",
    "share": 1,
    "write": 1
