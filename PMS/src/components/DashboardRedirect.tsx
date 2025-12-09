@@ -15,7 +15,7 @@ export default function DashboardRedirect() {
   }
 
   if (employee?.pms_employee || employee?.self_assessment) {
-    return <Navigate to="/myevaluationlist" replace />;
+    return <Navigate to="/self-evaluation" replace />;
   }
 
   return <Navigate to="/login" replace />;

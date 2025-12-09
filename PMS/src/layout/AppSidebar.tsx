@@ -55,6 +55,7 @@ const selfItems: NavItem[] = [
   {
     icon: <FaRegChartBar />,
     name: "View",
+    path: "/self-evaluation",
   },
   {
     icon: <MdOutlineAssignmentTurnedIn />,
@@ -227,7 +228,7 @@ const AppSidebar: React.FC = () => {
           {employee?.pms_employee || employee?.self_assessment ? (
             <div className="mt-8">
               {renderSectionHeader("Self")}
-              {renderMenuItems(selfItems, false)}
+              {renderMenuItems(selfItems)}
             </div>
           ) : null}
 
