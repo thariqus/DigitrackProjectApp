@@ -44,6 +44,8 @@ import BarChart from "./pages/Charts/BarChart";
 import AuthProvider from "@/components/auth";
 import DashboardRedirect from "@/components/DashboardRedirect"
 import Reports from "./pages/pages/Reports";
+import SelfEvaluationRedirect from "@/components/SelfEvaluationRedirect"
+
 
 function AppWrapper() {
   const idleTimer = useRef<NodeJS.Timeout | null>(null);
@@ -80,6 +82,7 @@ function AppWrapper() {
             {/* <Route index element={<Reports />} /> */}
             <Route index element={<Navigate to="/dashboard-redirect" replace />} />
             <Route path="/dashboard-redirect" element={<DashboardRedirect />} />
+            <Route path="/self-evaluation" element={<SelfEvaluationRedirect />} />
             <Route path="/pms" element={<Reports />} />
             <Route path="/goallist" element={<GoalList />} />
             <Route path="/goalassignment" element={<GoalAssignment />} />

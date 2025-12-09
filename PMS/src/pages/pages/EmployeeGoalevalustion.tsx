@@ -87,6 +87,7 @@ useEffect(() => {
   const empData = localStorage.getItem("SelectedEmployee");
   const selectedYear = localStorage.getItem("SelectedYear");
   const savedStatus = localStorage.getItem("SelectedStatus"); 
+  const cameFromView = localStorage.getItem("CameFromView"); 
   if (empData) {
     try {
       const emp = JSON.parse(empData);
@@ -103,7 +104,7 @@ useEffect(() => {
   }
 
   if (selectedYear) setYear(selectedYear);
-  if (savedStatus && savedStatus === "Evaluation Submitted") {
+  if (savedStatus && savedStatus === "Evaluation Submitted" || cameFromView === "1") {
     setIsSubmitted(true);
   } else {
     setIsSubmitted(false);
@@ -368,6 +369,7 @@ useEffect(() => {
 
   const handleNavigation = () => {
   localStorage.removeItem("SelectedStatus");
+  localStorage.removeItem("CameFromView");
   navigate("/goalevaluation");
 };
   const finalScore = useMemo(() => {
@@ -401,7 +403,15 @@ useEffect(() => {
       <div className="bg-white w-full h-full border rounded-lg px-6 py-2 relative overflow-y-auto">
         <div className="flex items-start justify-between">
           <h1 className=" text-primary font-medium mb-3">Employee Goal Evaluation</h1>
-          <IoCloseOutline className="text-2xl cursor-pointer" onClick={() => navigate("/goalevaluation")} />
+          {/* <IoCloseOutline className="text-2xl cursor-pointer" onClick={() => navigate("/goalevaluation")} /> */}
+          <IoCloseOutline
+            className="text-2xl cursor-pointer"
+            onClick={() => {
+              localStorage.removeItem("CameFromView");
+              navigate("/goalevaluation");
+            }}
+          />
+
         </div>
 
         <div className="flex items-start justify-between">
