@@ -17,7 +17,7 @@ export default function SelfEvaluationRedirect() {
       );
 
       localStorage.setItem("CameFromView", "1");
-      navigate("/employeegoalevaluation", { replace: true });
+      navigate("/self-evaluation-history", { replace: true });
     }
   }, [currentEmployee]);
 

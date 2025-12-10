@@ -25,33 +25,40 @@ import Maintenance from "./components/Maintenance";
 import Dashboard from "./components/dashboard";
 
 function AppWrapper() {
-  const idleTimer = useRef<NodeJS.Timeout | null>(null);
 
-
-  const IDLE_TIME = 15 * 60 * 1000; // 15 minutes
+  const IDLE_TIME = 15 * 60 * 1000; 
+  const logoutTimer = useRef<NodeJS.Timeout | null>(null);
 
   const resetIdleTimer = () => {
-    if (idleTimer.current) clearTimeout(idleTimer.current);
+    if (logoutTimer.current) clearTimeout(logoutTimer.current);
+    logoutTimer.current = setTimeout(globalLogout, IDLE_TIME);
 
-    idleTimer.current = setTimeout(() => {
-      fetch("/api/method/logout", { method: "POST" })
-        .finally(() => {
-          window.location.href = "/login";
-        });
-    }, IDLE_TIME);
+    localStorage.setItem("global_user_activity", Date.now().toString());
   };
 
+  const globalLogout = () => {
+    window.location.href =
+      "/api/method/jh_digitrack.api.idle_logout.idle_logout";
+  };
 
   useEffect(() => {
-
     const events = ["mousemove", "keydown", "click", "scroll"];
-    events.forEach((event) => window.addEventListener(event, resetIdleTimer));
+    events.forEach((evt) => window.addEventListener(evt, resetIdleTimer));
+
+    const storageListener = (event: StorageEvent) => {
+      if (event.key === "global_user_activity") {
+        if (logoutTimer.current) clearTimeout(logoutTimer.current);
+        logoutTimer.current = setTimeout(globalLogout, IDLE_TIME);
+      }
+    };
+    window.addEventListener("storage", storageListener);
 
     resetIdleTimer();
 
     return () => {
-      events.forEach((event) => window.removeEventListener(event, resetIdleTimer));
-      if (idleTimer.current) clearTimeout(idleTimer.current);
+      events.forEach((evt) => window.removeEventListener(evt, resetIdleTimer));
+      window.removeEventListener("storage", storageListener);
+      if (logoutTimer.current) clearTimeout(logoutTimer.current);
     };
   }, []);
 

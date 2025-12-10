@@ -253,3 +253,6 @@ def delete_goal_attachment(employee_code, year, file_url):
         frappe.db.rollback()
         frappe.log_error(frappe.get_traceback(), "Goal Attachment Delete Failed")
         frappe.throw(str(e))
+
+
+

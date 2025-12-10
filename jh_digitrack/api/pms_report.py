@@ -22,7 +22,7 @@ def get_goal_assessment_summary(year=None, manager=None):
         query = """
             SELECT
                 u.name AS manager_email,
-                u.full_name AS manager_name,
+                (SELECT full_name FROM `tabJH User Master` WHERE email = u.name LIMIT 1) AS manager_name,
                 COALESCE(emp.employee_count, 0) AS employee_count,
                 emp.employees_under_manager,
 
@@ -188,8 +188,7 @@ def get_goal_assessment_summary_org(year=None, manager=None):
 
         for row in hierarchy_rows:
             mgr_email = row["manager_email"]
-            mgr_name = frappe.db.get_value("User ", mgr_email, "full_name")
-            # mgr_name = row["manager_name"]
+            mgr_name = frappe.db.get_value("JH User Master", {"email": mgr_email}, "full_name")
             mgr_code = frappe.db.get_value(
                 "PMS Employees",
                 {"employee_email": mgr_email},
@@ -407,4 +406,41 @@ def get_goal_assessment_summary_admin(year=None, manager=None):
 
     except Exception as e:
         frappe.log_error(frappe.get_traceback(), "get_goal_assessment_summary_admin_error")
+        return {"error": str(e)}
+
+
+@frappe.whitelist()
+def get_self_evaluation_history(current_user=None):
+    try:
+        if not current_user:
+            frappe.throw("User email is required")
+
+        jh_user = frappe.get_value(
+            "JH User Master",
+            {"email": current_user},
+            ["name", "employee_code"],
+            as_dict=True
+        )
+
+        if not jh_user:
+            return {"error": "JH User Master not found for this email"}
+
+        employee_code = jh_user.employee_code
+
+        if not employee_code:
+            return {"error": "Employee code missing in JH User Master"}
+
+        assessments = frappe.get_all(
+            "Goal Assessment",
+            filters={"employee_code": employee_code},
+            fields=["name", "employee_code", "year", "status","total_score","comment"]
+        )
+
+        return {
+            "employee_code": employee_code,
+            "assessments": assessments
+        }
+
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "get_self_evaluation_history")
         return {"error": str(e)}
