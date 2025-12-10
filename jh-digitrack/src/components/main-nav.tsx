@@ -25,6 +25,7 @@ import { useCurrentJhUser, useLogout } from "@/hooks/auth";
 import { useAppVersion } from "@/hooks/system";
 import { JHDigitrackSettings } from "@/types/JHDigitrack/JHDigitrackSettings";
 import { useDocDetail } from "@/hooks/doc";
+import { useHasPmsAccess } from "@/hooks/userrole";
 
 export function MainNav() {
   const { pathname } = useLocation();
@@ -47,6 +48,7 @@ export function MainNav() {
   });
 
   const attachment = attachmentDetailed?.docs[0];
+  const { data: pmsRole } = useHasPmsAccess();
 
   return (
     <header className="border-b">
@@ -112,11 +114,14 @@ export function MainNav() {
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => {
-                  window.location.href =
-                    "/PMS";
+                  if (!pmsRole?.message?.has_access) {
+                    alert("You have no access to PMS Lite. Please contact admin.");
+                    return;
+                  }
+                  window.location.href = "/PMS";
                 }}
               >
-              <LineChart className="h-5 w-5" />
+                <LineChart className="h-5 w-5" />
                 <span>PMS Lite</span>
               </DropdownMenuItem>
             </DropdownMenuContent>

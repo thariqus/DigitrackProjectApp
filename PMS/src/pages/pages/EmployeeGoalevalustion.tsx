@@ -46,6 +46,8 @@ function EmployeeGoalEvaluation() {
   const [commentText, setCommentText] = useState("");
   const [submittedComment, setSubmittedComment] = useState("");
   const [isDirty, setIsDirty] = useState(false);
+  const cameFromViewflag = localStorage.getItem("CameFromView");
+
 useEffect(() => {
   if (message.text !== "") {
     const timer = setTimeout(() => {
@@ -404,11 +406,27 @@ useEffect(() => {
         <div className="flex items-start justify-between">
           <h1 className=" text-primary font-medium mb-3">Employee Goal Evaluation</h1>
           {/* <IoCloseOutline className="text-2xl cursor-pointer" onClick={() => navigate("/goalevaluation")} /> */}
-          <IoCloseOutline
+          {/* <IoCloseOutline
             className="text-2xl cursor-pointer"
             onClick={() => {
               localStorage.removeItem("CameFromView");
               navigate("/goalevaluation");
+            }}
+          /> */}
+          <IoCloseOutline
+            className="text-2xl cursor-pointer"
+            onClick={() => {
+              const cameFromView = localStorage.getItem("CameFromView");
+
+              // Remove the flag so future openings don't trigger self-view flow
+              localStorage.removeItem("CameFromView");
+
+              // Redirect based on entry route
+              if (cameFromView === "1") {
+                navigate("/self-evaluation-history");
+              } else {
+                navigate("/goalevaluation");
+              }
             }}
           />
 
@@ -417,15 +435,27 @@ useEffect(() => {
         <div className="flex items-start justify-between">
           {employee && (
             <div className="text-sm text-gray-500">
-              <span className="cursor-pointer hover:text-primary underline decoration-gray-400" onClick={handleNavigation}>
-                Goal Evaluation
-              </span>{" "}
-              &gt;{" "}
+
+              {!cameFromViewflag && (
+                <>
+                  <span
+                    className="cursor-pointer hover:text-primary underline decoration-gray-400"
+                    onClick={handleNavigation}
+                  >
+                    Goal Evaluation
+                  </span>
+                  {" > "}
+                </>
+              )}
+
               <span className="text-primary font-medium">
                 {employee.id} / {employee.name}
               </span>
+
             </div>
           )}
+        
+
 
           <div className="text-sm font-medium text-gray-700">
             <p>

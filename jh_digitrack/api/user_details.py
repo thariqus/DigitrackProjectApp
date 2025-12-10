@@ -163,3 +163,26 @@ def format_date(value):
         return dt.strftime("%d-%m-%Y")
     except Exception:
         return value
+
+
+import frappe
+from frappe import _
+
+@frappe.whitelist(allow_guest=True)
+def has_pms_role(email=None):
+    if not email:
+        frappe.throw(_("Email is required"))
+
+    result = frappe.db.sql(
+        """
+        SELECT COUNT(*) 
+        FROM `tabHas Role`
+        WHERE parent=%s AND role='PMS User'
+        """,
+        (email,),
+        as_dict=True,
+    )
+
+    has_access = result[0]["COUNT(*)"] > 0 if result else False
+
+    return {"message": {"has_access": has_access}}
