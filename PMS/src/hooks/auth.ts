@@ -63,17 +63,20 @@ export const useLogout = () => {
   });
 };
 
-
 export const useCurrentPmsEmployee = () => {
   return useQuery({
     queryKey: ["current-pms-employee"],
     queryFn: async () => {
       const currentUser = await frappe.auth.getLoggedInUser();
+
+      const jhUser: any = await frappe.db.getLastDoc("JH User Master", {
+        filters: [["user", "=", currentUser]],
+      });
+
       return frappe.db.getLastDoc<PMSEmployee>("PMS Employees", {
-        filters: [["employee_email", "=", currentUser]],
+        filters: [["employee_code", "=", jhUser.employee_code]],
       });
     },
-    staleTime: 1000 * 60 * 60, 
+    staleTime: 1000 * 60 * 60,
   });
 };
-
