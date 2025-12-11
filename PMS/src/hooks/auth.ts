@@ -70,7 +70,7 @@ export const useCurrentPmsEmployee = () => {
       const currentUser = await frappe.auth.getLoggedInUser();
 
       const jhUser: any = await frappe.db.getLastDoc("JH User Master", {
-        filters: [["user", "=", currentUser]],
+        filters: [["email", "=", currentUser]],
       });
 
       return frappe.db.getLastDoc<PMSEmployee>("PMS Employees", {
