@@ -14,6 +14,7 @@
    "fieldtype": "Section Break"
   },
   {
+   "allow_bulk_edit": 1,
    "fieldname": "pms_admin_access_list",
    "fieldtype": "Table",
    "label": "PMS Admin Access List",
@@ -24,7 +25,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-12-02 10:57:20.133219",
+ "modified": "2025-12-12 10:36:07.270825",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "PMS Admin Access",
