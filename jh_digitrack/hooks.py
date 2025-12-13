@@ -161,17 +161,14 @@ scheduler_events = {
     # 	"jh_digitrack.tasks.all"
     # ],
     # "daily": ["jh_digitrack.api.tasks.scheduled_emails"],
-    "cron": {
-        "10 0 * * *": [
-            "jh_digitrack.api.tasks.scheduled_emails"
-        ],
-        "30 0 * * *": [
-            "jh_digitrack.api.tasks.send_emails"
-        ],
-        "0 1 * * *": [
-            "jh_digitrack.api.user_details.get_access_token"
-        ]
-    }
+    # "cron": {
+    #     "10 0 * * *": [
+    #         "jh_digitrack.api.tasks.scheduled_emails"
+    #     ],
+    #     "30 0 * * *": [
+    #         "jh_digitrack.api.tasks.send_emails"
+    #     ]
+    # },
     # "hourly": [
     # 	"jh_digitrack.tasks.hourly"
     # ],
@@ -181,7 +178,11 @@ scheduler_events = {
     # "monthly": [
     # 	"jh_digitrack.tasks.monthly"
     # ],
-   
+    # "cron": {
+    #     "0 1 * * *": [
+    #         "jh_digitrack.api.user_details.get_access_token"
+    #     ]
+    # }
 }
 
 # Testing
@@ -267,4 +268,6 @@ fixtures = [  {
 
 website_route_rules = [
     {"from_route": "/jh-digitrack/<path:app_path>", "to_route": "jh-digitrack"},
+    {"from_route": "/PMS/<path:app_path>", "to_route": "PMS"},
+
 ]

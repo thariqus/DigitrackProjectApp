@@ -9,12 +9,18 @@ class JHUserMaster(Document):
     def after_insert(self):
         attach_user(self.name, self.email)
 
-    def before_save(self):
-        first_name = self.get("first_name", "") or ""
-        middle_name = self.get("middle_name", "") or ""
-        last_name = self.get("last_name", "") or ""
-        self.full_name = f"{first_name} {middle_name} {last_name}"
+    # def before_save(self):
+    #     first_name = self.get("first_name", "") or ""
+    #     middle_name = self.get("middle_name", "") or ""
+    #     last_name = self.get("last_name", "") or ""
+    #     self.full_name = f"{first_name} {middle_name} {last_name}"
 
+    def before_save(self):
+        first_name = (self.first_name or "").strip()
+        middle_name = (self.middle_name or "").strip()
+        last_name = (self.last_name or "").strip()
+
+        self.full_name = " ".join(part for part in [first_name, middle_name, last_name] if part)
 
 @frappe.whitelist()
 def attach_user(jh_user_id: str, email: str):
