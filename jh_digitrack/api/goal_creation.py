@@ -24,7 +24,13 @@ def get_employee_goals(employee_code, year):
         """
 
         goals = frappe.db.sql(query, (employee_code, year), as_dict=True)
-        return goals
+        settings = frappe.get_single("JH Goal Settings")
+        min_goals = settings.minimum_no_of_goals or 0
+
+        return {
+            "goals": goals,
+            "minimum_no_of_goals": min_goals
+        }
 
     except Exception as e:
         frappe.log_error(frappe.get_traceback(), "get_employee_goals_sql_error")

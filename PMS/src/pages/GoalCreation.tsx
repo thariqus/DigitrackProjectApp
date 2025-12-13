@@ -71,7 +71,12 @@ const GoalCreation: React.FC = () => {
   const { employees: assignableEmployees, baseYear } = useGoalAssignment();
   const isBaseYear = year === baseYear;
   const { employeeGoals: modalGoals, loading: modalGoalsLoading, refetch: refetchModalGoals } = useEmployeeGoals(selectedEmployee || "", selectedCopyYear);
-  const { employeeGoals: fetchedEmployeeGoals } = useEmployeeGoals(employee?.id || "", year);
+  // const { employeeGoals: fetchedEmployeeGoals } = useEmployeeGoals(employee?.id || "", year);
+  const {
+    employeeGoals: fetchedEmployeeGoals,
+    minimumGoals,
+  } = useEmployeeGoals(employee?.id || "", year);
+
   const isDuplicateGoal = (goalId: string, goalName: string) => {
     return goals.some(
       (g) =>
@@ -336,6 +341,14 @@ const handleSubmit = async () => {
       });
       return;
     }
+    if (goals.length < minimumGoals) {
+      setMessage({
+        text: `Minimum ${minimumGoals} goals are required to submit.`,
+        type: "error",
+      });
+      return;
+    }
+
     // const savedFlag = localStorage.getItem("GoalSavedFlag");
     // if (!savedFlag) {
     //   setMessage({
