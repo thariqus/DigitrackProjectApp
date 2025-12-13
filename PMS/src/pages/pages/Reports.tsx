@@ -332,7 +332,7 @@ function Reports() {
         </div>
 
          <div className="flex items-center gap-3">
-
+{/* 
         <button
           onClick={() => {
           }}
@@ -340,7 +340,7 @@ function Reports() {
         >
           <CiMail className="text-md" />
           <span className="text-[0.65rem]">Send Email</span>
-        </button>
+        </button> */}
         {/* <button
           onClick={() => {
             const managerToSend =
@@ -365,6 +365,10 @@ function Reports() {
         </button> */}
         <button
           onClick={() => {
+            if (filteredManagers.length === 0) {
+      alert("No data available to download");
+      return; 
+    }
             const managerToSend =
               selectedManager === "All"
                 ? currentUser || ""

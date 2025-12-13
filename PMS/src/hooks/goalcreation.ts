@@ -85,6 +85,7 @@ export function useGoalMaster(filters?: { created_by_me?: boolean }) {
 --------------------------------------------------------- */
 export function useEmployeeGoals(employeeCode: string, year: string) {
   const [employeeGoals, setEmployeeGoals] = useState<GoalDetail[]>([]);
+  const [minimumGoals, setMinimumGoals] = useState<number>(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -93,13 +94,17 @@ export function useEmployeeGoals(employeeCode: string, year: string) {
     const fetchEmployeeGoals = async () => {
       try {
         const res = await frappeClient.api.get<{
-          message: GoalDetail[];
+          message: {
+            goals: GoalDetail[];
+            minimum_no_of_goals: number;
+          };
         }>("jh_digitrack.api.goal_creation.get_employee_goals", {
           employee_code: employeeCode,
           year,
         });
 
-        setEmployeeGoals(res.message || []);
+        setEmployeeGoals(res.message?.goals || []);
+        setMinimumGoals(res.message?.minimum_no_of_goals || 0);
       } catch (error) {
         console.error("Error fetching employee goals:", error);
       } finally {
@@ -110,7 +115,7 @@ export function useEmployeeGoals(employeeCode: string, year: string) {
     fetchEmployeeGoals();
   }, [employeeCode, year]);
 
-  return { employeeGoals, loading };
+  return { employeeGoals,minimumGoals, loading };
 }
 
 /* ---------------------------------------------------------

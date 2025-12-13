@@ -178,7 +178,7 @@ def get_goal_assessment_summary_org(year=None, manager=None):
         hierarchy_rows = frappe.db.get_all(
             "Manager Hierarchy",
             filters={"reporting_manager_email": manager},
-            fields=["manager_email", "manager_name"]
+            fields=["manager_id", "manager_name"]
         )
 
         if not hierarchy_rows:
@@ -187,24 +187,18 @@ def get_goal_assessment_summary_org(year=None, manager=None):
         final_data = []
 
         for row in hierarchy_rows:
-            mgr_email = row["manager_email"]
-            mgr_name = frappe.db.get_value("JH User Master", {"email": mgr_email}, "full_name")
-            mgr_code = frappe.db.get_value(
-                "PMS Employees",
-                {"employee_email": mgr_email},
-                "employee_code"
-            )
+            mgr_code = row["manager_id"]
+            mgr_name = frappe.db.get_value("JH User Master", {"employee_code": mgr_code}, "full_name")
 
             employees = frappe.db.get_all(
                 "PMS Employees",
-                filters={"manager_email": mgr_email, "pms_employee": 1},
+                filters={"manager_code": mgr_code, "pms_employee": 1},
                 fields=["employee_code", "full_name as employee_name"]
             )
 
             employee_codes = [e["employee_code"] for e in employees]
 
             summary = {
-                "manager_email": mgr_email,
                 "manager_name": mgr_name,
                 "manager_code": mgr_code,     
 
@@ -291,11 +285,16 @@ def get_goal_assessment_summary_admin(year=None, manager=None):
 
         if not manager:
             frappe.throw("Admin email is required")
+      
+        manager_code = frappe.db.get_value(
+            "JH User Master",
+            {"email": manager},
+            "employee_code"
+        )
 
-        # Step 1: Get rows from PMS Admin Access List
         admin_rows = frappe.db.get_all(
             "PMS Admin Access List",
-            filters={"admin_email": manager},
+            filters={"admin_emp_id": manager_code},
             fields=["cost_center"]
         )
 
@@ -304,7 +303,6 @@ def get_goal_assessment_summary_admin(year=None, manager=None):
 
         final_data = []
 
-        # Step 2: For each costCenter -> get PMS managers of that costCenter
         for row in admin_rows:
             cost_center = row["cost_center"]
 
@@ -314,7 +312,6 @@ def get_goal_assessment_summary_admin(year=None, manager=None):
                 fields=["employee_email as manager_email", "full_name as manager_name", "employee_code"]
             )
 
-            # Step 3: For each manager → fetch employees + GA summary
             for mgr in managers:
                 mgr_email = mgr["manager_email"]
                 mgr_name = mgr["manager_name"]
@@ -322,7 +319,7 @@ def get_goal_assessment_summary_admin(year=None, manager=None):
 
                 employees = frappe.db.get_all(
                     "PMS Employees",
-                    filters={"manager_email": mgr_email, "pms_employee": 1},
+                    filters={"manager_code": mgr_code, "pms_employee": 1},
                     fields=["employee_code", "full_name as employee_name"]
                 )
 
@@ -355,7 +352,6 @@ def get_goal_assessment_summary_admin(year=None, manager=None):
                     final_data.append(summary)
                     continue
 
-                # Step 4: Get GA records
                 ga_records = frappe.db.get_all(
                     "Goal Assessment",
                     filters={"year": year, "employee_code": ["in", employee_codes]},
@@ -376,14 +372,12 @@ def get_goal_assessment_summary_admin(year=None, manager=None):
                     if key:
                         summary[key].append(emp)
 
-                # Count the groups
                 summary["goals_started"] = len(summary["goals_started_employees"])
                 summary["goals_submitted"] = len(summary["goals_submitted_employees"])
                 summary["evaluation_pending"] = len(summary["evaluation_pending_employees"])
                 summary["evaluation_started"] = len(summary["evaluation_started_employees"])
                 summary["evaluation_submitted"] = len(summary["evaluation_submitted_employees"])
 
-                # Compute pending
                 taken = set()
                 for key in [
                     "goals_started_employees",
@@ -432,8 +426,11 @@ def get_self_evaluation_history(current_user=None):
 
         assessments = frappe.get_all(
             "Goal Assessment",
-            filters={"employee_code": employee_code},
-            fields=["name", "employee_code", "year", "status","total_score","comment"]
+            filters={
+                "employee_code": employee_code,
+                "status": ["not in", ["Goal Pending", "Goal Started"]]
+            },
+            fields=["name", "employee_code", "year", "status", "total_score", "comment"]
         )
 
         return {
