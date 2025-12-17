@@ -53,6 +53,26 @@ function GoalAssignment() {
       document.removeEventListener("keydown", closeDropdown);
     };
   }, []);
+  useEffect(() => {
+    const closeDropdown = (e: any) => {
+      if (!e.target.closest(".year-dropdown")) setDropdownYearOpen(false);
+
+      if (!e.target.closest(".filter-dropdown")) setDropdownfilterOpen(false);
+
+      if (e.key === "Escape") {
+        setDropdownYearOpen(false);
+        setDropdownfilterOpen(false);
+      }
+    };
+
+    document.addEventListener("click", closeDropdown);
+    document.addEventListener("keydown", closeDropdown);
+
+    return () => {
+      document.removeEventListener("click", closeDropdown);
+      document.removeEventListener("keydown", closeDropdown);
+    };
+  }, []);
 
   const handleSort = (field: "id" | "status") => {
     if (sortField === field) {

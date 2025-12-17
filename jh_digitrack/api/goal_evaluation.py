@@ -1,37 +1,51 @@
 import frappe
 from frappe import _
-
 @frappe.whitelist()
-def get_goal_evaluation(user,year=None):
+def get_goal_evaluation(user, year=None):
     if not user:
         frappe.throw(_("User email is required"))
 
     settings = frappe.get_single("JH Goal Settings")
     assessment_year = year or settings.assesment_year
 
-    allowed_statuses = ("Evaluation Pending", "Evaluation Started", "Evaluation Submitted", "Goal Submitted")
+    allowed_statuses = (
+        "Evaluation Pending",
+        "Evaluation Started",
+        "Evaluation Submitted",
+        "Goal Submitted",
+    )
 
     query = """
         SELECT
-            name AS docname,
-            employee_name,
-            employee_code,
-            COALESCE(total_score, 0) AS total_score,
+            ga.name AS docname,
+            ga.employee_name,
+            ga.employee_code,
+            pe.designation_name,
+            pe.band AS grade,
+            COALESCE(ga.total_score, 0) AS total_score,
             CASE
-                WHEN status = 'Goal Submitted' THEN 'Evaluation Pending'
-                ELSE status
+                WHEN ga.status = 'Goal Submitted'
+                    THEN 'Evaluation Pending'
+                ELSE ga.status
             END AS status
         FROM
-            `tabGoal Assessment`
+            `tabGoal Assessment` ga
+        LEFT JOIN
+            `tabPMS Employees` pe
+            ON pe.employee_code = ga.employee_code
         WHERE
-            manager = %s
-            AND year = %s
-            AND status IN %s
+            ga.manager = %s
+            AND ga.year = %s
+            AND ga.status IN %s
         ORDER BY
-            creation DESC
+            ga.creation DESC
     """
 
-    result = frappe.db.sql(query, (user, assessment_year, allowed_statuses), as_dict=True)
+    result = frappe.db.sql(
+        query,
+        (user, assessment_year, allowed_statuses),
+        as_dict=True
+    )
 
     return {
         "assessment_year": assessment_year,

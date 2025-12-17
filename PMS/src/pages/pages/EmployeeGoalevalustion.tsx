@@ -24,6 +24,8 @@ interface Goal {
 interface Employee {
   id: string;
   name: string;
+  designation_name?: string;
+  grade?: string;
 }
 
 function EmployeeGoalEvaluation() {
@@ -70,6 +72,8 @@ useEffect(() => {
       setEmployee({
         id: emp.employee_code || emp.id || "",
         name: emp.employee_name || emp.name || "",
+        designation_name: emp.designation_name || "",
+        grade: emp.grade || "",
       });
 
     } catch (error) {
@@ -96,6 +100,8 @@ useEffect(() => {
       setEmployee({
         id: emp.employee_code || emp.id || "",
         name: emp.employee_name || emp.name || "",
+        designation_name: emp.designation_name || "",
+        grade: emp.grade || "",
       });
     } catch (error) {
       console.error("Failed to parse employee data:", error);
@@ -434,25 +440,33 @@ useEffect(() => {
 
         <div className="flex items-start justify-between">
           {employee && (
-            <div className="text-sm text-gray-500">
+          <div className="flex items-center flex-wrap gap-2 text-sm text-gray-500">
+            {!cameFromViewflag && (
+              <>
+                <span
+                  className="cursor-pointer hover:text-primary underline decoration-gray-400"
+                  onClick={handleNavigation}
+                >
+                  Goal Evaluation
+                </span>
+                <span>&gt;</span>
+              </>
+            )}
 
-              {!cameFromViewflag && (
-                <>
-                  <span
-                    className="cursor-pointer hover:text-primary underline decoration-gray-400"
-                    onClick={handleNavigation}
-                  >
-                    Goal Evaluation
-                  </span>
-                  {" > "}
-                </>
-              )}
-
-              <span className="text-primary font-medium">
-                {employee.id} / {employee.name}
+            <span className="text-primary font-medium">
+              {employee.id} / {employee.name}
+            </span>
+            {(employee.designation_name || employee.grade) && (
+              <span className="text-xs text-gray-500">
+                {employee.designation_name}
+                {employee.designation_name && employee.grade && " / "}
+                {employee.grade}
               </span>
+            )}
+          </div>
 
-            </div>
+
+            // </div>
           )}
         
 
@@ -519,29 +533,20 @@ useEffect(() => {
                     </div>
                   </td>
 
-
-                  {/* SCORE INPUT */}
                   <td className="py-2 px-1 text-center">
                     <input
+                      key={goal.id}  
                       type="text"
                       value={goal.score || ""}
                       readOnly={isSubmitted}
                       onChange={(e) => {
                         if (isSubmitted) return;
-
-                        let value = e.target.value;
-
-                        value = value.replace(/[^0-9]/g, "");
-
-                        value = value.slice(0, 3);
-
+                        let value = e.target.value.replace(/[^0-9]/g, "").slice(0, 3);
                         handleInputChange(idx, "score", value);
                       }}
                       className="border p-1 w-20 rounded text-center"
                     />
-
                   </td>
-
 
                   {/* WEIGHTAGE + ACHIEVED IN SINGLE LINE */}
                   <td className="py-2 px-1 text-center">
