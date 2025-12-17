@@ -4,14 +4,14 @@ import { useSidebar } from "../context/SidebarContext";
 import NotificationDropdown from "../components/header/NotificationDropdown";
 import UserDropdown from "../components/header/UserDropdown";
 import jaleelholdings from "../images/jaleel holdings.png"
-
+import { useCurrentPmsEmployee } from "../hooks/auth";
 
 
 const AppHeader: React.FC = () => {
   const [isApplicationMenuOpen, setApplicationMenuOpen] = useState(false);
 
   const { isMobileOpen, toggleSidebar, toggleMobileSidebar } = useSidebar();
-
+  const { data: employee } = useCurrentPmsEmployee();
   const handleToggle = () => {
     if (window.innerWidth >= 1024) {
       toggleSidebar();
@@ -116,6 +116,18 @@ const AppHeader: React.FC = () => {
               />
             </svg>
           </button>
+  {/* PMS Lite */}
+  <div className="flex items-center gap-1">
+    <span
+      className="text-xl font-extrabold tracking-wider drop-shadow-sm"
+      style={{ color: "var(--color-primary)" }}
+    >
+      PMS
+    </span>
+    <span className="text-sm font-semibold text-gray-500 dark:text-gray-300 mt-1">
+      Lite
+    </span>
+  </div>
 
           {/* <div className="hidden lg:block">
             <form>
@@ -149,10 +161,22 @@ const AppHeader: React.FC = () => {
             </form>
           </div> */}
         </div>
+{/* {employee && (
+  <div className="flex flex-col justify-center text-right min-w-[120px] max-w-[200px] ml-auto">
+    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+      {employee.full_name}
+    </p>
+    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+      {employee.designation_name}
+    </p>
+  </div>
+)}
+
+
         <div
           className={`${isApplicationMenuOpen ? "flex" : "hidden"
             } items-center justify-between w-full gap-4 px-5 py-4 lg:flex shadow-theme-md lg:justify-end lg:px-0 lg:shadow-none`}
-        >
+        > */}
 {/* <div className="flex items-center gap-2">
   <h1 className="text-base font-bold tracking-wider text-gray-900 dark:text-white
                  drop-shadow-sm select-none">
@@ -160,7 +184,7 @@ const AppHeader: React.FC = () => {
   </h1>
 </div> */}
 
-<div className="flex items-center gap-1 select-none">
+{/* <div className="flex items-center gap-1 select-none">
   <span
     className="text-xl font-extrabold tracking-wider drop-shadow-sm"
     style={{ color: "var(--color-primary)" }}
@@ -170,7 +194,22 @@ const AppHeader: React.FC = () => {
   <span className="text-sm font-semibold text-gray-500 dark:text-gray-300 mt-1">
     Lite
   </span>
-</div>
+</div> */}
+
+<div className="flex items-center gap-5 select-none">
+  {/* Employee info */}
+  {employee && (
+    <div className="flex flex-col justify-center text-right min-w-[120px] max-w-[200px]">
+      <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+        {employee.full_name}
+      </p>
+      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+        {employee.designation_name}
+      </p>
+    </div>
+  )}
+
+
 
 
 

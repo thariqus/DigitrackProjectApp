@@ -7,6 +7,8 @@ export interface GoalAssessment {
   docname: string;
   employee_name: string;
   employee_code: string;
+  designation_name?: string;
+  grade?: string;
   status: string;
   total_score?: number;
 }
