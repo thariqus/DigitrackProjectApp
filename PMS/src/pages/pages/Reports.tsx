@@ -43,7 +43,6 @@ function Reports() {
   const initialMode =
     location.state?.fromAdmin === true ? "admin" : "team";
 
-
   const [reportMode, setReportMode] =
     useState<"team" | "org" | "admin">(initialMode);
 
@@ -51,10 +50,6 @@ function Reports() {
     const fromAdmin = location.state?.fromAdmin === true;
     setReportMode(fromAdmin ? "admin" : "team");
   }, [location.state?.fromAdmin]);
-
-  useEffect(() => {
-  refetch();
-}, [reportMode]);
 
 
   // const [reportMode, setReportMode] = useState<"team" | "org">("team");
@@ -71,6 +66,12 @@ function Reports() {
       setSelectedYear(baseYear);
     }
   }, [baseYear]);
+  useEffect(() => {
+    // Reset everything that depends on reportMode
+    setCurrentPage(1);
+    setSelectedManager("All");
+    setManagerSearch("");
+  }, [reportMode]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -150,7 +151,7 @@ function Reports() {
     setSelectedYear(baseYear);
     setSelectedManager("All");
     setManagerSearch("");
-    refetch();
+    
   };
 
   // Pagination
@@ -167,6 +168,11 @@ function Reports() {
   });
 
   const currentRows = sortedManagers.slice(indexOfFirstRow, indexOfLastRow);
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(1);
+    }
+  }, [totalPages]);
 
 
   const handlePageChange = (page: number) => {
@@ -251,7 +257,7 @@ function Reports() {
           onChange={(e) => {
             const newYear = e.target.value;
             setSelectedYear(newYear);
-            refetch();
+            
           }}
           className="px-2 py-1 border rounded-md text-[0.65rem] focus:outline-none"
         >

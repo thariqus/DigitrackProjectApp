@@ -629,8 +629,7 @@ Goals created by me
                           onClick={(e) => handleGoalClick(goal.id, index, e)}
                         >
                       
-                      <div className="whitespace-normal break-words flex-grow">{goal.name || "Select Goal Name"}</div>
-
+                      <div className="whitespace-normal break-words min-w-0 max-w-full flex-grow">{goal.name || "Select Goal Name"}</div>
                       {!isSubmitted && <RiArrowDropDownLine className="text-2xl shrink-0 " />}
                       </div>
                     </div>
