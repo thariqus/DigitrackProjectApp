@@ -476,7 +476,8 @@ const sortedEmployees = [...evaluations].sort((a, b) => {
                     {emp.designation_name || "-"}
                   </td>
 
-                  <td className="px-4 py-1 text-center">
+                  <td className="px-4 py-1 whitespace-nowrap">
+
                     {emp.grade || "-"}
                   </td>
                   <td className={`px-4 py-1 font-medium ${getStatusStyles(emp.status)}`}>
