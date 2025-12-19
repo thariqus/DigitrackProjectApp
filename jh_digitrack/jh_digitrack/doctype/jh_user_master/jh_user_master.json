@@ -31,7 +31,11 @@
   "active",
   "is_admin",
   "is_head_of_department",
-  "pms_user"
+  "section_break_ohum",
+  "private_message",
+  "column_break_v9y7",
+  "private_message_expiry",
+  "url"
  ],
  "fields": [
   {
@@ -169,15 +173,32 @@
    "fieldtype": "Column Break"
   },
   {
-   "default": "0",
-   "fieldname": "pms_user",
-   "fieldtype": "Check",
-   "label": "PMS User"
+   "fieldname": "section_break_ohum",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "private_message",
+   "fieldtype": "Text",
+   "label": "Private Message"
+  },
+  {
+   "fieldname": "column_break_v9y7",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "private_message_expiry",
+   "fieldtype": "Date",
+   "label": "Private Message Expiry"
+  },
+  {
+   "fieldname": "url",
+   "fieldtype": "Data",
+   "label": "URL"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-12-11 15:22:13.451965",
+ "modified": "2025-12-19 11:10:51.417937",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH User Master",
