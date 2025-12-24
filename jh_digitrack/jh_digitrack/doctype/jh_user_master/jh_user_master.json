@@ -32,8 +32,12 @@
   "is_admin",
   "is_head_of_department",
   "section_break_ohum",
+  "common_message",
+  "send_message",
+  "common_message_expiry",
+  "common_message_url",
+  "section_break_v1kh",
   "private_message",
-  "column_break_v9y7",
   "private_message_expiry",
   "url"
  ],
@@ -182,10 +186,6 @@
    "label": "Private Message"
   },
   {
-   "fieldname": "column_break_v9y7",
-   "fieldtype": "Column Break"
-  },
-  {
    "fieldname": "private_message_expiry",
    "fieldtype": "Date",
    "label": "Private Message Expiry"
@@ -194,11 +194,36 @@
    "fieldname": "url",
    "fieldtype": "Data",
    "label": "URL"
+  },
+  {
+   "default": "0",
+   "fieldname": "send_message",
+   "fieldtype": "Check",
+   "label": "Send Message"
+  },
+  {
+   "fieldname": "common_message",
+   "fieldtype": "Text",
+   "label": "Common Message"
+  },
+  {
+   "fieldname": "common_message_expiry",
+   "fieldtype": "Date",
+   "label": "Common Message Expiry"
+  },
+  {
+   "fieldname": "common_message_url",
+   "fieldtype": "Data",
+   "label": "common message URL"
+  },
+  {
+   "fieldname": "section_break_v1kh",
+   "fieldtype": "Section Break"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-12-19 11:10:51.417937",
+ "modified": "2025-12-22 17:43:33.634448",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH User Master",
