@@ -77,6 +77,7 @@ const adminItems: NavItem[] = [
   {
     icon: <IoSettingsOutline />,
     name: "Settings",
+    path: "/adminsettings",
   },
 ];
 
