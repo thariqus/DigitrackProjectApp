@@ -39,6 +39,7 @@ function Reports() {
   const [selectedYear, setSelectedYear] = useState<string>("");
   const [selectedManager, setSelectedManager] = useState<string>("All");
   const location = useLocation();
+  const [selectedDepartment, setSelectedDepartment] = useState<string>("All");
 
   const initialMode =
     location.state?.fromAdmin === true ? "admin" : "team";
@@ -70,6 +71,7 @@ function Reports() {
     // Reset everything that depends on reportMode
     setCurrentPage(1);
     setSelectedManager("All");
+    setSelectedDepartment("All");
     setManagerSearch("");
   }, [reportMode]);
 
@@ -83,9 +85,30 @@ function Reports() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // const filteredManagers = managers.filter((m) => {
+  //   if (selectedManager === "All" || selectedManager === "") return true;
+  //   return m.manager_name.toLowerCase() === selectedManager.toLowerCase();
+  // });
   const filteredManagers = managers.filter((m) => {
-    if (selectedManager === "All" || selectedManager === "") return true;
-    return m.manager_name.toLowerCase() === selectedManager.toLowerCase();
+    // Manager filter
+    if (
+      selectedManager !== "All" &&
+      selectedManager !== "" &&
+      m.manager_name.toLowerCase() !== selectedManager.toLowerCase()
+    ) {
+      return false;
+    }
+
+    // Department filter (admin only)
+    if (
+      reportMode === "admin" &&
+      selectedDepartment !== "All" &&
+      m.department !== selectedDepartment
+    ) {
+      return false;
+    }
+
+    return true;
   });
 
   const openModal = (manager: ManagerSummary, type: string) => {
@@ -137,6 +160,13 @@ function Reports() {
 
     return list;
   };
+  const departments = Array.from(
+    new Set(
+      managers
+        .map((m) => m.department)
+        .filter(Boolean)
+    )
+  );
 
   const closeModal = () => {
     setShowModal(false);
@@ -150,6 +180,7 @@ function Reports() {
     if (!baseYear) return;
     setSelectedYear(baseYear);
     setSelectedManager("All");
+    setSelectedDepartment("All");
     setManagerSearch("");
     
   };
@@ -324,20 +355,51 @@ function Reports() {
             </div>
           )}
         </div>
+        {reportMode === "admin" && (
+          <select
+            value={selectedDepartment}
+            onChange={(e) => setSelectedDepartment(e.target.value)}
+            className="px-2 py-1 border rounded-md text-[0.65rem] focus:outline-none"
+          >
+            <option value="All">All Departments</option>
+            {departments.map((dept) => (
+              <option key={dept} value={dept}>
+                {dept}
+              </option>
+            ))}
+          </select>
+        )}
 
         {/* Clear Filters */}
-        {(selectedManager !== "All" || (baseYear && selectedYear !== baseYear)) && (
+        {(
+          selectedManager !== "All" ||
+          (baseYear && selectedYear !== baseYear) ||
+          (reportMode === "admin" && selectedDepartment !== "All")
+        ) && (
           <button
             onClick={clearFilters}
             className="px-3 py-2 text-xs flex items-center gap-1 text-red-500 rounded-md hover:bg-gray-100"
           >
-            <span className="text-xs">Clear Filters</span> <IoCloseOutline />
+            <span className="text-xs">Clear Filters</span>
+            <IoCloseOutline />
           </button>
         )}
-   
+
         </div>
 
          <div className="flex items-center gap-3">
+        {reportMode === "admin" && (
+          <button
+            onClick={() => {
+              console.log("Send email from admin view");
+            }}
+            className="px-3 py-2 text-xs flex items-center gap-1 bg-primary text-white rounded-md hover:bg-[#7d241f]"
+          >
+            <CiMail className="text-md" />
+            <span className="text-[0.65rem]">Send Email</span>
+          </button>
+        )}
+
 {/* 
         <button
           onClick={() => {

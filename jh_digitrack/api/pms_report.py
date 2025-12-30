@@ -6,7 +6,7 @@ import json
 def get_goal_assessment_summary(year=None, manager=None):
     try:
         if not year:
-            settings = frappe.get_single("JH Goal Settings")
+            settings = frappe.get_single("PMS Settings")
             year = settings.assesment_year
 
         if not year:
@@ -169,7 +169,7 @@ def get_goal_assessment_summary(year=None, manager=None):
 def get_goal_assessment_summary_org(year=None, manager=None):
     try:
         if not year:
-            settings = frappe.get_single("JH Goal Settings")
+            settings = frappe.get_single("PMS Settings")
             year = settings.assesment_year
 
         if not manager:
@@ -276,11 +276,11 @@ def get_goal_assessment_summary_org(year=None, manager=None):
 
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def get_goal_assessment_summary_admin(year=None, manager=None):
     try:
         if not year:
-            settings = frappe.get_single("JH Goal Settings")
+            settings = frappe.get_single("PMS Settings")
             year = settings.assesment_year
 
         if not manager:
@@ -309,13 +309,15 @@ def get_goal_assessment_summary_admin(year=None, manager=None):
             managers = frappe.db.get_all(
                 "PMS Employees",
                 filters={"cost_center_name": cost_center, "pms_manager": 1},
-                fields=["employee_email as manager_email", "full_name as manager_name", "employee_code"]
+                fields=["employee_email as manager_email", "full_name as manager_name", "employee_code", "department_name"]
             )
 
             for mgr in managers:
                 mgr_email = mgr["manager_email"]
                 mgr_name = mgr["manager_name"]
                 mgr_code = mgr["employee_code"]
+                department = mgr["department_name"]
+
 
                 employees = frappe.db.get_all(
                     "PMS Employees",
@@ -329,6 +331,7 @@ def get_goal_assessment_summary_admin(year=None, manager=None):
                     "manager_email": mgr_email,
                     "manager_name": mgr_name,
                     "manager_code": mgr_code,
+                    "department": department,
 
                     "employee_count": len(employees),
                     "employees_under_manager": employees,

@@ -5,7 +5,7 @@ def get_goal_evaluation(user, year=None):
     if not user:
         frappe.throw(_("User email is required"))
 
-    settings = frappe.get_single("JH Goal Settings")
+    settings = frappe.get_single("PMS Settings")
     assessment_year = year or settings.assesment_year
 
     allowed_statuses = (
@@ -87,7 +87,7 @@ def create_goal_evaluation(data=None, session_user=None):
         if doc.status != "Evaluation Started":
             doc.status = "Evaluation Started"
 
-        settings = frappe.get_single("JH Goal Settings")
+        settings = frappe.get_single("PMS Settings")
         min_value = flt(settings.min_value or 10)
         max_value = flt(settings.max_value or 100)
 
@@ -157,9 +157,10 @@ def get_employee_goals(employee_code, year):
             ["name", "comment"],
             as_dict=True
         )
-
+        settings = frappe.get_single("PMS Settings")
+        enable_goal_evaluation = settings.enable_goal_evaluation or False
         if not goal_assessment:
-            return {"goals": [], "attachments": [], "comment": ""}
+            return {"goals": [], "attachments": [], "comment": "","enable_goal_evaluation": enable_goal_evaluation}
 
         goals = frappe.db.sql("""
             SELECT 
@@ -190,7 +191,8 @@ def get_employee_goals(employee_code, year):
         return {
             "goals": goals,
             "attachments": attachments,
-            "comment": goal_assessment.comment or ""
+            "comment": goal_assessment.comment or "",
+            "enable_goal_evaluation": enable_goal_evaluation
         }
 
     except Exception as e:

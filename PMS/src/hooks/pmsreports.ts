@@ -12,6 +12,7 @@ export interface ManagerSummary {
   manager_email: string;
   manager_name: string;
   manager_code: string;
+  department?: string;
   employee_count: number;
   employees_under_manager: EmployeeSummary[];
 
@@ -75,6 +76,7 @@ export function useGoalAssessment(
 
       res.message.message = res.message.message?.map((manager: any) => ({
         ...manager,
+        department: manager.department || "Unknown",
         employees_under_manager: manager.employees_under_manager || [],
         goals_pending_employees: manager.goals_pending_employees || [],
         goals_started_employees: manager.goals_started_employees || [],
