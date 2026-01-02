@@ -5,5 +5,5 @@
 from frappe.tests.utils import FrappeTestCase
 
 
-class TestJHGoalSettings(FrappeTestCase):
+class TestPMSSettings(FrappeTestCase):
 	pass

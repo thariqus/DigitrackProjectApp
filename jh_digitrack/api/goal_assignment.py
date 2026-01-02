@@ -13,7 +13,7 @@ def get_goals():
 
 @frappe.whitelist()
 def get_default_assignment_year():
-    settings = frappe.get_single("JH Goal Settings")  
+    settings = frappe.get_single("PMS Settings")  
     return {"assignment_year": settings.assesment_year}
 
 
@@ -55,7 +55,7 @@ def get_employee_goals(employee_id, year=None):
 
 @frappe.whitelist(allow_guest=True)
 def get_employees_with_status(user, year=None):
-    settings = frappe.get_single("JH Goal Settings")
+    settings = frappe.get_single("PMS Settings")
     assignment_year = year or settings.assesment_year  
 
     employees = frappe.db.sql(

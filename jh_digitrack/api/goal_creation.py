@@ -1,10 +1,43 @@
 import frappe
 
+# @frappe.whitelist()
+# def get_employee_goals(employee_code, year):
+#     """
+#     Return goals assigned for an employee from the child table using SQL
+#     """
+#     try:
+#         query = """
+#             SELECT 
+#                 g.goal_name,
+#                 g.goal_id,
+#                 g.description,
+#                 g.measurement_criteria,
+#                 g.target,
+#                 g.uom,
+#                 g.upwarddownward AS upward_downward,
+#                 g.weightage
+            
+#             FROM `tabEmployee Goals` g
+#             INNER JOIN `tabGoal Assessment` ga ON ga.name = g.parent
+#             WHERE ga.employee_code = %s
+#               AND ga.year = %s
+#         """
+
+#         goals = frappe.db.sql(query, (employee_code, year), as_dict=True)
+#         settings = frappe.get_single("PMS Settings")
+#         min_goals = settings.minimum_no_of_goals or 0
+
+#         return {
+#             "goals": goals,
+#             "minimum_no_of_goals": min_goals
+#         }
+
+#     except Exception as e:
+#         frappe.log_error(frappe.get_traceback(), "get_employee_goals_sql_error")
+#         return {"error": str(e)}
+
 @frappe.whitelist()
 def get_employee_goals(employee_code, year):
-    """
-    Return goals assigned for an employee from the child table using SQL
-    """
     try:
         query = """
             SELECT 
@@ -16,7 +49,6 @@ def get_employee_goals(employee_code, year):
                 g.uom,
                 g.upwarddownward AS upward_downward,
                 g.weightage
-            
             FROM `tabEmployee Goals` g
             INNER JOIN `tabGoal Assessment` ga ON ga.name = g.parent
             WHERE ga.employee_code = %s
@@ -24,18 +56,18 @@ def get_employee_goals(employee_code, year):
         """
 
         goals = frappe.db.sql(query, (employee_code, year), as_dict=True)
-        settings = frappe.get_single("JH Goal Settings")
-        min_goals = settings.minimum_no_of_goals or 0
+
+        settings = frappe.get_single("PMS Settings")
 
         return {
             "goals": goals,
-            "minimum_no_of_goals": min_goals
+            "minimum_no_of_goals": settings.minimum_no_of_goals or 0,
+            "enable_goal_submission": int(settings.enable_goal_submission or 0)
         }
 
     except Exception as e:
         frappe.log_error(frappe.get_traceback(), "get_employee_goals_sql_error")
         return {"error": str(e)}
-
 
 
 @frappe.whitelist()
@@ -194,7 +226,7 @@ def submit_goal_assessment(employee_code=None, year=None, new_goals=None):
                 if negative:
                     frappe.throw(_(f"Weightage cannot be negative. Found invalid values in: {', '.join(negative)}"))
 
-        settings = frappe.get_single("JH Goal Settings")
+        settings = frappe.get_single("PMS Settings")
         min_goals = settings.minimum_no_of_goals or 0
 
         total_goals = len(doc.employee_goals)
