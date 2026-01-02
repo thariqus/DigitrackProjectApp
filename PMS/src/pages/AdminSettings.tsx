@@ -106,18 +106,35 @@ const deleteSelectedRows = () => {
             <div className="flex flex-col gap-2 items-start">
               <p className='text-xs '>Min Value</p>
               <input type="number"
-              value={minValue}
-              onChange={(e)=> {
-                const value = e.target.value;
-                if (value.length <= 4) {
-                  setMinValue(Number(value));
-                } 
-              }}
+              inputMode="numeric"        
+              pattern="[0-9]*"
+              onChange={(e) => {
+                        const value = e.target.value;
+
+                        // allow only digits and max 3 length
+                        if (/^\d*$/.test(value) && value.length <= 4) {
+                          setMinValue(value === "" ? "" : Number(value));
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        // block non-numeric keys
+                        if (
+                          !/[0-9]/.test(e.key) &&
+                          e.key !== "Backspace" &&
+                          e.key !== "Delete" &&
+                          e.key !== "ArrowLeft" &&
+                          e.key !== "ArrowRight" &&
+                          e.key !== "Tab"
+                        ) {
+                          e.preventDefault();
+                        }
+                      }}
                className='w-30 px-1 no-spinner border bordre-gray-300  rounded-sm focus:outline-none' />
             </div>
             <div className="flex flex-col gap-2 items-start">
               <p className='text-xs '>Max value</p>
-                <input type="number" 
+              <input type="text" inputMode="numeric" 
+               pattern="[0-9]*"
                 value={maxValue}
                 max={110}
                 onChange={(e) => {
@@ -280,3 +297,5 @@ const deleteSelectedRows = () => {
 }
 
 export default AdminSettings
+
+
