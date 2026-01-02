@@ -766,6 +766,7 @@ readOnly
                       onChange={(e) => {
                         const updated = [...goals];
                         updated[indexOfFirstRow + index].uom = e.target.value;
+                        updated[indexOfFirstRow + index].targetvalue = "";
                         setGoals(updated);
                         setIsEdited(true);
                       }}
@@ -775,6 +776,7 @@ readOnly
                       <option value="">Select</option>
                       <option value="Percentage">Percentage</option>
                       <option value="Number">Number</option>
+                      <option value="Text">Text</option>
                     </select>
                   </td>
 

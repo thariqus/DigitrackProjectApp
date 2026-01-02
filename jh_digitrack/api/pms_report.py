@@ -444,3 +444,35 @@ def get_self_evaluation_history(current_user=None):
     except Exception as e:
         frappe.log_error(frappe.get_traceback(), "get_self_evaluation_history")
         return {"error": str(e)}
+
+
+
+from frappe.utils import get_url
+
+@frappe.whitelist()
+def send_pending_evaluation_emails(emails, year):
+    if isinstance(emails, str):
+        emails = frappe.parse_json(emails)
+
+    if not emails:
+        return
+
+    settings = frappe.get_single("PMS Settings")
+
+    if not settings.email_template:
+        frappe.throw("Email template not configured in PMS Settings")
+
+    template = frappe.get_doc("Email Template", settings.email_template)
+
+    subject = template.subject or "PMSLite-Reminder"
+    message = template.response
+
+    for email in emails:
+        frappe.sendmail(
+            recipients=email,
+            subject=subject,
+            message=message,
+            # now=True,
+        )
+    frappe.db.commit()   
+    return {"status": "success"}

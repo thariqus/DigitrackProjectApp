@@ -520,13 +520,16 @@ useEffect(() => {
                       <span>{goal.targetvalue}</span>
 
                       {/* UOM */}
-                      <span>
+                      <span className="text-xs font-medium text-gray-700">
                         {goal.uom === "Percentage"
                           ? "%"
                           : goal.uom === "Number"
-                          ? "Num"
-                          : goal.uom}
+                          ? "NUM"
+                          : goal.uom === "Text"
+                          ? "TXT"
+                          : "-"}
                       </span>
+
 
                       {/* Upward / Downward */}
                       {goal.upwarddownward === "U" && (

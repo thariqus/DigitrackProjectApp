@@ -225,6 +225,86 @@ function Reports() {
       </span>
     );
   };
+  const getManagersWithPendingEvaluations = () => {
+    return filteredManagers.filter(
+      (m) => m.evaluation_submitted < m.employee_count
+    );
+  };
+
+  const handleSendEmail = async () => {
+    const pendingManagers = getManagersWithPendingEvaluations();
+    console.log("📧 Send Email clicked (ADMIN)");
+    console.log("Selected Year:", selectedYear);
+    console.log("Managers with pending evaluations:", pendingManagers);
+    pendingManagers.forEach((m, index) => {
+      console.log(`--- Manager ${index + 1} ---`);
+      console.log("Name:", m.manager_name);
+      console.log("Email:", m.manager_email);
+      console.log(
+        `Evaluations: ${m.evaluation_submitted}/${m.employee_count}`
+      );
+    });
+    if (pendingManagers.length === 0) {
+      alert("No managers with pending evaluations.");
+      return;
+    }
+
+    const emails = pendingManagers
+      .map((m) => m.manager_email)
+      .filter(Boolean);
+
+    try {
+      await fetch(
+        "/api/method/jh_digitrack.api.pms_report.send_pending_evaluation_emails",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            emails,
+            year: selectedYear,
+          }),
+        }
+      );
+
+      alert("Emails sent successfully.");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to send emails.");
+    }
+  };
+  const handleEmployeePdfDownload = (
+    e: React.MouseEvent,
+    employeeCode: string
+  ) => {
+    e.stopPropagation();
+
+    if (!employeeCode || !selectedYear) return;
+
+    const url =
+      `/api/method/jh_digitrack.api.report_download.download_self_evaluation_pdf` +
+      `?year=${selectedYear}&employee_code=${employeeCode}`;
+
+    window.open(url, "_blank");
+  };
+  const handleEmployeeExcelDownload = (
+    e: React.MouseEvent,
+    employeeCode: string
+  ) => {
+    e.stopPropagation();
+
+    if (!employeeCode || !selectedYear) return;
+
+    const url =
+      `/api/method/jh_digitrack.api.report_download.download_self_evaluation_excel` +
+      `?year=${selectedYear}&employee_code=${employeeCode}`;
+
+    window.open(url, "_blank");
+  };
+  const isDownloadable =
+    modalType === "evaluation_submitted" ||
+    modalType === "goals_submitted";
 
   return (
     <div className="bg-white min-h-screen border rounded-lg px-6 py-2 relative">
@@ -390,9 +470,7 @@ function Reports() {
          <div className="flex items-center gap-3">
         {reportMode === "admin" && (
           <button
-            onClick={() => {
-              console.log("Send email from admin view");
-            }}
+            onClick={handleSendEmail}
             className="px-3 py-2 text-xs flex items-center gap-1 bg-primary text-white rounded-md hover:bg-[#7d241f]"
           >
             <CiMail className="text-md" />
@@ -568,12 +646,41 @@ function Reports() {
                     emp.employee_name.toLowerCase().includes(employeeSearch.toLowerCase())
                   )
                   .map((emp) => (
+                    // <li
+                    //   key={emp.employee_name}
+                    //   className="px-3 my-2 bg-secondary/50 backdrop-blur-xs py-2 text-xs text-gray-700 rounded-sm"
+                    // >
+                    //   {emp.employee_name} ({emp.employee_code})
+                    // </li>
                     <li
                       key={emp.employee_name}
-                      className="px-3 my-2 bg-secondary/50 backdrop-blur-xs py-2 text-xs text-gray-700 rounded-sm"
+                      className={`px-3 my-2 bg-secondary/50 backdrop-blur-xs py-2 text-xs rounded-sm flex items-center gap-2
+                        ${
+                          isDownloadable
+                            ? "text-primary underline cursor-pointer hover:bg-secondary"
+                            : "text-gray-700 cursor-default"
+                        }
+                      `}
+                      onClick={(e) => {
+                        if (modalType === "evaluation_submitted") {
+                          handleEmployeePdfDownload(e, emp.employee_code);
+                        }
+
+                        if (modalType === "goals_submitted") {
+                          handleEmployeeExcelDownload(e, emp.employee_code);
+                        }
+                      }}
                     >
-                      {emp.employee_name} ({emp.employee_code})
+                      {/* Download icon ONLY for submitted cases */}
+                      {isDownloadable && (
+                        <IoCloudDownloadOutline className="text-sm text-primary shrink-0" />
+                      )}
+
+                      <span>
+                        {emp.employee_name} ({emp.employee_code})
+                      </span>
                     </li>
+
                   ))}
               </ul>
 
