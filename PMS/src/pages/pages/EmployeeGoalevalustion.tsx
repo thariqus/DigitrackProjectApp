@@ -120,7 +120,12 @@ useEffect(() => {
 }, [navigate]);
 
 
-  const { employeeGoals: fetchedEmployeeGoals, attachments: fetchedAttachments, comment: fetchedComment } = useEmployeeGoals(employee?.id || "", year || "");
+  const {
+    employeeGoals: fetchedEmployeeGoals,
+    attachments: fetchedAttachments,
+    comment: fetchedComment,
+    enableGoalEvaluation,
+  } = useEmployeeGoals(employee?.id || "", year || "");
 
   useEffect(() => {
     if (fetchedEmployeeGoals && fetchedEmployeeGoals.length > 0) {
@@ -515,13 +520,16 @@ useEffect(() => {
                       <span>{goal.targetvalue}</span>
 
                       {/* UOM */}
-                      <span>
+                      <span className="text-xs font-medium text-gray-700">
                         {goal.uom === "Percentage"
                           ? "%"
                           : goal.uom === "Number"
-                          ? "Num"
-                          : goal.uom}
+                          ? "NUM"
+                          : goal.uom === "Text"
+                          ? "TXT"
+                          : "-"}
                       </span>
+
 
                       {/* Upward / Downward */}
                       {goal.upwarddownward === "U" && (
@@ -538,7 +546,7 @@ useEffect(() => {
                       key={goal.id}  
                       type="text"
                       value={goal.score || ""}
-                      readOnly={isSubmitted}
+                      readOnly={isSubmitted || !enableGoalEvaluation}
                       onChange={(e) => {
                         if (isSubmitted) return;
                         let value = e.target.value.replace(/[^0-9]/g, "").slice(0, 3);
@@ -575,7 +583,7 @@ useEffect(() => {
                       /* Before submit → show textarea */
                       <textarea
                         value={goal.remark || ""}
-                        readOnly={isSubmitted}
+                        readOnly={isSubmitted || !enableGoalEvaluation}
                         maxLength={140}
                         onChange={(e) => {
                           if (isSubmitted) return;
@@ -647,7 +655,7 @@ useEffect(() => {
                         {file.file_name}
                       </a>
 
-                      {!isSubmitted && (
+                      {!isSubmitted && enableGoalEvaluation &&(
                         <button
                           onClick={() => handleDeleteAttachment(file.file_url)}
                           className="text-red-500 hover:text-red-700 text-xs font-medium"
@@ -662,7 +670,7 @@ useEffect(() => {
             )}
           </div>
 
-          {!isSubmitted && (
+          {!isSubmitted && enableGoalEvaluation &&(
             <div className="flex items-center gap-4">
 
               {/* Attach File */}

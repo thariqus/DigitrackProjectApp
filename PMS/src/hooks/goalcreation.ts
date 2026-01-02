@@ -87,6 +87,7 @@ export function useEmployeeGoals(employeeCode: string, year: string) {
   const [employeeGoals, setEmployeeGoals] = useState<GoalDetail[]>([]);
   const [minimumGoals, setMinimumGoals] = useState<number>(0);
   const [loading, setLoading] = useState(true);
+  const [enableGoalSubmission, setEnableGoalSubmission] = useState<boolean>(false);
 
   useEffect(() => {
     if (!employeeCode || !year) return;
@@ -97,6 +98,7 @@ export function useEmployeeGoals(employeeCode: string, year: string) {
           message: {
             goals: GoalDetail[];
             minimum_no_of_goals: number;
+            enable_goal_submission: number;
           };
         }>("jh_digitrack.api.goal_creation.get_employee_goals", {
           employee_code: employeeCode,
@@ -105,6 +107,7 @@ export function useEmployeeGoals(employeeCode: string, year: string) {
 
         setEmployeeGoals(res.message?.goals || []);
         setMinimumGoals(res.message?.minimum_no_of_goals || 0);
+        setEnableGoalSubmission(!!res.message?.enable_goal_submission);
       } catch (error) {
         console.error("Error fetching employee goals:", error);
       } finally {
@@ -115,7 +118,7 @@ export function useEmployeeGoals(employeeCode: string, year: string) {
     fetchEmployeeGoals();
   }, [employeeCode, year]);
 
-  return { employeeGoals,minimumGoals, loading };
+  return { employeeGoals,minimumGoals,enableGoalSubmission, loading };
 }
 
 /* ---------------------------------------------------------

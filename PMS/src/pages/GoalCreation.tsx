@@ -72,10 +72,14 @@ const GoalCreation: React.FC = () => {
   const isBaseYear = year === baseYear;
   const { employeeGoals: modalGoals, loading: modalGoalsLoading, refetch: refetchModalGoals } = useEmployeeGoals(selectedEmployee || "", selectedCopyYear);
   // const { employeeGoals: fetchedEmployeeGoals } = useEmployeeGoals(employee?.id || "", year);
+  
   const {
     employeeGoals: fetchedEmployeeGoals,
     minimumGoals,
+    enableGoalSubmission,
+
   } = useEmployeeGoals(employee?.id || "", year);
+
 
   const isDuplicateGoal = (goalId: string, goalName: string) => {
     return goals.some(
@@ -155,6 +159,12 @@ useEffect(() => {
   }, [fetchedEmployeeGoals]);
 
 
+  const isGoalLocked =
+    enableGoalSubmission === false ||
+    isSubmitted ||
+    !isEditableStatus(employee?.status || "");
+
+
   useEffect(() => {
     const saved = localStorage.getItem("SavedGoalssss");
     if (saved) setGoals(JSON.parse(saved));
@@ -178,7 +188,23 @@ useEffect(() => {
   el.style.height = el.scrollHeight + "px";
 };
 
+const CopyAndAddButtons = () => (
+  <>
+    <button
+      onClick={() => setShowModal(true)}
+      className="bg-secondary text-xs flex items-center gap-1 text-primary rounded-lg px-2 py-2 hover:shadow-sm transition-all"
+    >
+      <MdOutlineContentCopy /> Copy Goals
+    </button>
 
+    <button
+      onClick={handleAddGoal}
+      className="bg-[#972E26] text-xs flex items-center gap-1 hover:bg-[#7d241f] transition text-white rounded-lg px-4 py-2"
+    >
+      <IoAdd className="text-lg" /> Add New Goal
+    </button>
+  </>
+);
   // --- Table Dropdown ---
   const handleGoalClick = (goalId: string, index: number, e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -523,14 +549,41 @@ const handleCopySelectedGoals = () => {
           <h1 className="text-primary font-medium pb-5 mb-4">Employee Goal Assignment</h1>
           <div className="flex items-center gap-10 justify-end mb-2">
             <div className="flex items-start gap-3">
-              {isEditableStatus(employee?.status || "") && !isSubmitted && (
+              {/* {isEditableStatus(employee?.status || "") && !isSubmitted && ( */}
+              {!isGoalLocked && (
                 <>
-                <button onClick={() => setShowModal(true)} className="bg-secondary text-xs flex items-center gap-1 text-primary rounded-lg px-2 py-2 hover:shadow-sm transition-all">
+                {/* <button onClick={() => setShowModal(true)} className="bg-secondary text-xs flex items-center gap-1 text-primary rounded-lg px-2 py-2 hover:shadow-sm transition-all">
                   <MdOutlineContentCopy /> Copy Goals
                 </button>
                 <button onClick={() => handleAddGoal()} className="bg-[#972E26] text-xs flex items-center gap-1 hover:bg-[#7d241f] transition text-white rounded-lg px-4 py-2">
                   <IoAdd className="text-lg" /> Add New Goal
+                </button> */}
+                <button
+                  disabled={isGoalLocked}
+                  onClick={() => setShowModal(true)}
+                  className={`text-xs flex items-center gap-1 rounded-lg px-2 py-2 transition-all
+                    ${
+                      isGoalLocked
+                        ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                        : "bg-secondary text-primary hover:shadow-sm"
+                    }`}
+                >
+                  <MdOutlineContentCopy /> Copy Goals
                 </button>
+
+                <button
+                  disabled={isGoalLocked}
+                  onClick={handleAddGoal}
+                  className={`text-xs flex items-center gap-1 rounded-lg px-4 py-2 transition
+                    ${
+                      isGoalLocked
+                        ? "bg-gray-300 text-gray-400 cursor-not-allowed"
+                        : "bg-[#972E26] text-white hover:bg-[#7d241f]"
+                    }`}
+                >
+                  <IoAdd className="text-lg" /> Add New Goal
+                </button>
+
                 </>
                  )}
               </div>
@@ -624,9 +677,9 @@ Goals created by me
                     <div className="flex flex-col gap-2">
                       <div
                           className={`border w-full flex items-start  gap-2 rounded px-2 py-1 
-                                      ${isSubmitted ? "bg-gray-200 text-gray-500 pointer-events-none" 
+                                      ${isGoalLocked ? "bg-gray-200 text-gray-500 pointer-events-none" 
                                                     : "cursor-pointer bg-gray-50"}`}
-                          onClick={(e) => handleGoalClick(goal.id, index, e)}
+                          onClick={(e) => !isGoalLocked && handleGoalClick(goal.id, index, e)}
                         >
                       
                       <div className="whitespace-normal break-words min-w-0 max-w-full flex-grow">{goal.name || "Select Goal Name"}</div>
@@ -713,6 +766,7 @@ readOnly
                       onChange={(e) => {
                         const updated = [...goals];
                         updated[indexOfFirstRow + index].uom = e.target.value;
+                        updated[indexOfFirstRow + index].targetvalue = "";
                         setGoals(updated);
                         setIsEdited(true);
                       }}
@@ -722,6 +776,7 @@ readOnly
                       <option value="">Select</option>
                       <option value="Percentage">Percentage</option>
                       <option value="Number">Number</option>
+                      <option value="Text">Text</option>
                     </select>
                   </td>
 
@@ -749,7 +804,9 @@ readOnly
                         setIsEdited(true);
                       }}
                       className="border text-xs p-1 w-full rounded text-center"
-                      readOnly={isSubmitted || !isEditableStatus(employee?.status || "")}
+                      // readOnly={isSubmitted || !isEditableStatus(employee?.status || "")}
+                      readOnly={isGoalLocked}
+
                     />
                   </td>
 
@@ -812,31 +869,63 @@ readOnly
         <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />
 
         {/* Save / Submit */}
-        {!isSubmitted && isEditableStatus(employee?.status || "") && (
-        <div className="flex justify-end mt-2 gap-3">
-          <button
-            onClick={handleDeleteGoals}
-            className="flex items-center text-xs gap-1 px-2 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300 active:scale-95 transition-all"
-          >
-            <MdDeleteOutline className="text-lg" /> Delete
-          </button>
+{/* {!isSubmitted && isEditableStatus(employee?.status || "") && ( */}
+{!isGoalLocked && (
 
-          <button
-            onClick={handleSave}
-            disabled={!isEdited} // 🔒 Disable until edited
-            className="flex items-center gap-1 px-2 py-2 text-xs rounded bg-yellow-100 text-yellow-700 hover:bg-yellow-200 active:scale-95 transition-all"
-          >
-            <IoSaveOutline className="text-lg" /> Save
-          </button>
+  <div className="flex justify-between items-center mt-3">
 
-          <button
-            onClick={handleSubmit}
-            className="px-2 py-2 rounded text-xs bg-primary text-white hover:bg-primary/90 active:scale-95 transition-all"
-          >
-            Submit
-          </button>
-        </div>
-        )}
+    {/* LEFT GROUP */}
+    <div className="flex gap-3">
+      <CopyAndAddButtons />
+    </div>
+
+    {/* RIGHT GROUP */}
+    <div className="flex gap-3">
+<button
+  onClick={handleDeleteGoals}
+  disabled={isGoalLocked}
+  className={`flex items-center text-xs gap-1 px-2 py-2 rounded transition
+    ${
+      isGoalLocked
+        ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+        : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+    }`}
+>
+  <MdDeleteOutline className="text-lg" /> Delete
+</button>
+
+
+<button
+  onClick={handleSave}
+  disabled={isGoalLocked || !isEdited}
+  className={`flex items-center gap-1 px-2 py-2 text-xs rounded transition
+    ${
+      isGoalLocked || !isEdited
+        ? "bg-yellow-100 text-yellow-300 cursor-not-allowed"
+        : "bg-yellow-100 text-yellow-700 hover:bg-yellow-200"
+    }`}
+>
+  <IoSaveOutline className="text-lg" /> Save
+</button>
+
+
+<button
+  onClick={handleSubmit}
+  disabled={isGoalLocked}
+  className={`px-3 py-2 rounded text-xs transition-all
+    ${
+      isGoalLocked
+        ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+        : "bg-primary text-white hover:bg-primary/90"
+    }`}
+>
+  Submit
+</button>
+
+    </div>
+
+  </div>
+)}
 
         {/* Copy Goals Modal */}
        

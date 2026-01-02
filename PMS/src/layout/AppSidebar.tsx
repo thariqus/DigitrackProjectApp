@@ -56,6 +56,7 @@ const selfItems: NavItem[] = [
     icon: <FaRegChartBar />,
     name: "View",
     path: "/self-evaluation",
+    fromAdmin: false,
   },
   {
     icon: <MdOutlineAssignmentTurnedIn />,
@@ -90,12 +91,32 @@ const AppSidebar: React.FC = () => {
   //   (path: string) => location.pathname === path,
   //   [location.pathname]
   // );
+  // const isActive = useCallback(
+  //   (nav: NavItem) => {
+  //     return (
+  //       location.pathname === nav.path &&
+  //       (location.state?.fromAdmin ?? false) === (nav.fromAdmin ?? false)
+  //     );
+  //   },
+  //   [location.pathname, location.state]
+  // );
+
   const isActive = useCallback(
     (nav: NavItem) => {
-      return (
-        location.pathname === nav.path &&
-        (location.state?.fromAdmin ?? false) === (nav.fromAdmin ?? false)
-      );
+      if (!nav.path) return false;
+
+      if (nav.path.startsWith("/self")) {
+        return location.pathname.startsWith(nav.path);
+      }
+
+      if (nav.fromAdmin !== undefined) {
+        return (
+          location.pathname === nav.path &&
+          (location.state?.fromAdmin ?? false) === nav.fromAdmin
+        );
+      }
+
+      return location.pathname === nav.path;
     },
     [location.pathname, location.state]
   );

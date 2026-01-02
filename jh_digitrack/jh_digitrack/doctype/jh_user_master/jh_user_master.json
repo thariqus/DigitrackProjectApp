@@ -162,8 +162,7 @@
    "fieldname": "reporting_manager",
    "fieldtype": "Link",
    "label": "Reporting Manager",
-   "options": "JH User Master",
-   "reqd": 1
+   "options": "JH User Master"
   },
   {
    "fieldname": "user",
@@ -223,7 +222,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-12-22 17:43:33.634448",
+ "modified": "2025-12-23 17:04:44.910428",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH User Master",
