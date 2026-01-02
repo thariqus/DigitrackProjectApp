@@ -1,26 +1,37 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quizz App</title>
-</head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quiz App</title>
 
-<style>
-body{
-    width: 100vw;
-    height: 100vh;
-}
-</style>
+  <style>
+    body {
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+      margin: 0;
+    }
+  </style>
 
-<body>
-    
-    <iframe
-    src="http://localhost:5173/"
+  {% if frappe.session.user and frappe.session.user != "Guest" %}
+  <iframe
+    id="quiz-frame"
+    src="http://localhost:5173/?session_user={{ frappe.session.user }}"
     width="100%"
     height="100%"
-    style="border: none;">
-    </iframe>
+    style="border:none">
+  </iframe>
+{% else %}
+  <iframe
+    src="/login"
+    width="100%"
+    height="100%"
+    style="border:none">
+  </iframe>
+{% endif %}
+
 
 </body>
 </html>
