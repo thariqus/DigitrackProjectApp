@@ -272,7 +272,7 @@ useEffect(() => {
     const updatedGoals = [...goals];
     updatedGoals[index][field] = value;
 
-    if (field === "score") {
+    if (field === "score" && updatedGoals[index].uom !== "Text") {
       updatedGoals[index].achieved = calculateAchievedScore(
         value,
         updatedGoals[index].targetvalue,
@@ -291,9 +291,23 @@ useEffect(() => {
 
       return;
     }
-  const missingFields = goals.filter(
-    (g) => !g.score || g.score.trim() === "" || !g.remark || g.remark.trim() === ""
-  );
+  // const missingFields = goals.filter(
+  //   (g) => !g.score || g.score.trim() === "" || !g.remark || g.remark.trim() === ""
+  // );
+  const missingFields = goals.filter((g) => {
+    if (g.uom === "Text") {
+      return !g.achieved || g.achieved.trim() === "" || !g.remark?.trim();
+    }
+    return !g.score || g.score.trim() === "" || !g.remark?.trim();
+  });
+
+  if (missingFields.length > 0) {
+    setMessage({
+      text: "Please fill all required fields before saving.",
+      type: "error",
+    });
+    return;
+  }
 
     const payload = {
       employee_code: employee.id,
@@ -542,7 +556,7 @@ useEffect(() => {
                   </td>
 
                   <td className="py-2 px-1 text-center">
-                    <input
+                    {/* <input
                       key={goal.id}  
                       type="text"
                       value={goal.score || ""}
@@ -553,7 +567,28 @@ useEffect(() => {
                         handleInputChange(idx, "score", value);
                       }}
                       className="border p-1 w-20 rounded text-center"
+                    /> */}
+                    <input
+                      key={goal.id}
+                      type="text"
+                      value={goal.score || ""}
+                      readOnly={
+                        isSubmitted ||
+                        !enableGoalEvaluation ||
+                        goal.uom === "Text"
+                      }
+                      disabled={goal.uom === "Text"}
+                      onChange={(e) => {
+                        if (goal.uom === "Text" || isSubmitted) return;
+
+                        let value = e.target.value.replace(/[^0-9]/g, "").slice(0, 3);
+                        handleInputChange(idx, "score", value);
+                      }}
+                      className={`border p-1 w-20 rounded text-center
+                        ${goal.uom === "Text" ? "bg-gray-100 cursor-not-allowed" : ""}
+                      `}
                     />
+
                   </td>
 
                   {/* WEIGHTAGE + ACHIEVED IN SINGLE LINE */}
@@ -563,12 +598,31 @@ useEffect(() => {
                       <span>
                         {goal.weightage}%
                       </span>
-                      <input
+                      {/* <input
                         type="text"
                         value={goal.achieved || ""}
                         readOnly
                         className="border p-1 w-16 rounded text-center bg-gray-50"
+                      /> */}
+                      <input
+                        type="text"
+                        value={goal.achieved || ""}
+                        readOnly={goal.uom !== "Text" || isSubmitted || !enableGoalEvaluation}
+                        onChange={(e) => {
+                          if (goal.uom !== "Text") return;
+
+                          let value = e.target.value.replace(/[^0-9.]/g, "").slice(0, 6);
+
+                          const updated = [...goals];
+                          updated[idx].achieved = value;
+                          setGoals(updated);
+                          setIsDirty(true);
+                        }}
+                        className={`border p-1 w-16 rounded text-center
+                          ${goal.uom === "Text" ? "" : "bg-gray-50"}
+                        `}
                       />
+
                     </div>
                   </td>
 

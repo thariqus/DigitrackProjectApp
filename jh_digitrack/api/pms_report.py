@@ -6,9 +6,12 @@ import json
 def get_goal_assessment_summary(year=None, manager=None):
     try:
         if not year:
-            settings = frappe.get_single("PMS Settings")
-            year = settings.assesment_year
 
+            year = frappe.db.get_value(
+                "PMS Settings Table",
+                {"parent": "PMS Settings", "is_current": 1},
+                "year"
+            )
         if not year:
             return {"error": "Assessment year not found."}
 
@@ -169,8 +172,11 @@ def get_goal_assessment_summary(year=None, manager=None):
 def get_goal_assessment_summary_org(year=None, manager=None):
     try:
         if not year:
-            settings = frappe.get_single("PMS Settings")
-            year = settings.assesment_year
+            year = frappe.db.get_value(
+                "PMS Settings Table",
+                {"parent": "PMS Settings", "is_current": 1},
+                "year"
+            )
 
         if not manager:
             frappe.throw("Manager email is required")
@@ -280,8 +286,11 @@ def get_goal_assessment_summary_org(year=None, manager=None):
 def get_goal_assessment_summary_admin(year=None, manager=None):
     try:
         if not year:
-            settings = frappe.get_single("PMS Settings")
-            year = settings.assesment_year
+            year = frappe.db.get_value(
+                "PMS Settings Table",
+                {"parent": "PMS Settings", "is_current": 1},
+                "year"
+            )
 
         if not manager:
             frappe.throw("Admin email is required")
@@ -448,31 +457,38 @@ def get_self_evaluation_history(current_user=None):
 
 
 from frappe.utils import get_url
+import frappe
 
-@frappe.whitelist()
+@frappe.whitelist(allow_guest=True)
 def send_pending_evaluation_emails(emails, year):
     if isinstance(emails, str):
         emails = frappe.parse_json(emails)
 
     if not emails:
-        return
+        frappe.throw("No recipients found")
 
     settings = frappe.get_single("PMS Settings")
 
     if not settings.email_template:
-        frappe.throw("Email template not configured in PMS Settings")
+        frappe.throw("Email content not configured in PMS Settings")
 
-    template = frappe.get_doc("Email Template", settings.email_template)
+    template_body = settings.email_template
 
-    subject = template.subject or "PMSLite-Reminder"
-    message = template.response
+    for email, manager_name in emails:  
+        if not email:
+            frappe.log_error(f"No recipient email found for sending PMS reminder", "Email Send Error")
+            continue
 
-    for email in emails:
+        message = f"Dear {manager_name},\n\n{template_body}"
+
         frappe.sendmail(
             recipients=email,
-            subject=subject,
+            subject="PMSLite Reminder",  
             message=message,
-            # now=True,
+            now=True,  
+            sender=None, 
         )
-    frappe.db.commit()   
+
+    frappe.db.commit()
     return {"status": "success"}
+

@@ -24,12 +24,22 @@ function GoalEvaluation() {
   const [sortField, setSortField] = useState<"id" | "status" | "designation" | "grade" |null>(null);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [selectedYear, setSelectedYear] = useState<string>("");
-  const { evaluations, loading, defaultYear, baseYear, years, refetch } = useGoalEvaluation(selectedYear);
+  const { evaluations, loading, defaultYear, baseYear, years,fromDate,toDate, refetch } = useGoalEvaluation(selectedYear);
   const { employees } = useGoalAssignment();
   const [selectedDesignation, setSelectedDesignation] = useState("");
   const [selectedGrade, setSelectedGrade] = useState("");
   const typedEvaluations = evaluations as GoalAssessment[];
-
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return "";
+    const date = new Date(dateStr);
+    return date
+      .toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      })
+      .toUpperCase();
+  };
 
   useEffect(() => {
     if (defaultYear && !selectedYear) {
@@ -210,6 +220,11 @@ const sortedEmployees = [...evaluations].sort((a, b) => {
           >
             {selectedYear}
           </button>
+          {fromDate && toDate && (
+            <span className="text-[0.6rem] text-gray-500 ml-1">
+              {formatDate(fromDate)} – {formatDate(toDate)}
+            </span>
+          )}
           {dropdownYearOpen && (
             <ul className="absolute text-xs  bg-white border rounded-md mt-1 w-40 z-10">
               {years.map((year) => (
@@ -247,7 +262,7 @@ const sortedEmployees = [...evaluations].sort((a, b) => {
       </div>
 
       {/* === Employee Table === */}
-      <div className="border rounded-lg w-full overflow-x-auto mt-2">
+      <div className="border rounded-lg w-full overflow-x-auto mt-1">
         <div className="flex items-center gap-3">
           {/* Status Filter */}
           <div className="relative inline-block filter-dropdown m-1">

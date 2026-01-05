@@ -34,8 +34,7 @@
   {
    "fieldname": "assesment_year",
    "fieldtype": "Data",
-   "label": "Assessment Year",
-   "reqd": 1
+   "label": "Assessment Year"
   },
   {
    "fieldname": "min_value",
@@ -83,7 +82,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-12-22 11:30:21.002746",
+ "modified": "2026-01-04 11:36:13.232778",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "PMS Settings",
