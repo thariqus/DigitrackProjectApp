@@ -5,9 +5,13 @@ def get_goal_evaluation(user, year=None):
     if not user:
         frappe.throw(_("User email is required"))
 
-    settings = frappe.get_single("PMS Settings")
-    assessment_year = year or settings.assesment_year
-
+    settings_row = frappe.db.get_value(
+        "PMS Settings Table",
+        {"parent": "PMS Settings", "is_current": 1},
+        ["year", "from_date", "to_date"],
+        as_dict=True
+    )
+    assessment_year = year or settings_row.get("year")
     allowed_statuses = (
         "Evaluation Pending",
         "Evaluation Started",
@@ -49,6 +53,8 @@ def get_goal_evaluation(user, year=None):
 
     return {
         "assessment_year": assessment_year,
+        "from_date": settings_row.get("from_date"),
+        "to_date": settings_row.get("to_date"),        
         "evaluations": result
     }
 

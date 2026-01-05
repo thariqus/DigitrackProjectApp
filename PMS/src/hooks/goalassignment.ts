@@ -15,13 +15,16 @@ export function useGoalAssignment(selectedYear?: string) {
 
   const { data, isLoading: loading, refetch } = useQuery<{
     assignment_year: string;
+    from_date: string;
+    to_date: string;
     employees: EmployeeGoal[];
   }>({
     queryKey: ["goal-assignment", selectedYear, currentUser],
 
     queryFn: async () => {
       if (!currentUser) {
-        return { assignment_year: "", employees: [] };
+        return { assignment_year: "",from_date: "",
+          to_date: "", employees: [] };
       }
 
       // Build params instead of raw URL
@@ -34,12 +37,16 @@ export function useGoalAssignment(selectedYear?: string) {
       const res = await frappeClient.api.get<{
         message: {
           assignment_year: string;
+          from_date: string;
+          to_date: string;
           employees: EmployeeGoal[];
         };
       }>("jh_digitrack.api.goal_assignment.get_employees_with_status", params);
 
       return {
         assignment_year: res.message?.assignment_year || "",
+        from_date: res.message?.from_date || "",
+        to_date: res.message?.to_date || "",
         employees: res.message?.employees || [],
       };
     },
@@ -69,6 +76,8 @@ export function useGoalAssignment(selectedYear?: string) {
     baseYear,
     years,
     loading,
+    fromDate: data?.from_date,
+    toDate: data?.to_date,
     refetch,
   };
 }

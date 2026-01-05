@@ -38,7 +38,7 @@ export function useGoalEvaluation(selectedYear?: string) {
     queryKey: ["goal-evaluation", currentUser, selectedYear],
     queryFn: async () => {
       if (!currentUser) {
-        return { assessment_year: "", evaluations: [] };
+        return { assessment_year: "",from_date: "", to_date: "", evaluations: [] };
       }
 
       const url = "jh_digitrack.api.goal_evaluation.get_goal_evaluation";
@@ -53,6 +53,8 @@ export function useGoalEvaluation(selectedYear?: string) {
 
       return {
         assessment_year: res.message?.assessment_year?.toString() || "",
+        from_date: res.message?.from_date || "",
+        to_date: res.message?.to_date || "",
         evaluations: res.message?.evaluations || [],
       };
     },
@@ -79,6 +81,8 @@ export function useGoalEvaluation(selectedYear?: string) {
     defaultYear: data?.assessment_year || "",
     baseYear,
     years,
+    fromDate: data?.from_date,
+    toDate: data?.to_date,
     refetch,
   };
 }

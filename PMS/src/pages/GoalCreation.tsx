@@ -280,7 +280,7 @@ const handleSave = async () => {
     }
 
     for (let g of goals) {
-      if (!g.name || !g.desc || !g.measurement || !g.targetvalue || !g.uom || !g.weightage || !g.seletedvalueOfUorD) {
+      if (!g.name || !g.desc || !g.measurement || !g.uom || !g.weightage || !g.seletedvalueOfUorD || (g.uom !== "Text" && !g.targetvalue)) {
         setMessage({ text: "All fields must be filled to save.", type: "error" });
         return;
       }
@@ -347,7 +347,7 @@ const handleSubmit = async () => {
     }
 
     for (let g of goals) {
-      if (!g.goal_id || !g.desc || !g.measurement || !g.targetvalue || !g.uom || !g.weightage || !g.seletedvalueOfUorD) {
+      if (!g.goal_id || !g.desc || !g.measurement || !g.uom || !g.weightage || !g.seletedvalueOfUorD || (g.uom !== "Text" && !g.targetvalue)) {
         console.warn("⚠️ Missing data in goal:", g);
         setMessage({ text: "All fields must be filled to submit.", type: "error" });
         return;
@@ -803,10 +803,14 @@ readOnly
                         setGoals(updated);
                         setIsEdited(true);
                       }}
-                      className="border text-xs p-1 w-full rounded text-center"
+                      // className="border text-xs p-1 w-full rounded text-center"
                       // readOnly={isSubmitted || !isEditableStatus(employee?.status || "")}
-                      readOnly={isGoalLocked}
-
+                      // readOnly={isGoalLocked}
+                      readOnly={isGoalLocked || goal.uom === "Text"}
+                      disabled={goal.uom === "Text"}
+                      className={`border text-xs p-1 w-full rounded text-center
+                        ${goal.uom === "Text" ? "bg-gray-100 cursor-not-allowed" : ""}
+                      `}
                     />
                   </td>
 

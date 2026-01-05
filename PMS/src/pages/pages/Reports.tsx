@@ -7,6 +7,7 @@ import Pagination from "../../components/Pagination";
 import { useGoalAssessment, ManagerSummary, EmployeeSummary } from "../../hooks/pmsreports";
 import { useCurrentUser } from "../../hooks/auth";
 import { useLocation } from "react-router";
+import frappeClient from "@/utils/frappe-client";
 interface Goal {
   id: string;
   name: string;
@@ -233,46 +234,54 @@ function Reports() {
 
   const handleSendEmail = async () => {
     const pendingManagers = getManagersWithPendingEvaluations();
-    console.log("📧 Send Email clicked (ADMIN)");
-    console.log("Selected Year:", selectedYear);
-    console.log("Managers with pending evaluations:", pendingManagers);
+    // console.log("📧 Send Email clicked (ADMIN)");
+    // console.log("Selected Year:", selectedYear);
+    // console.log("Managers with pending evaluations:", pendingManagers);
     pendingManagers.forEach((m, index) => {
-      console.log(`--- Manager ${index + 1} ---`);
-      console.log("Name:", m.manager_name);
-      console.log("Email:", m.manager_email);
-      console.log(
-        `Evaluations: ${m.evaluation_submitted}/${m.employee_count}`
-      );
+      // console.log(`--- Manager ${index + 1} ---`);
+      // console.log("Name:", m.manager_name);
+      // console.log("Email:", m.manager_email);
+      // console.log(
+      //   `Evaluations: ${m.evaluation_submitted}/${m.employee_count}`
+      // );
     });
     if (pendingManagers.length === 0) {
       alert("No managers with pending evaluations.");
       return;
     }
+    const managerWord = pendingManagers.length === 1 ? "manager" : "managers";
 
+    const confirmSend = window.confirm(
+      `Sending email to ${pendingManagers.length} ${managerWord} with pending actions. Do you want to continue?`
+    );
+    if (!confirmSend) return;
     const emails = pendingManagers
-      .map((m) => m.manager_email)
-      .filter(Boolean);
+      .filter((m) => m.manager_email)
+      .map((m) => [m.manager_email, m.manager_name]); 
 
     try {
-      await fetch(
-        "/api/method/jh_digitrack.api.pms_report.send_pending_evaluation_emails",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
+      let res;
+      try {
+        res = await frappeClient.api.post(
+          "jh_digitrack.api.pms_report.send_pending_evaluation_emails",
+          {
             emails,
             year: selectedYear,
-          }),
-        }
-      );
+          }
+        );
+      } catch (innerErr: any) {
+        console.error("Internal API client error:", innerErr);
+        // This will catch errors like l.response is undefined
+        throw new Error("Failed to send emails. Please contact admin.");
+      }
 
+      console.log("Send Email response:", res);
       alert("Emails sent successfully.");
-    } catch (err) {
-      console.error(err);
-      alert("Failed to send emails.");
+    } catch (error: any) {
+      console.error("Error sending PMS emails:", error);
+      alert(error.message || "Failed to send emails. Please contact admin.");
     }
+
   };
   const handleEmployeePdfDownload = (
     e: React.MouseEvent,
