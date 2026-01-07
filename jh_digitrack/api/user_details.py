@@ -24,10 +24,8 @@ def get_access_token():
             "grant_type": "password"
         }
 
-        response = requests.post(url, headers=headers, data=data)
+        response = requests.post(url, headers=headers, data=data, timeout=30)
         
-        response.raise_for_status()
-
         access_token = response.json().get("access_token")
         if not access_token:
             frappe.log_error("Access token not found", response.text)
@@ -69,59 +67,9 @@ def fetch_hr_data(token):
         hr_data = response.json()
         frappe.log_error("External HR API Response", json.dumps(hr_data, indent=2))
 
-        local_payload = {
-            "Data": {
-                "Employee Data": hr_data[0].get("Data", {}).get("Employee Data", [])
-            }
-        }
-
-        # pass base_url in the site config.json inorder to fetch the exact url
-        delete_existing_hrms_users()
-        
-        base_url = frappe.get_site_config().get("base_url")
-        print("base_url", base_url)
-        user = frappe.get_doc("User", "Administrator")  
-        api_key = user.api_key
-        api_secret = frappe.utils.password.get_decrypted_password("User", "Administrator", "api_secret")
-        
-        authorization_token = f"Token {api_key}:{api_secret}"
-        print("authorization",authorization_token)
-        local_api_url = f"{base_url}/api/method/jh_digitrack.api.user_details.create_hrms_users"
-        post_response = requests.post(
-            local_api_url,
-            json=local_payload,
-            headers={
-                "Authorization": authorization_token,
-                "Content-Type": "application/json",
-                "Accept": "application/json",
-                "Expect": "" 
-            }
-        )
-        post_response.raise_for_status()
-
-        frappe.log_error("Internal HRMS User Creation Response", post_response.text)
-
-        return {
-            "status": "success",
-            "message": "HRMS Users created successfully",
-            "external_api_response": hr_data,
-            "internal_api_response": post_response.json()
-        }
-
-    except Exception:
-        frappe.log_error("HRMS Data Fetch Error", frappe.get_traceback())
-        frappe.response["http_status_code"] = 500
-        frappe.response["message"] = "Error fetching or posting HRMS data"
-
-@frappe.whitelist(allow_guest=True)
-def create_hrms_users():
-    try:
-        data = frappe.request.get_json()
-        employees = data.get("Data", {}).get("Employee Data", [])
-
-        if not employees:
-            frappe.response["http_status_code"] = 400
-            frappe.response["message"] = "No employee data received"
+        new_users = hr_data[0].get("Data", {}).get("Employee Data", [])
+        if not new_users or all(not user for user in new_users):
+            frappe.throw(_("No employee data received from HRMS — existing records kept intact"))
             return
 
         frappe.db.sql("DELETE FROM `tabHRMS Users`")
@@ -155,7 +103,7 @@ def map_employee_fields(emp):
         "last_name": emp.get("LAST_NAME"),
         "middle_name": emp.get("MIDDLE_NAME"),
         "company_name": emp.get("COMPANY_NAME"),
-        "mobile_no": emp.get("PER_MOBILE"),
+        "mobile_no": emp.get("WORK_TELEPHONE_NO"),
         "date_of_joining": format_date(emp.get("DATE_OF_JOINING")),
         "dob": format_date(emp.get("DOB")),
         "gender": gender_map.get(emp.get("GENDER"), emp.get("GENDER") or "N/A"),
@@ -203,7 +151,6 @@ def map_employee_fields(emp):
         "cost_center_name": emp.get("COST_CENTER_NAME"),
         "employee_job_status": emp.get("EMPLOYEE_JOB_STATUS"),
     }
-
 
 def format_date(value):
     """Return date in DD-MM-YYYY format from YYYY-MM-DD or datetime string."""
