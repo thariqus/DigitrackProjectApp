@@ -314,31 +314,52 @@ function AdminView() {
       "_blank"
     );
   };
-
+  const getManagersWithPendingEvaluations = () => {
+    return filteredManagers.filter(
+      (m) => m.evaluation_submitted < m.employee_count
+    );
+  };
   const handleSendEmail = async () => {
+    const pendingManagers = getManagersWithPendingEvaluations();
+    pendingManagers.forEach((m, index) => {
+ 
+    });
+    if (pendingManagers.length === 0) {
+      alert("No managers with pending evaluations.");
+      return;
+    }
+    const managerWord = pendingManagers.length === 1 ? "manager" : "managers";
+
+    const confirmSend = window.confirm(
+      `Sending email to ${pendingManagers.length} ${managerWord} with pending actions. Do you want to continue?`
+    );
+    if (!confirmSend) return;
+    const emails = pendingManagers
+      .filter((m) => m.manager_email)
+      .map((m) => [m.manager_email, m.manager_name]); 
+
     try {
-      if (!selectedYear) {
-        alert("Please select a year");
-        return;
+      let res;
+      try {
+        res = await frappeClient.api.post(
+          "jh_digitrack.api.pms_report.send_pending_evaluation_emails",
+          {
+            emails,
+            year: selectedYear,
+          }
+        );
+      } catch (innerErr: any) {
+        console.error("Internal API client error:", innerErr);
+        throw new Error("Failed to send emails. Please contact admin.");
       }
 
-      setLoading(true);
-
-      await frappeClient.api.post(
-        "jh_digitrack.api.pms_email.send_pending_evaluation_emails_admin",
-        {
-          year: selectedYear,
-          manager: selectedManager === "All" ? null : selectedManager,
-        }
-      );
-
-      alert("Emails sent successfully");
-    } catch (err) {
-      console.error("Failed to send emails", err);
-      alert("Failed to send emails");
-    } finally {
-      setLoading(false);
+      console.log("Send Email response:", res);
+      alert("Emails sent successfully.");
+    } catch (error: any) {
+      console.error("Error sending PMS emails:", error);
+      alert(error.message || "Failed to send emails. Please contact admin.");
     }
+
   };
 
   return (
