@@ -5,12 +5,21 @@ import json
 @frappe.whitelist()
 def get_goal_assessment_summary(year=None, manager=None):
     try:
-        if not year:
-            settings = frappe.get_single("JH Goal Settings")
-            year = settings.assesment_year
+        # settings_row = frappe.db.get_value(
+        # "PMS Settings Table",
+        # {"parent": "PMS Settings", "is_current": 1},
+        # ["year", "from_date", "to_date"],
+        # as_dict=True
+        # )
+        # year = year or settings_row.get("year")
+        # if not year:
+        #     return {"error": "Assessment year not found."}
+        current_year, years = get_pms_years()
+        year = year or current_year
 
         if not year:
-            return {"error": "Assessment year not found."}
+            return {"error": "Assessment year not found"}
+
 
         if not manager:
             frappe.throw("Manager email is required")
@@ -158,7 +167,17 @@ def get_goal_assessment_summary(year=None, manager=None):
             d["goals_pending_employees"] = pending
 
 
-        return {"message": data, "year": year}
+        # return {
+        #     "message": data, 
+        #     "year": year,
+        #     "from_date": settings_row.get("from_date"),
+        #     "to_date": settings_row.get("to_date"),
+        #     }
+        return {
+            "message": data,
+            "current_year": current_year,
+            "years": years,
+        }
 
     except Exception as e:
         frappe.log_error(frappe.get_traceback(), "get_goal_assessment_summary_error")
@@ -168,9 +187,19 @@ def get_goal_assessment_summary(year=None, manager=None):
 @frappe.whitelist()
 def get_goal_assessment_summary_org(year=None, manager=None):
     try:
+        # settings_row = frappe.db.get_value(
+        #     "PMS Settings Table",
+        #     {"parent": "PMS Settings", "is_current": 1},
+        #     ["year", "from_date", "to_date"],
+        #     as_dict=True
+        # )
+        # year = year or settings_row.get("year")
+
+        current_year, years = get_pms_years()
+        year = year or current_year
+
         if not year:
-            settings = frappe.get_single("JH Goal Settings")
-            year = settings.assesment_year
+            return {"error": "Assessment year not found"}
 
         if not manager:
             frappe.throw("Manager email is required")
@@ -182,7 +211,17 @@ def get_goal_assessment_summary_org(year=None, manager=None):
         )
 
         if not hierarchy_rows:
-            return {"message": [], "year": year}
+            # return {
+            #     "message": [],
+            #     "year": year,
+            #     "from_date": settings_row.get("from_date"),
+            #     "to_date": settings_row.get("to_date"),
+            # }
+            return {
+                "message": [],
+                "current_year": current_year,
+                "years": years,
+            }
 
         final_data = []
 
@@ -268,20 +307,40 @@ def get_goal_assessment_summary_org(year=None, manager=None):
 
             final_data.append(summary)
 
-        return {"message": final_data, "year": year}
-
+        # return {
+        #     "message": final_data, 
+        #     "year": year,
+        #     "from_date": settings_row.get("from_date"),
+        #     "to_date": settings_row.get("to_date"),
+        #     }
+    
+        return {
+            "message": final_data,
+            "current_year": current_year,
+            "years": years,
+        }
     except Exception as e:
         frappe.log_error(frappe.get_traceback(), "get_goal_assessment_summary_org_error")
         return {"error": str(e)}
 
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def get_goal_assessment_summary_admin(year=None, manager=None):
     try:
+        # settings_row = frappe.db.get_value(
+        #     "PMS Settings Table",
+        #     {"parent": "PMS Settings", "is_current": 1},
+        #     ["year", "from_date", "to_date"],
+        #     as_dict=True
+        # )
+        # year = year or settings_row.get("year")
+        current_year, years = get_pms_years()
+        year = year or current_year
+
         if not year:
-            settings = frappe.get_single("JH Goal Settings")
-            year = settings.assesment_year
+            return {"error": "Assessment year not found"}
+
 
         if not manager:
             frappe.throw("Admin email is required")
@@ -309,13 +368,15 @@ def get_goal_assessment_summary_admin(year=None, manager=None):
             managers = frappe.db.get_all(
                 "PMS Employees",
                 filters={"cost_center_name": cost_center, "pms_manager": 1},
-                fields=["employee_email as manager_email", "full_name as manager_name", "employee_code"]
+                fields=["employee_email as manager_email", "full_name as manager_name", "employee_code", "department_name"]
             )
 
             for mgr in managers:
                 mgr_email = mgr["manager_email"]
                 mgr_name = mgr["manager_name"]
                 mgr_code = mgr["employee_code"]
+                department = mgr["department_name"]
+
 
                 employees = frappe.db.get_all(
                     "PMS Employees",
@@ -329,6 +390,7 @@ def get_goal_assessment_summary_admin(year=None, manager=None):
                     "manager_email": mgr_email,
                     "manager_name": mgr_name,
                     "manager_code": mgr_code,
+                    "department": department,
 
                     "employee_count": len(employees),
                     "employees_under_manager": employees,
@@ -396,7 +458,18 @@ def get_goal_assessment_summary_admin(year=None, manager=None):
 
                 final_data.append(summary)
 
-        return {"message": final_data, "year": year}
+        # return {
+        #     "message": final_data, 
+        #     "year": year,
+        #     "from_date": settings_row.get("from_date"),
+        #     "to_date": settings_row.get("to_date"),
+            # }
+        return {
+            "message": final_data,
+            "current_year": current_year,
+            "years": years,
+        }
+
 
     except Exception as e:
         frappe.log_error(frappe.get_traceback(), "get_goal_assessment_summary_admin_error")
@@ -441,3 +514,69 @@ def get_self_evaluation_history(current_user=None):
     except Exception as e:
         frappe.log_error(frappe.get_traceback(), "get_self_evaluation_history")
         return {"error": str(e)}
+
+
+def get_pms_years():
+    rows = frappe.db.get_all(
+        "PMS Settings Table",
+        filters={"parent": "PMS Settings"},
+        fields=["year", "from_date", "to_date", "is_current"],
+        order_by="year desc"
+    )
+
+    current_year = None
+    years = []
+
+    for r in rows:
+        years.append({
+            "year": r.year,
+            "from_date": r.from_date,
+            "to_date": r.to_date,
+        })
+        if r.is_current:
+            current_year = r.year
+
+    return current_year, years
+
+
+from frappe.utils import get_url
+import frappe
+
+@frappe.whitelist(allow_guest=True)
+def send_pending_evaluation_emails(emails, year):
+    if isinstance(emails, str):
+        emails = frappe.parse_json(emails)
+
+    if not emails:
+        frappe.throw("No recipients found")
+
+    settings = frappe.get_single("PMS Settings")
+
+    if not settings.email_template:
+        frappe.throw("Email content not configured in PMS Settings")
+
+    template_body = settings.email_template
+
+    for email, manager_name in emails:  
+        if not email:
+            frappe.log_error(f"No recipient email found for sending PMS reminder", "Email Send Error")
+            continue
+
+        message = (
+            f"<strong>Dear {manager_name},</strong><br><br>"
+            f"<strong>{template_body.replace(chr(10), '<br>')}</strong>"
+        )
+
+
+        frappe.sendmail(
+            recipients=email,
+            subject="PMSLite Reminder",  
+            message=message,
+            delayed=False,
+            now=True,  
+            sender=None, 
+        )
+
+    frappe.db.commit()
+    return {"status": "success"}
+

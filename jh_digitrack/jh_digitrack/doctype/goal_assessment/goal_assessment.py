@@ -53,3 +53,66 @@ class GoalAssessment(Document):
                     goal_doc.save(ignore_permissions=True)
 
         frappe.db.commit()
+
+
+    def on_update(self):
+        self.send_status_based_email()
+
+    def send_status_based_email(self):
+        if self.status not in ("Goal Submitted", "Evaluation Submitted"):
+            return
+
+        if not self.has_value_changed("status"):
+            return
+
+        if not self.employee_code:
+            return
+
+        employee_email = frappe.db.get_value(
+            "JH User Master",
+            {"employee_code": self.employee_code},
+            "email"
+        )
+
+        if not employee_email:
+            return
+
+        manager_email = self.manager
+
+        site_config = frappe.get_site_config()
+        base_url = site_config.get("base_url", "http://127.0.0.1:8000")
+
+        portal_url = f"{base_url}/PMS/self-evaluation-history"
+
+        if self.status == "Goal Submitted":
+            subject = "PMSLite – Goal Submission Completed"
+            message_body = (
+                f"<strong>Dear {self.employee_name or 'Employee'},<br><br>"
+                "Your goals have been successfully submitted for the current assessment period.<br><br>"
+                f"Please visit your <a href='{portal_url}'>PMS portal</a> to track progress.<br><br>"
+                "Best regards,<br>"
+                "PMSLite Team</strong>"
+            )
+
+        elif self.status == "Evaluation Submitted":
+            subject = "PMSLite – Evaluation Submission Completed"
+            message_body = (
+                f"<strong>Dear {self.employee_name or 'Employee'},<br><br>"
+                "Your performance evaluation has been successfully submitted.<br><br>"
+                f"Please visit your <a href='{portal_url}'>PMS portal</a> for details.<br><br>"
+                "Best regards,<br>"
+                "PMSLite Team</strong>"
+            )
+
+        try:
+            frappe.sendmail(
+                recipients=[employee_email],
+                cc=[manager_email] if manager_email else None,
+                subject=subject,
+                message=message_body,
+                now=True,
+                delayed=False
+            )
+            frappe.log_error(f"Email sent to {employee_email}", "PMS DEBUG")
+        except Exception:
+            frappe.log_error(frappe.get_traceback(), "PMS Status Email Failed")

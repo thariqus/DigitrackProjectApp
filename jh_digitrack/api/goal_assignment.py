@@ -10,11 +10,18 @@ def get_goals():
     )
 
 
-
 @frappe.whitelist()
 def get_default_assignment_year():
-    settings = frappe.get_single("JH Goal Settings")  
-    return {"assignment_year": settings.assesment_year}
+    year = frappe.db.get_value(
+        "PMS Settings Table",
+        {"parent": "PMS Settings", "is_current": 1},
+        "year"
+    )
+
+    if not year:
+        frappe.throw("No current assessment year found")
+
+    return {"assignment_year": year}
 
 
 
@@ -55,9 +62,14 @@ def get_employee_goals(employee_id, year=None):
 
 @frappe.whitelist(allow_guest=True)
 def get_employees_with_status(user, year=None):
-    settings = frappe.get_single("JH Goal Settings")
-    assignment_year = year or settings.assesment_year  
-
+ 
+    settings_row = frappe.db.get_value(
+        "PMS Settings Table",
+        {"parent": "PMS Settings", "is_current": 1},
+        ["year", "from_date", "to_date"],
+        as_dict=True
+    )
+    assignment_year = year or settings_row.get("year")
     employees = frappe.db.sql(
         """
         SELECT 
@@ -79,4 +91,7 @@ def get_employees_with_status(user, year=None):
         as_dict=True
     )
 
-    return {"assignment_year": assignment_year, "employees": employees}
+    return {"assignment_year": assignment_year,
+            "from_date": settings_row.get("from_date"),
+            "to_date": settings_row.get("to_date"),
+            "employees": employees}

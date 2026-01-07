@@ -16,7 +16,7 @@ export interface Employee {
 function GoalAssignment() {
   const navigate = useNavigate();
   const [selectedYear, setSelectedYear] = useState<string>("");
-  const { employees, baseYear, years, loading, refetch } = useGoalAssignment(selectedYear);
+  const { employees, baseYear, years,fromDate,toDate, loading, refetch } = useGoalAssignment(selectedYear);
   const [dropdownfilterOpen, setDropdownfilterOpen] = useState(false);
   const [dropdownYearOpen, setDropdownYearOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -28,6 +28,17 @@ function GoalAssignment() {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
   const statusOptions = ["Goal Pending", "Goal Started", "Goal Submitted"];
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return "";
+    const date = new Date(dateStr);
+    return date
+      .toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      })
+      .toUpperCase();
+  };
 
   useEffect(() => {
   }, [employees]);
@@ -147,6 +158,11 @@ function GoalAssignment() {
             {selectedYear}
             {/* <RiArrowDropDownLine className="text-2xl" /> */}
           </button>
+          {fromDate && toDate && (
+            <span className="text-[0.6rem] text-gray-500 ml-1">
+              {formatDate(fromDate)} – {formatDate(toDate)}
+            </span>
+          )}
           {dropdownYearOpen && (
             <ul className="absolute text-sm bg-white border rounded-md mt-1 w-40 z-10">
               {years.map((year) => (
@@ -196,7 +212,7 @@ function GoalAssignment() {
       </div>
 
       {/* === Employee Table === */}
-      <div className="border rounded-lg w-full overflow-x-auto mt-2">
+      <div className="border rounded-lg w-full overflow-x-auto mt-0">
         <div className="flex items-center gap-3">
           {/* Status Filter */}
           <div className="relative inline-block filter-dropdown m-1">

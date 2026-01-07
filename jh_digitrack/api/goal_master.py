@@ -69,3 +69,4 @@ def edit_goal(name, goal_name, goal_description, measurement_criteria, target=""
     doc.save(ignore_permissions=True)
     frappe.db.commit()
     return {"success": True, "goal": doc.as_dict()}
+

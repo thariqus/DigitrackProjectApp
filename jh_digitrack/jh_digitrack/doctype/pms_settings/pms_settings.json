@@ -10,7 +10,13 @@
   "minimum_no_of_goals",
   "assesment_year",
   "min_value",
-  "max_value"
+  "max_value",
+  "enable_goal_submission",
+  "enable_goal_evaluation",
+  "column_break_cnza",
+  "email_template",
+  "section_break_mtvw",
+  "pms_settings_table"
  ],
  "fields": [
   {
@@ -28,8 +34,7 @@
   {
    "fieldname": "assesment_year",
    "fieldtype": "Data",
-   "label": "Assesment Year",
-   "reqd": 1
+   "label": "Assessment Year"
   },
   {
    "fieldname": "min_value",
@@ -40,16 +45,47 @@
    "fieldname": "max_value",
    "fieldtype": "Int",
    "label": "Max Value"
+  },
+  {
+   "fieldname": "section_break_mtvw",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "pms_settings_table",
+   "fieldtype": "Table",
+   "label": "PMS Settings Table",
+   "options": "PMS Settings Table"
+  },
+  {
+   "default": "0",
+   "fieldname": "enable_goal_submission",
+   "fieldtype": "Check",
+   "label": "Enable Goal Submission"
+  },
+  {
+   "default": "0",
+   "fieldname": "enable_goal_evaluation",
+   "fieldtype": "Check",
+   "label": "Enable Goal Evaluation"
+  },
+  {
+   "fieldname": "column_break_cnza",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "email_template",
+   "fieldtype": "Text",
+   "label": "Email Template"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-11-13 15:53:55.924881",
+ "modified": "2026-01-04 11:36:13.232778",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
- "name": "JH Goal Settings",
+ "name": "PMS Settings",
  "naming_rule": "Expression (old style)",
  "owner": "Administrator",
  "permissions": [

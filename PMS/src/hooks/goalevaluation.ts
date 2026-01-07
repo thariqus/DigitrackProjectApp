@@ -38,7 +38,7 @@ export function useGoalEvaluation(selectedYear?: string) {
     queryKey: ["goal-evaluation", currentUser, selectedYear],
     queryFn: async () => {
       if (!currentUser) {
-        return { assessment_year: "", evaluations: [] };
+        return { assessment_year: "",from_date: "", to_date: "", evaluations: [] };
       }
 
       const url = "jh_digitrack.api.goal_evaluation.get_goal_evaluation";
@@ -53,6 +53,8 @@ export function useGoalEvaluation(selectedYear?: string) {
 
       return {
         assessment_year: res.message?.assessment_year?.toString() || "",
+        from_date: res.message?.from_date || "",
+        to_date: res.message?.to_date || "",
         evaluations: res.message?.evaluations || [],
       };
     },
@@ -79,6 +81,8 @@ export function useGoalEvaluation(selectedYear?: string) {
     defaultYear: data?.assessment_year || "",
     baseYear,
     years,
+    fromDate: data?.from_date,
+    toDate: data?.to_date,
     refetch,
   };
 }
@@ -120,10 +124,9 @@ export function useGoalAssessment() {
 /* ─────────────────────────────────────────────── */
 export function useEmployeeGoals(employeeCode: string, year: string) {
   const [employeeGoals, setEmployeeGoals] = useState<GoalDetail[]>([]);
-  const [attachments, setAttachments] = useState<
-    { file_name: string; file_url: string }[]
-  >([]);
+  const [attachments, setAttachments] = useState<{ file_name: string; file_url: string }[]>([]);
   const [comment, setComment] = useState("");
+  const [enableGoalEvaluation, setEnableGoalEvaluation] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -131,17 +134,22 @@ export function useEmployeeGoals(employeeCode: string, year: string) {
 
     const getGoals = async () => {
       try {
-        const res = await frappeClient.api.get(
+        const res = await frappeClient.api.get<{
+          message: {
+            goals: GoalDetail[];
+            attachments: { file_name: string; file_url: string }[];
+            comment: string;
+            enable_goal_evaluation: boolean;
+          };
+        }>(
           "jh_digitrack.api.goal_evaluation.get_employee_goals",
-          {
-            employee_code: employeeCode,
-            year,
-          }
+          { employee_code: employeeCode, year }
         );
 
         setEmployeeGoals(res.message?.goals || []);
         setAttachments(res.message?.attachments || []);
         setComment(res.message?.comment || "");
+        setEnableGoalEvaluation(!!res.message?.enable_goal_evaluation);
       } catch (error) {
         console.error("Error fetching employee goals:", error);
       } finally {
@@ -152,7 +160,7 @@ export function useEmployeeGoals(employeeCode: string, year: string) {
     getGoals();
   }, [employeeCode, year]);
 
-  return { employeeGoals, attachments, comment, loading };
+  return { employeeGoals, attachments, comment, enableGoalEvaluation, loading };
 }
 
 /* ─────────────────────────────────────────────── */

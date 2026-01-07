@@ -37,7 +37,8 @@ def download_excel(year=None, manager=None, view_type="team"):
             summary_response = summary_response
 
         data = summary_response.get("message", [])
-        year = summary_response.get("year")
+        # year = summary_response.get("year")
+        year = year or summary_response.get("current_year")
 
         if not data:
             frappe.throw("No summary data available for this selection.")
@@ -274,13 +275,13 @@ def download_excel(year=None, manager=None, view_type="team"):
 
         for ga in ga_docs:
             mdata = frappe.db.get_value(
-                "PMS Employees",
-                {"employee_email": ga.manager},
-                ["name", "full_name"],
+                "JH User Master",
+                {"email": ga.manager},
+                ["employee_code", "full_name"],
                 as_dict=True
             ) or {}
 
-            manager_code = mdata.get("name", "")
+            manager_code = mdata.get("employee_code", "")
             manager_name = mdata.get("full_name", "")
 
             manager_values = [manager_code, manager_name]
@@ -323,4 +324,542 @@ def download_excel(year=None, manager=None, view_type="team"):
         frappe.throw(_("Error generating Excel: ") + str(e))
 
 
+@frappe.whitelist()
+def download_self_evaluation_excel(year, employee_code):
+    try:
+        if not year or not employee_code:
+            frappe.throw("Year and Employee Code are required")
+
+        # -----------------------------------------------------
+        # Fetch Goal Assessment (SELF)
+        # -----------------------------------------------------
+        ga = frappe.db.get_value(
+            "Goal Assessment",
+            {"year": year, "employee_code": employee_code},
+            "*",
+            as_dict=True
+        )
+
+        if not ga:
+            frappe.throw("No Goal Assessment found for this year")
+        manager_data = frappe.db.get_value(
+            "PMS Employees",
+            {"employee_email": ga.manager},
+            ["name", "full_name"],
+            as_dict=True
+        ) or {}
+
+        manager_code = manager_data.get("name", "")
+        manager_name = manager_data.get("full_name", "")
+
+        # -----------------------------------------------------
+        # Employee details (includes manager info)
+        # -----------------------------------------------------
+        emp = frappe.db.get_value(
+            "PMS Employees",
+            {"name": employee_code},
+            [
+                "full_name",
+                "cost_center_name",
+                "manager_code",
+                "designation_name",
+                "entity_name",
+                "department_name",
+                "ou_name",
+                "grade_name",
+            ],
+            as_dict=True
+        ) or {}
+
+
+        # Status from Goal Assessment (NOT workflow_state)
+        status = ga.status or ""
+        manager_code = emp.get("manager_code", "")
+        manager_name = ""
+
+        if manager_code:
+            manager_name = frappe.db.get_value(
+                "PMS Employees",
+                {"name": manager_code},
+                "full_name"
+            ) or ""
+
+        # -----------------------------------------------------
+        # Create Excel
+        # -----------------------------------------------------
+        wb = Workbook()
+        ws = wb.active
+        # ws.title = f"Goal Assessment - {year}"
+        ws.title = str(year)
+
+
+        header_fill = PatternFill(
+            start_color="D9D9D9",
+            end_color="D9D9D9",
+            fill_type="solid"
+        )
+
+        headers = [
+            "Year",
+            "Employee Code",
+            "Employee Name",
+            "Manager Code",
+            "Manager Name",
+            "Status",
+            "Total Score",
+            "Comment",
+            "Cost Center",
+            "Designation",
+            "Entity",
+            "Department",
+            "OU",
+            "Grade",
+            "Goal ID",
+            "Goal Name",
+            "Description",
+            "Measurement Criteria",
+            "UOM",
+            "Target",
+            "Weightage",
+            "Achievement Value",
+            "Achieved Score",
+            "Upward / Downward",
+            "Remark",
+        ]
+
+        ws.append(headers)
+
+        for cell in ws[1]:
+            cell.font = Font(bold=True)
+            cell.fill = header_fill
+            cell.alignment = Alignment(horizontal="center")
+
+        # -----------------------------------------------------
+        # Fetch Employee Goals
+        # -----------------------------------------------------
+        goals = frappe.get_all(
+            "Employee Goals",
+            filters={"parent": ga.name},
+            fields="*"
+        )
+
+        for g in goals:
+            ws.append([
+                year,
+                employee_code,
+                emp.get("full_name"),
+                manager_code,
+                manager_name,
+                status,
+                ga.total_score,
+                ga.comment,
+                emp.get("cost_center_name"),
+                emp.get("designation_name"),
+                emp.get("entity_name"),
+                emp.get("department_name"),
+                emp.get("ou_name"),
+                emp.get("grade_name"),
+                g.goal_id,
+                g.goal_name,
+                g.description,
+                g.measurement_criteria,
+                g.uom,
+                format_two_decimals(g.target),
+                format_two_decimals(g.weightage),
+                format_two_decimals(g.achievement_score),
+                format_two_decimals(g.achieved_score),
+                g.upwarddownward,
+                g.remark,
+            ])
+
+        # Auto width
+        for i, col in enumerate(ws.columns, 1):
+            max_len = max(len(str(cell.value or "")) for cell in col)
+            ws.column_dimensions[get_column_letter(i)].width = max_len + 3
+
+        # -----------------------------------------------------
+        # Frappe Response (Correct Way)
+        # -----------------------------------------------------
+        output = io.BytesIO()
+        wb.save(output)
+        output.seek(0)
+
+        # frappe.response.filename = f"Self_Evaluation_{employee_code}_{year}.xlsx"
+        frappe.response.filename = (f"PMS_Report_{year}_{datetime.now().strftime('%d%b%Y-%I%M%p')}.xlsx")
+        frappe.response.filecontent = output.getvalue()
+        frappe.response.type = "binary"
+
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "Self Evaluation Excel Error")
+        frappe.throw(str(e))
+
+
+import frappe
+import io
+from datetime import datetime
+from reportlab.platypus import (
+    SimpleDocTemplate, Paragraph, Table, TableStyle, Spacer
+)
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.pagesizes import A4
+from reportlab.lib import colors
+from reportlab.lib.units import cm
+
+
+@frappe.whitelist()
+def download_self_evaluation_pdf(year, employee_code):
+    try:
+        if not year or not employee_code:
+            frappe.throw("Year and Employee Code are required")
+
+        # -----------------------------------------------------
+        # Goal Assessment
+        # -----------------------------------------------------
+        ga = frappe.db.get_value(
+            "Goal Assessment",
+            {"year": year, "employee_code": employee_code},
+            "*",
+            as_dict=True
+        )
+
+        if not ga:
+            frappe.throw("No Goal Assessment found")
+
+        # -----------------------------------------------------
+        # Employee
+        # -----------------------------------------------------
+        emp = frappe.db.get_value(
+            "PMS Employees",
+            {"name": employee_code},
+            [
+                "full_name",
+                "designation_name",
+                "department_name",
+                "cost_center_name",
+                "entity_name",
+                "ou_name",
+                "band",
+                "manager_code"
+            ],
+            as_dict=True
+        ) or {}
+
+        # -----------------------------------------------------
+        # Manager (CORRECT LOGIC)
+        # -----------------------------------------------------
+        manager_name = ""
+        manager_code = emp.get("manager_code")
+
+        if manager_code:
+            manager_name = frappe.db.get_value(
+                "PMS Employees",
+                {"name": manager_code},
+                "full_name"
+            ) or ""
+
+        # -----------------------------------------------------
+        # Goals
+        # -----------------------------------------------------
+        goals = frappe.get_all(
+            "Employee Goals",
+            filters={"parent": ga.name},
+            fields="*"
+        )
+
+        # -----------------------------------------------------
+        # PDF SETUP
+        # -----------------------------------------------------
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(
+            buffer,
+            pagesize=A4,
+            rightMargin=20,
+            leftMargin=20,
+            topMargin=20,
+            bottomMargin=20
+        )
+        usable_width = A4[0] - doc.leftMargin - doc.rightMargin
+
+        styles = getSampleStyleSheet()
+
+        styles["Title"].fontSize = 14
+        styles["Title"].alignment = 1
+        styles["Title"].spaceAfter = 12
+
+        styles.add(ParagraphStyle(
+            name="TableText",
+            fontSize=7,
+            leading=9,
+        ))
+
+        styles.add(ParagraphStyle(name="Label", fontSize=9))
+        styles.add(ParagraphStyle(name="Value", fontSize=9))
+
+        def P(text):
+            return Paragraph(str(text or ""), styles["TableText"])
+
+
+        elements = []
+
+        # -----------------------------------------------------
+        # TITLE
+        # -----------------------------------------------------
+        # elements.append(Paragraph("Goal / Evaluation Form", styles["Title"]))
+        elements.append(Paragraph("Goal Assessment Details", styles["Title"]))
+        elements.append(Spacer(1, 6))
+        # -----------------------------------------------------
+        # Goal Evaluation Period (FROM YEAR)
+        # -----------------------------------------------------
+        settings_row = frappe.db.get_value(
+            "PMS Settings Table",
+            {"parent": "PMS Settings", "year": year},
+            ["from_date", "to_date"],
+            as_dict=True
+        )
+
+        if settings_row:
+            start_date = settings_row.get("from_date").strftime("%d-%b-%Y") if settings_row.get("from_date") else ""
+            end_date = settings_row.get("to_date").strftime("%d-%b-%Y") if settings_row.get("to_date") else ""
+        else:
+            start_date = ""
+            end_date = ""
+
+        evaluation_period = f"{start_date} to {end_date}"
+
+        # -----------------------------------------------------
+        # HEADER TABLE
+        # -----------------------------------------------------
+        header_data = [
+            # ["Goal evaluation period :", year, "", "Printed Date :", datetime.now().strftime("%d-%b-%Y")],
+            [
+                "Goal Evaluation Period:",
+                evaluation_period,
+                "Printed Date:",
+                datetime.now().strftime("%d-%b-%Y")
+            ],
+            ["Employee Code", employee_code, "Employee Name", emp.get("full_name")],
+            ["Designation", emp.get("designation_name"), "Department", emp.get("department_name")],
+            ["Grade", emp.get("band"), "Status", ga.status],
+            ["Manager Name", manager_name, "Total Score", format_two_decimals(ga.total_score)],
+            # ["", "", "Total Score", ga.total_score],
+            # ["", "", "Comment", ga.comment],
+        ]
+
+        # header_table = Table(header_data, colWidths=[4*cm, 4*cm, 4*cm, 4*cm])
+        header_col_widths = [
+            usable_width * 0.20,  # Label (left)
+            usable_width * 0.30,  # Value
+            usable_width * 0.20,  # Label (right)
+            usable_width * 0.30,  # Value
+        ]
+
+        header_table = Table(header_data, colWidths=header_col_widths)
+
+        header_table.setStyle(TableStyle([
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+            ("BACKGROUND", (0, 0), (-1, 0), colors.whitesmoke),
+            # ("SPAN", (0, 0), (3, 0)),
+            ("FONT", (0, 0), (-1, -1), "Helvetica"),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ]))
+
+        elements.append(header_table)
+        elements.append(Spacer(1, 12))
+
+        comment_table = Table(
+            [
+                [Paragraph("<b>Final Comment</b>", styles["Label"])],
+                [Paragraph(str(ga.comment or ""), styles["Value"])]
+            ],
+            colWidths=[usable_width * 0.60]
+        )
+
+        comment_table.setStyle(TableStyle([
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+            ("BACKGROUND", (0, 0), (-1, 0), colors.whitesmoke),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 6),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+            ("TOPPADDING", (0, 0), (-1, -1), 6),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+        ]))
+
+        # -----------------------------------------------------
+        # TOTAL SCORE LEGEND (FIXED)
+        # -----------------------------------------------------
+        legend_data = [
+            ["Total Score - Legend"],
+            ["0 - 60.99", "Unsatisfactory"],
+            ["61 - 89.99", "Needs Improvement"],
+            ["90 - 99.99", "Meets Basic Standards"],
+            ["100 - 105.99", "Good Performance"],
+            ["106 - 110", "Outstanding"],
+        ]
+
+        legend_table = Table(
+            legend_data,
+            colWidths=[usable_width * 0.18, usable_width * 0.22]
+        )
+
+        legend_table.setStyle(TableStyle([
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+            ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+            ("SPAN", (0, 0), (-1, 0)),
+            ("ALIGN", (0, 0), (-1, 0), "CENTER"),
+            ("FONT", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ]))
+        comment_legend_wrapper = Table(
+            [[comment_table, legend_table]],
+            colWidths=[usable_width * 0.60, usable_width * 0.40]
+        )
+
+        comment_legend_wrapper.setStyle(TableStyle([
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 0),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+        ]))
+
+        elements.append(comment_legend_wrapper)
+
+        # elements.append(legend_table)
+        elements.append(Spacer(1, 14))
+
+        # -----------------------------------------------------
+        # GOALS TABLE
+        # -----------------------------------------------------
+        goal_col_widths = [
+            usable_width * 0.03,  
+            usable_width * 0.10,  
+            usable_width * 0.16,  
+            usable_width * 0.14,  
+            usable_width * 0.05,  
+            usable_width * 0.06,  
+            usable_width * 0.07,  
+            usable_width * 0.08,  
+            usable_width * 0.07,  
+            usable_width * 0.04,  
+            usable_width * 0.20,  
+        ]
+
+        goal_table_data = [[
+            "Sl",
+            "Goal",
+            "Description",
+            "Measurement",
+            "UOM",
+            "Target",
+            "Weightage",
+            "Ach Val",
+            "Score",
+            "U/D",
+            "Remark"
+        ]]
+
+        for idx, g in enumerate(goals, start=1):
+            goal_table_data.append([
+                idx,
+                P(g.goal_name),
+                P(g.description),
+                P(g.measurement_criteria),
+                # P(g.uom),
+                P(display_uom(g.uom)),
+                format_two_decimals(g.target),
+                format_two_decimals(g.weightage),
+                format_two_decimals(g.achievement_score),
+                format_two_decimals(g.achieved_score),
+                g.upwarddownward,
+                P(g.remark),
+            ])
+
+        goal_table = Table(
+            goal_table_data,
+            colWidths=goal_col_widths,
+            repeatRows=1
+        )
+
+        goal_table.setStyle(TableStyle([
+            ("GRID", (0, 0), (-1, -1), 0.4, colors.grey),
+            ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+            ("FONT", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTSIZE", (0, 0), (-1, 0), 7),
+            ("ALIGN", (0, 0), (-1, 0), "CENTER"),
+            ("ALIGN", (0, 1), (0, -1), "CENTER"),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 3),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 3),
+            ("TOPPADDING", (0, 0), (-1, -1), 2),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
+        ]))
+
+        elements.append(goal_table)
+
+
+        # -----------------------------------------------------
+        # BUILD PDF
+        # -----------------------------------------------------
+        # doc.build(elements)
+        doc.build(
+            elements,
+            onFirstPage=draw_footer,
+            onLaterPages=draw_footer
+        )
+
+
+        buffer.seek(0)
+
+        # frappe.response.filename = f"Self_Evaluation_{employee_code}_{year}.pdf"
+        frappe.response.filename = (f"PMS_Report_{year}_{datetime.now().strftime('%d%b%Y-%I%M%p')}.pdf")
+        frappe.response.filecontent = buffer.getvalue()
+        frappe.response.type = "binary"
+
+    except Exception:
+        frappe.log_error(frappe.get_traceback(), "Self Evaluation PDF Error")
+        frappe.throw("Error generating PDF")
+
+def display_uom(uom):
+    if not uom:
+        return ""
+    
+    uom_str = str(uom).strip().lower()
+    
+    if uom_str == "percentage":
+        return "%"
+    elif uom_str == "number":
+        return "NUM"
+    else:
+        return uom
+
+def draw_footer(canvas, doc):
+    canvas.saveState()
+
+    footer_text = [
+        "Confidential – PMSLite | Authorized Internal Use Only",
+        "Use, disclosure, or distribution outside the organization is prohibited",
+        f"Document generated on: {datetime.now().strftime('%d-%b-%Y')}",
+    ]
+
+    canvas.setFont("Helvetica", 8)
+    canvas.setFillColor(colors.grey)
+
+    page_width, page_height = A4
+
+    y_position = 25  
+    for line in footer_text:
+        canvas.drawCentredString(page_width / 2, y_position, line)
+        y_position -= 10  
+    canvas.restoreState()
+
+
+def format_two_decimals(value):
+    # Treat None, empty string, or invalid numbers as 0.00
+    if value in (None, "", " ", "-", "--"):
+        return "0.00"
+
+    try:
+        value = float(value)
+    except (ValueError, TypeError):
+        return "0.00"
+
+    # Format with two decimals
+    return f"{value:.2f}"
 

@@ -5,5 +5,5 @@
 from frappe.model.document import Document
 
 
-class JHGoalSettings(Document):
+class IntranetSettings(Document):
 	pass

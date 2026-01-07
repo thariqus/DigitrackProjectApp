@@ -5,9 +5,13 @@ def get_goal_evaluation(user, year=None):
     if not user:
         frappe.throw(_("User email is required"))
 
-    settings = frappe.get_single("JH Goal Settings")
-    assessment_year = year or settings.assesment_year
-
+    settings_row = frappe.db.get_value(
+        "PMS Settings Table",
+        {"parent": "PMS Settings", "is_current": 1},
+        ["year", "from_date", "to_date"],
+        as_dict=True
+    )
+    assessment_year = year or settings_row.get("year")
     allowed_statuses = (
         "Evaluation Pending",
         "Evaluation Started",
@@ -49,6 +53,8 @@ def get_goal_evaluation(user, year=None):
 
     return {
         "assessment_year": assessment_year,
+        "from_date": settings_row.get("from_date"),
+        "to_date": settings_row.get("to_date"),        
         "evaluations": result
     }
 
@@ -87,7 +93,7 @@ def create_goal_evaluation(data=None, session_user=None):
         if doc.status != "Evaluation Started":
             doc.status = "Evaluation Started"
 
-        settings = frappe.get_single("JH Goal Settings")
+        settings = frappe.get_single("PMS Settings")
         min_value = flt(settings.min_value or 10)
         max_value = flt(settings.max_value or 100)
 
@@ -96,6 +102,7 @@ def create_goal_evaluation(data=None, session_user=None):
         for g in goals:
             goal_id = g.get("goal_name")
             achievement_score = flt(g.get("achievement_score") or 0)
+            manual_achieved = flt(g.get("achieved") or 0)
             remark = g.get("remarks") or ""
 
 
@@ -106,15 +113,17 @@ def create_goal_evaluation(data=None, session_user=None):
             target = flt(goal_row.target)
             upwarddownward = (goal_row.upwarddownward or "").upper()
             weightage = flt(goal_row.weightage or 0)
+            if goal_row.uom == "Text":
+                achieved_score = manual_achieved
+            else:
+                achieved_score = 0
+                if target > 0 and achievement_score > 0:
+                    if upwarddownward == "U":
+                        achieved_score = (achievement_score / target) * 100
+                    elif upwarddownward == "D":
+                        achieved_score = (target / achievement_score) * 100
 
-            achieved_score = 0
-            if target > 0 and achievement_score > 0:
-                if upwarddownward == "U":
-                    achieved_score = (achievement_score / target) * 100
-                elif upwarddownward == "D":
-                    achieved_score = (target / achievement_score) * 100
-
-                achieved_score = max(min_value, min(max_value, achieved_score))
+            achieved_score = max(min_value, min(max_value, achieved_score))
 
             frappe.log_error(
                 f"CALC DEBUG: goal_id={goal_id}, target={target}, "
@@ -157,9 +166,10 @@ def get_employee_goals(employee_code, year):
             ["name", "comment"],
             as_dict=True
         )
-
+        settings = frappe.get_single("PMS Settings")
+        enable_goal_evaluation = settings.enable_goal_evaluation or False
         if not goal_assessment:
-            return {"goals": [], "attachments": [], "comment": ""}
+            return {"goals": [], "attachments": [], "comment": "","enable_goal_evaluation": enable_goal_evaluation}
 
         goals = frappe.db.sql("""
             SELECT 
@@ -190,7 +200,8 @@ def get_employee_goals(employee_code, year):
         return {
             "goals": goals,
             "attachments": attachments,
-            "comment": goal_assessment.comment or ""
+            "comment": goal_assessment.comment or "",
+            "enable_goal_evaluation": enable_goal_evaluation
         }
 
     except Exception as e:

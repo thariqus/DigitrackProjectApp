@@ -144,6 +144,7 @@ permission_query_conditions = {
 doc_events = {
     "User": {
         "before_save": "jh_digitrack.setup.user_events.before_save",
+        "validate": "jh_digitrack.jh_digitrack.doc_events.check_pms_employee.validate_pms_user",
     },
     "JH Digitrack Settings": {
         "before_save": "jh_digitrack.jh_digitrack.doc_events.user_manual_route.populate_user_manual",
