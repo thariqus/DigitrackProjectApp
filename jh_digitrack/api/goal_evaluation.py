@@ -102,6 +102,7 @@ def create_goal_evaluation(data=None, session_user=None):
         for g in goals:
             goal_id = g.get("goal_name")
             achievement_score = flt(g.get("achievement_score") or 0)
+            manual_achieved = flt(g.get("achieved") or 0)
             remark = g.get("remarks") or ""
 
 
@@ -112,15 +113,17 @@ def create_goal_evaluation(data=None, session_user=None):
             target = flt(goal_row.target)
             upwarddownward = (goal_row.upwarddownward or "").upper()
             weightage = flt(goal_row.weightage or 0)
+            if goal_row.uom == "Text":
+                achieved_score = manual_achieved
+            else:
+                achieved_score = 0
+                if target > 0 and achievement_score > 0:
+                    if upwarddownward == "U":
+                        achieved_score = (achievement_score / target) * 100
+                    elif upwarddownward == "D":
+                        achieved_score = (target / achievement_score) * 100
 
-            achieved_score = 0
-            if target > 0 and achievement_score > 0:
-                if upwarddownward == "U":
-                    achieved_score = (achievement_score / target) * 100
-                elif upwarddownward == "D":
-                    achieved_score = (target / achievement_score) * 100
-
-                achieved_score = max(min_value, min(max_value, achieved_score))
+            achieved_score = max(min_value, min(max_value, achieved_score))
 
             frappe.log_error(
                 f"CALC DEBUG: goal_id={goal_id}, target={target}, "

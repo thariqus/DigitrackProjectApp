@@ -142,9 +142,13 @@ useEffect(() => {
         achievement_score: goal.achievement_score || "",
         score: goal.achievement_score || "",
         // achieved: goal.achieved || "",
-        achieved: goal.achieved 
-        ? parseFloat(goal.achieved).toFixed(2)
-        : "",
+        achieved:
+          goal.uom === "Text"
+            ? goal.achieved || ""
+            : goal.achieved
+              ? parseFloat(goal.achieved).toFixed(2)
+              : "",
+
         remark: goal.remark || "",
       }));
       setGoals(formattedGoals);
@@ -296,7 +300,7 @@ useEffect(() => {
   // );
   const missingFields = goals.filter((g) => {
     if (g.uom === "Text") {
-      return !g.achieved || g.achieved.trim() === "" || !g.remark?.trim();
+      return !g.achieved || !g.remark?.trim();
     }
     return !g.score || g.score.trim() === "" || !g.remark?.trim();
   });
@@ -318,7 +322,16 @@ useEffect(() => {
         measurement_criteria: g.measurement,
         target: g.targetvalue,
         uom: g.uom,
-        achievement_score: g.score || g.achievement_score || "",
+        // achievement_score: g.score || g.achievement_score || "",
+        achievement_score:
+          g.uom === "Text"
+            ? null
+            : g.score || g.achievement_score || "",
+
+        achieved:
+          g.uom === "Text"
+            ? g.achieved || ""
+            : null,
         remarks: g.remark || "",
       })),
     };
@@ -605,13 +618,14 @@ useEffect(() => {
                         className="border p-1 w-16 rounded text-center bg-gray-50"
                       /> */}
                       <input
+                        key={goal.id}
                         type="text"
                         value={goal.achieved || ""}
                         readOnly={goal.uom !== "Text" || isSubmitted || !enableGoalEvaluation}
                         onChange={(e) => {
                           if (goal.uom !== "Text") return;
 
-                          let value = e.target.value.replace(/[^0-9.]/g, "").slice(0, 6);
+                          let value = e.target.value.replace(/[^0-9.]/g, "").slice(0, 3);
 
                           const updated = [...goals];
                           updated[idx].achieved = value;

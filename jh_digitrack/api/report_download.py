@@ -37,7 +37,8 @@ def download_excel(year=None, manager=None, view_type="team"):
             summary_response = summary_response
 
         data = summary_response.get("message", [])
-        year = summary_response.get("year")
+        # year = summary_response.get("year")
+        year = year or summary_response.get("current_year")
 
         if not data:
             frappe.throw("No summary data available for this selection.")
@@ -274,13 +275,13 @@ def download_excel(year=None, manager=None, view_type="team"):
 
         for ga in ga_docs:
             mdata = frappe.db.get_value(
-                "PMS Employees",
-                {"employee_email": ga.manager},
-                ["name", "full_name"],
+                "JH User Master",
+                {"email": ga.manager},
+                ["employee_code", "full_name"],
                 as_dict=True
             ) or {}
 
-            manager_code = mdata.get("name", "")
+            manager_code = mdata.get("employee_code", "")
             manager_name = mdata.get("full_name", "")
 
             manager_values = [manager_code, manager_name]
@@ -463,10 +464,10 @@ def download_self_evaluation_excel(year, employee_code):
                 g.description,
                 g.measurement_criteria,
                 g.uom,
-                g.target,
-                g.weightage,
-                g.achievement_score,
-                g.achieved_score,
+                format_two_decimals(g.target),
+                format_two_decimals(g.weightage),
+                format_two_decimals(g.achievement_score),
+                format_two_decimals(g.achieved_score),
                 g.upwarddownward,
                 g.remark,
             ])
@@ -609,8 +610,19 @@ def download_self_evaluation_pdf(year, employee_code):
         # -----------------------------------------------------
         # Goal Evaluation Period (FROM YEAR)
         # -----------------------------------------------------
-        start_date = datetime(int(year), 4, 1).strftime("%d-%b-%Y")
-        end_date = datetime(int(year) + 1, 3, 31).strftime("%d-%b-%Y")
+        settings_row = frappe.db.get_value(
+            "PMS Settings Table",
+            {"parent": "PMS Settings", "year": year},
+            ["from_date", "to_date"],
+            as_dict=True
+        )
+
+        if settings_row:
+            start_date = settings_row.get("from_date").strftime("%d-%b-%Y") if settings_row.get("from_date") else ""
+            end_date = settings_row.get("to_date").strftime("%d-%b-%Y") if settings_row.get("to_date") else ""
+        else:
+            start_date = ""
+            end_date = ""
 
         evaluation_period = f"{start_date} to {end_date}"
 
@@ -628,7 +640,7 @@ def download_self_evaluation_pdf(year, employee_code):
             ["Employee Code", employee_code, "Employee Name", emp.get("full_name")],
             ["Designation", emp.get("designation_name"), "Department", emp.get("department_name")],
             ["Grade", emp.get("band"), "Status", ga.status],
-            ["Manager Name", manager_name, "Total Score", ga.total_score],
+            ["Manager Name", manager_name, "Total Score", format_two_decimals(ga.total_score)],
             # ["", "", "Total Score", ga.total_score],
             # ["", "", "Comment", ga.comment],
         ]
@@ -751,10 +763,10 @@ def download_self_evaluation_pdf(year, employee_code):
                 P(g.measurement_criteria),
                 # P(g.uom),
                 P(display_uom(g.uom)),
-                g.target,
-                g.weightage,
-                g.achievement_score,
-                g.achieved_score,
+                format_two_decimals(g.target),
+                format_two_decimals(g.weightage),
+                format_two_decimals(g.achievement_score),
+                format_two_decimals(g.achieved_score),
                 g.upwarddownward,
                 P(g.remark),
             ])
@@ -805,9 +817,17 @@ def download_self_evaluation_pdf(year, employee_code):
         frappe.throw("Error generating PDF")
 
 def display_uom(uom):
-    if str(uom).strip().lower() == "percentage":
+    if not uom:
+        return ""
+    
+    uom_str = str(uom).strip().lower()
+    
+    if uom_str == "percentage":
         return "%"
-    return uom or ""
+    elif uom_str == "number":
+        return "NUM"
+    else:
+        return uom
 
 def draw_footer(canvas, doc):
     canvas.saveState()
@@ -828,3 +848,18 @@ def draw_footer(canvas, doc):
         canvas.drawCentredString(page_width / 2, y_position, line)
         y_position -= 10  
     canvas.restoreState()
+
+
+def format_two_decimals(value):
+    # Treat None, empty string, or invalid numbers as 0.00
+    if value in (None, "", " ", "-", "--"):
+        return "0.00"
+
+    try:
+        value = float(value)
+    except (ValueError, TypeError):
+        return "0.00"
+
+    # Format with two decimals
+    return f"{value:.2f}"
+
