@@ -47,7 +47,7 @@ import Reports from "./pages/pages/Reports";
 import SelfEvaluationRedirect from "@/components/SelfEvaluationRedirect"
 import SelfEvaluationHistory from "./pages/pages/SelfEvaluationHistory";
 import AdminSettings from "./pages/AdminSettings";
-
+import AdminView from "./pages/pages/AdminView";
 function AppWrapper() {
   const IDLE_TIME = 15 * 60 * 1000; 
   const logoutTimer = useRef<NodeJS.Timeout | null>(null);
@@ -129,7 +129,7 @@ function AppWrapper() {
             <Route path="/line-chart" element={<LineChart />} />
             <Route path="/bar-chart" element={<BarChart />} />
             <Route path="/adminsettings" element={<AdminSettings />} />
-
+            <Route path="/admin-report" element={<AdminView />} />
           </Route>
 
           {/* Auth */}

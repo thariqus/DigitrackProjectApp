@@ -72,7 +72,7 @@ const adminItems: NavItem[] = [
   {
     icon: <FaRegChartBar />,
     name: "View",
-    path: "/reports",
+    path: "/admin-report",
     fromAdmin: true,
   },
   {

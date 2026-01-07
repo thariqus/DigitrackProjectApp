@@ -198,19 +198,17 @@ const AppHeader: React.FC = () => {
 
 <div className="flex items-center gap-5 select-none">
   {/* Employee info */}
-  {employee && (
-    <div className="flex flex-col justify-center text-right min-w-[120px] max-w-[200px]">
-      <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
-        {employee.full_name}
-      </p>
-      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-        {employee.designation_name}
-      </p>
-    </div>
-  )}
 
-
-
+{employee && (
+  <div className="flex flex-col justify-center text-right min-w-[120px]">
+    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 whitespace-nowrap overflow-hidden overflow-ellipsis">
+      {employee.full_name}
+    </p>
+    <p className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+      {employee.designation_name}
+    </p>
+  </div>
+)}
 
 
             {/* <!-- Dark Mode Toggler --> */}
