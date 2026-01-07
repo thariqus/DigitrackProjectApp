@@ -68,3 +68,4 @@ def get_employee_details(name):
     employee_doc["skip_level_reporting_manager"] = get_employee_display(employee_doc.get("skip_level_reporting_manager"))
 
     return {"message": employee_doc}
+

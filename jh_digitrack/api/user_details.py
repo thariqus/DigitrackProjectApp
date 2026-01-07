@@ -163,3 +163,4 @@ def format_date(value):
         return dt.strftime("%d-%m-%Y")
     except Exception:
         return value
+
