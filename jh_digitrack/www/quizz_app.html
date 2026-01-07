@@ -18,7 +18,7 @@
   {% if frappe.session.user and frappe.session.user != "Guest" %}
   <iframe
     id="quiz-frame"
-    src="http://localhost:5173/?session_user={{ frappe.session.user }}"
+    src="http://172.16.51.122:8002/quizz_app/?session_user={{ frappe.session.user }}"
     width="100%"
     height="100%"
     style="border:none">
