@@ -7,7 +7,7 @@ export default function DashboardRedirect() {
   if (isLoading) return null;
 
   if (employee?.pms_admin) {
-    return <Navigate to="/reports" state={{ fromAdmin: true }} replace />;
+    return <Navigate to="/admin-report" replace />;
   }
 
   if (employee?.pms_manager) {
