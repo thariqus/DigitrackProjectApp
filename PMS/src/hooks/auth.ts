@@ -1,0 +1,93 @@
+import { useMutation, useQuery } from "@tanstack/react-query";
+import frappe from "@/utils/frappe-client";
+import { JHUserMaster } from "@/types/PMS/JHUserMaster";
+import { PMSEmployee } from "@/types/PMS/PMS Employees";
+
+/**
+ * Get logged in User's Name: Used for checking login status
+ * @returns string
+ */
+export const useLoggedInUser = () => {
+  return useQuery({
+    queryKey: ["logged-in-user"],
+    queryFn: () => frappe.auth.getLoggedInUser(),
+  });
+};
+
+/**
+ * Get logged in User's Name: Used for getting current user name
+ * @returns string
+ * stale for 1 hour
+ */
+export const useCurrentUser = () => {
+  return useQuery({
+    queryKey: ["current-user"],
+    queryFn: () => frappe.auth.getLoggedInUser(),
+    staleTime: 1000 * 60 * 60,
+  });
+};
+
+export const useJhUser = (user_id?: string) => {
+  return useQuery({
+    queryKey: ["jh-user", user_id],
+    queryFn: async () =>
+      frappe.db.getLastDoc<JHUserMaster>("JH User Master", {
+        filters: [["user", "=", user_id!]],
+      }),
+    staleTime: 1000 * 60 * 60,
+    enabled: !!user_id,
+  });
+};
+
+export const useCurrentJhUser = () => {
+  return useQuery({
+    queryKey: ["current-jh-user"],
+    queryFn: async () =>
+      frappe.db.getLastDoc<JHUserMaster>("JH User Master", {
+        filters: [["user", "=", await frappe.auth.getLoggedInUser()]],
+      }),
+    staleTime: 1000 * 60 * 60,
+  });
+};
+
+/**
+ * Hook for logging out the current user
+ * @returns mutation function to trigger logout
+ */
+export const useLogout = () => {
+  return useMutation({
+    mutationFn: async () => {
+      await frappe.auth.logout();
+      window.location.href = "/login";
+    },
+  });
+};
+
+
+export const useCurrentPmsEmployee = () => {
+  return useQuery({
+    queryKey: ["current-pms-employee"],
+    queryFn: async () => {
+      const currentUser = await frappe.auth.getLoggedInUser();
+
+      const jhUser: any = await frappe.db.getLastDoc("JH User Master", {
+        filters: [["email", "=", currentUser]],
+      });
+
+      const pmsEmployee = await frappe.db.getLastDoc<PMSEmployee>(
+        "PMS Employees",
+        {
+          filters: [["employee_code", "=", jhUser.employee_code]],
+        }
+      );
+
+      return {
+        ...pmsEmployee,
+        full_name: jhUser.full_name,
+        designation_name: jhUser.designation_name,
+        email: jhUser.email,
+      };
+    },
+    staleTime: 1000 * 60 * 60,
+  });
+};

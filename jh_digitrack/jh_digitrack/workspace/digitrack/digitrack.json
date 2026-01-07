@@ -1,6 +1,6 @@
 {
  "charts": [],
- "content": "[{\"id\":\"BKK-p8CJRn\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">JH Digitrack Masters</span>\",\"col\":12}},{\"id\":\"W-hHRY8Due\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Jh Division Master\",\"col\":3}},{\"id\":\"lKVOy2wJaP\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Jh Business Master\",\"col\":3}},{\"id\":\"sB1r4pTPzQ\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Jh User Master\",\"col\":3}},{\"id\":\"prLw3i8ENd\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Jh Tasks Master\",\"col\":3}},{\"id\":\"bCtAgbDc7d\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Jh Audits\",\"col\":3}},{\"id\":\"9NMIb-B3hB\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Jh Digitrack Settings\",\"col\":3}},{\"id\":\"iaDmgrOgbY\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Meetings/Grouped Tasks\",\"col\":3}},{\"id\":\"6XfgFHxqoR\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Jh Travel Request\",\"col\":3}},{\"id\":\"yfMGuAaSak\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"ud__qCv-ma\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Open Dashboard\",\"col\":3}},{\"id\":\"8-pv3R2Ey6\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Data Import\",\"col\":3}},{\"id\":\"l_xwip_jiU\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Data Export\",\"col\":3}}]",
+ "content": "[{\"id\":\"BKK-p8CJRn\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">JH Digitrack Masters</span>\",\"col\":12}},{\"id\":\"W-hHRY8Due\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Jh Division Master\",\"col\":3}},{\"id\":\"lKVOy2wJaP\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Jh Business Master\",\"col\":3}},{\"id\":\"sB1r4pTPzQ\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Jh User Master\",\"col\":3}},{\"id\":\"prLw3i8ENd\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Jh Tasks Master\",\"col\":3}},{\"id\":\"bCtAgbDc7d\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Jh Audits\",\"col\":3}},{\"id\":\"9NMIb-B3hB\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Jh Digitrack Settings\",\"col\":3}},{\"id\":\"iaDmgrOgbY\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Meetings/Grouped Tasks\",\"col\":3}},{\"id\":\"6XfgFHxqoR\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Jh Travel Request\",\"col\":3}},{\"id\":\"yfMGuAaSak\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"ud__qCv-ma\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Open Dashboard\",\"col\":3}},{\"id\":\"GRxD-0Lefe\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"JH Scrap Item\",\"col\":3}},{\"id\":\"snPjvo0UIT\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Data Import\",\"col\":3}},{\"id\":\"IUfbNaLDQK\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Data Export\",\"col\":3}}]",
  "creation": "2025-03-14 18:05:39.145654",
  "custom_blocks": [],
  "docstatus": 0,
@@ -8,12 +8,12 @@
  "for_user": "",
  "hide_custom": 0,
  "icon": "table",
- "idx": 1,
+ "idx": 2,
  "indicator_color": "green",
  "is_hidden": 0,
  "label": "Digitrack",
  "links": [],
- "modified": "2025-10-15 16:59:49.972544",
+ "modified": "2025-10-15 14:56:47.669811",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "Digitrack",
@@ -32,13 +32,6 @@
   {
    "color": "Grey",
    "doc_view": "List",
-   "label": "Jh Digitrack Settings",
-   "link_to": "JH Digitrack Settings",
-   "type": "DocType"
-  },
-  {
-   "color": "Grey",
-   "doc_view": "List",
    "label": "Data Import",
    "link_to": "Data Import",
    "stats_filter": "[]",
@@ -47,8 +40,15 @@
   {
    "color": "Grey",
    "doc_view": "List",
-   "label": "Jh Audits",
-   "link_to": "JH Audit Master",
+   "label": "Jh Digitrack Settings",
+   "link_to": "JH Digitrack Settings",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "JH Scrap Item",
+   "link_to": "JH Scrap Item",
    "stats_filter": "[]",
    "type": "DocType"
   },
@@ -57,6 +57,14 @@
    "doc_view": "List",
    "label": "Data Export",
    "link_to": "Data Export",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Jh Audits",
+   "link_to": "JH Audit Master",
+   "stats_filter": "[]",
    "type": "DocType"
   },
   {

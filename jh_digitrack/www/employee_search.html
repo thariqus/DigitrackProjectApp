@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Employee Search</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+
+
+  <link rel="icon" href="/assets/jh_digitrack/jh-digitrack/jaleel-holdings-1.png" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+  <style>
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #f8f9fa;
+}
+html, body {
+  overflow-x: hidden;
+}
+
+.logo {
+  margin-top: 80px;
+  width: 160px;
+}
+
+.search-container {
+  margin-top: 40px;
+  width: 100%;
+  max-width: 600px;
+  display: flex;
+  align-items: center;
+  border: 1px solid #ccc;
+  border-radius: 50px;
+  padding: 10px 20px;
+  background-color: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.search-container input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 18px;
+  padding: 8px 12px;
+  border-radius: 20px;
+}
+
+.search-container button {
+  background: white;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  margin-left: 10px;
+  border-radius: 50px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.search-container button:hover {
+  background: #948a8ac3;
+}
+.search-container input::placeholder {
+  font-size: 18px;
+  color: #888; 
+}
+.search-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 22px;      
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.search-btn .material-icons {
+  color: grey;          
+  transition: color 0.2s ease;
+}
+
+.search-btn:hover .material-icons {
+  color: red;            
+}
+
+
+
+#results {
+  margin-top: 40px;
+  width: 90%;
+  max-width: 900px;
+  font-size: 14px;
+  color: #333;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.3s ease;
+}
+
+#results.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+th, td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+}
+
+th {
+  background: #310202;
+  color: white;
+}
+
+tr:hover {
+  background-color: #f1f7ff;
+  cursor: pointer;
+}
+
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.5);
+  animation: fadeIn 0.3s;
+  overflow-y: auto;
+}
+
+.modal-content {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  
+  background-color: #fff;
+  padding: 30px;
+  border-radius: 12px;
+  max-width: 75%;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+  max-height: 80%;
+  overflow-y: auto;
+
+  animation: fadeInScale 0.3s ease-out;
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+
+.modal-content h2 {
+  margin-top: 0;
+  color: #f28b82;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.close {
+  float: right;
+  font-size: 28px;
+  cursor: pointer;
+  color: #999;
+}
+
+.close:hover {
+  color: #333;
+}
+
+.page-title {
+  margin-top: 25px;
+  font-size: 36px;
+  font-weight: 700;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  text-align: center;
+  color: #222;
+  letter-spacing: 1px;
+  display: inline-block;
+  background: linear-gradient(90deg, #8b0000, #ff4d4d);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: fadeInUp 0.8s ease-out;
+}
+
+.page-title::before,
+.page-title::after {
+  content: "";
+  position: absolute;
+  height: 3px;
+  width: 50px;
+  background: #ff4d4d;
+  bottom: -10px;
+  border-radius: 2px;
+  animation: growLine 1s ease-out;
+}
+
+.page-title::before {
+  left: 0;
+  transform: translateX(-120%);
+}
+
+.page-title::after {
+  right: 0;
+  transform: translateX(120%);
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes growLine {
+  from { width: 0; opacity: 0; }
+  to { width: 50px; opacity: 1; }
+}
+
+@keyframes fadeIn {
+  from {opacity: 0;}
+  to {opacity: 1;}
+}
+@keyframes slideIn {
+  from {transform: translateY(-30px); opacity: 0;}
+  to {transform: translateY(0); opacity: 1;}
+}
+.employee-modal {
+  max-width: 1200px;
+  width: 90%;
+  border-radius: 12px;
+  padding: 30px;
+}
+
+.profile-section {
+  display: flex;
+  gap: 40px;
+  align-items: flex-start;
+}
+
+.profile-left {
+  flex: 0 0 260px; 
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.profile-right {
+  flex: 1; 
+}
+
+
+.employee-avatar {
+  width: 150px;
+  height: 150px;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 3px solid #eee;
+  margin-bottom: 15px;
+}
+
+.employee-name {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  color: #333;
+  text-align: center;
+}
+
+.contact-block {
+  width: 90%;
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 10px;
+  padding: 15px 20px;
+  margin-top: 15px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+
+
+
+.info-block {
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+
+.section-title {
+  margin-bottom: 12px;
+  color: #b30000;
+  font-size: 16px;
+  font-weight: 600;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 5px;
+}
+
+.details-grid {
+  display: flex;
+  flex-direction: column;
+  width: 80%;
+}
+
+.details-row {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 2px 0;
+  font-size: 10px;
+}
+
+.details-row:last-child {
+  border-bottom: none;
+}
+
+.details-row strong {
+  min-width: 160px; 
+  text-align: left; 
+  color: #555;
+  font-weight: 600;
+  margin-right: 300px; 
+}
+
+.details-row span {
+  flex: 1;
+  text-align: left; 
+  color: #333;
+}
+
+
+.tooltip {
+  display: none;
+  position: absolute;
+  background-color: #f9f9f9;
+  color: #333;
+  padding: 6px 10px;
+  border: 1px solid #ccc;
+  border-radius: 10px; 
+  font-size: 14px;
+  bottom: 70px;
+  left: 0;
+  white-space: nowrap;
+  box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.1); 
+}
+
+.tooltip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 20px;
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: #f9f9f9 transparent transparent transparent;
+}
+
+.search-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 600px;
+  margin-top: 40px;
+}
+#results {
+  margin-top: 40px;
+  width: 90%;
+  max-width: 90%;
+  font-size: 14px;
+  color: #333;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.3s ease;
+}
+
+.result-hint {
+  margin-top: 10px;
+  font-size: 15px;
+  color: #666;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all 0.4s ease;
+}
+
+.result-hint.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.result-hint i {
+  color: #8b0000;
+  font-style: normal;
+  font-weight: bold;
+}
+.no-results {
+  text-align: center;
+  padding: 40px 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+  margin-top: 20px;
+  animation: fadeIn 0.5s ease-out;
+}
+
+.no-results-icon {
+  width: 120px;
+  margin-bottom: 20px;
+  opacity: 0.8;
+}
+
+.no-results h3 {
+  font-size: 25px;
+  color: #8b0000;
+  margin-bottom: 10px;
+}
+
+.no-results p {
+  color: #666;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.selected-row {
+  background-color: #ffe4e1 !important;
+}
+td:last-child {
+  font-size: 12px;     
+  white-space: nowrap;  
+}
+
+
+  </style>
+</head>
+<body>
+  <img class="logo" src="/assets/jh_digitrack/images/jaleel%20holdings%201.png" alt="Logo" />
+  <h1 class="page-title">Employee Lookup</h1>
+<div class="search-wrapper">
+  <div id="searchTip" class="tooltip">Press Enter or click 🔍 to search employee</div>
+  <div class="search-container">
+    <input type="text" id="search" placeholder="Employee code,First name,Last name or Email " autocomplete="off">
+    <button onclick="searchEmployee()" class="search-btn">
+      <span class="material-icons">search</span>
+    </button>
+
+  </div>
+</div>
+<div id="resultHint" class="result-hint">
+  <i>ℹ️</i> Click an employee name to view more profile details.
+</div>
+
+  <div id="results"></div>
+
+<div id="employeeModal" class="modal">
+  <div class="modal-content employee-modal">
+    <span class="close" title="Close (Esc)">&times;</span>
+
+  <div class="profile-section">
+    <div class="profile-left">
+      <img id="employeeAvatar" class="employee-avatar" src="/assets/jh_digitrack/images/avatar-logo.png" alt="Avatar" />
+      <h3 id="employeeFullName" class="employee-name"></h3>
+    </div>
+
+    <div class="profile-right">
+      <div class="contact-block">
+        <h4 class="section-title">Contact Info</h4>
+        <div id="contactDetails" class="details-grid"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="info-block">
+    <h4 class="section-title">Job Info</h4>
+    <div id="jobDetails" class="details-grid"></div>
+  </div>
+
+<script>
+const searchInput = document.getElementById("search");
+const searchTip = document.getElementById("searchTip");
+const resultsEl = document.getElementById('results');
+const resultHintEl = document.getElementById("resultHint");
+let currentRows = [];
+let selectedRowIndex = -1;
+
+let lastSearchQuery = ""; 
+
+document.addEventListener("keydown", function (e) {
+  const modal = document.getElementById("employeeModal");
+  if (modal && modal.style.display === "block") return;
+
+  const isSearchFocused = (document.activeElement === searchInput);
+
+  if (e.key === "ArrowDown" && currentRows.length > 0) {
+    e.preventDefault();
+    const next = Math.min(selectedRowIndex + 1, currentRows.length - 1);
+    updateSelection(next);
+  } 
+  else if (e.key === "ArrowUp" && currentRows.length > 0) {
+    e.preventDefault();
+    const prev = Math.max(selectedRowIndex - 1, 0);
+    updateSelection(prev);
+  } 
+  else if (e.key === "Enter") {
+    e.preventDefault();
+
+    if (isSearchFocused) {
+      const currentValue = searchInput.value.trim();
+
+      if (currentValue !== lastSearchQuery) {
+        searchTip.style.display = "none";
+        searchEmployee();
+        lastSearchQuery = currentValue; 
+      } else {
+        if (selectedRowIndex >= 0 && currentRows[selectedRowIndex]) {
+          currentRows[selectedRowIndex].click();
+        }
+      }
+    } else {
+      if (selectedRowIndex >= 0 && currentRows[selectedRowIndex]) {
+        currentRows[selectedRowIndex].click();
+      }
+    }
+  }
+});
+
+
+
+function updateSelection(newIndex) {
+  if (selectedRowIndex >= 0 && currentRows[selectedRowIndex]) {
+    currentRows[selectedRowIndex].classList.remove("selected-row");
+  }
+  selectedRowIndex = newIndex;
+  const row = currentRows[selectedRowIndex];
+  if (row) {
+    row.classList.add("selected-row");
+    row.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }
+}
+function highlightMatch(text, query) {
+  if (!query) return text || '';
+  const regex = new RegExp(`(${query})`, 'gi');
+  return (text || '').toString().replace(regex, `<mark>$1</mark>`);
+}
+async function searchEmployee() {
+  searchTip.style.display = "none";
+  const query = document.getElementById('search').value.trim();
+  if (!query) return;
+  const querylength = query.replace(/\s/g, '').length;
+  if (querylength <= 2) {
+    resultsEl.innerHTML = `
+      <div class="no-results">
+        <h3>Input Too Short</h3>
+        <p>Please enter more than 3 characters to perform a search.</p>
+      </div>
+    `;
+    resultsEl.classList.add('show');
+    currentRows = [];
+    selectedRowIndex = -1;
+    resultHintEl.classList.remove('show');
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/method/jh_digitrack.api.proxy_emp_search.proxy_emp_search?search=${encodeURIComponent(query)}`);
+    const data = await res.json();
+    const employeeList = data?.message?.message?.message;
+
+    resultsEl.innerHTML = '';
+    resultsEl.classList.remove('show');
+
+    if (Array.isArray(employeeList) && employeeList.length > 0) {
+      const container = document.createElement('div');
+      container.style.display = "flex";
+      container.style.justifyContent = "flex-end"; 
+      container.style.marginBottom = "8px";
+
+      if (employeeList.length >= 50) {
+        const infoText = document.createElement('div');
+        infoText.textContent = "*Showing first 50 records only";
+        infoText.style.fontSize = "13px";
+        infoText.style.color = "#666";
+        infoText.style.fontWeight = "bold"; 
+        
+        container.appendChild(infoText);
+      }
+      const table = document.createElement('table');
+      table.innerHTML = `
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>First Name</th>
+            <th>Last Name</th>
+            <th>Employee Code</th>
+            <th>Email</th>
+            <th>Mobile No</th>
+            <th>Department | Location</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      `;
+      const tbody = table.querySelector('tbody');
+
+employeeList.forEach((emp, index) => {
+  const row = document.createElement('tr');
+  row.innerHTML = `
+    <td>${index + 1}</td>
+    <td>${highlightMatch(emp.first_name, query)}</td>
+    <td>${highlightMatch(emp.last_name, query)}</td>
+    <td>${highlightMatch(emp.employee_code, query)}</td>
+    <td>${highlightMatch(emp.mail_id, query)}</td>
+    <td>${highlightMatch(emp.mobile_no, query)}</td>
+    <td>${highlightMatch(
+      emp.department_name && emp.location_name
+        ? `${emp.department_name} | ${emp.location_name}`
+        : (emp.department_name || emp.location_name), 
+      query
+    )}</td>
+  `;
+  row.addEventListener('click', () => showEmployeeDetails(emp));
+  tbody.appendChild(row);
+});
+      resultsEl.appendChild(container);
+      resultsEl.appendChild(table);
+
+      currentRows = Array.from(table.querySelectorAll('tbody tr'));
+      if (currentRows.length > 0) {
+        selectedRowIndex = 0;
+        currentRows[0].classList.add('selected-row');
+      } else {
+        selectedRowIndex = -1;
+      }
+
+      setTimeout(() => resultsEl.classList.add('show'), 50);
+      resultHintEl.classList.add('show');
+    } else {
+      resultsEl.innerHTML = `
+        <div class="no-results">
+          <h3>No Matching Records</h3>
+          <p>We couldn’t find any employee matching your search.<br/>Try again with a different name or employee code.</p>
+        </div>
+      `;
+      resultsEl.classList.add('show');
+      resultHintEl.classList.remove('show');
+      currentRows = [];
+      selectedRowIndex = -1;
+    }
+  } catch (err) {
+    console.error("Fetch error:", err);
+    resultsEl.innerHTML = '<p>An error occurred while fetching data.</p>';
+    resultsEl.classList.add('show');
+    currentRows = [];
+    selectedRowIndex = -1;
+  }
+}
+
+async function showEmployeeDetails(emp) {
+  const modal = document.getElementById('employeeModal');
+  const avatarEl = document.getElementById('employeeAvatar');
+  const nameEl = document.getElementById('employeeFullName');
+  const contactContainer = document.getElementById('contactDetails');
+  const jobContainer = document.getElementById('jobDetails');
+
+  try {
+    const res = await fetch(`/api/method/jh_digitrack.api.proxy_emp_search.proxy_emp_search?name=${emp.name}`);
+    const data = await res.json();
+    const fullEmp = data?.message?.message?.message || emp;
+
+    const fullName = [fullEmp.first_name, fullEmp.middle_name, fullEmp.last_name]
+                      .filter(Boolean).join(" ");
+    nameEl.textContent = fullName || fullEmp.first_name || "Unknown Employee";
+    avatarEl.src = fullEmp.image || "/assets/jh_digitrack/images/avatar-logo.png";
+
+    contactContainer.innerHTML = "";
+    jobContainer.innerHTML = "";
+
+    const skipFields = ["name","owner","creation","modified_by","modified","doctype","first_name","middle_name","last_name","image"];
+    const contactFields = ["desk_no","mobile_no","mail_id","region"];
+    const jobFields = ["employee_code","ou_name","designation_name","reporting_manager","funcational_reporting_manager","skip_level_reporting_manager","department_name","location_name"];
+
+    const allFields = [...contactFields, ...jobFields];
+
+    allFields.forEach((key) => {
+      if (skipFields.includes(key)) return;
+      let value = fullEmp[key];
+      if (!value || value.toString().trim() === "") {
+        value = "No Data";
+      }
+      const fieldHTML = `<div class="details-row">
+                          <strong>${formatKey(key)}</strong>
+                          <span>${value}</span>
+                        </div>`;
+      if (contactFields.includes(key)) {
+        contactContainer.innerHTML += fieldHTML;
+      } else if (jobFields.includes(key)) {
+        jobContainer.innerHTML += fieldHTML;
+      }
+    });
+
+    modal.style.display = "block";
+    document.querySelector(".modal .close").onclick = () => modal.style.display = "none";
+    window.onclick = (event) => { if (event.target == modal) modal.style.display = "none"; };
+
+  } catch (err) {
+    console.error("Error fetching employee details:", err);
+  }
+}
+
+function formatKey(key) {
+  const customNames = {
+    employee_code: "Employee ID",
+    funcational_reporting_manager: "Functional Manager",
+    reporting_manager: "Manager",
+    ou_name: "Organization Unit",
+    designation_name: "Business Title",
+    department_name: "Department",
+    region: "Work Address",
+    desk_no:"Desk No",
+    skip_level_reporting_manager:"Skip Level Manager",
+    location_name: "Location"
+  };
+  if (customNames[key]) return customNames[key];
+  return key.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase());
+}
+
+document.addEventListener("keydown", function (e) {
+  if (e.key === "Escape") {
+    const modal = document.getElementById("employeeModal");
+    if (modal && modal.style.display === "block") {
+      modal.style.display = "none";
+    }
+  }
+});
+
+searchInput.addEventListener("input", () => {
+  const value = searchInput.value.trim();
+  if (value) {
+    searchTip.style.display = "block";
+  } else {
+    searchTip.style.display = "none";
+    resultsEl.innerHTML = "";
+    resultsEl.classList.remove("show");
+    resultHintEl.classList.remove('show');
+    currentRows = [];
+    selectedRowIndex = -1;
+    lastSearchQuery = "";
+  }
+});
+
+
+</script>
+
+</body>
+</html>
+

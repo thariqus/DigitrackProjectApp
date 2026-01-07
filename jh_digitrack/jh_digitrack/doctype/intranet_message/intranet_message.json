@@ -1,0 +1,54 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-12-19 11:44:31.470085",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "common_message",
+  "expiry_date",
+  "url",
+  "all"
+ ],
+ "fields": [
+  {
+   "fieldname": "expiry_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Expiry Date"
+  },
+  {
+   "fieldname": "url",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Url"
+  },
+  {
+   "fieldname": "common_message",
+   "fieldtype": "Text",
+   "in_list_view": 1,
+   "label": "Common Message"
+  },
+  {
+   "default": "0",
+   "fieldname": "all",
+   "fieldtype": "Check",
+   "label": "All"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-12-22 17:27:47.152378",
+ "modified_by": "Administrator",
+ "module": "JH Digitrack",
+ "name": "Intranet Message",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

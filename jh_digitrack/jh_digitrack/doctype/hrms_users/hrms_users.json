@@ -78,6 +78,7 @@
   {
    "fieldname": "first_name",
    "fieldtype": "Data",
+   "in_list_view": 1,
    "label": "FIRST NAME"
   },
   {
@@ -358,7 +359,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-09-08 17:51:47.989135",
+ "modified": "2025-12-10 19:03:04.580315",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "HRMS Users",

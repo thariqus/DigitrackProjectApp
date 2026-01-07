@@ -301,12 +301,13 @@
    "fieldtype": "Link",
    "label": "PO Assigned To",
    "options": "JH User Master",
-   "print_hide": 1
+   "print_hide": 1,
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-10-25 10:09:02.086684",
+ "modified": "2025-10-25 09:36:50.042831",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Travel Request",

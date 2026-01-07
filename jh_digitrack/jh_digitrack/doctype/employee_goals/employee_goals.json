@@ -1,0 +1,159 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-10-14 10:37:28.743642",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_dmxl",
+  "goal_id",
+  "goal_name",
+  "measurement_criteria",
+  "uom",
+  "target",
+  "column_break_5s17",
+  "description",
+  "section_break_mgff",
+  "weightage",
+  "achievement_score",
+  "achieved_score",
+  "upwarddownward",
+  "column_break_wnx7",
+  "remark",
+  "section_break_eixc",
+  "self_achieved",
+  "self_score",
+  "self_updated_by",
+  "self_updated_date",
+  "column_break_mrfw",
+  "self_remarks"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_dmxl",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "goal_id",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Goal ID",
+   "options": "JH Goal Master"
+  },
+  {
+   "fetch_from": "goal_id.goal_name",
+   "fieldname": "goal_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Goal Name"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  },
+  {
+   "fieldname": "measurement_criteria",
+   "fieldtype": "Data",
+   "label": "Measurement Criteria"
+  },
+  {
+   "fieldname": "uom",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "UOM",
+   "options": "Percentage\nNumber\nText"
+  },
+  {
+   "fieldname": "target",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Target"
+  },
+  {
+   "fieldname": "column_break_5s17",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_mgff",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "achievement_score",
+   "fieldtype": "Data",
+   "label": "Achievement Score"
+  },
+  {
+   "fieldname": "remark",
+   "fieldtype": "Small Text",
+   "label": "Remark"
+  },
+  {
+   "fieldname": "column_break_wnx7",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_eixc",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "self_achieved",
+   "fieldtype": "Int",
+   "label": "Self Achieved"
+  },
+  {
+   "fieldname": "self_score",
+   "fieldtype": "Int",
+   "label": "Self Score"
+  },
+  {
+   "fieldname": "self_updated_by",
+   "fieldtype": "Data",
+   "label": "Self Updated By"
+  },
+  {
+   "fieldname": "self_updated_date",
+   "fieldtype": "Data",
+   "label": "Self Updated date"
+  },
+  {
+   "fieldname": "column_break_mrfw",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "self_remarks",
+   "fieldtype": "Small Text",
+   "label": "Self Remarks"
+  },
+  {
+   "fieldname": "upwarddownward",
+   "fieldtype": "Data",
+   "label": "Upward/Downward"
+  },
+  {
+   "fieldname": "weightage",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Weightage"
+  },
+  {
+   "fieldname": "achieved_score",
+   "fieldtype": "Float",
+   "label": "Achieved Score"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-01-02 15:20:58.063537",
+ "modified_by": "Administrator",
+ "module": "JH Digitrack",
+ "name": "Employee Goals",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

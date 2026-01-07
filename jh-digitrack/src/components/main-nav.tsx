@@ -10,6 +10,7 @@ import {
   LayoutDashboard,
   Gauge,
   Users,
+  LineChart,
 } from "lucide-react";
 import { Link, useLocation } from "react-router";
 import JHLogo from "@/assets/digitrack-logo.png";
@@ -24,6 +25,7 @@ import { useCurrentJhUser, useLogout } from "@/hooks/auth";
 import { useAppVersion } from "@/hooks/system";
 import { JHDigitrackSettings } from "@/types/JHDigitrack/JHDigitrackSettings";
 import { useDocDetail } from "@/hooks/doc";
+import { useHasPmsAccess } from "@/hooks/userrole";
 
 export function MainNav() {
   const { pathname } = useLocation();
@@ -46,6 +48,7 @@ export function MainNav() {
   });
 
   const attachment = attachmentDetailed?.docs[0];
+  const { data: pmsRole } = useHasPmsAccess();
 
   return (
     <header className="border-b">
@@ -87,7 +90,7 @@ export function MainNav() {
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56" align="end">
               <DropdownMenuItem asChild>
-                <Link to="scrapitems" className="flex items-center gap-2">
+                <Link to="idle-assets" className="flex items-center gap-2">
                   <Recycle className="h-5 w-5" />
                   <span>Idle Assets</span>
                 </Link>
@@ -108,6 +111,18 @@ export function MainNav() {
               >
               <Users className="h-5 w-5" />
                 <span>Employee Lookup</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => {
+                  if (!pmsRole?.message?.has_access) {
+                    alert("You have no access to PMS Lite. Please contact admin.");
+                    return;
+                  }
+                  window.location.href = "/PMS";
+                }}
+              >
+                <LineChart className="h-5 w-5" />
+                <span>PMS Lite</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
