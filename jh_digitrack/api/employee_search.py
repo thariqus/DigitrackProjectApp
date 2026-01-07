@@ -15,13 +15,26 @@ def search_employees(search):
             first_name,
             last_name,
             employee_code,
-            mail_id
+            mail_id,
+            location_name,
+            department_name,                  
+            mobile_no  
         FROM `tabHRMS Users`
         WHERE 
             first_name LIKE %(search)s
             OR last_name LIKE %(search)s
             OR employee_code LIKE %(search)s
             OR SUBSTRING_INDEX(mail_id, '@', 1) LIKE %(search)s
+        ORDER BY
+          CASE
+            WHEN first_name LIKE %(search)s THEN 1
+            WHEN last_name LIKE %(search)s THEN 2
+            WHEN employee_code LIKE %(search)s THEN 3
+            WHEN SUBSTRING_INDEX(mail_id, '@', 1) LIKE %(search)s THEN 4
+            ELSE 5
+          END,
+          first_name ASC,
+          last_name ASC
         LIMIT 50
     """, {"search": search_like}, as_dict=True)
 
@@ -55,3 +68,4 @@ def get_employee_details(name):
     employee_doc["skip_level_reporting_manager"] = get_employee_display(employee_doc.get("skip_level_reporting_manager"))
 
     return {"message": employee_doc}
+
