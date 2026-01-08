@@ -52,6 +52,9 @@ body.not-admin #toolbar-user .dropdown-divider {
     text-align: right;
     padding-right: 28px;
     padding-top: 4px;
-    font-size: 12px;
-    color: #000;
+    font-size: 16px;        
+    font-weight: 700;      
+    color: #111827;        
+    line-height: 1.25;    
 }
+
