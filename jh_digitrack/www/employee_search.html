@@ -73,7 +73,7 @@ html, body {
   background: transparent;
   border: none;
   cursor: pointer;
-  font-size: 22px;      
+  font-size: 22px;       /* size of icon */
   padding: 4px;
   display: flex;
   align-items: center;
@@ -81,12 +81,12 @@ html, body {
 }
 
 .search-btn .material-icons {
-  color: grey;          
+  color: grey;           /* always visible in grey */
   transition: color 0.2s ease;
 }
 
 .search-btn:hover .material-icons {
-  color: red;            
+  color: red;            /* turn red on hover */
 }
 
 
@@ -545,6 +545,11 @@ document.addEventListener("keydown", function (e) {
   }
 });
 
+function normalize(val) {
+  if (!val) return '—';
+  const cleaned = val.replace(/_/g, '').trim();
+  return cleaned || '—';
+}
 
 
 function updateSelection(newIndex) {
@@ -559,10 +564,16 @@ function updateSelection(newIndex) {
   }
 }
 function highlightMatch(text, query) {
-  if (!query) return text || '';
-  const regex = new RegExp(`(${query})`, 'gi');
-  return (text || '').toString().replace(regex, `<mark>$1</mark>`);
+  const value = text || '';
+  if (!query) return value;
+
+  // Escape regex special characters
+  const safeQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const regex = new RegExp(`(${safeQuery})`, 'gi');
+
+  return value.toString().replace(regex, `<mark>$1</mark>`);
 }
+
 async function searchEmployee() {
   searchTip.style.display = "none";
   const query = document.getElementById('search').value.trim();
@@ -583,9 +594,9 @@ async function searchEmployee() {
   }
 
   try {
-    const res = await fetch(`/api/method/jh_digitrack.api.proxy_emp_search.proxy_emp_search?search=${encodeURIComponent(query)}`);
+    const res = await fetch(`/api/method/jh_digitrack.api.employee_search.search_employees?search=${encodeURIComponent(query)}`);
     const data = await res.json();
-    const employeeList = data?.message?.message?.message;
+    const employeeList = data?.message?.message;
 
     resultsEl.innerHTML = '';
     resultsEl.classList.remove('show');
@@ -624,19 +635,24 @@ async function searchEmployee() {
 
 employeeList.forEach((emp, index) => {
   const row = document.createElement('tr');
+  const mobile = normalize(emp.mobile_no);
+  const dept = normalize(emp.department_name);
+  const loc = normalize(emp.location_name);
+
+  const deptLoc =
+    dept !== '—' && loc !== '—'
+      ? `${dept} | ${loc}`
+      : dept !== '—'
+        ? dept
+        : loc;
   row.innerHTML = `
     <td>${index + 1}</td>
     <td>${highlightMatch(emp.first_name, query)}</td>
     <td>${highlightMatch(emp.last_name, query)}</td>
     <td>${highlightMatch(emp.employee_code, query)}</td>
     <td>${highlightMatch(emp.mail_id, query)}</td>
-    <td>${highlightMatch(emp.mobile_no, query)}</td>
-    <td>${highlightMatch(
-      emp.department_name && emp.location_name
-        ? `${emp.department_name} | ${emp.location_name}`
-        : (emp.department_name || emp.location_name), 
-      query
-    )}</td>
+    <td>${highlightMatch(mobile, query)}</td>
+    <td>${highlightMatch(deptLoc, query)}</td>
   `;
   row.addEventListener('click', () => showEmployeeDetails(emp));
   tbody.appendChild(row);
@@ -683,9 +699,9 @@ async function showEmployeeDetails(emp) {
   const jobContainer = document.getElementById('jobDetails');
 
   try {
-    const res = await fetch(`/api/method/jh_digitrack.api.proxy_emp_search.proxy_emp_search?name=${emp.name}`);
+    const res = await fetch(`/api/method/jh_digitrack.api.employee_search.get_employee_details?name=${emp.name}`);
     const data = await res.json();
-    const fullEmp = data?.message?.message?.message || emp;
+    const fullEmp = data?.message?.message || emp;
 
     const fullName = [fullEmp.first_name, fullEmp.middle_name, fullEmp.last_name]
                       .filter(Boolean).join(" ");

@@ -47,3 +47,14 @@ body.not-admin #toolbar-user button[onclick="return new frappe.ui.ThemeSwitcher(
 body.not-admin #toolbar-user .dropdown-divider {
   display: none !important;
 }
+
+#jh-username-bar {
+    text-align: right;
+    padding-right: 28px;
+    padding-top: 4px;
+    font-size: 16px;        
+    font-weight: 700;      
+    color: #111827;        
+    line-height: 1.25;    
+}
+
