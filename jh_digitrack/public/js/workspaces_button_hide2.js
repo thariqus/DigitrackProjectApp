@@ -15,4 +15,22 @@ frappe.router.on("change", () => {
         $("#page-Workspaces .btn-edit-workspace").hide();
         $("#page-Workspaces .btn-new-workspace").hide();
     }
+    addUsernameBelowNavbar();
 });
+
+
+function addUsernameBelowNavbar() {
+    // Prevent duplicate injection
+    if (document.getElementById("jh-username-bar")) return;
+
+    const fullName = frappe.session.user_fullname || frappe.session.user;
+
+    const navbar = document.querySelector(".navbar");
+    if (!navbar) return;
+
+    const userDiv = document.createElement("div");
+    userDiv.id = "jh-username-bar";
+    userDiv.innerText = fullName;
+
+    navbar.insertAdjacentElement("afterend", userDiv);
+}
