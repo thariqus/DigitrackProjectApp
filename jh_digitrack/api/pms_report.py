@@ -5,15 +5,7 @@ import json
 @frappe.whitelist()
 def get_goal_assessment_summary(year=None, manager=None):
     try:
-        # settings_row = frappe.db.get_value(
-        # "PMS Settings Table",
-        # {"parent": "PMS Settings", "is_current": 1},
-        # ["year", "from_date", "to_date"],
-        # as_dict=True
-        # )
-        # year = year or settings_row.get("year")
-        # if not year:
-        #     return {"error": "Assessment year not found."}
+
         current_year, years = get_pms_years()
         if year is None:
             year = current_year
@@ -189,13 +181,6 @@ def get_goal_assessment_summary(year=None, manager=None):
 @frappe.whitelist()
 def get_goal_assessment_summary_org(year=None, manager=None):
     try:
-        # settings_row = frappe.db.get_value(
-        #     "PMS Settings Table",
-        #     {"parent": "PMS Settings", "is_current": 1},
-        #     ["year", "from_date", "to_date"],
-        #     as_dict=True
-        # )
-        # year = year or settings_row.get("year")
 
         current_year, years = get_pms_years()
         if year is None:
@@ -331,13 +316,7 @@ def get_goal_assessment_summary_org(year=None, manager=None):
 @frappe.whitelist()
 def get_goal_assessment_summary_admin(year=None, manager=None):
     try:
-        # settings_row = frappe.db.get_value(
-        #     "PMS Settings Table",
-        #     {"parent": "PMS Settings", "is_current": 1},
-        #     ["year", "from_date", "to_date"],
-        #     as_dict=True
-        # )
-        # year = year or settings_row.get("year")
+
         current_year, years = get_pms_years()
         if year is None:
             year = current_year
@@ -529,9 +508,9 @@ def get_pms_years():
         "PMS Settings Table",
         filters={"parent": "PMS Settings"},
         fields=["year", "from_date", "to_date", "is_current"],
-        order_by="year desc"
+        order_by="year desc",
+        ignore_permissions=True
     )
-
     current_year = None
     years = []
 
