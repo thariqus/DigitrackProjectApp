@@ -6,6 +6,7 @@ import { CiMail, CiSearch } from "react-icons/ci";
 import Pagination from "../../components/Pagination";
 import { useCurrentUser } from "../../hooks/auth";
 import frappeClient from "@/utils/frappe-client";
+import { BsGraphDown } from "react-icons/bs";
 
 interface EmployeeSummary {
   employee_code: string;
@@ -498,6 +499,13 @@ function AdminView() {
         </div>
 
         <div className="flex items-center gap-3">
+            <button
+            // onClick={handleBellCurve}
+            className="px-3 py-2 text-xs flex items-center gap-1 bg-primary text-white rounded-md hover:bg-[#7d241f]"
+          >
+            <BsGraphDown className="text-md" />
+            <span className="text-[0.65rem]">Bell Curve</span>
+          </button>
           <button
             onClick={handleSendEmail}
             className="px-3 py-2 text-xs flex items-center gap-1 bg-primary text-white rounded-md hover:bg-[#7d241f]"
