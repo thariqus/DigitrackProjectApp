@@ -103,6 +103,18 @@ const handleChange = (
 };
 
 const handleSave = async () => {
+
+  const hasValidCurrentRow = rows.some(
+    (r) => r.current && r.year.trim() !== ""
+  );
+
+  if (!hasValidCurrentRow) {
+    setMessage({
+      text: "At least one row must be marked as current and must have a Year value.",
+      type: "error",
+    });
+    return;
+  }
   if (!window.confirm("Are you sure you want to save these settings?")) {
     return;
   }
@@ -358,7 +370,6 @@ const deleteSelectedRows = async () => {
           <table className="w-full text-center table-auto table-fixed">
             <thead className="bg-gray-100 text-gray-500 text-[11px]">
               <tr>
-                <th className="py-2 px-2  w-[10%]"></th>
                 <th className="py-2 px-2  w-[10%]">No</th>
                 <th className="py-2 px-1   w-[15%]">Year</th>
                 <th className="py-2 px-1  w-[25%]">From</th>
@@ -369,39 +380,31 @@ const deleteSelectedRows = async () => {
            <tbody>
     {rows.map((row, index) => (
       <tr key={index} className="border-b text-xs align-top">
-        <td className="text-center px-1 py-2">
-          <input type="checkbox" checked={selectedRows.includes(index)}
-          onChange={(e)=>{
-          if(e.target.checked){
-            setSelecetdRows([...selectedRows,index]);
-          }else{
-            setSelecetdRows(selectedRows.filter((i)=> i!=index));
-          }}}
-        />
-      </td>
+
 
       <td className="px-2 py-2">{index + 1}</td>
 
+ 
+
+    
       <td className="px-1 py-2">
         <input
-          type="number"
-          className="w-full rounded-sm no-spinner px-2 py-1 border border-gray-300 focus:outline-none"
+          type="text"
+          maxLength={10}
+          className="w-full rounded-sm px-2 py-1 border border-gray-300 focus:outline-none"
           value={row.year}
-                onChange={(e) => {
-                const value = e.target.value;
-                if (value.length <= 4) {
+          onChange={(e) => {
+            const value = e.target.value;
 
-                  const updatedRows = [...rows];
-                  updatedRows[index] = {
-                    ...updatedRows[index],
-                    year: value,
-                  }
-                  setRows(updatedRows);
-                } 
-              }}
-          // onChange={(e) =>
-          //   handleChange(index, 'year', e.target.value)
-          // }
+            if (value.length <= 10) {
+              const updatedRows = [...rows];
+              updatedRows[index] = {
+                ...updatedRows[index],
+                year: value,
+              };
+              setRows(updatedRows);
+            }
+          }}
         />
       </td>
 
@@ -458,15 +461,7 @@ const deleteSelectedRows = async () => {
         Add Row
       </button>
 
-        {selectedRows.length > 0 && (
-        <button
-          type="button"
-          className="bg-primary text-white p-1 text-xs rounded-sm"
-          onClick={deleteSelectedRows}
-        >
-          <AiOutlineDelete />
-        </button>
-      )}
+
       </div>
 {message.text && (
   <div
