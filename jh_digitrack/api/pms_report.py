@@ -15,7 +15,9 @@ def get_goal_assessment_summary(year=None, manager=None):
         # if not year:
         #     return {"error": "Assessment year not found."}
         current_year, years = get_pms_years()
-        year = year or current_year
+        if year is None:
+            year = current_year
+
 
         if not year:
             return {"error": "Assessment year not found"}
@@ -196,7 +198,8 @@ def get_goal_assessment_summary_org(year=None, manager=None):
         # year = year or settings_row.get("year")
 
         current_year, years = get_pms_years()
-        year = year or current_year
+        if year is None:
+            year = current_year
 
         if not year:
             return {"error": "Assessment year not found"}
@@ -336,7 +339,8 @@ def get_goal_assessment_summary_admin(year=None, manager=None):
         # )
         # year = year or settings_row.get("year")
         current_year, years = get_pms_years()
-        year = year or current_year
+        if year is None:
+            year = current_year
 
         if not year:
             return {"error": "Assessment year not found"}
@@ -358,7 +362,11 @@ def get_goal_assessment_summary_admin(year=None, manager=None):
         )
 
         if not admin_rows:
-            return {"message": [], "year": year}
+            return {
+                "message": [],
+                "current_year": current_year,
+                "years": years,
+            }
 
         final_data = []
 

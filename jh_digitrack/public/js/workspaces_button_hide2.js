@@ -34,3 +34,4 @@ function addUsernameBelowNavbar() {
 
     navbar.insertAdjacentElement("afterend", userDiv);
 }
+
