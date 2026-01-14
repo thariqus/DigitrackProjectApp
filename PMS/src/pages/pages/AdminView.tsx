@@ -347,6 +347,7 @@ function AdminView() {
           {
             emails,
             year: selectedYear,
+            cc_email: currentUser,
           }
         );
       } catch (innerErr: any) {
