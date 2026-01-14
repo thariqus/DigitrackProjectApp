@@ -80,32 +80,39 @@ class GoalAssessment(Document):
         manager_email = self.manager
 
         site_config = frappe.get_site_config()
-        base_url = site_config.get("base_url", "http://127.0.0.1:8000")
+        base_url = site_config.get("base_url")
 
         portal_url = f"{base_url}/PMS/self-evaluation-history"
 
         if self.status == "Goal Submitted":
             subject = "PMSLite – Goal Submission Completed"
             message_body = (
-                f"<strong>Dear {self.employee_name or 'Employee'},<br><br>"
+                f"Dear {self.employee_name or 'Employee'},<br><br>"
                 "Your goals have been successfully submitted for the current assessment period.<br><br>"
                 f"Please visit your <a href='{portal_url}'>PMS portal</a> to track progress.<br><br>"
+                "<p style='color:#666; font-size:12px;'>"
+                "Note:This email inbox is not actively monitored."
+                "</p><br>"
                 "Best regards,<br>"
-                "PMSLite Team</strong>"
+                "PMSLite"
             )
 
         elif self.status == "Evaluation Submitted":
             subject = "PMSLite – Evaluation Submission Completed"
             message_body = (
-                f"<strong>Dear {self.employee_name or 'Employee'},<br><br>"
+                f"Dear {self.employee_name or 'Employee'},<br><br>"
                 "Your performance evaluation has been successfully submitted.<br><br>"
                 f"Please visit your <a href='{portal_url}'>PMS portal</a> for details.<br><br>"
+                "<p style='color:#666; font-size:12px;'>"
+                "Note:This email inbox is not actively monitored."
+                "</p><br>"
                 "Best regards,<br>"
-                "PMSLite Team</strong>"
+                "PMSLite"
             )
 
         try:
             frappe.sendmail(
+                expose_recipients="header",
                 recipients=[employee_email],
                 cc=[manager_email] if manager_email else None,
                 subject=subject,

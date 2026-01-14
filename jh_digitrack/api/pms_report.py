@@ -530,7 +530,7 @@ from frappe.utils import get_url
 import frappe
 
 @frappe.whitelist(allow_guest=True)
-def send_pending_evaluation_emails(emails, year):
+def send_pending_evaluation_emails(emails, year, cc_email=None):
     if isinstance(emails, str):
         emails = frappe.parse_json(emails)
 
@@ -556,7 +556,9 @@ def send_pending_evaluation_emails(emails, year):
 
 
         frappe.sendmail(
-            recipients=email,
+            expose_recipients="header",
+            recipients=[email],
+            cc=[cc_email] if cc_email else None,
             subject="PMSLite Reminder",  
             message=message,
             delayed=False,
