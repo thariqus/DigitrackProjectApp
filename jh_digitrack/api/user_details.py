@@ -333,7 +333,7 @@ def run_post_hrms_sync():
         frappe.db.sql("""
             UPDATE `tabPMS Employees`
             SET pms_employee = 1
-            WHERE grade_name LIKE '_EL%'
+            WHERE grade_name LIKE '%_EL%'
                OR grade_name LIKE '%_FL%'
                OR grade_name LIKE '%_GL%'
         """)
