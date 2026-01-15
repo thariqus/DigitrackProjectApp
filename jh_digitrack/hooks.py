@@ -162,14 +162,17 @@ scheduler_events = {
     # 	"jh_digitrack.tasks.all"
     # ],
     # "daily": ["jh_digitrack.api.tasks.scheduled_emails"],
-    # "cron": {
-    #     "10 0 * * *": [
-    #         "jh_digitrack.api.tasks.scheduled_emails"
-    #     ],
-    #     "30 0 * * *": [
-    #         "jh_digitrack.api.tasks.send_emails"
-    #     ]
-    # },
+    "cron": {
+        "10 0 * * *": [
+            "jh_digitrack.api.tasks.scheduled_emails"
+        ],
+        "30 0 * * *": [
+            "jh_digitrack.api.tasks.send_emails"
+        ],
+        "0 1 * * *": [
+            "jh_digitrack.api.user_details.get_access_token"
+        ]
+    },
     # "hourly": [
     # 	"jh_digitrack.tasks.hourly"
     # ],
