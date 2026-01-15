@@ -11,10 +11,20 @@ PASSWORD = frappe.conf.get("hrms_api_password")
 APINO = frappe.conf.get("api_no")
 DATE_FORMAT = "%Y-%m-%d"
 
-
+def is_scheduler_allowed():
+    return frappe.db.get_single_value(
+        "Configuration Settings",
+        "allow_scheduler"
+    )
 @frappe.whitelist()
 def get_access_token():
     """Fetch access token from HRMS and trigger data fetch."""
+    if not is_scheduler_allowed():
+        frappe.log_error(
+            title="HRMS Scheduler Disabled",
+            message="HRMS Scheduler skipped because allow_scheduler is unchecked in Configuration Settings"
+        )
+        return
     try:
         url = f"{HRMS_BASE_URL}/AdrenalinToken"
         headers = {"Content-Type": "application/x-www-form-urlencoded"}
