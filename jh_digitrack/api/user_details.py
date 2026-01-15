@@ -194,16 +194,12 @@ def has_pms_role(email=None):
 
 def run_post_hrms_sync():
     try:
-        log_step("Post HRMS sync started")
 
         # 1. Delete inactive employees
         frappe.db.sql("""
             DELETE FROM `tabHRMS Users`
             WHERE ACTIVE = 'Inactive'
         """)
-        # log_step("Deleted inactive HRMS users", frappe.db.rowcount)
-        affected = frappe.db.sql("SELECT ROW_COUNT()")[0][0]
-        log_step("Deleted inactive HRMS users", affected)
 
         # 2. Clear non-official email IDs
         frappe.db.sql("""
@@ -221,9 +217,6 @@ def run_post_hrms_sync():
                 ) t
             )
         """)
-        # log_step("Cleared non-official emails", frappe.db.rowcount)
-        affected = frappe.db.sql("SELECT ROW_COUNT()")[0][0]
-        log_step("Cleared non-official emails", affected)
 
         # 3. Update JH User Master
         frappe.db.sql("""
@@ -249,9 +242,6 @@ def run_post_hrms_sync():
                 JH.active = CASE WHEN HR.active = 'Active' THEN 1 ELSE 0 END,
                 JH.business = HR.entity_name     
         """)
-        # log_step("Updated JH User Master", frappe.db.rowcount)
-        affected = frappe.db.sql("SELECT ROW_COUNT()")[0][0]
-        log_step("Updated JH User Master", affected)
 
         # 4. Insert missing JH users
         frappe.db.sql("""
@@ -276,9 +266,6 @@ def run_post_hrms_sync():
               AND IFNULL(HR.mail_id, '') <> ''
               AND IFNULL(HR.employee_code, '') <> ''       
         """)
-        # log_step("Inserted missing JH users", frappe.db.rowcount)
-        affected = frappe.db.sql("SELECT ROW_COUNT()")[0][0]
-        log_step("Inserted missing JH users", affected)
 
         # 5. Update PMS Employees
         frappe.db.sql("""
@@ -301,9 +288,6 @@ def run_post_hrms_sync():
                 PMS.department_name = HR.department_name,
                 PMS.grade_name = HR.grade_name
         """)
-        # log_step("Updated PMS Employees", frappe.db.rowcount)
-        affected = frappe.db.sql("SELECT ROW_COUNT()")[0][0]
-        log_step("Updated PMS Employees", affected)
 
         # 6. Insert missing PMS Employees
         frappe.db.sql("""
@@ -328,20 +312,15 @@ def run_post_hrms_sync():
             WHERE PMS.employee_code IS NULL
               AND IFNULL(HR.employee_code, '') <> ''
         """)
-        # log_step("Inserted missing PMS Employees", frappe.db.rowcount)
-        affected = frappe.db.sql("SELECT ROW_COUNT()")[0][0]
-        log_step("Inserted missing PMS Employee", affected)
-
 
         frappe.db.sql("UPDATE `tabPMS Employees` SET pms_employee = 0")
         frappe.db.sql("""
             UPDATE `tabPMS Employees`
             SET pms_employee = 1
-            WHERE grade_name LIKE '%E%'
-               OR grade_name LIKE '%F%'
-               OR grade_name LIKE '%G%'
+            WHERE grade_name LIKE '_EL%'
+               OR grade_name LIKE '%_FL%'
+               OR grade_name LIKE '%_GL%'
         """)
-        log_step("Updated PMS Employee flags")
 
         frappe.db.sql("UPDATE `tabPMS Employees` SET pms_manager = 0")
         frappe.db.sql("""
@@ -350,7 +329,7 @@ def run_post_hrms_sync():
               ON PMS.employee_code = HR.reporting_manager
             SET PMS.pms_manager = 1
         """)
-        log_step("Updated PMS Manager flags")
+       
 
         frappe.db.sql("UPDATE `tabPMS Employees` SET pms_master = 0")
         frappe.db.sql("""
@@ -358,7 +337,7 @@ def run_post_hrms_sync():
             SET pms_master = 1
             WHERE pms_master + pms_admin + pms_manager >= 1
         """)
-        log_step("Updated PMS Master flags")
+        
 
         # ---------------------------------------------------------------------
         # 10. Create Manager Hierarchy in PMS Manager List (Frappe way)
@@ -430,12 +409,6 @@ def run_post_hrms_sync():
 
         parent_doc.save(ignore_permissions=True)
 
-        log_step("Manager hierarchy recreated successfully")
-
-
-
-
-
     except Exception:
         frappe.db.rollback()
         frappe.log_error(
@@ -443,70 +416,3 @@ def run_post_hrms_sync():
             "Post HRMS Scheduler Sync Failed"
         )
         raise
-
-
-
-
-
-
-
-
-
-
-# "allow_cors": "*",
-#  "db_name": "_bcdf1df7ff368872",
-#  "db_password": "xiA5fdUKEw4ay5F7",
-#  "db_type": "mariadb",
-#  "developer_mode": 1,
-#  "encryption_key": "27vqKpOf6G8evy0Xu0oU6regmfrUr7ihD4_VPPED3Ws=",
-#  "production_mode": 0,
-#  "base_url": "http://127.0.0.1:8003",
-#  "hrms_base_url": "https://hrms.jaleelholdings.com/cloudapi",
-#  "hrms_api_username":  "JALEEL" ,  
-#  "hrms_api_password": "jaleel123",
-#  "api_no": "API0001",
-#  "api_key": "8e7d0df1392584d",
-#  "api_secret": "794cb76e45ae5e1",
-#  "scrap_base_url": "https://digitrack.jaleelholdings.com"
-import pymysql
-import time
- 
-
-
-
-
-def get_datafrom_mysql(query: str, params: list = None):
-    start_time = time.time()
- 
-    connection = pymysql.connect(
-        host='127.0.0.1',  # remove leading zero from .07
-        user='_bcdf1df7ff368872',
-        password='xiA5fdUKEw4ay5F7',
-        database='_bcdf1df7ff368872',
-        port=3306,
-        cursorclass=pymysql.cursors.DictCursor,
-        connect_timeout=5,
-        read_timeout=10,
-        write_timeout=10
-    )
- 
- 
- 
-    try:
-        with connection.cursor() as cursor:
-            cursor.execute(query, params or ())
-            result = cursor.fetchall()
-            return result
-    finally:
-        connection.close()
-        print(f"Query executed in {time.time() - start_time:.2f} seconds")
-
-
-@frappe.whitelist()
-def get_header_details_of_Invoice():
-    data=[]
-    query = """ CALL sp_digtrack_userdata_migration()"""
-    log_step("Manager hierarchy created in PMS Manager List")
-   
-    params = []
-    return get_datafrom_mysql(query, params)
