@@ -359,10 +359,12 @@ def run_post_hrms_sync():
         # 10. Create Manager Hierarchy in PMS Manager List (Frappe way)
         # ---------------------------------------------------------------------
 
+        # 1. Clear existing hierarchy
         parent_doc = frappe.get_single("PMS Manager List")
-
         parent_doc.set("manager_hierarchy", [])
         parent_doc.save(ignore_permissions=True)
+
+        # 2. Build raw manager hierarchy from PMS Employees
         manager_hierarchy = frappe.db.sql("""
             WITH RECURSIVE manager_hierarchy AS (
                 SELECT
@@ -394,35 +396,70 @@ def run_post_hrms_sync():
             ORDER BY reporting_manager_id, level
         """, as_dict=True)
 
+        # 3. Create fresh parent doc
         parent_doc = frappe.get_doc({
             "doctype": "PMS Manager List",
-            "manager": "ROOT",  
+            "manager": "ROOT",
             "manager_hierarchy": []
         })
 
+        # 4. Apply business rules row by row
         for row in manager_hierarchy:
+
+            manager_code = row["manager_id"]
+            reporting_manager_code = row["reporting_manager_id"]
+
+            # Rule 1: Manager must exist in JH User Master
+            if not frappe.db.exists(
+                "JH User Master",
+                {"employee_code": manager_code}
+            ):
+                continue
+
+            # Rule 2: Reporting manager must exist in JH User Master
+            if not frappe.db.exists(
+                "JH User Master",
+                {"employee_code": reporting_manager_code}
+            ):
+                continue
+
+            # Rule 3: Manager must have at least one PMS employee
+            has_subordinates = frappe.db.exists(
+                "PMS Employees",
+                {
+                    "manager_code": manager_code,
+                    "pms_employee": 1
+                }
+            )
+
+            if not has_subordinates:
+                continue
+
+            # Fetch HRMS details (optional metadata)
             hr_reporting = frappe.get_value(
                 "HRMS Users",
-                row["reporting_manager_id"],
+                reporting_manager_code,
                 ["company_name", "mail_id"],
                 as_dict=True
             ) or {}
 
             hr_manager = frappe.get_value(
                 "HRMS Users",
-                row["manager_id"],
+                manager_code,
                 ["company_name", "mail_id"],
                 as_dict=True
             ) or {}
 
+            # Append valid hierarchy row
             parent_doc.append("manager_hierarchy", {
-                "reporting_manager_name": row["reporting_manager_id"],
+                "reporting_manager_name": reporting_manager_code,
                 "reporting_manager_email": hr_reporting.get("mail_id"),
-                "manager_name": row["manager_id"],
+                "manager_name": manager_code,
                 "manager_email": hr_manager.get("mail_id"),
                 "level": row["level"]
             })
 
+        # 5. Save once
         parent_doc.save(ignore_permissions=True)
 
     except Exception:

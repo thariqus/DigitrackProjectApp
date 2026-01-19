@@ -54,16 +54,21 @@
 {{ include_style('login.bundle.css') }}
 {% endblock %}
 
+
 {% macro logo_section(title=null) %}
-
 <div class="page-card-head text-center">
-	<img class="app-logo" 
-		src="/assets/jh_digitrack/images/image (18) 1.png" 
-		alt="DIGI TRACK" />
-
+    <img class="app-logo"
+        src="/assets/jh_digitrack/images/Untitled design (2) (1) (1).png"
+        alt="DIGI TRACK"
+        style="
+            width: 220px;
+            max-width: 100%;
+            height: auto;
+            max-height: none;
+        "
+    />
 </div>
 {% endmacro %}
-
 {% block page_content %}
 <!-- {{ for_test }} -->
 <div>
