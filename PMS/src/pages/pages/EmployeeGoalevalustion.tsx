@@ -584,7 +584,8 @@ useEffect(() => {
                     <input
                       key={goal.id}
                       type="text"
-                      value={goal.score || ""}
+                      value={goal.uom === "Text" ? "0" : goal.score || ""}
+
                       readOnly={
                         isSubmitted ||
                         !enableGoalEvaluation ||
