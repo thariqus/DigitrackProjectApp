@@ -81,51 +81,41 @@ export function MainNav() {
             <span>Meetings</span>
           </Link>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="flex items-center gap-2 text-gray-600 hover:text-primary cursor-pointer">
-                <FolderOpenDot className="!size-5" />
-                Others
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56" align="end">
-              <DropdownMenuItem asChild>
-                <Link to="idle-assets" className="flex items-center gap-2">
-                  <Recycle className="h-5 w-5" />
-                  <span>Idle Assets</span>
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => {
-                  window.location.href = "/app/travel-request";
-                }}
-              >
-              <Gauge className="h-5 w-5" />
-                <span>Travel Workflow Dashboard</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => {
-                  window.location.href =
-                    "https://digitrack.jaleelholdings.com/employee-search";
-                }}
-              >
-              <Users className="h-5 w-5" />
-                <span>Employee Lookup</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => {
-                  if (!pmsRole?.message?.has_access) {
-                    alert("You have no access to PMS Lite. Please contact admin.");
-                    return;
-                  }
-                  window.location.href = "/PMS";
-                }}
-              >
-                <LineChart className="h-5 w-5" />
-                <span>PMS Lite</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+
+          <button
+            onClick={() => {
+              window.location.href = "/app/travel-request";
+            }}
+            className="flex items-center gap-2 text-gray-600 hover:text-primary"
+          >
+            <Gauge className="h-5 w-5" />
+            <span>Travel Dashboard</span>
+          </button>
+
+          <button
+            onClick={() => {
+              window.location.href =
+                "https://digitrack.jaleelholdings.com/employee-search";
+            }}
+            className="flex items-center gap-2 text-gray-600 hover:text-primary"
+          >
+            <Users className="h-5 w-5" />
+            <span>Employee Lookup</span>
+          </button>
+
+          <button
+            onClick={() => {
+              if (!pmsRole?.message?.has_access) {
+                alert("You have no access to PMS Lite. Please contact admin.");
+                return;
+              }
+              window.location.href = "/PMS";
+            }}
+            className="flex items-center gap-2 text-gray-600 hover:text-primary"
+          >
+            <LineChart className="h-5 w-5" />
+            <span>PMS Lite</span>
+          </button>
 
           {/* Divider */}
           <span className="border h-10 border-gray-200"></span>
