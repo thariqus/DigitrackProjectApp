@@ -1,22 +1,22 @@
- {% if frappe.session.user == "Guest" %}
-<script>
-  window.location.href = "/login?redirect-to=/intranet";
-</script>
-{% else %}
+{% if frappe.session.user != "Guest" %}
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8" />
   <title>Intranet App</title>
-  <link rel="stylesheet" crossorigin
-        href="/assets/jh_digitrack/intranet/assets/index-DusevwZ1.css">
+   <link rel="stylesheet" crossorigin href="/assets/jh_digitrack/intranet/assets/index-CYAClRbc.css">
 </head>
 
 <body>
   <div id="root"></div>
-
-  <script type="module" crossorigin
-          src="/assets/jh_digitrack/intranet/assets/index-CCmz6jOy.js"></script>
-</body>
+ 
+  <script type="module" crossorigin src="/assets/jh_digitrack/intranet/assets/index-DVwr0e7d.js"></script>
+   
+  
 </html>
+ 
+{% else %}
+<script>
+  window.location.href = "/login?redirect-to=/intranet";
+</script>
 {% endif %}
