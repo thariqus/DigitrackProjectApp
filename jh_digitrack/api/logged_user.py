@@ -10,7 +10,7 @@ def get_logged_in_user_details():
     data = frappe.get_all(
         "JH User Master",
         filters={"email": user},
-        fields=["name", "full_name", "email","private_message","private_message_expiry","url"],
+        fields=["name", "full_name", "email"],
         limit=1
     )
 
