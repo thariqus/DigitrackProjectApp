@@ -1,7 +1,7 @@
 import frappe
 from frappe.utils import nowdate
  
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist(allow_guest=True, methods=["GET"])
 def get_intranet_settings(): 
     try:
         doc = frappe.get_single("Intranet Settings")

@@ -2,13 +2,13 @@ import frappe
 from jh_digitrack import __version__ as app_version
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["GET"])
 def get_app_version():
     return {
         "app_version": app_version,
     }
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["GET"])
 def maintenance_mode():
     jh_digitrack_settings = frappe.get_doc("JH Digitrack Settings")
 

@@ -51,6 +51,9 @@ const required_fields = [
 
 frappe.ui.form.on("JH Travel Request", {
   refresh(frm) {
+    // HTML Injection Protection - sanitize text input fields
+    jh_attach_sanitizer(frm, ['passenger_information', "description"]);
+
     const request_status = REQUEST_STATUS.find(
       (status) => status.label === frm.doc.request_status
     );

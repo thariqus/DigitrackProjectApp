@@ -1,6 +1,6 @@
 import frappe
 from frappe import _
-@frappe.whitelist()
+@frappe.whitelist(methods=["GET"])
 def get_goal_evaluation(user, year=None):
     if not user:
         frappe.throw(_("User email is required"))
@@ -62,7 +62,7 @@ import frappe
 from frappe.utils import flt
 from frappe import _
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["POST"])
 def create_goal_evaluation(data=None, session_user=None):
     try:
         if isinstance(data, str):
@@ -157,7 +157,7 @@ def create_goal_evaluation(data=None, session_user=None):
 
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["GET"])
 def get_employee_goals(employee_code, year):
     try:
         goal_assessment = frappe.db.get_value(
@@ -211,7 +211,7 @@ def get_employee_goals(employee_code, year):
 import frappe
 from frappe import _
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["POST"])
 def submit_goal_evaluation(employee_code, year, comment=None):
   
     if not employee_code or not year:
@@ -242,7 +242,7 @@ def submit_goal_evaluation(employee_code, year, comment=None):
     return {"message": "Goal Evaluation submitted successfully.", "docname": doc.name}
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["POST"])
 def delete_goal_attachment(employee_code, year, file_url):
     """Delete an attachment from Goal Assessment (attachments section) and remove the File record."""
     try:

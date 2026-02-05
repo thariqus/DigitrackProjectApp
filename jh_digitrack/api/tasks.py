@@ -21,7 +21,7 @@ import re
 from reportlab.platypus import KeepInFrame, Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["GET"])
 def team_tasks(reporting_to: str):
     current_level = frappe.get_doc("JH User Master", reporting_to)
     team_members = frappe.db.get_list(
@@ -79,7 +79,7 @@ def team_tasks(reporting_to: str):
     return result
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["POST"])
 def add_remark(task_id: str, comment: str, creator: str, type: str, remark: str):
 
     task = frappe.get_doc("JH Task Master", task_id)
@@ -100,7 +100,7 @@ def add_remark(task_id: str, comment: str, creator: str, type: str, remark: str)
     return "Remark added successfully"
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["GET"])
 def get_change_log(task_id: str):
     change_log = frappe.db.get_list(
         "JH Change Log",
@@ -120,7 +120,7 @@ def should_send_email(date: datetime):
     return False
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["POST"])
 def remind(task_id: str):
 
     current_jh_user = frappe.get_doc("JH User Master", {"user": frappe.session.user})
@@ -174,7 +174,7 @@ def remind(task_id: str):
     return "Reminder sent successfully"
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["POST"])
 def escalate(task_id: str):
 
     current_jh_user = frappe.get_doc("JH User Master", {"user": frappe.session.user})
@@ -232,7 +232,7 @@ def escalate(task_id: str):
 
     return "Escalation sent successfully"
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["POST"])
 def email_me(task_id: str):
 
     current_jh_user = frappe.get_doc("JH User Master", {"user": frappe.session.user})
@@ -305,7 +305,7 @@ def _process_task_chunk(task_chunk, tasks_by_assignee, tasks_by_assignor, task_t
             tasks_by_assignor[assignor][task_type].append(task)
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["POST"])
 def scheduled_emails():
     """
     Get tasks that match any of these criteria:
@@ -643,7 +643,7 @@ def _create_email_doc(emails_data):
 
     return email_doc.name
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["GET"])
 def get_task_count_by_status_by_source(source: str, current_jh_user: str, created_by: str, visible_to_all: bool):
     """
     Get the count of tasks by status for a specific source.
@@ -676,7 +676,7 @@ def _process_source_task_chunk(task_chunk, tasks_by_assignee, task_type):
         tasks_by_assignee[assignee][task_type].append(task)
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["POST"])
 def remind_all_by_source(source_id: str):
     """
     Get tasks that match any of these criteria and send emails to assignees:
@@ -1042,7 +1042,7 @@ def create_task_pdf_content(tasks):
     
     return pdf_content
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["GET"])
 def download_pdf(task_id: str):
     """
     Downloads audit data as a PDF file.
@@ -1090,7 +1090,7 @@ def download_pdf(task_id: str):
 
 from frappe import _
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist(allow_guest=True, methods=["GET"])
 def get_task_status_counts(jh_user_name):
     if not jh_user_name:
         frappe.throw(_("JH User name is required"))
@@ -1188,7 +1188,7 @@ def get_task_status_counts(jh_user_name):
         "meetings": get_meeting_counts(),
     }
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["POST"])
 def send_emails(send_single_row=False, parent_docname=None, email_row_name=None):
    
     try:
