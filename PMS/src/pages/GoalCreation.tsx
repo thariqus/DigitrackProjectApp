@@ -652,9 +652,9 @@ Goals created by me
             <thead className="bg-gray-100 text-gray-500 text-[11px]">
               <tr>
                 <th className="py-2 px-2  w-[2%]"></th>
-                <th className="py-2 px-2  w-[46%]">Goal Name / Goal Description</th>
+                <th className="py-2 px-2  w-[38%]">Goal Name / Goal Description</th>
                 {/* <th className="py-2 px-4  w-[50%]">Goal Description</th> */}
-                <th className="py-2 px-1  w-[30%]">Measurement Criteria</th>
+                <th className="py-2 px-1  w-[38%]">Measurement Criteria</th>
                 <th className="py-2 px-1  w-[6%]">UOM</th>
                 <th className="py-2 px-1  w-[4%]">Target</th>
                 <th className="py-2 px-1  w-[4%]">Weightage</th>
