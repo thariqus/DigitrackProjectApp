@@ -30,16 +30,7 @@
   "user",
   "active",
   "is_admin",
-  "is_head_of_department",
-  "section_break_ohum",
-  "common_message",
-  "send_message",
-  "common_message_expiry",
-  "common_message_url",
-  "section_break_v1kh",
-  "private_message",
-  "private_message_expiry",
-  "url"
+  "is_head_of_department"
  ],
  "fields": [
   {
@@ -174,55 +165,11 @@
   {
    "fieldname": "column_break_txyx",
    "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "section_break_ohum",
-   "fieldtype": "Section Break"
-  },
-  {
-   "fieldname": "private_message",
-   "fieldtype": "Text",
-   "label": "Private Message"
-  },
-  {
-   "fieldname": "private_message_expiry",
-   "fieldtype": "Date",
-   "label": "Private Message Expiry"
-  },
-  {
-   "fieldname": "url",
-   "fieldtype": "Data",
-   "label": "URL"
-  },
-  {
-   "default": "0",
-   "fieldname": "send_message",
-   "fieldtype": "Check",
-   "label": "Send Message"
-  },
-  {
-   "fieldname": "common_message",
-   "fieldtype": "Text",
-   "label": "Common Message"
-  },
-  {
-   "fieldname": "common_message_expiry",
-   "fieldtype": "Date",
-   "label": "Common Message Expiry"
-  },
-  {
-   "fieldname": "common_message_url",
-   "fieldtype": "Data",
-   "label": "common message URL"
-  },
-  {
-   "fieldname": "section_break_v1kh",
-   "fieldtype": "Section Break"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-12-23 17:04:44.910428",
+ "modified": "2026-01-22 15:15:02.824111",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH User Master",
