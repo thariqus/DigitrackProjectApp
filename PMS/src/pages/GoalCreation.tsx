@@ -7,7 +7,7 @@ import { IoAdd, IoCloseOutline, IoSaveOutline } from "react-icons/io5";
 import { IoIosSearch, IoMdClose } from "react-icons/io";
 import { useNavigate } from "react-router-dom";
 import Pagination from "../components/Pagination";
-import { useGoalMaster, useEmployeeGoals, useGoalAssessment, submitGoalAssessment, deleteEmployeeGoals} from "../hooks/goalcreation";
+import { useGoalMaster, useEmployeeGoals, useGoalAssessment, submitGoalAssessment, deleteEmployeeGoals, useCopyGoalYears} from "../hooks/goalcreation";
 import { useGoalAssignment } from "../hooks/goalassignment";
 
 interface Goal {
@@ -69,10 +69,23 @@ const GoalCreation: React.FC = () => {
 
 
   const { employees: assignableEmployees, baseYear } = useGoalAssignment();
-  const isBaseYear = year === baseYear;
+  const isBaseYear = String(year) === String(baseYear);
   const { employeeGoals: modalGoals, loading: modalGoalsLoading, refetch: refetchModalGoals } = useEmployeeGoals(selectedEmployee || "", selectedCopyYear);
   // const { employeeGoals: fetchedEmployeeGoals } = useEmployeeGoals(employee?.id || "", year);
-  
+const {
+  copyYears,
+  copyBaseYear,
+  fetchCopyYears
+} = useCopyGoalYears(false);
+
+useEffect(() => {
+  if (showModal) {
+    fetchCopyYears();
+  }
+}, [showModal]);
+
+
+
   const {
     employeeGoals: fetchedEmployeeGoals,
     minimumGoals,
@@ -118,9 +131,20 @@ useEffect(() => {
   }
 }, [employee]);
 
-  useEffect(() => {
-    if (baseYear) setSelectedCopyYear(baseYear);
-  }, [baseYear]);
+// useEffect(() => {
+//   if (pmsCurrentYear) {
+//     setYear(pmsCurrentYear);
+//     setSelectedCopyYear(pmsCurrentYear);
+//     localStorage.setItem("SelectedYear", pmsCurrentYear);
+//   }
+// }, [pmsCurrentYear]);
+useEffect(() => {
+  if (showModal && copyBaseYear) {
+    setSelectedCopyYear(copyBaseYear);
+  }
+}, [showModal, copyBaseYear]);
+
+
 
   useEffect(() => {
     const empData = localStorage.getItem("SelectedEmployee");
@@ -652,9 +676,9 @@ Goals created by me
             <thead className="bg-gray-100 text-gray-500 text-[11px]">
               <tr>
                 <th className="py-2 px-2  w-[2%]"></th>
-                <th className="py-2 px-2  w-[46%]">Goal Name / Goal Description</th>
+                <th className="py-2 px-2  w-[38%]">Goal Name / Goal Description</th>
                 {/* <th className="py-2 px-4  w-[50%]">Goal Description</th> */}
-                <th className="py-2 px-1  w-[30%]">Measurement Criteria</th>
+                <th className="py-2 px-1  w-[38%]">Measurement Criteria</th>
                 <th className="py-2 px-1  w-[6%]">UOM</th>
                 <th className="py-2 px-1  w-[4%]">Target</th>
                 <th className="py-2 px-1  w-[4%]">Weightage</th>
@@ -945,26 +969,24 @@ readOnly
               {/* --- Dynamic Year Dropdown --- */}
               <div className="flex items-center gap-3">
 
-{(() => {
-                const storedYear = localStorage.getItem("assessment_year");
-                const baseYear = storedYear ? parseInt(storedYear) : new Date().getFullYear();
-                const availableYears = [baseYear, baseYear - 1, baseYear - 2];
+              <select
+                className="border text-xs px-2 py-1 mb-2 rounded"
+                value={selectedCopyYear}
+                disabled={copyYears.length === 0}
+                onChange={(e) => setSelectedCopyYear(e.target.value)}
+              >
+                {copyYears.length === 0 ? (
+                  <option>Loading years...</option>
+                ) : (
+                  copyYears.map((y) => (
+                    <option key={y.year} value={y.year}>
+                      {y.year}
+                    </option>
+                  ))
+                )}
+              </select>
 
-                return (
-                  <select
-                    className="border  text-xs px-2 py-1  mb-2 rounded"
-                    value={selectedCopyYear}
-                    onChange={(e) => setSelectedCopyYear(e.target.value)}
-                  >
-                    {availableYears.map((year) => (
-                      <option key={year} value={year}>
-                        {year}
-                      </option>
-                    ))}
-                  </select>
-                );
-              
-              })()}
+
 
 
               {/* <div className="border border-gray-200 flex items-center gap-2 w-full px-2 py-1 rounded-md">

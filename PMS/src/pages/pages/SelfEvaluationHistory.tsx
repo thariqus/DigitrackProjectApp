@@ -27,7 +27,7 @@ export default function SelfEvaluationHistory() {
         const formatted = message.assessments.map((a: any) => ({
           year: a.year,
           status: a.status,
-          final_score: a.total_score,
+          final_score: formatTwoDecimals(a.total_score),
           final_comment: a.comment,
         }));
 
@@ -93,6 +93,11 @@ export default function SelfEvaluationHistory() {
       }
   };
 
+  const formatTwoDecimals = (value: any) => {
+    if (value === null || value === undefined || value === "") return "0.00";
+    const num = Number(value);
+    return isNaN(num) ? "0.00" : num.toFixed(2);
+  };
 
   return (
     <div className="bg-white min-h-screen border rounded-lg px-6 py-4">
