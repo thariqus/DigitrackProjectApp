@@ -1,7 +1,7 @@
 import frappe
 from datetime import datetime, timedelta
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist(allow_guest=True, methods=["GET"])
 def get_jh_users():
     users = frappe.get_all(
         "JH User Master",
@@ -10,7 +10,7 @@ def get_jh_users():
     return {"message": users}
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist(allow_guest=True, methods=["POST"])
 def create_jh_task(requester_name, email, category, idea):
     use_default_user = False
     if not email or not requester_name:

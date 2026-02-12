@@ -6,6 +6,13 @@ from frappe.model.document import Document
 
 
 class JHTravelRequest(Document):
+    def validate(self):
+        """Sanitize HTML in text fields to prevent XSS attacks"""
+        if self.description:
+            self.description = frappe.utils.sanitize_html(self.description, always_sanitize=True)
+        if self.passenger_information:
+            self.passenger_information = frappe.utils.sanitize_html(self.passenger_information, always_sanitize=True)
+
     def before_insert(self):
         user = frappe.session.user
         jh_user = frappe.db.get_value("JH User Master", {"user": user}, ["name"])

@@ -8,7 +8,7 @@ from werkzeug.wrappers import Response
 from openpyxl.utils import get_column_letter
 from jh_digitrack.api.pms_report import get_goal_assessment_summary
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["GET"])
 def download_excel(year=None, manager=None, view_type="team"):
     try:
         # =====================================================
@@ -337,7 +337,7 @@ def download_excel(year=None, manager=None, view_type="team"):
         frappe.throw(_("Error generating Excel: ") + str(e))
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["GET"])
 def download_self_evaluation_excel(year, employee_code):
     try:
         if not year or not employee_code:
@@ -524,7 +524,7 @@ from reportlab.lib import colors
 from reportlab.lib.units import cm
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["GET"])
 def download_self_evaluation_pdf(year, employee_code):
     try:
         if not year or not employee_code:

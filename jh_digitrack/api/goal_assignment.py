@@ -2,7 +2,7 @@ import frappe
 from frappe import _
 from frappe.utils.data import nowdate
 import json
-@frappe.whitelist()
+@frappe.whitelist(methods=["GET"])
 def get_goals():
     return frappe.get_all(
         "JH Goal Master",
@@ -10,7 +10,7 @@ def get_goals():
     )
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["GET"])
 def get_default_assignment_year():
     year = frappe.db.get_value(
         "PMS Settings Table",
@@ -25,7 +25,7 @@ def get_default_assignment_year():
 
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["GET"])
 def get_employees_for_manager(user):
 
 
@@ -42,7 +42,7 @@ def get_employees_for_manager(user):
 import frappe
 from frappe import _
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["GET"])
 def get_employee_goals(employee_id, year=None):
     """
     Fetch all goal assignments for a specific employee and year.
@@ -60,7 +60,7 @@ def get_employee_goals(employee_id, year=None):
     return {"goals": goals}
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist(allow_guest=True, methods=["GET"])
 def get_employees_with_status(user, year=None):
  
     settings_row = frappe.db.get_value(

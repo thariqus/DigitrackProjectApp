@@ -1,6 +1,6 @@
 import frappe
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["GET"])
 def get_pms_settings():
     settings = frappe.get_single("PMS Settings")
 
@@ -25,7 +25,7 @@ def get_pms_settings():
 
 import frappe
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["POST"])
 def save_pms_settings(
     min_no_of_goals=None,
     min_value=None,
