@@ -8,7 +8,7 @@ from werkzeug.wrappers import Response
 from openpyxl.utils import get_column_letter
 from jh_digitrack.api.pms_report import get_goal_assessment_summary
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["GET"])
 def download_excel(year=None, manager=None, view_type="team"):
     try:
         # =====================================================
@@ -206,6 +206,8 @@ def download_excel(year=None, manager=None, view_type="team"):
                         ou,
                         grade,
                     ])
+                    row_idx = ws2.max_row
+                    set_two_decimal(ws2.cell(row=row_idx, column=7))  # Total Score
 
         for i, col in enumerate(ws2.columns, 1):
             max_length = max(len(str(cell.value or "")) for cell in col)
@@ -295,10 +297,21 @@ def download_excel(year=None, manager=None, view_type="team"):
 
             if child_rows:
                 for child in child_rows:
-                    ws3.append(manager_values + parent_values + [child.get(f) for f in child_fields.keys()])
+                    ws3.append(
+                        manager_values +
+                        parent_values +
+                        [child.get(f) for f in child_fields.keys()]
+                    )
+
+                    row_idx = ws3.max_row
+                    for col in (7, 14, 15, 16, 17):
+                        set_two_decimal(ws3.cell(row=row_idx, column=col))
+
             else:
                 ws3.append(manager_values + parent_values + [""] * len(child_fields))
 
+                row_idx = ws3.max_row
+                set_two_decimal(ws3.cell(row=row_idx, column=7))  # Total Score
 
         for i, col in enumerate(ws3.columns, 1):
             max_length = max(len(str(cell.value or "")) for cell in col)
@@ -324,7 +337,7 @@ def download_excel(year=None, manager=None, view_type="team"):
         frappe.throw(_("Error generating Excel: ") + str(e))
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["GET"])
 def download_self_evaluation_excel(year, employee_code):
     try:
         if not year or not employee_code:
@@ -464,14 +477,19 @@ def download_self_evaluation_excel(year, employee_code):
                 g.description,
                 g.measurement_criteria,
                 g.uom,
-                format_two_decimals(g.target),
-                format_two_decimals(g.weightage),
-                format_two_decimals(g.achievement_score),
-                format_two_decimals(g.achieved_score),
+                g.target,
+                g.weightage,
+                g.achievement_score,
+                g.achieved_score,
                 g.upwarddownward,
                 g.remark,
             ])
-
+            row_idx = ws.max_row
+            set_two_decimal(ws.cell(row=row_idx, column=7))   # Total Score
+            set_two_decimal(ws.cell(row=row_idx, column=20))  # Target
+            set_two_decimal(ws.cell(row=row_idx, column=21))  # Weightage
+            set_two_decimal(ws.cell(row=row_idx, column=22))  # Achievement Value
+            set_two_decimal(ws.cell(row=row_idx, column=23)) 
         # Auto width
         for i, col in enumerate(ws.columns, 1):
             max_len = max(len(str(cell.value or "")) for cell in col)
@@ -506,7 +524,7 @@ from reportlab.lib import colors
 from reportlab.lib.units import cm
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["GET"])
 def download_self_evaluation_pdf(year, employee_code):
     try:
         if not year or not employee_code:
@@ -851,7 +869,6 @@ def draw_footer(canvas, doc):
 
 
 def format_two_decimals(value):
-    # Treat None, empty string, or invalid numbers as 0.00
     if value in (None, "", " ", "-", "--"):
         return "0.00"
 
@@ -860,6 +877,7 @@ def format_two_decimals(value):
     except (ValueError, TypeError):
         return "0.00"
 
-    # Format with two decimals
     return f"{value:.2f}"
 
+def set_two_decimal(cell):
+    cell.number_format = "0.00"

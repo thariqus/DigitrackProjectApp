@@ -22,7 +22,7 @@ class JHUserMaster(Document):
 
         self.full_name = " ".join(part for part in [first_name, middle_name, last_name] if part)
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["POST"])
 def attach_user(jh_user_id: str, email: str):
     jh_user = frappe.get_doc("JH User Master", jh_user_id)
 

@@ -216,3 +216,53 @@ export async function submitGoalAssessment(
     return { error: String(err) };
   }
 }
+
+
+/* ---------------------------------------------------------
+   ✅ usePmsYears (GET)
+--------------------------------------------------------- */
+export const useCopyGoalYears = (enabled = true) => {
+  const [copyYears, setCopyYears] = useState<any[]>([]);
+  const [copyBaseYear, setCopyBaseYear] = useState<string>("");
+  const [loading, setLoading] = useState(false);
+
+  const fetchCopyYears = async () => {
+    try {
+      setLoading(true);
+
+      const res = await frappeClient.api.get(
+        "jh_digitrack.api.pms_report.get_pms_years"
+      );
+
+      const message = res?.message;
+
+      // Frappe tuple response → [baseYear, years]
+      const baseYear = message?.[0] || "";
+      const years = message?.[1] || [];
+
+      setCopyBaseYear(baseYear);
+      setCopyYears(years);
+
+      console.log("[useCopyGoalYears] baseYear:", baseYear);
+      console.log("[useCopyGoalYears] years:", years);
+
+    } catch (err) {
+      console.error("[useCopyGoalYears] Failed to fetch copy years", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (enabled) {
+      fetchCopyYears();
+    }
+  }, [enabled]);
+
+  return {
+    copyYears,
+    copyBaseYear,
+    loading,
+    fetchCopyYears,
+  };
+};

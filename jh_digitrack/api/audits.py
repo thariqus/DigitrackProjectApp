@@ -15,7 +15,7 @@ import re
 from reportlab.platypus import KeepInFrame, Paragraph
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["GET"])
 def team_audits(
     reporting_to: str, 
     search_query: str = "", 
@@ -81,7 +81,7 @@ def team_audits(
     return {"data": audit_list, "total": len(total_audits)}
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["POST"])
 def add_remark(audit_id: str, comment: str, creator: str, type: str, remark: str):
 
     task = frappe.get_doc("JH Audit Master", audit_id)
@@ -805,7 +805,7 @@ def create_audit_pdf_content2(audit, tasks):
     return pdf_content
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["GET"])
 def download_csv(audit_id: str):
     """
     Downloads audit data as a CSV file.
@@ -861,7 +861,7 @@ def download_csv(audit_id: str):
     response.headers.set("Content-Disposition", f'attachment; filename="{filename}"')
     return response
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["GET"])
 def download_pdf(audit_id: str,pdf_type: str = "1"):
     """
     Downloads audit data as a PDF file.

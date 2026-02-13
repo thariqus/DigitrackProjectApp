@@ -16,7 +16,7 @@ def is_scheduler_allowed():
         "Configuration Settings",
         "allow_scheduler"
     )
-@frappe.whitelist()
+@frappe.whitelist(methods=["POST"])
 def get_access_token():
     """Fetch access token from HRMS and trigger data fetch."""
     if not is_scheduler_allowed():
@@ -55,7 +55,7 @@ def get_access_token():
 
 
 """Fetch HR data from HRMS and update HRMS Users in ERPNext."""
-@frappe.whitelist()
+@frappe.whitelist(methods=["POST"])
 def fetch_hr_data(token):
 
     end_date = datetime.today()
@@ -183,7 +183,7 @@ def log_step(step, rows=None):
 import frappe
 from frappe import _
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["GET"])
 def has_pms_role(email=None):
     if not email:
         frappe.throw(_("Email is required"))

@@ -1,7 +1,7 @@
 import frappe
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["GET"])
 def whoami(req_id: str, is_new: bool = False):
     user = frappe.session.user
     if user == "Administrator":

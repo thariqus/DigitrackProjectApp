@@ -13,5 +13,6 @@ frappe.ui.form.on("JH Grouped Task Master", {
   },
   refresh(frm) {
     autoname(frm);
+    jh_attach_sanitizer(frm, ['agenda', "remarks", "participants_external"]);
   },
 });

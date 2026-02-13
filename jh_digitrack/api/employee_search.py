@@ -1,6 +1,6 @@
 import frappe
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist(allow_guest=True, methods=["GET"])
 def search_employees(search):
     if not search or search.startswith("@"):
         return {"message": []}
@@ -42,7 +42,7 @@ def search_employees(search):
 
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist(allow_guest=True, methods=["GET"])
 def get_employee_details(name):
     if not name:
         return {"message": {}}

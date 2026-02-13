@@ -15,7 +15,7 @@ import re
 from reportlab.platypus import KeepInFrame, Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["GET"])
 def team_meetings(
     reporting_to: str, 
     search_query: str = "",
@@ -81,7 +81,7 @@ def team_meetings(
     return {"data": meeting_list, "total": len(total_meetings)}
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["POST"])
 def add_remark(meeting_id: str, comment: str, creator: str, type: str, remark: str):
 
     task = frappe.get_doc("JH Grouped Task Master", meeting_id)
@@ -800,7 +800,7 @@ def create_meeting_pdf_content2(meeting, tasks, internal_participants):
     return pdf_content
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["GET"])
 def download_csv(meeting_id: str):
     """
     Downloads meeting data as a CSV file.
@@ -859,7 +859,7 @@ def download_csv(meeting_id: str):
     return response
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["GET"])
 def download_pdf(meeting_id: str,pdf_type: str = "1"):
     """
     Downloads meeting data as a PDF file.
