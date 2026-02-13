@@ -502,7 +502,7 @@ def get_self_evaluation_history(current_user=None):
         frappe.log_error(frappe.get_traceback(), "get_self_evaluation_history")
         return {"error": str(e)}
 
-@frappe.whitelist()
+@frappe.whitelist(allow_guest=True,methods=["GET"])
 def get_pms_years():
     rows = frappe.db.get_all(
         "PMS Settings Table",
