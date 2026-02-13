@@ -28,7 +28,11 @@ add_to_apps_screen = [
 
 # include js, css files in header of desk.html
 app_include_css = ["/assets/jh_digitrack/css/numbercards_hide.css","/assets/jh_digitrack/css/workspace_navbar8.css","/assets/jh_digitrack/css/workspaces_charts.css",]
-app_include_js = "/assets/jh_digitrack/js/workspaces_button_hide2.js"
+app_include_js = [
+    "/assets/jh_digitrack/js/html_sanitizer.js",
+    "/assets/jh_digitrack/js/file_upload_validator.js",
+    "/assets/jh_digitrack/js/workspaces_button_hide2.js"
+]
 
 # include js, css files in header of web template
 # web_include_css = "/assets/jh_digitrack/css/jh_digitrack.css"
@@ -151,6 +155,10 @@ doc_events = {
     },
     "Comment": {
         "after_insert": "jh_digitrack.jh_digitrack.doc_events.update_comments.update_last_activity_on"
+    },
+    # File upload validation to prevent malicious file uploads (VAPT fix)
+    "File": {
+        "before_insert": "jh_digitrack.api.helpers.file_validation.validate_file_before_insert"
     }
 }     
 

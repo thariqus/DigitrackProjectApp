@@ -2,7 +2,7 @@
 import frappe
 import json
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["GET"])
 def get_goal_assessment_summary(year=None, manager=None):
     try:
 
@@ -178,7 +178,7 @@ def get_goal_assessment_summary(year=None, manager=None):
         return {"error": str(e)}
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["GET"])
 def get_goal_assessment_summary_org(year=None, manager=None):
     try:
 
@@ -313,7 +313,7 @@ def get_goal_assessment_summary_org(year=None, manager=None):
 
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["GET"])
 def get_goal_assessment_summary_admin(year=None, manager=None):
     try:
 
@@ -463,7 +463,7 @@ def get_goal_assessment_summary_admin(year=None, manager=None):
         return {"error": str(e)}
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["GET"])
 def get_self_evaluation_history(current_user=None):
     try:
         if not current_user:
@@ -529,7 +529,7 @@ def get_pms_years():
 from frappe.utils import get_url
 import frappe
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist(allow_guest=True, methods=["POST"])
 def send_pending_evaluation_emails(emails, year, cc_email=None):
     if isinstance(emails, str):
         emails = frappe.parse_json(emails)

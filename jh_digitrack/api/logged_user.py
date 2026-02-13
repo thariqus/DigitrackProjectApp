@@ -1,6 +1,6 @@
 import frappe
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["GET"])
 def get_logged_in_user_details():
     if frappe.session.user == "Guest":
         frappe.throw("Unauthorized", frappe.PermissionError)

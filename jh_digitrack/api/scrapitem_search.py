@@ -1,6 +1,6 @@
 import frappe
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist(allow_guest=True, methods=["GET"])
 def search_scrapitem(search):
     if not search:
         return {"message": []}
@@ -23,7 +23,7 @@ def search_scrapitem(search):
 
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist(allow_guest=True, methods=["GET"])
 def get_item_details(item_name):
     """
     Fetch all fields of a JH Scrap Item based on item_name
@@ -46,7 +46,7 @@ def get_item_details(item_name):
 
 import frappe
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist(allow_guest=True, methods=["GET"])
 def user_scrap_items(created_by=None, page=1, page_size=10, search_query=None):
     if not created_by:
         created_by = frappe.session.user
@@ -93,7 +93,7 @@ def user_scrap_items(created_by=None, page=1, page_size=10, search_query=None):
 
 from frappe import _
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist(allow_guest=True, methods=["POST"])
 def create_scrap_item(
     title,
     date,
@@ -149,7 +149,7 @@ def create_scrap_item(
 
 
 
-@frappe.whitelist(allow_guest=False)
+@frappe.whitelist(allow_guest=False, methods=["POST"])
 def update_scrap_item(
     name: str,
     title: str = None,
@@ -210,7 +210,7 @@ def update_scrap_item(
 
 
 
-@frappe.whitelist(allow_guest=False)
+@frappe.whitelist(allow_guest=False, methods=["POST"])
 def delete_scrap_item(name: str):
     if not name:
         frappe.throw(_("Scrap Item ID (name) is required"))

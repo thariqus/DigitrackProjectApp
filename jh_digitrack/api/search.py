@@ -1,6 +1,6 @@
 import frappe
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["GET"])
 def global_search(
     reporting_to: str,
     task_name: str = "",

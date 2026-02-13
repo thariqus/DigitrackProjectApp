@@ -1,7 +1,7 @@
 import frappe
 import requests
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist(allow_guest=True, methods=["GET"])
 def proxy_emp_search(search=None, name=None):
     search = frappe.local.form_dict.get("search") or frappe.local.request.args.get("search")
     name = frappe.local.form_dict.get("name") or frappe.local.request.args.get("name")

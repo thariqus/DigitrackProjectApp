@@ -6,6 +6,11 @@ from frappe.model.document import Document
 
 class GoalAssessment(Document):
 
+    def validate(self):
+        """Sanitize HTML in text fields to prevent XSS attacks"""
+        if self.comment:
+            self.comment = frappe.utils.sanitize_html(self.comment, always_sanitize=True)
+
     def before_save(self):
         if not self.is_new():
             old_doc = frappe.get_doc("Goal Assessment", self.name)

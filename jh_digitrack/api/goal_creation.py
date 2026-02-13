@@ -36,7 +36,7 @@ import frappe
 #         frappe.log_error(frappe.get_traceback(), "get_employee_goals_sql_error")
 #         return {"error": str(e)}
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["GET"])
 def get_employee_goals(employee_code, year):
     try:
         query = """
@@ -70,7 +70,7 @@ def get_employee_goals(employee_code, year):
         return {"error": str(e)}
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["POST"])
 def save_employee_goals(employee_code, year, goals):
     """Save or update employee goals"""
     import json
@@ -93,7 +93,7 @@ def save_employee_goals(employee_code, year, goals):
     return {"status": "success"}
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["POST"])
 def submit_employee_goals(employee_code, year):
     """Mark goals as submitted"""
     frappe.db.set_value("Goal Assessment", {"employee_code": employee_code, "year": year}, "status", "Goal Submitted")
@@ -104,7 +104,7 @@ import frappe
 from frappe.utils import now
 from frappe import _
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["POST"])
 def create_goal_assessment(data=None, session_user=None):
     try:
         if isinstance(data, str):
@@ -172,7 +172,7 @@ import frappe
 from frappe import _
 from frappe.utils import now
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["POST"])
 def submit_goal_assessment(employee_code=None, year=None, new_goals=None):
     try:
         frappe.logger().info(f" Submit Goal Assignment: emp={employee_code}, year={year}")
@@ -256,7 +256,7 @@ def submit_goal_assessment(employee_code=None, year=None, new_goals=None):
 import frappe
 from frappe import _
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["POST"])
 def delete_employee_goals(employee_code, year, goal_ids):
     goal_ids = frappe.parse_json(goal_ids)
 

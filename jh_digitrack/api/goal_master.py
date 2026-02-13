@@ -1,7 +1,7 @@
 
 import frappe
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["GET"])
 def get_goals(created_by=None):
    
     query_filters = {"inactive": 0}
@@ -25,7 +25,7 @@ def get_goals(created_by=None):
     return goals
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["POST"])
 def add_goal(goal_name, goal_description, measurement_criteria, target="", created_by=None, created_date=None):
     user = created_by or frappe.session.user
 
@@ -57,7 +57,7 @@ def add_goal(goal_name, goal_description, measurement_criteria, target="", creat
 
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["POST"])
 def edit_goal(name, goal_name, goal_description, measurement_criteria, target="", modified_by=None, modified_date=None):
     doc = frappe.get_doc("JH Goal Master", name)
     doc.goal_name = goal_name

@@ -1,7 +1,7 @@
 import frappe
 import requests
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist(allow_guest=True, methods=["GET"])
 def get_jh_users():
     
     site_config = frappe.get_site_config()
@@ -33,7 +33,7 @@ def get_jh_users():
 
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist(allow_guest=True, methods=["POST"])
 def create_jh_task(requester_name =None, email=None, category=None, idea=None):
    
     site_config = frappe.get_site_config()
