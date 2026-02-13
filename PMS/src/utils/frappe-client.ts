@@ -4,22 +4,37 @@ import { HtmlRender } from "@/components/utils/html-render";
 
 const frappe = new FrappeApp(import.meta.env.VITE_FRAPPE_API_URL);
 
-// Show the error message
-frappe.axios.interceptors.response.use(undefined, function (error) {
-  const errors =
-    JSON.parse(error?.response?.data?._server_messages || "[]") || [];
-  const err = errors.at(-1);
+frappe.axios.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const status = error?.response?.status;
 
-  // If the error is not a validation error, return the error
-  if (!err) return Promise.reject(error);
+    // ✅ HARD SESSION EXPIRE CHECK
+    if (status === 401 || status === 403) {
+      console.warn("Frappe session expired. Logging out React...");
 
-  // Get the error message
-  const { message } = JSON.parse(err);
+      // Clear any local app state if needed
+      localStorage.clear();
+      sessionStorage.clear();
 
-  // Show the error message
-  console.error(message);
-  toast.error(HtmlRender({ content: message }).toString());
-});
+      // Redirect to login
+      window.location.href = "/login";
+      return Promise.reject(error);
+    }
+
+    const errors =
+      JSON.parse(error?.response?.data?._server_messages || "[]") || [];
+    const err = errors.at(-1);
+
+    if (!err) return Promise.reject(error);
+
+    const { message } = JSON.parse(err);
+    console.error(message);
+    toast.error(HtmlRender({ content: message }).toString());
+
+    return Promise.reject(error);
+  }
+);
 
 export default {
   api: frappe.call(),
