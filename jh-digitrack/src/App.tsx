@@ -23,6 +23,7 @@ import AuditTasksExpanded from "./components/tasks/task-table/audit-tasks-expand
 import AuditTasksShrink from "./components/tasks/task-table/audit-tasks-shrink";
 import Maintenance from "./components/Maintenance";
 import Dashboard from "./components/dashboard";
+import JRCPermission from "./components/jrc-permission";
 
 function AppWrapper() {
 
@@ -77,6 +78,7 @@ function AppWrapper() {
               <Route path="tasks" element={<Tasks />} />
               <Route path="projects" element={<Projects />} />
               <Route path="idle-assets" element={<Scrapitems />} />
+              <Route path="jrc-permission" element={<JRCPermission />} />
               <Route path="meetings" element={<Meetings />} />
               <Route path="meetings/:meetingId" element={<MeetingTasks />} />
               <Route path="meetings/:meetingId/expanded" element={<MeetingTasksExpanded />} />
