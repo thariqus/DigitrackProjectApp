@@ -807,56 +807,108 @@ def _get_latest_dmail_mapping_headers_rows():
 
 
 def _resolve_dmail_group_member_indexes(headers):
-    """Resolve group/distributed mail and individual mail columns from dmail upload headers."""
+    """Resolve group/distributed mail and member mail columns from dmail upload headers."""
     if not headers:
         return -1, -1
 
     def normalize_header(value):
         return re.sub(r"[^a-z0-9]+", " ", (value or "").strip().lower()).strip()
 
+    # Keep both normalized-with-spaces and compact variants to support formats like:
+    # "Group Email", "group_email", and "GroupEmail" (camel-case, no delimiter).
     normalized_headers = [normalize_header(header) for header in headers]
+    compact_headers = [header.replace(" ", "") for header in normalized_headers]
     group_header_candidates = {
-        "group distributed mail",
-        "group mail",
-        "distributed mail",
-        "group email",
+        "groupdistributedmail",
+        "groupmail",
+        "distributedmail",
+        "distributionmail",
+        "groupemail",
     }
     individual_header_candidates = {
-        "individual mail",
-        "individual email",
-        "user mail",
+        "individualmail",
+        "individualemail",
+        "usermail",
+        "useremail",
+        "membermail",
+        "memberemail",
+        "employeeemail",
         "email",
-        "individual",
     }
 
     def is_group_header(header_text):
         if header_text in group_header_candidates:
             return True
-        return ("group" in header_text or "distributed" in header_text) and (
+        return ("group" in header_text or "distributed" in header_text or "distribution" in header_text) and (
             "mail" in header_text or "email" in header_text
         )
 
     def is_individual_header(header_text):
         if header_text in individual_header_candidates:
             return True
-        return ("individual" in header_text or "user" in header_text) and (
+        return (
+            "individual" in header_text
+            or "user" in header_text
+            or "member" in header_text
+            or "employee" in header_text
+        ) and (
             "mail" in header_text or "email" in header_text
         )
 
     group_index = next(
-        (index for index, header in enumerate(normalized_headers) if is_group_header(header)),
+        (index for index, header in enumerate(compact_headers) if is_group_header(header)),
         -1,
     )
     individual_index = next(
         (
             index
-            for index, header in enumerate(normalized_headers)
+            for index, header in enumerate(compact_headers)
             if is_individual_header(header) and index != group_index
         ),
         -1,
     )
 
-    # Fallback to first two columns when upload uses generic/renamed headers.
+    # Header-only fallback: prefer email-like columns before generic positional fallback.
+    email_like_indexes = [
+        index
+        for index, header in enumerate(compact_headers)
+        if "email" in header or "mail" in header
+    ]
+    if group_index < 0:
+        group_index = next(
+            (
+                index
+                for index in email_like_indexes
+                if (
+                    "group" in compact_headers[index]
+                    or "distributed" in compact_headers[index]
+                    or "distribution" in compact_headers[index]
+                )
+            ),
+            -1,
+        )
+    if individual_index < 0:
+        individual_index = next(
+            (
+                index
+                for index in email_like_indexes
+                if index != group_index
+                and (
+                    "individual" in compact_headers[index]
+                    or "user" in compact_headers[index]
+                    or "member" in compact_headers[index]
+                    or "employee" in compact_headers[index]
+                )
+            ),
+            -1,
+        )
+    if individual_index < 0:
+        individual_index = next(
+            (index for index in email_like_indexes if index != group_index),
+            -1,
+        )
+
+    # Last-resort fallback to first two columns for legacy sheets with fully generic headers.
     if group_index < 0 or individual_index < 0:
         if len(headers) >= 2:
             return 0, 1
@@ -1338,6 +1390,57 @@ def _get_jh_user_master_name_map(emails):
     return email_to_name
 
 
+def _normalize_column_header(value):
+    """Normalize uploaded header values for robust column matching."""
+    return re.sub(r"[^a-z0-9]+", "", (value or "").strip().lower())
+
+
+def _resolve_jrc_user_email_column_index(headers):
+    """Resolve user-email column from main JRC permission sheet headers."""
+    if not headers:
+        return -1
+
+    normalized_headers = [_normalize_column_header(header) for header in headers]
+
+    # Preferred exact/header-specific matches in priority order.
+    exact_candidates = (
+        "email",
+        "useremail",
+        "usermail",
+        "individualemail",
+        "individualmail",
+    )
+    for candidate in exact_candidates:
+        if candidate in normalized_headers:
+            return normalized_headers.index(candidate)
+
+    # Heuristic fallback to support minor naming variations.
+    scored = []
+    for index, header in enumerate(normalized_headers):
+        has_email = "email" in header or "mail" in header
+        if not has_email:
+            continue
+
+        # Prefer user-specific email columns over group/member columns.
+        if "user" in header:
+            score = 0
+        elif "individual" in header:
+            score = 1
+        elif "group" in header or "distributed" in header or "distribution" in header:
+            score = 3
+        elif "member" in header:
+            score = 4
+        else:
+            score = 2
+        scored.append((score, index))
+
+    if scored:
+        scored.sort(key=lambda item: (item[0], item[1]))
+        return scored[0][1]
+
+    return -1
+
+
 def _filter_jrc_rows_by_user_email(
     headers,
     rows,
@@ -1354,11 +1457,7 @@ def _filter_jrc_rows_by_user_email(
     if not normalized_user_email:
         return []
 
-    email_index = -1
-    for index, header in enumerate(headers or []):
-        if (header or "").strip().lower() == "email":
-            email_index = index
-            break
+    email_index = _resolve_jrc_user_email_column_index(headers or [])
 
     # Safe default: without Email column, do not expose rows to non-role users.
     if email_index < 0:
@@ -1409,11 +1508,7 @@ def _append_jrc_name_column_from_email(headers, rows):
     if not headers:
         return headers, rows
 
-    email_index = -1
-    for index, header in enumerate(headers):
-        if (header or "").strip().lower() == "email":
-            email_index = index
-            break
+    email_index = _resolve_jrc_user_email_column_index(headers)
 
     if email_index < 0:
         # Without Email we cannot map names reliably.

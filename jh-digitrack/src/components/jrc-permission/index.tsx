@@ -22,6 +22,19 @@ type GroupMember = {
 const BLANK_FOLDER = "(Blank)";
 // Shared email matcher used to parse email cell values from preview rows.
 const EMAIL_PATTERN = /[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}/gi;
+// Business rule: these upload metadata fields must stay hidden in the preview table.
+const HIDDEN_TABLE_HEADERS = new Set([
+  "linkid",
+  "linktype",
+  "accessvialinkid",
+  "herolinkaudience",
+  "herolinkrole",
+]);
+
+function normalizeHeader(value: string): string {
+  // Normalization lets us match headers safely even if spacing/case changes in Excel.
+  return (value || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+}
 
 function splitFolderPath(value: string): string[] {
   const text = (value || "").trim();
@@ -195,16 +208,28 @@ function JRCPermission() {
     [folderTree, folderSearchText]
   );
 
-  // Hide first Excel column in the right table because it is already shown as folder tree.
-  const tableHeaders = useMemo(() => previewHeaders.slice(1), [previewHeaders]);
-  const emailColumnIndex = useMemo(
-    () => previewHeaders.findIndex((header) => header.trim().toLowerCase() === "email"),
+  // Hide first Excel column in table (shown in left folder tree)
+  // and remove backend-only link metadata columns from UI.
+  const tableColumns = useMemo(
+    () =>
+      // Keep original sourceIndex so every cell can still read from the raw row array.
+      previewHeaders
+        .map((header, sourceIndex) => ({ header, sourceIndex }))
+        .filter(
+          ({ header, sourceIndex }) =>
+            sourceIndex > 0 && !HIDDEN_TABLE_HEADERS.has(normalizeHeader(header))
+        ),
     [previewHeaders]
   );
-  // Table removes first raw folder column, so shift original email index by one.
-  const tableEmailColumnIndex = useMemo(
-    () => (emailColumnIndex >= 0 ? emailColumnIndex - 1 : -1),
-    [emailColumnIndex]
+  const emailColumnIndex = useMemo(
+    () =>
+      // Resolve email from original headers (not visible column position),
+      // so group-panel click behavior stays correct after hiding columns.
+      previewHeaders.findIndex((header) => {
+        const normalized = normalizeHeader(header);
+        return normalized === "email" || normalized === "useremail";
+      }),
+    [previewHeaders]
   );
   const knownGroupEmailSet = useMemo(
     () => new Set(knownGroupEmails.map((email) => email.toLowerCase().trim())),
@@ -890,7 +915,7 @@ function JRCPermission() {
 
       {/* Main data panel also uses the same rose palette as dashboard widgets. */}
       <div className="w-full rounded-2xl border border-rose-200 bg-rose-100/60 p-4 space-y-3 shadow-sm">
-          <h3 className="text-sm font-semibold text-gray-900">Uploaded Data – Employee: {uploadedFile?.date || "N/A"} | Group: {uploadedDmailFile?.date || "N/A"}</h3>
+          <h3 className="text-sm font-semibold text-gray-900">Last updated on: {uploadedFile?.date || "N/A"} </h3>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
             <div className="relative">
@@ -1017,9 +1042,9 @@ function JRCPermission() {
                 <table className="min-w-full text-xs">
                   <thead className="bg-rose-50 sticky top-0">
                     <tr>
-                      {tableHeaders.map((header, index) => (
+                      {tableColumns.map(({ header, sourceIndex }) => (
                         <th
-                          key={`${header}-${index + 1}`}
+                          key={`${header}-${sourceIndex}`}
                           className="px-3 py-2 text-left font-semibold text-gray-700 whitespace-nowrap"
                         >
                           {header}
@@ -1036,29 +1061,29 @@ function JRCPermission() {
                           onClick={() => handleTableRowClick(row)}
                           className="cursor-pointer border-t border-rose-100 hover:bg-rose-50/50"
                         >
-                          {tableHeaders.map((_, colIndex) => (
+                          {tableColumns.map(({ sourceIndex }) => (
                             <td
-                              key={`cell-${rowIndex}-${colIndex + 1}`}
+                              key={`cell-${rowIndex}-${sourceIndex}`}
                               className="px-3 py-2 whitespace-nowrap"
                             >
-                              {colIndex === tableEmailColumnIndex &&
-                              !!getClickedGroupEmail(row[colIndex + 1] || "") ? (
+                              {sourceIndex === emailColumnIndex &&
+                              !!getClickedGroupEmail(row[sourceIndex] || "") ? (
                                 <button
                                   type="button"
                                   className="text-blue-600 underline hover:text-blue-700"
                                   onClick={(event) => {
                                     event.stopPropagation();
                                     // Stop row-click folder selection when opening side panel.
-                                    const groupEmail = getClickedGroupEmail(row[colIndex + 1] || "");
+                                    const groupEmail = getClickedGroupEmail(row[sourceIndex] || "");
                                     if (groupEmail) {
                                       void handleGroupEmailClick(groupEmail);
                                     }
                                   }}
                                 >
-                                  {row[colIndex + 1] || ""}
+                                  {row[sourceIndex] || ""}
                                 </button>
                               ) : (
-                                row[colIndex + 1] || ""
+                                row[sourceIndex] || ""
                               )}
                             </td>
                           ))}
@@ -1068,7 +1093,7 @@ function JRCPermission() {
                       <tr className="border-t">
                         <td
                           className="px-3 py-2 text-muted-foreground"
-                          colSpan={Math.max(tableHeaders.length, 1)}
+                          colSpan={Math.max(tableColumns.length, 1)}
                         >
                           No rows available for selected filters.
                         </td>
