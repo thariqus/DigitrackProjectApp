@@ -463,6 +463,57 @@ def run_post_hrms_sync():
         # 5. Save once
         parent_doc.save(ignore_permissions=True)
 
+        exception_doc = frappe.get_doc("PMS Employee Exception")
+
+        for row in exception_doc.exceptions:
+
+            emp_id = row.emp_id
+            designation = row.designation
+            action = row.action
+
+            if not frappe.db.exists("PMS Employees", emp_id):
+                continue
+
+            pms_emp = frappe.get_doc("PMS Employees", emp_id)
+
+            if action == "U":
+
+                if not pms_emp.designation_name:
+                    continue
+
+                frappe.db.set_value(
+                    "PMS Employees",
+                    emp_id,
+                    "designation_name",
+                    designation
+                )
+
+            elif action == "D":
+
+                if pms_emp.employee_email:
+                    user_email = pms_emp.employee_email
+
+                else:
+                    if not frappe.db.exists("JH User Master", emp_id):
+                        continue
+
+                    user_email = frappe.get_value("JH User Master", emp_id,"email")
+
+                if user_email and frappe.db.exists("User", user_email):
+
+                    user_doc = frappe.get_doc("User", user_email)
+
+                    user_doc.roles = [
+                        r for r in user_doc.roles if r.role != "PMS User"
+                    ]
+
+                    user_doc.save(ignore_permissions=True)
+
+                frappe.delete_doc(
+                    "PMS Employees",
+                    emp_id,
+                    ignore_permissions=True
+                )
     except Exception:
         frappe.db.rollback()
         frappe.log_error(
