@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useHasJrcPermission } from "@/hooks/userrole";
 import { ChevronDown, ChevronRight, Folder } from "lucide-react";
 
@@ -18,8 +18,25 @@ type GroupMember = {
   email: string;
   employee_name: string;
 };
+type TableColumn = {
+  key: string;
+  header: string;
+  sourceIndex?: number;
+  userNameSourceIndex?: number;
+  userEmailSourceIndex?: number;
+};
+type SortConfig = {
+  key: string;
+  sourceIndex?: number;
+  userNameSourceIndex?: number;
+  userEmailSourceIndex?: number;
+};
 
 const BLANK_FOLDER = "(Blank)";
+const FULL_PATH_SORT_KEY = "__full_path__";
+const USER_IDENTITY_COLUMN_KEY = "__user_identity_column__";
+const USER_IDENTITY_SORT_KEY = "__user_identity__";
+const USER_NAME_EMAIL_HEADER = "User Name / User Email";
 // Shared email matcher used to parse email cell values from preview rows.
 const EMAIL_PATTERN = /[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}/gi;
 // Business rule: these upload metadata fields must stay hidden in the preview table.
@@ -29,7 +46,28 @@ const HIDDEN_TABLE_HEADERS = new Set([
   "accessvialinkid",
   "herolinkaudience",
   "herolinkrole",
+  "userorgrouptype",
 ]);
+const NAME_HEADERS = new Set([
+  "firstname",
+  "name",
+  "employeename",
+  "fullname",
+]);
+const EMAIL_HEADERS = new Set([
+  "email",
+  "useremail",
+  "individualemail",
+  "memberemail",
+  "employeeemail",
+]);
+const PERMISSION_HEADERS = new Set(["permission", "premission"]);
+const PERMISSION_TOOLTIP_BY_VALUE: Record<string, string> = {
+  "restricted view": "permission to View files",
+  contribute: "permission to Create Sub Folders, Create/Rename/Delete Subfolders and Files",
+  read: "permission to make small edit",
+  "full control": "permission for Create/Rename Folder,Create/Rename/Delete Files",
+};
 
 function normalizeHeader(value: string): string {
   // Normalization lets us match headers safely even if spacing/case changes in Excel.
@@ -105,8 +143,14 @@ function buildFolderHierarchy(rows: string[][]): {
         children: toImmutableNodes(child),
       }));
 
+  const rootNodes = toImmutableNodes(root);
+  // Tree should start from business folders directly (skip Personal wrapper level).
+  const personalRoot = rootNodes.find(
+    (node) => normalizeHeader(node.name) === "personal"
+  );
+
   return {
-    tree: toImmutableNodes(root),
+    tree: personalRoot ? personalRoot.children : rootNodes,
     rowIndexesByFolder,
   };
 }
@@ -194,6 +238,7 @@ function JRCPermission() {
   const [groupMembers, setGroupMembers] = useState<GroupMember[]>([]);
   const [groupMemberSearchText, setGroupMemberSearchText] = useState("");
   const [knownGroupEmails, setKnownGroupEmails] = useState<string[]>([]);
+  const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
   const { data: jrcPermission, isLoading: isJrcPermissionLoading } =
     useHasJrcPermission();
   // Upload option is restricted to users with JRC Permission role.
@@ -210,15 +255,101 @@ function JRCPermission() {
 
   // Hide first Excel column in table (shown in left folder tree)
   // and remove backend-only link metadata columns from UI.
-  const tableColumns = useMemo(
-    () =>
+  const tableColumns = useMemo<TableColumn[]>(
+    () => {
       // Keep original sourceIndex so every cell can still read from the raw row array.
-      previewHeaders
-        .map((header, sourceIndex) => ({ header, sourceIndex }))
+      const visibleColumns: TableColumn[] = previewHeaders
+        .map((header, sourceIndex) => ({
+          key: `column-${sourceIndex}`,
+          header,
+          sourceIndex,
+        }))
         .filter(
           ({ header, sourceIndex }) =>
-            sourceIndex > 0 && !HIDDEN_TABLE_HEADERS.has(normalizeHeader(header))
-        ),
+            (sourceIndex ?? -1) > 0 && !HIDDEN_TABLE_HEADERS.has(normalizeHeader(header))
+        );
+
+      const nameIndex = visibleColumns.findIndex(({ header }) =>
+        NAME_HEADERS.has(normalizeHeader(header))
+      );
+      const emailIndex = visibleColumns.findIndex(({ header }) => {
+        const normalized = normalizeHeader(header);
+        return (
+          EMAIL_HEADERS.has(normalized) ||
+          normalized.includes("email") ||
+          normalized.includes("mail")
+        );
+      });
+
+      // Keep overall order and only swap Name and Email positions when Email appears first.
+      if (nameIndex < 0 || emailIndex < 0 || nameIndex < emailIndex) {
+        const userNameColumnIndex = visibleColumns.findIndex(({ header }) => {
+          const normalized = normalizeHeader(header);
+          return normalized === "username" || normalized === "user";
+        });
+        const userEmailColumnIndex = visibleColumns.findIndex(({ header }) => {
+          const normalized = normalizeHeader(header);
+          return normalized === "useremail";
+        });
+        if (userNameColumnIndex < 0 || userEmailColumnIndex < 0) {
+          return visibleColumns;
+        }
+
+        const mergedColumns: TableColumn[] = [];
+        visibleColumns.forEach((column, index) => {
+          if (index === userNameColumnIndex) {
+            mergedColumns.push({
+              key: USER_IDENTITY_COLUMN_KEY,
+              header: USER_NAME_EMAIL_HEADER,
+              userNameSourceIndex: visibleColumns[userNameColumnIndex].sourceIndex,
+              userEmailSourceIndex: visibleColumns[userEmailColumnIndex].sourceIndex,
+            });
+            return;
+          }
+          if (index === userEmailColumnIndex) {
+            return;
+          }
+          mergedColumns.push(column);
+        });
+        return mergedColumns;
+      }
+
+      const reorderedColumns = [...visibleColumns];
+      [reorderedColumns[nameIndex], reorderedColumns[emailIndex]] = [
+        reorderedColumns[emailIndex],
+        reorderedColumns[nameIndex],
+      ];
+
+      const userNameColumnIndex = reorderedColumns.findIndex(({ header }) => {
+        const normalized = normalizeHeader(header);
+        return normalized === "username" || normalized === "user";
+      });
+      const userEmailColumnIndex = reorderedColumns.findIndex(({ header }) => {
+        const normalized = normalizeHeader(header);
+        return normalized === "useremail";
+      });
+      if (userNameColumnIndex < 0 || userEmailColumnIndex < 0) {
+        return reorderedColumns;
+      }
+
+      const mergedColumns: TableColumn[] = [];
+      reorderedColumns.forEach((column, index) => {
+        if (index === userNameColumnIndex) {
+          mergedColumns.push({
+            key: USER_IDENTITY_COLUMN_KEY,
+            header: USER_NAME_EMAIL_HEADER,
+            userNameSourceIndex: reorderedColumns[userNameColumnIndex].sourceIndex,
+            userEmailSourceIndex: reorderedColumns[userEmailColumnIndex].sourceIndex,
+          });
+          return;
+        }
+        if (index === userEmailColumnIndex) {
+          return;
+        }
+        mergedColumns.push(column);
+      });
+      return mergedColumns;
+    },
     [previewHeaders]
   );
   const emailColumnIndex = useMemo(
@@ -228,6 +359,18 @@ function JRCPermission() {
       previewHeaders.findIndex((header) => {
         const normalized = normalizeHeader(header);
         return normalized === "email" || normalized === "useremail";
+      }),
+    [previewHeaders]
+  );
+  const permissionColumnIndex = useMemo(
+    () =>
+      previewHeaders.findIndex((header) => {
+        const normalized = normalizeHeader(header);
+        return (
+          PERMISSION_HEADERS.has(normalized) ||
+          normalized.includes("permission") ||
+          normalized.includes("premission")
+        );
       }),
     [previewHeaders]
   );
@@ -253,6 +396,8 @@ function JRCPermission() {
     }
     return "";
   };
+  const getPermissionTooltip = (rawValue: string) =>
+    PERMISSION_TOOLTIP_BY_VALUE[(rawValue || "").trim().toLowerCase()] || "";
   const folderFilteredRows = useMemo(() => {
     if (!selectedFolderKey) {
       return previewRows;
@@ -270,6 +415,53 @@ function JRCPermission() {
       return rowEmail === selectedEmail;
     });
   }, [folderFilteredRows, selectedEmployee, emailColumnIndex]);
+  const getFullPathFromRow = useCallback(
+    (row: string[]) => splitFolderPath(row[0] || "").join(" / "),
+    []
+  );
+  const sortedRows = useMemo(() => {
+    if (!sortConfig) {
+      return filteredRows;
+    }
+
+    const rowsWithIndexes = filteredRows.map((row, index) => ({ row, index }));
+    rowsWithIndexes.sort((left, right) => {
+      const leftValue =
+        sortConfig.key === FULL_PATH_SORT_KEY
+          ? getFullPathFromRow(left.row)
+          : sortConfig.key === USER_IDENTITY_SORT_KEY
+            ? (left.row[sortConfig.userNameSourceIndex ?? -1] || "").trim()
+          : left.row[sortConfig.sourceIndex ?? -1] || "";
+      const rightValue =
+        sortConfig.key === FULL_PATH_SORT_KEY
+          ? getFullPathFromRow(right.row)
+          : sortConfig.key === USER_IDENTITY_SORT_KEY
+            ? (right.row[sortConfig.userNameSourceIndex ?? -1] || "").trim()
+          : right.row[sortConfig.sourceIndex ?? -1] || "";
+
+      const comparison = leftValue
+        .trim()
+        .localeCompare(rightValue.trim(), undefined, {
+          sensitivity: "base",
+          numeric: true,
+        });
+
+      if (comparison !== 0) return comparison;
+
+      if (sortConfig.key === USER_IDENTITY_SORT_KEY) {
+        const leftEmail = (left.row[sortConfig.userEmailSourceIndex ?? -1] || "").trim();
+        const rightEmail = (right.row[sortConfig.userEmailSourceIndex ?? -1] || "").trim();
+        const emailComparison = leftEmail.localeCompare(rightEmail, undefined, {
+          sensitivity: "base",
+          numeric: true,
+        });
+        if (emailComparison !== 0) return emailComparison;
+      }
+      return left.index - right.index;
+    });
+
+    return rowsWithIndexes.map(({ row }) => row);
+  }, [filteredRows, getFullPathFromRow, sortConfig]);
   const filteredGroupMembers = useMemo(() => {
     const query = groupMemberSearchText.trim().toLowerCase();
     if (!query) return groupMembers;
@@ -279,6 +471,29 @@ function JRCPermission() {
       return name.includes(query) || email.includes(query);
     });
   }, [groupMembers, groupMemberSearchText]);
+  const handleColumnSort = (
+    key: string,
+    sourceIndex?: number,
+    userNameSourceIndex?: number,
+    userEmailSourceIndex?: number
+  ) => {
+    setSortConfig((previous) => {
+      if (previous?.key === key) {
+        // Second click on same header resets to default row order.
+        return null;
+      }
+      return {
+        key,
+        sourceIndex,
+        userNameSourceIndex,
+        userEmailSourceIndex,
+      };
+    });
+  };
+  const getSortIndicator = (key: string) => {
+    if (sortConfig?.key !== key) return "";
+    return "A-Z";
+  };
 
   const fetchPreview = async (fileUrl?: string) => {
     if (!fileUrl) return;
@@ -539,7 +754,6 @@ function JRCPermission() {
 
     return keys;
   };
-
   const handleTableRowClick = (row: string[]) => {
     // Clicking a table row should sync left tree to that row's folder path.
     const folderKeys = getFolderKeysFromRow(row);
@@ -619,9 +833,9 @@ function JRCPermission() {
             }
           }}
           className={`w-full flex items-center gap-1 px-2 py-1.5 rounded text-xs text-left ${
-            isSelected ? "bg-[#972e26] text-white" : "hover:bg-rose-50"
+            isSelected ? "bg-[#972e26] text-white" : ""
           }`}
-          style={{ paddingLeft: `${(level + 1) * 10}px` }}
+          style={{ paddingLeft: `${level * 10}px` }}
         >
           {hasChildren ? (
             isExpanded ? (
@@ -633,7 +847,14 @@ function JRCPermission() {
             <span className="inline-block w-3.5" />
           )}
           <Folder className="h-3.5 w-3.5 shrink-0" />
-          <span className="truncate">{highlightFolderText(node.name)}</span>
+          <span
+            title={node.key || node.name}
+            className={`truncate rounded px-1 ${
+              isSelected ? "" : "hover:bg-rose-50"
+            }`}
+          >
+            {highlightFolderText(node.name)}
+          </span>
         </button>
 
         {hasChildren && isExpanded && (
@@ -1017,17 +1238,7 @@ function JRCPermission() {
             <div className="grid grid-cols-12 gap-4">
               {/* Left: folder hierarchy built from first Excel column. */}
               <div className="col-span-12 lg:col-span-3 rounded-xl border border-rose-200 bg-white/70 p-2 max-h-[70vh] overflow-auto">
-                <button
-                  type="button"
-                  onClick={() => setSelectedFolderKey(null)}
-                  className={`w-full flex items-center justify-between px-2 py-1.5 rounded text-xs text-left ${
-                    selectedFolderKey === null ? "bg-[#972e26] text-white" : "hover:bg-rose-50"
-                  }`}
-                >
-                  <span>All</span>
-                  <Folder className="h-3.5 w-3.5 shrink-0" />
-                </button>
-                <div className="mt-1 space-y-0.5">
+                <div className="space-y-0.5">
                   {searchableFolderTree.map((node) => renderFolderNode(node))}
                   {searchableFolderTree.length === 0 && (
                     <p className="px-2 py-2 text-xs text-muted-foreground">
@@ -1042,58 +1253,166 @@ function JRCPermission() {
                 <table className="min-w-full text-xs">
                   <thead className="bg-rose-50 sticky top-0">
                     <tr>
-                      {tableColumns.map(({ header, sourceIndex }) => (
+                      {tableColumns.map(
+                        ({
+                          key,
+                          header,
+                          sourceIndex,
+                          userNameSourceIndex,
+                          userEmailSourceIndex,
+                        }) => (
                         <th
-                          key={`${header}-${sourceIndex}`}
+                          key={key}
                           className="px-3 py-2 text-left font-semibold text-gray-700 whitespace-nowrap"
                         >
-                          {header}
+                          <button
+                            type="button"
+                            className="inline-flex items-center gap-1 hover:underline"
+                            onClick={() => {
+                              if (key === USER_IDENTITY_COLUMN_KEY) {
+                                handleColumnSort(
+                                  USER_IDENTITY_SORT_KEY,
+                                  undefined,
+                                  userNameSourceIndex,
+                                  userEmailSourceIndex
+                                );
+                                return;
+                              }
+                              if (sourceIndex !== undefined) {
+                                handleColumnSort(`column-${sourceIndex}`, sourceIndex);
+                              }
+                            }}
+                          >
+                            {header}
+                            {getSortIndicator(
+                              key === USER_IDENTITY_COLUMN_KEY
+                                ? USER_IDENTITY_SORT_KEY
+                                : `column-${sourceIndex}`
+                            ) && (
+                              <span className="text-[10px] text-gray-500">
+                                {getSortIndicator(
+                                  key === USER_IDENTITY_COLUMN_KEY
+                                    ? USER_IDENTITY_SORT_KEY
+                                    : `column-${sourceIndex}`
+                                )}
+                              </span>
+                            )}
+                          </button>
                         </th>
-                      ))}
+                        )
+                      )}
+                      <th className="px-3 py-2 text-left font-semibold text-gray-700 whitespace-nowrap">
+                        <button
+                          type="button"
+                          className="inline-flex items-center gap-1 hover:underline"
+                          onClick={() => handleColumnSort(FULL_PATH_SORT_KEY)}
+                        >
+                          Full Path
+                          {getSortIndicator(FULL_PATH_SORT_KEY) && (
+                            <span className="text-[10px] text-gray-500">
+                              {getSortIndicator(FULL_PATH_SORT_KEY)}
+                            </span>
+                          )}
+                        </button>
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredRows.length > 0 ? (
-                      filteredRows.map((row, rowIndex) => (
+                    {sortedRows.length > 0 ? (
+                      sortedRows.map((row, rowIndex) => (
                         <tr
                           key={`row-${rowIndex}`}
                           // Row click drives folder tree selection/expand on the left.
                           onClick={() => handleTableRowClick(row)}
                           className="cursor-pointer border-t border-rose-100 hover:bg-rose-50/50"
                         >
-                          {tableColumns.map(({ sourceIndex }) => (
+                          {tableColumns.map(
+                            ({ key, sourceIndex, userNameSourceIndex, userEmailSourceIndex }) => (
                             <td
-                              key={`cell-${rowIndex}-${sourceIndex}`}
-                              className="px-3 py-2 whitespace-nowrap"
+                              key={`cell-${rowIndex}-${key}`}
+                              className={`px-3 py-2 ${
+                                key === USER_IDENTITY_COLUMN_KEY ? "" : "whitespace-nowrap"
+                              }`}
                             >
-                              {sourceIndex === emailColumnIndex &&
-                              !!getClickedGroupEmail(row[sourceIndex] || "") ? (
-                                <button
-                                  type="button"
-                                  className="text-blue-600 underline hover:text-blue-700"
-                                  onClick={(event) => {
-                                    event.stopPropagation();
-                                    // Stop row-click folder selection when opening side panel.
-                                    const groupEmail = getClickedGroupEmail(row[sourceIndex] || "");
-                                    if (groupEmail) {
-                                      void handleGroupEmailClick(groupEmail);
-                                    }
-                                  }}
-                                >
-                                  {row[sourceIndex] || ""}
-                                </button>
-                              ) : (
-                                row[sourceIndex] || ""
-                              )}
+                              {(() => {
+                                if (key === USER_IDENTITY_COLUMN_KEY) {
+                                  const userNameValue = row[userNameSourceIndex ?? -1] || "";
+                                  const userEmailValue = row[userEmailSourceIndex ?? -1] || "";
+                                  const groupEmail = getClickedGroupEmail(userEmailValue);
+                                  return (
+                                    <div className="leading-tight">
+                                      <p className="font-medium">{userNameValue || "-"}</p>
+                                      <p className="text-[11px] text-muted-foreground break-all">
+                                        {groupEmail ? (
+                                          <button
+                                            type="button"
+                                            className="text-blue-600 underline hover:text-blue-700"
+                                            onClick={(event) => {
+                                              event.stopPropagation();
+                                              void handleGroupEmailClick(groupEmail);
+                                            }}
+                                          >
+                                            {userEmailValue || "-"}
+                                          </button>
+                                        ) : (
+                                          userEmailValue || "-"
+                                        )}
+                                      </p>
+                                    </div>
+                                  );
+                                }
+
+                                const resolvedSourceIndex = sourceIndex ?? -1;
+                                const cellValue = row[resolvedSourceIndex] || "";
+                                const permissionTooltip =
+                                  resolvedSourceIndex === permissionColumnIndex
+                                    ? getPermissionTooltip(cellValue)
+                                    : "";
+
+                                if (
+                                  resolvedSourceIndex === emailColumnIndex &&
+                                  !!getClickedGroupEmail(cellValue)
+                                ) {
+                                  return (
+                                    <button
+                                      type="button"
+                                      className="text-blue-600 underline hover:text-blue-700"
+                                      onClick={(event) => {
+                                        event.stopPropagation();
+                                        // Stop row-click folder selection when opening side panel.
+                                        const groupEmail = getClickedGroupEmail(cellValue);
+                                        if (groupEmail) {
+                                          void handleGroupEmailClick(groupEmail);
+                                        }
+                                      }}
+                                    >
+                                      {cellValue}
+                                    </button>
+                                  );
+                                }
+
+                                if (permissionTooltip) {
+                                  return <span title={permissionTooltip}>{cellValue}</span>;
+                                }
+
+                                return cellValue;
+                              })()}
                             </td>
-                          ))}
+                            )
+                          )}
+                          <td
+                            className="px-3 py-2 whitespace-nowrap"
+                            title={getFullPathFromRow(row)}
+                          >
+                            {getFullPathFromRow(row)}
+                          </td>
                         </tr>
                       ))
                     ) : (
                       <tr className="border-t">
                         <td
                           className="px-3 py-2 text-muted-foreground"
-                          colSpan={Math.max(tableColumns.length, 1)}
+                          colSpan={Math.max(tableColumns.length + 1, 1)}
                         >
                           No rows available for selected filters.
                         </td>
