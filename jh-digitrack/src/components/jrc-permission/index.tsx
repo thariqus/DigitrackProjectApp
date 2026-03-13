@@ -63,9 +63,9 @@ const EMAIL_HEADERS = new Set([
 ]);
 const PERMISSION_HEADERS = new Set(["permission", "premission"]);
 const PERMISSION_TOOLTIP_BY_VALUE: Record<string, string> = {
-  "restricted view": "permission to View files",
+  "restricted view": "permission to View files but not downloadable",
   contribute: "permission to Create Sub Folders, Create/Rename/Delete Subfolders and Files",
-  read: "permission to make small edit",
+  read: "permission to view files",
   "full control": "permission for Create/Rename Folder,Create/Rename/Delete Files",
 };
 
