@@ -273,10 +273,15 @@ scheduler_events = {
 # 	"Logging DocType Name": 30  # days to retain logs
 # }
 
-fixtures = [  {
+fixtures = [
+    {
         "doctype": "Navbar Settings",
-      
-    },]
+    },
+    {
+        "doctype": "Role",
+        "filters": [["role_name", "in", ["JRC Permission"]]],
+    },
+]
 
 website_route_rules = [
     {"from_route": "/jh-digitrack/<path:app_path>", "to_route": "jh-digitrack"},
