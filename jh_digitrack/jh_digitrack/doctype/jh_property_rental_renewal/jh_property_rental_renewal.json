@@ -1,0 +1,263 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "RNW-.YYYY.-.#####",
+ "creation": "2026-03-19 13:26:26.854097",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_ljpf",
+  "property",
+  "current_rent",
+  "proposed_rent",
+  "additional_charges",
+  "rent_change_percent",
+  "renewal_from",
+  "renewal_to",
+  "column_break_umpo",
+  "payment_schedule",
+  "new_security_deposit",
+  "remarks",
+  "supporting_documents",
+  "cheque_details_section",
+  "bank_name",
+  "cheque_number",
+  "cheque_amount",
+  "column_break_c6uw",
+  "cheque_date",
+  "payee",
+  "signatory",
+  "po_details_section",
+  "po_number",
+  "renewed_contract_document",
+  "miro_details_section",
+  "miro_number",
+  "property_information_section",
+  "division",
+  "location",
+  "emirate",
+  "landlord",
+  "column_break_c4dw",
+  "property_type",
+  "number_of_units",
+  "tenancy_period"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_ljpf",
+   "fieldtype": "Section Break",
+   "label": "Core Details"
+  },
+  {
+   "fieldname": "property",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Property",
+   "options": "JH Property Master",
+   "reqd": 1
+  },
+  {
+   "fieldname": "current_rent",
+   "fieldtype": "Currency",
+   "label": "Current Rent",
+   "read_only": 1
+  },
+  {
+   "fieldname": "proposed_rent",
+   "fieldtype": "Currency",
+   "label": "Proposed Rent",
+   "reqd": 1
+  },
+  {
+   "fieldname": "additional_charges",
+   "fieldtype": "Currency",
+   "label": "Additional Charges"
+  },
+  {
+   "fieldname": "renewal_from",
+   "fieldtype": "Date",
+   "label": "Renewal From",
+   "reqd": 1
+  },
+  {
+   "fieldname": "renewal_to",
+   "fieldtype": "Date",
+   "label": "Renewal To",
+   "reqd": 1
+  },
+  {
+   "fieldname": "payment_schedule",
+   "fieldtype": "Data",
+   "label": "Payment Schedule"
+  },
+  {
+   "fieldname": "new_security_deposit",
+   "fieldtype": "Currency",
+   "label": "New Security Deposit"
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
+  },
+  {
+   "fieldname": "supporting_documents",
+   "fieldtype": "Attach",
+   "label": "Supporting Documents"
+  },
+  {
+   "fieldname": "rent_change_percent",
+   "fieldtype": "Percent",
+   "label": "Rent Change (%)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_umpo",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "cheque_details_section",
+   "fieldtype": "Section Break",
+   "label": "Cheque Details"
+  },
+  {
+   "fieldname": "bank_name",
+   "fieldtype": "Data",
+   "label": "Bank Name"
+  },
+  {
+   "fieldname": "cheque_number",
+   "fieldtype": "Data",
+   "label": "Cheque Number"
+  },
+  {
+   "fieldname": "cheque_amount",
+   "fieldtype": "Currency",
+   "label": "Cheque Amount"
+  },
+  {
+   "fieldname": "cheque_date",
+   "fieldtype": "Date",
+   "label": "Cheque Date"
+  },
+  {
+   "fieldname": "payee",
+   "fieldtype": "Data",
+   "label": "Payee"
+  },
+  {
+   "fieldname": "signatory",
+   "fieldtype": "Data",
+   "label": "Signatory"
+  },
+  {
+   "fieldname": "po_details_section",
+   "fieldtype": "Section Break",
+   "label": "PO Details"
+  },
+  {
+   "fieldname": "po_number",
+   "fieldtype": "Data",
+   "label": "PO Number"
+  },
+  {
+   "fieldname": "renewed_contract_document",
+   "fieldtype": "Attach",
+   "label": "Renewed Contract Document"
+  },
+  {
+   "fieldname": "column_break_c6uw",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "miro_details_section",
+   "fieldtype": "Section Break",
+   "label": "MIRO Details"
+  },
+  {
+   "fieldname": "miro_number",
+   "fieldtype": "Data",
+   "label": "MIRO Number"
+  },
+  {
+   "fieldname": "property_information_section",
+   "fieldtype": "Section Break",
+   "label": "Property Information"
+  },
+  {
+   "fieldname": "division",
+   "fieldtype": "Data",
+   "label": "Division",
+   "read_only": 1
+  },
+  {
+   "fieldname": "location",
+   "fieldtype": "Data",
+   "label": "Location",
+   "read_only": 1
+  },
+  {
+   "fieldname": "emirate",
+   "fieldtype": "Data",
+   "label": "Emirate",
+   "read_only": 1
+  },
+  {
+   "fieldname": "landlord",
+   "fieldtype": "Data",
+   "label": "Landlord",
+   "read_only": 1
+  },
+  {
+   "fieldname": "property_type",
+   "fieldtype": "Data",
+   "label": "Property Type",
+   "read_only": 1
+  },
+  {
+   "fieldname": "number_of_units",
+   "fieldtype": "Int",
+   "label": "Number of Units",
+   "read_only": 1
+  },
+  {
+   "fieldname": "tenancy_period",
+   "fieldtype": "Data",
+   "label": "Tenancy Period",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_c4dw",
+   "fieldtype": "Column Break"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-03-19 14:15:02.799443",
+ "modified_by": "Administrator",
+ "module": "JH Digitrack",
+ "name": "JH Property Rental Renewal",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
