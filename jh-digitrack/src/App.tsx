@@ -4,7 +4,7 @@ import { queryClient } from "@/utils/query-client";
 import { Toaster } from "@/components/toaster";
 import { Navigate, Route, Routes, BrowserRouter } from "react-router";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import { Suspense, useEffect, useRef } from "react";
+import { lazy, Suspense, useEffect, useRef } from "react";
 import AuthProvider from "@/components/auth";
 import SplashScreen from "@/components/splash-screen";
 import Layout from "@/components/layout";
@@ -24,6 +24,9 @@ import AuditTasksShrink from "./components/tasks/task-table/audit-tasks-shrink";
 import Maintenance from "./components/Maintenance";
 import Dashboard from "./components/dashboard";
 import JRCPermission from "./components/jrc-permission";
+import PropertyList from "./components/PropertyAutomation/PropertLIst"
+import PropertyMaster from "./components/PropertyAutomation/PropertyMaster/index.tsx";
+const PropertyAutomation = lazy(()=> import("./components/PropertyAutomation/index.tsx"));
 
 function AppWrapper() {
 
@@ -79,6 +82,10 @@ function AppWrapper() {
               <Route path="projects" element={<Projects />} />
               <Route path="idle-assets" element={<Scrapitems />} />
               <Route path="jrc-permission" element={<JRCPermission />} />
+              <Route path="property" element={<PropertyAutomation />} >
+                 <Route index element={<PropertyMaster/>}/>
+                 <Route path="all-properties" element={<PropertyList/>} />
+              </Route>
               <Route path="meetings" element={<Meetings />} />
               <Route path="meetings/:meetingId" element={<MeetingTasks />} />
               <Route path="meetings/:meetingId/expanded" element={<MeetingTasksExpanded />} />

@@ -41,3 +41,24 @@ export const useHasJrcPermission = () => {
     enabled: !!currentJhUser?.email,
   });
 };
+
+
+export const  useHasPropertyAccess = () => {
+  const { data: currentJhUser } = useCurrentJhUser();
+
+  return useQuery({
+    queryKey: ["property-access", currentJhUser?.email],
+    queryFn: async () => {
+      if (!currentJhUser?.email) return { message: { has_access: false } };
+
+      const res = await frappe.api.get<{
+        message: { message: { has_access: boolean } };
+      }>("jh_digitrack.api.user_details.", {
+        email: currentJhUser?.email,
+      });
+
+      return { message: res.message.message };
+    },
+    enabled: !!currentJhUser?.email,
+  });
+};
