@@ -1,6 +1,7 @@
 {
  "actions": [],
  "allow_rename": 1,
+ "autoname": "format:PROP-.YYYY.-.####",
  "creation": "2026-03-19 12:18:46.401708",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -246,10 +247,11 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-03-19 13:20:32.617947",
- "modified_by": "Administrator",
+ "modified": "2026-03-24 12:33:03.346785",
+ "modified_by": "faris@bytsolv.com",
  "module": "JH Digitrack",
  "name": "JH Property Master",
+ "naming_rule": "Expression",
  "owner": "Administrator",
  "permissions": [
   {
@@ -269,5 +271,6 @@
  "rows_threshold_for_grid_search": 20,
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": []
+ "states": [],
+ "track_changes": 1
 }
