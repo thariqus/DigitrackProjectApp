@@ -62,7 +62,8 @@
   {
    "fieldname": "type_of_property",
    "fieldtype": "Select",
-   "label": "Type of Property"
+   "label": "Type of Property",
+   "options": "Shop\nOffice\nWarehouse\nOther"
   },
   {
    "fieldname": "division_used",
@@ -247,7 +248,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-03-24 12:33:03.346785",
+ "modified": "2026-03-24 12:43:45.227817",
  "modified_by": "faris@bytsolv.com",
  "module": "JH Digitrack",
  "name": "JH Property Master",
