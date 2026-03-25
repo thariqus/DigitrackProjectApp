@@ -487,6 +487,13 @@ def run_post_hrms_sync():
                     "designation_name",
                     designation
                 )
+                if frappe.db.exists("JH User Master", emp_id):
+                    frappe.db.set_value(
+                        "JH User Master",
+                        emp_id,
+                        "designation_name",
+                        designation
+                    )
 
             elif action == "D":
 
