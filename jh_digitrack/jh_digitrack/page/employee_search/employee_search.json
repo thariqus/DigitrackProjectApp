@@ -1,0 +1,25 @@
+{
+ "content": null,
+ "creation": "2026-03-25 12:55:47.064043",
+ "docstatus": 0,
+ "doctype": "Page",
+ "idx": 0,
+ "modified": "2026-03-25 12:55:47.064043",
+ "modified_by": "Administrator",
+ "module": "JH Digitrack",
+ "name": "employee-search",
+ "owner": "Administrator",
+ "page_name": "employee-search",
+ "roles": [
+  {
+   "role": "JH Digitrack Member"
+  },
+  {
+   "role": "JH Digitrack Admin"
+  }
+ ],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 0
+}
