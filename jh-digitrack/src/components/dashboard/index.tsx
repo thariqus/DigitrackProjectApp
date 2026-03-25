@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { TaskFilters } from "../tasks/ui/task-filters";
 import { TaskCardGrid } from "./ui/TaskCardGrid";
-import { Button } from "@/components/ui/button"; // assuming you use shadcn/ui Button
 
 const Dashboard = () => {
   const [activeFilter, setActiveFilter] = useState("dashboard");
@@ -49,15 +48,22 @@ const Dashboard = () => {
             onDescriptionChange={setDescription}
           />
 
-        <div className="bg-rose-50 p-1 rounded-md">
-        <button
-          className="text-sm font-medium text-gray-700 bg-rose-50 h-9 px-4 flex items-center justify-center rounded-md transition-colors"
-          onClick={() => (window.location.href = '/jh-digitrack/idle-assets')}
-        >
-          Idle Assets
-        </button>
-
-        </div>
+          <div className="bg-rose-50 p-1 rounded-md flex items-center gap-1">
+            <button
+              className="text-sm font-medium text-gray-700 bg-rose-50 h-9 px-4 flex items-center justify-center rounded-md transition-colors"
+              onClick={() => (window.location.href = "/jh-digitrack/idle-assets")}
+            >
+              Idle Assets
+            </button>
+          </div>
+          <div className="bg-rose-50 p-1 rounded-md flex items-center gap-1">
+            <button
+              className="text-sm font-medium text-gray-700 bg-rose-50 h-9 px-4 flex items-center justify-center rounded-md transition-colors"
+              onClick={() => (window.location.href = "/jh-digitrack/jrc-permission")}
+            >
+              JRC Explorer
+            </button>
+          </div>
 
         </div>
       </div>
