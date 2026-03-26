@@ -63,8 +63,9 @@ export function MainNav() {
           />
         </Link>
 
-        <nav className="ml-auto flex items-center gap-4 md:gap-6">
-          <Link to="dashboard" className={className(["dashboard"])}>
+        <nav className="ml-auto  flex items-center gap-3 md:gap-6">
+          <div className="ml-auto flex items-center gap-3 md:gap-3 overflow-y-auto text-nowrap">
+              <Link to="dashboard" className={className(["dashboard"])}>
             <LayoutDashboard  className="h-5 w-5" />
             <span>Dashboard</span>
           </Link>
@@ -116,6 +117,12 @@ export function MainNav() {
             <LineChart className="h-5 w-5" />
             <span>PMS Lite</span>
           </button>
+          <Link to="property" className={className(["property"])}>
+            <FolderOpenDot className="h-5 w-5" />
+            <span>Property Automation</span>
+          </Link>
+          </div>
+          
 
           {/* Divider */}
           <span className="border h-10 border-gray-200"></span>
