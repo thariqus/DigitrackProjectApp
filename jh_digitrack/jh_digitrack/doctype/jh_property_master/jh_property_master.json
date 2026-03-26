@@ -1,7 +1,8 @@
 {
  "actions": [],
  "allow_rename": 1,
- "creation": "2026-03-19 12:18:46.401708",
+ "autoname": "PROP-.YYYY.-.####",
+ "creation": "2026-03-24 17:56:32.491895",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
@@ -43,7 +44,7 @@
   "cdc_expiry",
   "hassantuk_expiry",
   "documents_section",
-  "attachments"
+  "documents"
  ],
  "fields": [
   {
@@ -61,7 +62,8 @@
   {
    "fieldname": "type_of_property",
    "fieldtype": "Select",
-   "label": "Type of Property"
+   "label": "Type of Property",
+   "options": "Flat\nShop\nVilla\nOther"
   },
   {
    "fieldname": "division_used",
@@ -238,18 +240,20 @@
    "label": "Documents"
   },
   {
-   "fieldname": "attachments",
-   "fieldtype": "Attach",
-   "label": "Attachments"
+   "fieldname": "documents",
+   "fieldtype": "Table",
+   "label": "Documents",
+   "options": "JH Property Document"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-03-19 13:20:32.617947",
+ "modified": "2026-03-24 17:58:09.215398",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Property Master",
+ "naming_rule": "By \"Naming Series\" field",
  "owner": "Administrator",
  "permissions": [
   {
