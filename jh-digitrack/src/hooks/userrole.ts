@@ -53,7 +53,7 @@ export const  useHasPropertyAccess = () => {
 
       const res = await frappe.api.get<{
         message: { message: { has_access: boolean } };
-      }>("jh_digitrack.api.user_details.", {
+      }>("jh_digitrack.api.property_management.has_property_automation_role", {
         email: currentJhUser?.email,
       });
 
