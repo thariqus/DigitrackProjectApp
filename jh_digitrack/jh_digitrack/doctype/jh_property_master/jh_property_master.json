@@ -1,8 +1,8 @@
 {
  "actions": [],
  "allow_rename": 1,
- "autoname": "PROP-.YYYY.-.####",
- "creation": "2026-03-24 17:56:32.491895",
+ "autoname": "format:PROP-.YYYY.-.####",
+ "creation": "2026-03-19 12:18:46.401708",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
@@ -63,7 +63,7 @@
    "fieldname": "type_of_property",
    "fieldtype": "Select",
    "label": "Type of Property",
-   "options": "Flat\nShop\nVilla\nOther"
+   "options": "Shop\nOffice\nWarehouse\nOther"
   },
   {
    "fieldname": "division_used",
@@ -249,11 +249,11 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-03-24 17:58:09.215398",
- "modified_by": "Administrator",
+ "modified": "2026-03-24 12:43:45.227817",
+ "modified_by": "faris@bytsolv.com",
  "module": "JH Digitrack",
  "name": "JH Property Master",
- "naming_rule": "By \"Naming Series\" field",
+ "naming_rule": "Expression",
  "owner": "Administrator",
  "permissions": [
   {
@@ -273,5 +273,6 @@
  "rows_threshold_for_grid_search": 20,
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": []
+ "states": [],
+ "track_changes": 1
 }
