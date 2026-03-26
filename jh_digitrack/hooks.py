@@ -283,6 +283,16 @@ fixtures = [
     },
 ]
 
+fixtures = [
+    {
+        "doctype": "Navbar Settings",
+    },
+    {
+        "doctype": "Role",
+        "filters": [["role_name", "in", ["Property Automation"]]],
+    },
+]
+
 website_route_rules = [
     {"from_route": "/jh-digitrack/<path:app_path>", "to_route": "jh-digitrack"},
     {"from_route": "/PMS/<path:app_path>", "to_route": "PMS"},
