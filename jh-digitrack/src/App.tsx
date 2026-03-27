@@ -25,7 +25,7 @@ import Maintenance from "./components/Maintenance";
 import Dashboard from "./components/dashboard";
 import JRCPermission from "./components/jrc-permission";
 // import PropertyList from "./components/PropertyAutomation/PropertyList"
-import PropertyMaster from "./components/PropertyAutomation/PropertyMaster";
+import PropertyMaster from "./components/PropertyAutomation/Properties";
 const PropertyAutomation = lazy(()=> import("./components/PropertyAutomation"));
 
 function AppWrapper() {
