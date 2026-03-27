@@ -20,13 +20,7 @@
   "remarks",
   "supporting_documents",
   "cheque_details_section",
-  "bank_name",
-  "cheque_number",
-  "cheque_amount",
-  "column_break_c6uw",
-  "cheque_date",
-  "payee",
-  "signatory",
+  "table_tsuz",
   "po_details_section",
   "po_number",
   "renewed_contract_document",
@@ -40,7 +34,9 @@
   "column_break_c4dw",
   "property_type",
   "number_of_units",
-  "tenancy_period"
+  "tenancy_period",
+  "section_break_kpz9",
+  "workflow_state"
  ],
  "fields": [
   {
@@ -57,6 +53,8 @@
    "reqd": 1
   },
   {
+   "fetch_from": "property.current_rent",
+   "fetch_if_empty": 1,
    "fieldname": "current_rent",
    "fieldtype": "Currency",
    "label": "Current Rent",
@@ -121,36 +119,6 @@
    "label": "Cheque Details"
   },
   {
-   "fieldname": "bank_name",
-   "fieldtype": "Data",
-   "label": "Bank Name"
-  },
-  {
-   "fieldname": "cheque_number",
-   "fieldtype": "Data",
-   "label": "Cheque Number"
-  },
-  {
-   "fieldname": "cheque_amount",
-   "fieldtype": "Currency",
-   "label": "Cheque Amount"
-  },
-  {
-   "fieldname": "cheque_date",
-   "fieldtype": "Date",
-   "label": "Cheque Date"
-  },
-  {
-   "fieldname": "payee",
-   "fieldtype": "Data",
-   "label": "Payee"
-  },
-  {
-   "fieldname": "signatory",
-   "fieldtype": "Data",
-   "label": "Signatory"
-  },
-  {
    "fieldname": "po_details_section",
    "fieldtype": "Section Break",
    "label": "PO Details"
@@ -164,10 +132,6 @@
    "fieldname": "renewed_contract_document",
    "fieldtype": "Attach",
    "label": "Renewed Contract Document"
-  },
-  {
-   "fieldname": "column_break_c6uw",
-   "fieldtype": "Column Break"
   },
   {
    "fieldname": "miro_details_section",
@@ -185,42 +149,49 @@
    "label": "Property Information"
   },
   {
+   "fetch_from": "property.division_used",
    "fieldname": "division",
    "fieldtype": "Data",
    "label": "Division",
    "read_only": 1
   },
   {
+   "fetch_from": "property.location",
    "fieldname": "location",
    "fieldtype": "Data",
    "label": "Location",
    "read_only": 1
   },
   {
+   "fetch_from": "property.emirate",
    "fieldname": "emirate",
    "fieldtype": "Data",
    "label": "Emirate",
    "read_only": 1
   },
   {
+   "fetch_from": "property.landlord",
    "fieldname": "landlord",
    "fieldtype": "Data",
    "label": "Landlord",
    "read_only": 1
   },
   {
+   "fetch_from": "property.type_of_property",
    "fieldname": "property_type",
    "fieldtype": "Data",
    "label": "Property Type",
    "read_only": 1
   },
   {
+   "fetch_from": "property.number_of_units",
    "fieldname": "number_of_units",
    "fieldtype": "Int",
    "label": "Number of Units",
    "read_only": 1
   },
   {
+   "fetch_from": "property.tenancy_period",
    "fieldname": "tenancy_period",
    "fieldtype": "Data",
    "label": "Tenancy Period",
@@ -229,12 +200,30 @@
   {
    "fieldname": "column_break_c4dw",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_kpz9",
+   "fieldtype": "Section Break",
+   "label": "Work Flow"
+  },
+  {
+   "default": "Draft",
+   "fieldname": "workflow_state",
+   "fieldtype": "Select",
+   "label": "Workflow State",
+   "options": "Draft\nPending_GM_Review\nPending_Admin_HOD\nPending_CFO\nPending_MD\nPending_Cheque_Details\nPending_Property_PO\nPending_MIRO\nCompleted\nRejected",
+   "read_only": 1
+  },
+  {
+   "fieldname": "table_tsuz",
+   "fieldtype": "Table",
+   "options": "JH Property Cheque Detail"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-03-19 14:15:02.799443",
+ "modified": "2026-03-24 18:45:14.407403",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Property Rental Renewal",

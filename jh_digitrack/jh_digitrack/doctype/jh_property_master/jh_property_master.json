@@ -44,7 +44,7 @@
   "cdc_expiry",
   "hassantuk_expiry",
   "documents_section",
-  "attachments"
+  "documents"
  ],
  "fields": [
   {
@@ -240,9 +240,10 @@
    "label": "Documents"
   },
   {
-   "fieldname": "attachments",
-   "fieldtype": "Attach",
-   "label": "Attachments"
+   "fieldname": "documents",
+   "fieldtype": "Table",
+   "label": "Documents",
+   "options": "JH Property Document"
   }
  ],
  "grid_page_length": 50,
