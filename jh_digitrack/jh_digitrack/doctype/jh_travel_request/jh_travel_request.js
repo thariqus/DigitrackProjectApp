@@ -51,35 +51,6 @@ const required_fields = [
 
 frappe.ui.form.on("JH Travel Request", {
   refresh(frm) {
-    if (!frappe._jh_travel_email_patch) {
-      const original_make = frappe.views.CommunicationComposer.prototype.make;
-
-      frappe.views.CommunicationComposer.prototype.make = function () {
-        original_make.call(this);
-
-        if (this.frm && this.frm.doctype === "JH Travel Request") {
-          const wrapper = this.dialog && this.dialog.wrapper;
-          if (!wrapper) return;
-
-          const check_all_attachments = () => {
-            $(wrapper).find("[data-file-name]").prop("checked", true);
-          };
-
-          check_all_attachments();
-
-          if (window.MutationObserver) {
-            const observer = new MutationObserver(() => check_all_attachments());
-            observer.observe(wrapper, { childList: true, subtree: true });
-            if (!this._jh_travel_email_observer) {
-              this._jh_travel_email_observer = observer;
-            }
-          }
-        }
-      };
-
-      frappe._jh_travel_email_patch = true;
-    }
-
     // HTML Injection Protection - sanitize text input fields
     jh_attach_sanitizer(frm, ['passenger_information', "description"]);
 
@@ -95,7 +66,6 @@ frappe.ui.form.on("JH Travel Request", {
           req_id: frm.doc.name,
           is_new: frm.is_new(),
         },
-        type: "GET",
       })
       .then((r) => {
         const role = r?.message.role;
