@@ -24,8 +24,7 @@ import AuditTasksShrink from "./components/tasks/task-table/audit-tasks-shrink";
 import Maintenance from "./components/Maintenance";
 import Dashboard from "./components/dashboard";
 import JRCPermission from "./components/jrc-permission";
-// import PropertyList from "./components/PropertyAutomation/PropertyList"
-import PropertyMaster from "./components/PropertyAutomation/Properties";
+import Properties from "./components/PropertyAutomation/Properties";
 const PropertyAutomation = lazy(()=> import("./components/PropertyAutomation"));
 
 function AppWrapper() {
@@ -83,7 +82,7 @@ function AppWrapper() {
               <Route path="idle-assets" element={<Scrapitems />} />
               <Route path="jrc-permission" element={<JRCPermission />} />
               <Route path="property" element={<PropertyAutomation />} >
-                 <Route index element={<PropertyMaster/>}/>
+                 <Route index element={<Properties/>}/>
                  {/* <Route path="allproperties" element={<PropertyList/>} /> */}
               </Route>
               <Route path="meetings" element={<Meetings />} />
