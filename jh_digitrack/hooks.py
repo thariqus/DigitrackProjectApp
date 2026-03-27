@@ -279,7 +279,7 @@ fixtures = [
     },
     {
         "doctype": "Role",
-        "filters": [["role_name", "in", ["JRC Permission"]]],
+        "filters": [["role_name", "in", ["JRC Permission", "Property Automation"]]],
     },
 ]
 
