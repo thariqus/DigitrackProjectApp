@@ -11,8 +11,9 @@ import {
   Gauge,
   Users,
   LineChart,
+  Warehouse
 } from "lucide-react";
-import { Link, useLocation } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import JHLogo from "@/assets/digitrack-logo.png";
 import {
   DropdownMenu,
@@ -25,13 +26,15 @@ import { useCurrentJhUser, useLogout } from "@/hooks/auth";
 import { useAppVersion } from "@/hooks/system";
 import { JHDigitrackSettings } from "@/types/JHDigitrack/JHDigitrackSettings";
 import { useDocDetail } from "@/hooks/doc";
-import { useHasPmsAccess } from "@/hooks/userrole";
+import { useHasPmsAccess, useHasPropertyAccess } from "@/hooks/userrole";
 
 export function MainNav() {
   const { pathname } = useLocation();
   const { data: currentJhUser } = useCurrentJhUser();
   const { data: appVersion } = useAppVersion();
   const { mutate: logout } = useLogout();
+  const navigate = useNavigate()
+ 
 
   const className = (path: string[]) => {
     return cn(
@@ -49,6 +52,7 @@ export function MainNav() {
 
   const attachment = attachmentDetailed?.docs[0];
   const { data: pmsRole } = useHasPmsAccess();
+  const { data: propertyRole } = useHasPropertyAccess();
 
   return (
     <header className="border-b">
@@ -117,12 +121,21 @@ export function MainNav() {
             <LineChart className="h-5 w-5" />
             <span>PMS Lite</span>
           </button>
-          <Link to="property" className={className(["property"])}>
-            <FolderOpenDot className="h-5 w-5" />
+
+          <button
+            onClick={() => {
+              if (!propertyRole?.message?.has_access) {
+                alert("You have no access to Property Automation. Please contact admin.");
+                return;
+              }
+              navigate("property")
+            }}
+            className="flex items-center gap-2 text-gray-600 hover:text-primary"
+          >
+            <Warehouse className="h-5 w-5" />
             <span>Property Automation</span>
-          </Link>
-          </div>
-          
+          </button>
+        </div>
 
           {/* Divider */}
           <span className="border h-10 border-gray-200"></span>
