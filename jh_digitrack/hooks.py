@@ -150,6 +150,9 @@ doc_events = {
         "before_save": "jh_digitrack.setup.user_events.before_save",
         "validate": "jh_digitrack.jh_digitrack.doc_events.check_pms_employee.validate_pms_user",
     },
+    "JH Property Rental Renewal": {
+        "before_save": "jh_digitrack.jh_digitrack.doctype.jh_property_rental_renewal.jh_property_rental_renewal.before_save_rental_renewal",
+    },
     "JH Digitrack Settings": {
         "before_save": "jh_digitrack.jh_digitrack.doc_events.user_manual_route.populate_user_manual",
     },
