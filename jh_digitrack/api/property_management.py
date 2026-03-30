@@ -1,13 +1,22 @@
 import frappe
-
-
-PROPERTY_AUTOMATION_ROLE = "Property Automation"
+from frappe import _
 
 
 @frappe.whitelist(methods=["GET"])
-def has_property_automation_role():
-    if frappe.session.user == "Guest":
-        frappe.throw("Unauthorized", frappe.PermissionError)
+def has_property_automation_role(email=None):
+    if not email:
+        frappe.throw(_("Email is required"))
 
-    has_access = PROPERTY_AUTOMATION_ROLE in frappe.get_roles(frappe.session.user)
+    if frappe.session.user == "Administrator" or email == "Administrator":
+        return {"message": {"has_access": True}}
+
+    allowed_roles = {
+        "JH Property Rent Workflow User",
+        "JH Digitrack Admin",
+        "JH Credit Card Holder",
+    }
+
+    user_roles = set(frappe.get_roles(email))
+    has_access = bool(user_roles.intersection(allowed_roles))
+
     return {"message": {"has_access": has_access}}

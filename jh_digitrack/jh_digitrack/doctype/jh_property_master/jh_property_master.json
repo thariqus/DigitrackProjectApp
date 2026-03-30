@@ -44,7 +44,7 @@
   "cdc_expiry",
   "hassantuk_expiry",
   "documents_section",
-  "attachments"
+  "documents"
  ],
  "fields": [
   {
@@ -240,16 +240,17 @@
    "label": "Documents"
   },
   {
-   "fieldname": "attachments",
-   "fieldtype": "Attach",
-   "label": "Attachments"
+   "fieldname": "documents",
+   "fieldtype": "Table",
+   "label": "Documents",
+   "options": "JH Property Document"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-03-24 12:43:45.227817",
- "modified_by": "faris@bytsolv.com",
+ "modified": "2026-03-27 23:16:10.823689",
+ "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Property Master",
  "naming_rule": "Expression",
@@ -264,6 +265,38 @@
    "read": 1,
    "report": 1,
    "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "JH License Authority",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "JH GM Approval",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "JH Property Rent Workflow User",
    "share": 1,
    "write": 1
   }

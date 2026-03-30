@@ -60,5 +60,8 @@ export const  useHasPropertyAccess = () => {
       return { message: res.message.message };
     },
     enabled: !!currentJhUser?.email,
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
   });
 };
