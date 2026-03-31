@@ -29,7 +29,10 @@
   "preferred_hotel",
   "preferred_flight",
   "other_preffered_flight",
+  "food",
+  "section_break_9xpa",
   "passenger_information",
+  "column_break_1esc",
   "description",
   "final_amount",
   "attachments_section",
@@ -316,11 +319,26 @@
    "fieldtype": "Time",
    "label": "Preferred Time",
    "mandatory_depends_on": "eval:doc.request_type === \"Flight\""
+  },
+  {
+   "fieldname": "section_break_9xpa",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_1esc",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.request_type === \"Flight\" || doc.request_type === \"Hotel\"",
+   "fieldname": "food",
+   "fieldtype": "Check",
+   "label": "Food"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-03-25 16:07:05.159026",
+ "modified": "2026-03-30 12:39:12.353406",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Travel Request",
