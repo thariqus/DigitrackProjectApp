@@ -13,26 +13,27 @@ export const PropertyTableHeader = ()=> {
         </TableHead>
 
         <TableHead className="cursor-pointer">
-          Type Of Property
+          Type
         </TableHead>
 
         <TableHead className="cursor-pointer">
-         Location
+          Division
         </TableHead>
 
-         <TableHead className="cursor-pointer">
+        <TableHead className="cursor-pointer">
          Emirate
-        </TableHead>
-
-         <TableHead className="cursor-pointer">
-         Division used
         </TableHead>
 
         <TableHead className="cursor-pointer w-[150px]">
           Current Rent
         </TableHead>
+
         <TableHead className="cursor-pointer w-[150px]">
-          Rent renewal date
+          Renewal date
+        </TableHead>
+
+        <TableHead className="cursor-pointer">
+          Renewal status
         </TableHead>
 
         {/* Actions */}
