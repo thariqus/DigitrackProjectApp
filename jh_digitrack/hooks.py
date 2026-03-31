@@ -282,7 +282,7 @@ fixtures = [
     },
     {
         "doctype": "Role",
-        "filters": [["role_name", "in", ["JRC Permission", "Property Automation"]]],
+        "filters": [["role_name", "in", ["JRC Permission", "JH Property Dept"]]],
     },
 ]
 
@@ -292,7 +292,7 @@ fixtures = [
     },
     {
         "doctype": "Role",
-        "filters": [["role_name", "in", ["Property Automation"]]],
+        "filters": [["role_name", "in", ["JH Property Dept"]]],
     },
 ]
 
