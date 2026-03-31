@@ -5,29 +5,32 @@ import { Table, TableBody, TableFooter } from "@/components/ui/table";
 import { PropertyTableHeader } from "../ui/PropertyTableHeader";
 import PropertyTableRow from "../ui/PropertyTableRow";
 import PropertySheet from "../ui/PropertySheet";
-import SearchBar from "../ui/SearchBar";
 import FilterButtons from "../ui/FilterButtons";
 import { useDocs } from "@/hooks/doc";
 import { PropertyMaster } from "@/types/JHDigitrack/JHPropertyAutomation";
 import { Filter } from "frappe-js-sdk/lib/db/types";
 import { usePropertyFilters } from "@/components/PropertyAutomation/hooks/usePropertyFilters";
 import { PaginationControls } from "../ui/PaginationControls";
+import SearchBar from "../ui/SearchBar";
 
 function Properties() {
   const [searchQuery, setSearchQuery] = useState("");
   const [tasksPerPage, setTasksPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
-
+  const [mode, setMode] = useState<"view" | "edit" | "create">("create");
   const [selectedEmirate, setSelectedEmirate] = useState<string[]>([]);
- const [selectedType, setSelectedType] = useState<string[]>([]);
-
+  const [selectedType, setSelectedType] = useState<string[]>([]);
+  const [selectedDivision, setSelectedDivision] = useState<string[]>([]);
+  const [expiringSoon, setExpiringSoon] = useState(false);
   const [selectedProperty, setSelectedProperty] = useState<string | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
-  const { filters } = usePropertyFilters({
+  const { filters} = usePropertyFilters({
     searchQuery,
     selectedEmirate,
     selectedType,
+    selectedDivision,
+    expiringSoon
   });
 
   const { data: properties = [], isLoading } = useDocs<PropertyMaster>({
@@ -62,47 +65,99 @@ function Properties() {
       "internet_connection",
       "cdc_expiry",
       "hassantuk_expiry",
-      "attachments",
+      "documents"
     ],
     limit: tasksPerPage,
     page: currentPage,
     filters: filters as Filter<PropertyMaster>[],
+    orderBy: {
+    field: "`tabJH Property Master`.`renewal_date`",
+    order: "asc",
+},
   });
+
 
   const handleSearchChange = useCallback((value: string) => {
     setSearchQuery(value);
     setCurrentPage(1);
   }, []);
 
+  const { data: allProperties = [] } = useDocs<PropertyMaster>({
+    doctype: "JH Property Master",
+    fields: ["emirate", "type_of_property", "division_used"],
+    limit: 1000,
+  });
+
   const emirateOptions = useMemo(() => {
     return Array.from(
-      new Set(
-        properties
-          .map((item) => item.emirate)
-          .filter(Boolean)
-      )
+      new Set(allProperties.map((item) => item.emirate).filter(Boolean))
     );
-  }, [properties]);
+  }, [allProperties]);
 
   const typeOptions = useMemo(() => {
     return Array.from(
-      new Set(
-        properties
-          .map((item) => item.type_of_property)
-          .filter(Boolean)
-      )
+      new Set(allProperties.map((item) => item.type_of_property).filter(Boolean))
     );
-  }, [properties]);
+  }, [allProperties]);
+
+  const divisionOptions = useMemo(() => {
+    return Array.from(
+      new Set(allProperties.map((item) => item.division_used).filter(Boolean))
+    );
+  }, [allProperties]);
 
   const handleRowClick = (name: string) => {
     setSelectedProperty(name);
+    setMode("view")
     setIsSheetOpen(true);
   };
 
   const handleCreate = () => {
     setSelectedProperty(null);
+    setMode("create")
     setIsSheetOpen(true);
   };
+
+  const handleEditClick = (name: string) => {
+  setSelectedProperty(name);
+  setMode("edit");   
+  setIsSheetOpen(true);
+};
+
+ const getUrgencyColor = (date?: string) => {
+
+    if (!date) return "text-gray-500";
+    const days =
+      (new Date(date).getTime() - Date.now()) / (1000 * 60 * 60 * 24);
+
+    if (days < 30) return "text-red-500";
+    if (days < 90) return "text-yellow-500";
+    return "text-black-400";
+  };
+
+  const formatDate = (date?: string) => {
+  if (!date) return "";
+  const d = new Date(date);
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const year = d.getFullYear();
+
+  return `${day}-${month}-${year}`;
+};
+
+
+  const filteredProperties = useMemo(() => {
+    if (!searchQuery) return properties;
+
+    return properties.filter((item) => {
+      const search = searchQuery.toLowerCase();
+
+      return (
+        item.property_name?.toLowerCase().includes(search) ||
+        item.landlord?.toLowerCase().includes(search)
+      );
+    });
+  }, [properties, searchQuery]);
 
   const totalPages = Math.ceil(properties?.length / tasksPerPage);
 
@@ -124,8 +179,11 @@ function Properties() {
       <FilterButtons
         emirateOptions={emirateOptions}
         typeOptions={typeOptions}
+        divisionOptions={divisionOptions}
         selectedEmirate={selectedEmirate}
         selectedType={selectedType}
+        selectedDivision={selectedDivision}
+        expiringSoon={expiringSoon}
         onEmirateChange={(value: string) => {
         setSelectedEmirate((prev) =>
           prev.includes(value)
@@ -142,10 +200,23 @@ function Properties() {
                       );
           setCurrentPage(1);
         }}
-        onClear={() => {
-          setSelectedEmirate([]); 
-          setSelectedType([]);    
+        onDivisionChange={(value: string) => {
+          setSelectedDivision((prev) =>
+                        prev.includes(value)
+                          ? prev.filter((item) => item !== value)
+                          : [...prev, value]
+                      );
           setCurrentPage(1);
+        }}
+        onExpiringSoonToggle={() => {
+          setExpiringSoon(prev => !prev);
+          setCurrentPage(1);
+        }}
+        onClear={() => {
+          setSelectedEmirate([]);
+          setSelectedType([]);
+          setSelectedDivision([]);
+          setExpiringSoon(false);
         }}  
       />
 
@@ -153,13 +224,16 @@ function Properties() {
         <Table className="w-full table-fixed">
           <PropertyTableHeader />
           <TableBody>
-            {properties.map((item, index) => (
+            {filteredProperties.map((item, index) => (
               <PropertyTableRow
                 key={item.name}
                 property={item}
                 index={index}
                 isLoading={isLoading}
                 onClick={() => handleRowClick(item.name)}
+                onEdit={handleEditClick}
+                renewalColorHighlight={getUrgencyColor}
+                formatDate={formatDate}
               />
             ))}
           </TableBody>
@@ -178,7 +252,10 @@ function Properties() {
       <PropertySheet
         open={isSheetOpen}
         onOpenChange={setIsSheetOpen}
-        // propertyId={selectedProperty}
+        propertyId={selectedProperty}
+        mode={mode}
+        renewalColorHighlight={getUrgencyColor}
+        formatDate={formatDate}
       />
     </div>
   );
