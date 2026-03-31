@@ -29,7 +29,9 @@ export interface PropertyMaster {
   internet_connection:string;
   cdc_expiry : string;
   hassantuk_expiry : string;
-  attachments?: string;
+  documents?: {
+  attachment?: string;
+}[];
 }
 
 export interface RentalRenewal {
