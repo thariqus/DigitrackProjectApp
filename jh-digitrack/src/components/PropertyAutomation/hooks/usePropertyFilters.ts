@@ -5,30 +5,71 @@ import { PropertyMaster } from "@/types/JHDigitrack/JHPropertyAutomation";
 interface UsePropertyFiltersProps {
   searchQuery: string;
   selectedEmirate: string[]
-selectedType: string[]
+  selectedType: string[];
+  expiringSoon : boolean;
+  selectedDivision: string[];
 }
 
 export const usePropertyFilters = ({
   searchQuery,
   selectedEmirate,
   selectedType,
+  selectedDivision,
+  expiringSoon,
 }: UsePropertyFiltersProps) => {
-    
+
   const filters = useMemo(() => {
-    const result: Filter<PropertyMaster>[] = [];
-    if (searchQuery.trim()) {
-      result.push(["property_name", "like", `%${searchQuery.trim()}%`]);
-    }
+    const f: any[] = [];
+
+    // Search
+    // if (searchQuery) {
+    //   f.push([
+    //     "JH Property Master",
+    //     "property_name",
+    //     "like",
+    //     `%${searchQuery}%`,
+    //   ]);
+
+    //   f.push([
+    //     "JH Property Master",
+    //     "landlord",
+    //     "like",
+    //     `%${searchQuery}%`,
+    //   ]);
+    // }
+
+    // Multi-select filters
     if (selectedEmirate.length) {
-  result.push(["emirate", "in", selectedEmirate]);
-}
+      f.push(["JH Property Master", "emirate", "in", selectedEmirate]);
+    }
 
-if (selectedType.length) {
-  result.push(["type_of_property", "in", selectedType]);
-}
+    if (selectedType.length) {
+      f.push(["JH Property Master", "type_of_property", "in", selectedType]);
+    }
 
-    return result;
-  }, [searchQuery, selectedEmirate, selectedType]);
+    if (selectedDivision.length) {
+      f.push(["JH Property Master", "division_used", "in", selectedDivision]);
+    }
+
+    if (expiringSoon) {
+      const today = new Date();
+      const future = new Date();
+      future.setDate(today.getDate() + 90);
+
+      f.push([
+        "JH Property Master",
+        "renewal_date",
+        "between",
+        [
+          today.toISOString().split("T")[0],
+          future.toISOString().split("T")[0],
+        ],
+      ]);
+    }
+
+    console.log(f,"f")
+    return f;
+  }, [searchQuery, selectedEmirate, selectedType, selectedDivision, expiringSoon]);
 
   return { filters };
 };
