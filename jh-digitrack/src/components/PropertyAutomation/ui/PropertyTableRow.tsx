@@ -1,14 +1,7 @@
 import { TableRow, TableCell } from "@/components/ui/table";
+import { Pencil } from "lucide-react";
 
-function PropertyTableRow({ property, index, onClick,isLoading }: any) {
-  const getUrgencyColor = (date: string) => {
-    const days =
-      (new Date(date).getTime() - Date.now()) / (1000 * 60 * 60 * 24);
-
-    if (days < 30) return "text-red-500";
-    if (days < 90) return "text-yellow-500";
-    return "text-green-500";
-  };
+function PropertyTableRow({ property, index, onClick,isLoading,onEdit,renewalColorHighlight,formatDate }: any) {
 
   if(isLoading){
     return (
@@ -27,15 +20,27 @@ function PropertyTableRow({ property, index, onClick,isLoading }: any) {
       <TableCell className="w-[50px]">{index + 1}</TableCell>
       <TableCell>{property.property_name}</TableCell>
       <TableCell>{property.type_of_property}</TableCell>
-      <TableCell>{property.location}</TableCell>
-      <TableCell>{property.emirate}</TableCell>
       <TableCell>{property.division_used} </TableCell>
+      <TableCell>{property.emirate}</TableCell>
       <TableCell>{property.current_rent}</TableCell>
-
       {/* Renewal urgency */}
-      <TableCell className={getUrgencyColor(property.renewal_date)}>
-        {property.renewal_date}
+      <TableCell className={renewalColorHighlight(property.renewal_date)}>
+        {formatDate(property.renewal_date)}
       </TableCell>
+      <TableCell>pending</TableCell>
+
+  <TableCell>
+    <div
+    className="flex justify-center items-center cursor-pointer"
+    onClick={(e) => {
+      e.stopPropagation(); //  prevent row click
+      onEdit(property.name);
+    }}
+  >
+    <Pencil size={13} />
+  </div>
+  </TableCell>
+  
     </TableRow>
   );
 }
