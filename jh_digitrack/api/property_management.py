@@ -11,7 +11,7 @@ def has_property_automation_role(email=None):
         return {"message": {"has_access": True}}
 
     allowed_roles = {
-        "Property Automation",
+        "JH Property Dept",
         "JH Digitrack Admin",
         "JH Credit Card Holder",
     }
