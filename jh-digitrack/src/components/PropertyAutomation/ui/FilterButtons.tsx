@@ -20,27 +20,45 @@ import { useState } from "react";
 interface FilterButtonsProps {
   emirateOptions: string[];
   typeOptions: string[];
+  divisionOptions: string[];
+
   selectedEmirate: string[];
-selectedType: string[];
+  selectedType: string[];
+  selectedDivision: string[];
+  expiringSoon: boolean;
+
   onEmirateChange: (value: string) => void;
   onTypeChange: (value: string) => void;
+  onDivisionChange: (value: string) => void;
+  onExpiringSoonToggle: () => void;
+
   onClear: () => void;
 }
 
 export default function FilterButtons({
   emirateOptions = [],
   typeOptions = [],
+  divisionOptions = [],
+
   selectedEmirate,
   selectedType,
+  selectedDivision,
+  expiringSoon,
+
   onEmirateChange,
   onTypeChange,
+  onDivisionChange,
+  onExpiringSoonToggle,
   onClear,
 }: FilterButtonsProps) {
   const [openEmiratesFilter, setOpenEmiratesFilter] = useState(false);
   const [openTypesFilter, setOpenTypesFilter] = useState(false);
 
   const hasActiveFilters =
-    selectedEmirate.length > 0 || selectedType.length > 0;
+  selectedEmirate.length > 0 ||
+  selectedType.length > 0 ||
+  selectedDivision.length > 0 ||
+  expiringSoon;
 
   return (
     <div className="flex gap-2">
@@ -130,6 +148,53 @@ export default function FilterButtons({
           </Command>
         </PopoverContent>
       </Popover>
+
+      {/* Division */}
+<Popover>
+  <PopoverTrigger asChild>
+    <Button variant="outline" className="h-10 border-dashed">
+      <Plus className="mr-2 h-4 w-4" />
+      Division
+      {selectedDivision.length > 0 && (
+        <Badge className="ml-2">{selectedDivision.length}</Badge>
+      )}
+    </Button>
+  </PopoverTrigger>
+
+  <PopoverContent className="w-[200px] p-0">
+    <Command>
+      <CommandInput placeholder="Search division..." />
+      <CommandList>
+        <CommandGroup>
+          {divisionOptions.map((option) => (
+            <CommandItem
+              key={option}
+              onSelect={() => onDivisionChange(option)}
+            >
+              <Check
+                className={cn(
+                  "mr-2 h-4 w-4",
+                  selectedDivision.includes(option)
+                    ? "opacity-100"
+                    : "opacity-0"
+                )}
+              />
+              {option}
+            </CommandItem>
+          ))}
+        </CommandGroup>
+      </CommandList>
+    </Command>
+  </PopoverContent>
+</Popover>
+
+<Button
+  variant={expiringSoon ? "default" : "outline"}
+  className="h-10"
+  onClick={onExpiringSoonToggle}
+>
+   Expiring Soon
+</Button>
 
       {/* Clear */}
       {hasActiveFilters && (
