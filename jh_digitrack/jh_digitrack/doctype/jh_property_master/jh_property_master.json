@@ -249,7 +249,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-03-30 10:17:10.935928",
+ "modified": "2026-03-31 22:10:26.164443",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Property Master",
@@ -265,6 +265,7 @@
    "read": 1,
    "report": 1,
    "role": "System Manager",
+   "select": 1,
    "share": 1,
    "write": 1
   },
@@ -277,6 +278,7 @@
    "read": 1,
    "report": 1,
    "role": "JH Digitrack Admin",
+   "select": 1,
    "share": 1,
    "write": 1
   },
@@ -287,7 +289,8 @@
    "print": 1,
    "read": 1,
    "report": 1,
-   "role": "JH Property Rent Workflow User",
+   "role": "JH Property Dept",
+   "select": 1,
    "share": 1,
    "write": 1
   }

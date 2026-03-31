@@ -237,7 +237,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-03-31 10:43:24.793554",
+ "modified": "2026-03-31 22:10:56.017059",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Property Rental Renewal",
@@ -275,7 +275,7 @@
    "print": 1,
    "read": 1,
    "report": 1,
-   "role": "JH Property Rent Workflow User",
+   "role": "JH Property Dept",
    "share": 1,
    "write": 1
   }
