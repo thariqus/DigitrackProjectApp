@@ -15,7 +15,7 @@ import SearchBar from "../ui/SearchBar";
 
 function Properties() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [tasksPerPage, setTasksPerPage] = useState(10);
+  const [propertiesPerPage, setPropertiesPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const [mode, setMode] = useState<"view" | "edit" | "create">("create");
   const [selectedEmirate, setSelectedEmirate] = useState<string[]>([]);
@@ -24,6 +24,7 @@ function Properties() {
   const [expiringSoon, setExpiringSoon] = useState(false);
   const [selectedProperty, setSelectedProperty] = useState<string | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+
 
   const { filters} = usePropertyFilters({
     searchQuery,
@@ -67,7 +68,7 @@ function Properties() {
       "hassantuk_expiry",
       "documents"
     ],
-    limit: tasksPerPage,
+    limit: propertiesPerPage,
     page: currentPage,
     filters: filters as Filter<PropertyMaster>[],
     orderBy: {
@@ -84,9 +85,10 @@ function Properties() {
 
   const { data: allProperties = [] } = useDocs<PropertyMaster>({
     doctype: "JH Property Master",
-    fields: ["emirate", "type_of_property", "division_used"],
+    fields: ["emirate", "type_of_property", "division_used","property_name","landlord"],
     limit: 1000,
   });
+
 
   const emirateOptions = useMemo(() => {
     return Array.from(
@@ -145,23 +147,17 @@ function Properties() {
   return `${day}-${month}-${year}`;
 };
 
+  const { data: propertiesCounter } = useDocs<PropertyMaster>({
+    doctype: "JH Property Master",
+    fields: ["name"],
+    limit: 100,
+    filters: filters as Filter<PropertyMaster>[],
+  });
 
-  const filteredProperties = useMemo(() => {
-    if (!searchQuery) return properties;
-
-    return properties.filter((item) => {
-      const search = searchQuery.toLowerCase();
-
-      return (
-        item.property_name?.toLowerCase().includes(search) ||
-        item.landlord?.toLowerCase().includes(search)
-      );
-    });
-  }, [properties, searchQuery]);
-
-  const totalPages = Math.ceil(properties?.length / tasksPerPage);
+  const totalPages = Math.ceil(propertiesCounter?.length / propertiesPerPage);
 
   return (
+    
     <div className="w-full space-y-4">
       <div className="flex justify-between gap-3">
         <SearchBar
@@ -224,7 +220,7 @@ function Properties() {
         <Table className="w-full table-fixed">
           <PropertyTableHeader />
           <TableBody>
-            {filteredProperties.map((item, index) => (
+            {properties.map((item, index) => (
               <PropertyTableRow
                 key={item.name}
                 property={item}
@@ -239,8 +235,8 @@ function Properties() {
           </TableBody>
           <TableFooter>
               <PaginationControls
-                tasksPerPage={tasksPerPage}
-                setTasksPerPage={setTasksPerPage}
+                propertiesPerPage={propertiesPerPage}
+                setPropertiesPerPage={setPropertiesPerPage}
                 totalPages={totalPages}
                 currentPage={currentPage}
                 setCurrentPage={setCurrentPage}
