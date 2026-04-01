@@ -12,8 +12,14 @@ import { Filter } from "frappe-js-sdk/lib/db/types";
 import { usePropertyFilters } from "@/components/PropertyAutomation/hooks/usePropertyFilters";
 import { PaginationControls } from "../ui/PaginationControls";
 import SearchBar from "../ui/SearchBar";
+import { useOutletContext } from "react-router";
+
+type ContextType = {
+  propertyRole: any;
+};
 
 function Properties() {
+
   const [searchQuery, setSearchQuery] = useState("");
   const [propertiesPerPage, setPropertiesPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
@@ -24,7 +30,6 @@ function Properties() {
   const [expiringSoon, setExpiringSoon] = useState(false);
   const [selectedProperty, setSelectedProperty] = useState<string | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
-
 
   const { filters} = usePropertyFilters({
     searchQuery,
@@ -77,6 +82,7 @@ function Properties() {
 },
   });
 
+  const { propertyRole } = useOutletContext<ContextType>();
 
   const handleSearchChange = useCallback((value: string) => {
     setSearchQuery(value);
@@ -157,7 +163,6 @@ function Properties() {
   const totalPages = Math.ceil(propertiesCounter?.length / propertiesPerPage);
 
   return (
-    
     <div className="w-full space-y-4">
       <div className="flex justify-between gap-3">
         <SearchBar
@@ -166,10 +171,14 @@ function Properties() {
           placeholder="Search properties..."
         />
 
-        <Button size="sm" onClick={handleCreate}>
-          <Plus className="mr-2 h-4 w-4" />
-          Create Property
-        </Button>
+          {
+            propertyRole?.message?.has_access && (
+                <Button size="sm" onClick={handleCreate}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create Property
+                </Button>
+            )
+          }
       </div>
 
       <FilterButtons
@@ -235,8 +244,8 @@ function Properties() {
           </TableBody>
           <TableFooter>
               <PaginationControls
-                propertiesPerPage={propertiesPerPage}
-                setPropertiesPerPage={setPropertiesPerPage}
+                datasPerPage={propertiesPerPage}
+                setDatasPerPage={setPropertiesPerPage}
                 totalPages={totalPages}
                 currentPage={currentPage}
                 setCurrentPage={setCurrentPage}
