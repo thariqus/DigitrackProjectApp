@@ -28,9 +28,9 @@ export default function PropertyAutomation() {
       }
     }, [activeTab]);
 
-  if (isLoading || isFetching) {
-    return null;
-  }
+  if (isLoading) {
+  return <div>Loading...</div>; 
+}
 
   if (!propertyRole?.message?.has_access) {
     return <Navigate to="/jh-digitrack/dashboard" replace />;
@@ -48,7 +48,7 @@ export default function PropertyAutomation() {
           onTabChange={handleTabChange}
           onDescriptionChange={() => {}}
         />
-      <Outlet/>
+      <Outlet context={{ propertyRole }}/>
     </div>
     
   );
