@@ -125,7 +125,7 @@ export function MainNav() {
           <button
             onClick={() => {
               if (!propertyRole?.message?.has_access) {
-                alert("You have no access to JH Property Dept. Please contact admin.");
+                alert("You have no access to Property Automation. Please contact admin.");
                 return;
               }
               navigate("property")
@@ -133,7 +133,7 @@ export function MainNav() {
             className="flex items-center gap-2 text-gray-600 hover:text-primary"
           >
             <Warehouse className="h-5 w-5" />
-            <span>JH Property Dept</span>
+            <span>Property Automation</span>
           </button>
         </div>
 
