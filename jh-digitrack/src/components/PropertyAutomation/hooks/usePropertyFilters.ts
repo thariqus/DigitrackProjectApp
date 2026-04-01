@@ -22,21 +22,14 @@ export const usePropertyFilters = ({
     const f: any[] = [];
 
     // Search
-    // if (searchQuery) {
-    //   f.push([
-    //     "JH Property Master",
-    //     "property_name",
-    //     "like",
-    //     `%${searchQuery}%`,
-    //   ]);
-
-    //   f.push([
-    //     "JH Property Master",
-    //     "landlord",
-    //     "like",
-    //     `%${searchQuery}%`,
-    //   ]);
-    // }
+    if (searchQuery) {
+      f.push([
+        "JH Property Master",
+        "property_name",
+        "like",
+        `%${searchQuery}%`,
+      ]);
+    }
 
     // Multi-select filters
     if (selectedEmirate.length) {
@@ -67,7 +60,6 @@ export const usePropertyFilters = ({
       ]);
     }
 
-    console.log(f,"f")
     return f;
   }, [searchQuery, selectedEmirate, selectedType, selectedDivision, expiringSoon]);
 
