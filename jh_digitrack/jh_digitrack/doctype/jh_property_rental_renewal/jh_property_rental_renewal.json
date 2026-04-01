@@ -20,7 +20,7 @@
   "remarks",
   "supporting_documents",
   "cheque_details_section",
-  "table_tsuz",
+  "cheque_details",
   "percent_calculation_section",
   "data_gisi",
   "po_details_section",
@@ -217,11 +217,6 @@
    "read_only": 1
   },
   {
-   "fieldname": "table_tsuz",
-   "fieldtype": "Table",
-   "options": "JH Property Cheque Detail"
-  },
-  {
    "fieldname": "percent_calculation_section",
    "fieldtype": "Section Break",
    "label": "Calculation"
@@ -231,6 +226,12 @@
    "fieldtype": "Percent",
    "label": "Percent Calculation",
    "read_only": 1
+  },
+  {
+   "fieldname": "cheque_details",
+   "fieldtype": "Table",
+   "label": "Cheque Details",
+   "options": "JH Property Cheque Detail"
   }
  ],
  "grid_page_length": 50,
