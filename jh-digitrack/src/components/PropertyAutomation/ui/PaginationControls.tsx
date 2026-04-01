@@ -8,16 +8,16 @@ import {
 import TablePagination from "../ui/TablePagination";
 
 type PaginationControlsProps = {
-  tasksPerPage: number;
-  setTasksPerPage: (value: number) => void;
+  propertiesPerPage: number;
+  setPropertiesPerPage: (value: number) => void;
   totalPages: number;
   currentPage: number;
   setCurrentPage: (page: number) => void;
 };
 
 export const PaginationControls = ({
-  tasksPerPage,
-  setTasksPerPage,
+  propertiesPerPage,
+  setPropertiesPerPage,
   totalPages,
   currentPage,
   setCurrentPage,
@@ -29,8 +29,8 @@ export const PaginationControls = ({
           Show
         </label>
         <Select
-          value={tasksPerPage.toString()}
-          onValueChange={(value) => setTasksPerPage(Number(value))}
+          value={propertiesPerPage.toString()}
+          onValueChange={(value) => setPropertiesPerPage(Number(value))}
         >
           <SelectTrigger id="tasksPerPage" className="h-8 w-[70px]">
             <SelectValue placeholder="10" />
