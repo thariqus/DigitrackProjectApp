@@ -197,6 +197,7 @@ def has_pms_role(email=None):
     has_access = result[0]["COUNT(*)"] > 0 if result else False
 
     return {"message": {"has_access": has_access}}
+    
 
 
 @frappe.whitelist(methods=["GET"])
