@@ -5,8 +5,13 @@ import { File, X, Cloud } from "lucide-react";
 import { ScrollBar } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 
-export default function FileAttachment() {
-  const [files, setFiles] = useState<File[]>([]);
+interface FileAttachmentProps {
+  files: File[];
+  setFiles: React.Dispatch<React.SetStateAction<File[]>>;
+}
+
+export default function FileAttachment({files,setFiles}: FileAttachmentProps) {
+
   const [isDragging, setIsDragging] = useState(false);
 
   // Handle file input selection
