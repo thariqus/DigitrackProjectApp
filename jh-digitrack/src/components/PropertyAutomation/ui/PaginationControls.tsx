@@ -8,20 +8,23 @@ import {
 import TablePagination from "../ui/TablePagination";
 
 type PaginationControlsProps = {
-  propertiesPerPage: number;
-  setPropertiesPerPage: (value: number) => void;
+  datasPerPage?: number;
   totalPages: number;
   currentPage: number;
   setCurrentPage: (page: number) => void;
+  renewalsPerPage?: number;
+  setDatasPerPage: (value: number) => void;
 };
 
 export const PaginationControls = ({
-  propertiesPerPage,
-  setPropertiesPerPage,
+  datasPerPage,
+  setDatasPerPage,
   totalPages,
   currentPage,
   setCurrentPage,
+  renewalsPerPage,
 }: PaginationControlsProps) => (
+
   <div className="flex flex-col sm:flex-row items-center justify-between w-full px-2 py-4 bg-white">
     <div className="flex items-center space-x-6">
       <div className="flex items-center space-x-2">
@@ -29,8 +32,8 @@ export const PaginationControls = ({
           Show
         </label>
         <Select
-          value={propertiesPerPage.toString()}
-          onValueChange={(value) => setPropertiesPerPage(Number(value))}
+          value={datasPerPage?.toString()  || renewalsPerPage?.toString()}
+          onValueChange={(value) => setDatasPerPage(Number(value))}
         >
           <SelectTrigger id="tasksPerPage" className="h-8 w-[70px]">
             <SelectValue placeholder="10" />
