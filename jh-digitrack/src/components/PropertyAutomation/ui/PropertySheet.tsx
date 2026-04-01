@@ -6,13 +6,15 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { XIcon } from "lucide-react";
 
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import FileAttachment from "./FileAttachment";
-import { useDocDetail, useDocs } from "@/hooks/doc";
-import { useEffect } from "react";
+import { useDocDetail, useDocs, useSaveDoc, useUpdateDoc } from "@/hooks/doc";
+import { useEffect, useState } from "react";
 import { PropertyMaster } from "@/types/JHDigitrack/JHPropertyAutomation";
+import { toast } from "sonner";
+import { queryClient } from "@/utils/query-client";
 
 type PropertySheetProps = {
   open: boolean;
@@ -27,44 +29,53 @@ type PropertySheetProps = {
 
 const propertySchema = z.object({
   property_name: z.string().min(1, "Required"),
-  type_of_property: z.string(),
-  division_used: z.string(),
-  booked_under: z.string(),
-  profit_center: z.string(),
-  number_of_units: z.coerce.number().optional(),
-  number_of_premises: z.coerce.number().optional(),
-  premise_no: z.string(),
-  staff_allocated: z.string(),
+  type_of_property: z.string().optional(),
+  division_used: z.string().optional(),
+  booked_under: z.string().optional(),
+  profit_center: z.string().optional(),
+  number_of_units: z.coerce.number().optional().optional(),
+  number_of_premises: z.coerce.number().optional().optional(),
+  premise_number: z.string().optional(),
+  staff_allocated: z.string().optional(),
 
-  location: z.string(),
-  emirate: z.string(),
-  country: z.string(),
-  makani_number: z.string(),
-  po_box_number: z.string(),
-  po_box_renewal_date: z.string(),
+  location: z.string().optional(),
+  emirate: z.string().optional(),
+  country: z.string().default("UAE").optional(),
+  makani_number: z.string().optional(),
+  po_box_number: z.string().optional(),
+  po_box_renewal_date: z.string().optional(),
 
-  landlord: z.string(),
-  real_estate: z.string(),
-  current_rent: z.coerce.number().optional(),
-  renewal_date: z.string(),
-  landlord_security_deposit: z.coerce.number().optional(),
-  tenancy_period: z.string(),
+  landlord: z.string().optional(),
+  real_estate: z.string().optional(),
+  current_rent: z.coerce.number().optional().optional(),
+  renewal_date: z.string().min(1, "Required"),
+  landlord_security_deposit: z.coerce.number().optional().optional(),
+  tenancy_period: z.string().optional(),
 
-  electricity_accounts: z.coerce.number().optional(),
-  electricity_connection_no: z.string(),
-  electricity_water_security_deposit: z.coerce.number().optional(),
-  landline_numbers: z.string(),
-  internet_connection: z.string(),
+  electricity_accounts: z.coerce.number().optional().optional(),
+  electricity_connection_numbers: z.string().optional(),
+  electricity_water_security_deposit: z.coerce.number().optional().optional(),
+  landline_numbers: z.string().optional(),
+  internet_connection: z.string().optional(),
 
-  cdc_expiry: z.string().optional(),
-  hassantuk_expiry: z.string().optional(),
+  cdc_expiry: z.string().optional().optional(),
+  hassantuk_expiry: z.string().optional().optional(),
 });
 
 export default function PropertySheet({ open, onOpenChange, propertyId , mode, formatDate, renewalColorHighlight}: PropertySheetProps) {
 
+  const [files, setFiles] = useState<File[]>([]);
+
+  const getFileName = (url: string) => {
+  return url.split("/").pop();
+};
+
+  const saveDoc = useSaveDoc();
+  const updateDoc = useUpdateDoc();
   const isView = mode === "view";
   const isEdit = mode === "edit";
   const isCreate = mode === "create";
+  const formId = "property-form";
 
   const { data: propertyData,isLoading,refetch,} = useDocDetail<PropertyMaster>({
     doctype: "JH Property Master",
@@ -72,67 +83,176 @@ export default function PropertySheet({ open, onOpenChange, propertyId , mode, f
     disabled: !propertyId,
   });
 
+  const { data: divisionData } = useDocs({
+  doctype: "JH Division Master",
+});
+
   const doc = propertyData?.docs?.[0];
-  console.log(doc, "data");
-  console.log(propertyId, "id");
+  const requiredFields = ["property_name", "renewal_date"];
 
-  const { register, handleSubmit, reset } = useForm({
-    resolver: zodResolver(propertySchema),
-  });
+  const {
+  register,
+  handleSubmit,
+  reset,
+  control,
+  formState: { errors, isSubmitting, isValid, isDirty },
+} = useForm({
+  resolver: zodResolver(propertySchema),
+  mode: "onChange",        
+});
 
-  useEffect(() => {
-    if (isCreate) {
-      reset({});
-    }
-  }, [isCreate, reset]);
-
-useEffect(() => {
-  if (doc) {
+   useEffect(() => {
+  if (isCreate) {
     reset({
-      ...doc,
-      premise_no: doc.premise_number,
-      electricity_connection_no: doc.electricity_connection_numbers,
-      electricity_water_security_deposit: doc.electricity_water_security_deposit,
-      cdc_expiry: doc.cdc_expiry,
-      hassantuk_expiry: doc.hassantuk_expiry,
+      country: "UAE",   //  default value
     });
   }
-}, [doc, reset]);
+}, [isCreate, reset]);
+
+  useEffect(() => {
+    if (doc) {
+      reset({
+        ...doc,
+        number_of_premises: doc.number_of_premises,
+        electricity_connection_numbers: doc.electricity_connection_numbers,
+        electricity_water_security_deposit: doc.electricity_water_security_deposit,
+        cdc_expiry: doc.cdc_expiry,
+        hassantuk_expiry: doc.hassantuk_expiry,
+      });
+    }
+  }, [doc, reset]);
+
+  const formatDateForAPI = (date?: string) => {
+    if (!date) return "";
+    return new Date(date).toISOString().split("T")[0];
+  };
+
+  const uploadFile = async (file: File) => {
+  const formData = new FormData();
+
+  formData.append("file", file);
+  formData.append("is_private", "1");
+
+  const res = await fetch("/api/method/upload_file", {
+    method: "POST",
+    body: formData,
+    credentials: "include",
+  });
+
+  const data = await res.json();
+  return data.message.file_url; 
+};
 
 
-  // const onSubmit = (data) => {
-  //   console.log(data);
-  // };
+
+const onSubmit = async (data: any) => {
+  try {
+    let uploadedFiles: string[] = [];
+
+    if (files.length > 0) {
+      uploadedFiles = await Promise.all(
+        files.map((file) => uploadFile(file))
+      );
+    }
+
+    //  Convert to child table format
+    const documents = uploadedFiles.map((url) => ({
+      attachment: url,
+    }));
+    const payload = {
+      ...data,
+      renewal_date: formatDateForAPI(data.renewal_date),
+      po_box_renewal_date: formatDateForAPI(data.po_box_renewal_date),
+      cdc_expiry: formatDateForAPI(data.cdc_expiry),
+      hassantuk_expiry: formatDateForAPI(data.hassantuk_expiry),
+      doctype: "JH Property Master",
+      documents
+    };
+
+    
+
+    if (isEdit && propertyId) {
+      await updateDoc.mutateAsync({
+        doctype: "JH Property Master",
+        name: propertyId,
+        doc: payload,
+      });
+
+      toast.success("Property updated successfully");
+    } else {
+      await saveDoc.mutateAsync(payload);
+      toast.success("Property created successfully");
+    }
+
+    await queryClient.invalidateQueries({ queryKey: ["Docs"] }); // refresh list
+    onOpenChange(false);
+    reset();
+    refetch?.();
+  } catch (error: any) {
+    console.error(error);
+    toast.error(error?.message || "Something went wrong");
+  }
+};
+
+  const getHighlightColor = (date?: string) => {
+
+    if (!date) return "text-gray-500";
+    const days =
+      (new Date(date).getTime() - Date.now()) / (1000 * 60 * 60 * 24);
+
+    if (days < 30) return "text-red-500";
+    return "text-black-400";
+  };
+
+  const propertyTypeOptions = ["Shop", "Office", "Warehouse", "Other"];
 
   const renderField = (
-    label: string,
-    name: keyof z.infer<typeof propertySchema>,
-    value?: string | number,
-    type = "text"
-  ) => {
-    return (
-      <div className="flex flex-col gap-1">
-        {!isView && (
-          <Label className="text-sm text-gray-600">{label}</Label>
-        )}
+  label: string,
+  name: keyof z.infer<typeof propertySchema>,
+  value?: string | number,
+  type = "text"
+) => {
+  const isRequired = requiredFields.includes(name as string);
 
-        {isView ? (
-          <div className="flex items-center gap-2 py-1 rounded  text-sm">
-            <span className="font-medium text-gray-600 ">
-              {label}:
-            </span>
-            <span>{value || "-"}</span>
-          </div>
-        ) : (
-          <Input
-            type={type}
-            defaultValue={value || ""}
-            {...register(name)}
-          />
-        )}
-      </div>
-    );
-  };
+  return (
+    <div className="flex flex-col gap-1">
+      {!isView && (
+        <Label className="text-sm text-gray-600">
+          {label} {isRequired && <span className="text-red-500">*</span>}
+        </Label>
+      )}
+
+      {isView ? (
+        <div className="flex items-center gap-2 py-1 text-sm">
+          <span className="font-medium text-gray-600">{label}:</span>
+          <span>{value || "-"}</span>
+        </div>
+      ) : (
+        <Controller
+          name={name}
+          control={control}
+          defaultValue={value || ""}
+          render={({ field }) => (
+            <Input
+              type={type}
+              {...field}
+              className={`${
+                errors[name] ? "border-red-500" : ""
+              }`}
+            />
+          )}
+        />
+      )}
+
+      {/* Error message */}
+      {/* {errors[name] && (
+        <span className="text-red-500 text-xs">
+          {errors[name]?.message as string}
+        </span>
+      )} */}
+    </div>
+  );
+};
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -145,10 +265,9 @@ useEffect(() => {
           </SheetTitle>
 
           {/* Renewal card */}
-          {/* <div className={`p-2 rounded-lg border bg-yellow-200 text-yellow-300`}>
-            <p>Renewal Date : 25/06/2026</p>
-            <p>Status : Pending</p>
-          </div> */}
+          <Button className="bg-primary text-white ">
+            Start Renewal
+          </Button>
 
           <Button variant="ghost" size="icon"  onClick={() => onOpenChange(false)}>
             <XIcon className="size-4" />
@@ -156,22 +275,78 @@ useEffect(() => {
         </SheetHeader>
 
         <ScrollArea className="h-[calc(100vh-100px)] pr-3">
-          <form
-            // onSubmit={handleSubmit(onSubmit)} 
-            className="space-y-6 mt-4">
+          <form id={formId} onSubmit={handleSubmit(onSubmit)} className="space-y-6 mt-4">
 
             {/*  IDENTITY */}
             <h2 className="text-lg font-semibold">Identity</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {renderField("Property Name", "property_name", doc?.property_name)}
-            {renderField("Property Type", "type_of_property", doc?.type_of_property)}
-            {renderField("Division Used", "division_used", doc?.division_used)}
+             <div className="flex flex-col gap-1">
+                {!isView && (
+                  <Label className="text-sm text-gray-600">
+                    Property Type
+                  </Label>
+                )}
+
+                {isView ? (
+                  <div className="flex items-center gap-2 py-1 text-sm">
+                    <span className="font-medium text-gray-600">Property Type:</span>
+                    <span>{doc?.type_of_property || "-"}</span>
+                  </div>
+                ) : (
+                  <Controller
+                    name="type_of_property"
+                    control={control}
+                    render={({ field }) => (
+                      <select {...field} className="border rounded px-2 py-2 text-sm">
+                        <option value="">Select Type</option>
+                        {propertyTypeOptions.map((opt) => (
+                          <option key={opt} value={opt}>
+                            {opt}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  />
+                )}
+              </div>
+
+              <div className="flex flex-col gap-1">
+                {!isView && (
+                  <Label className="text-sm text-gray-600">
+                    Division Used
+                  </Label>
+                )}
+
+                {isView ? (
+                    <div className="flex items-center gap-2 py-1 text-sm">
+                      <span className="font-medium text-gray-600">Division Used:</span>
+                      <span>{doc?.division_used || "-"}</span>
+                    </div>
+                  ) : (
+                    <Controller
+                      name="division_used"
+                      control={control}
+                      render={({ field }) => (
+                        <select {...field} className="border rounded px-2 py-2 text-sm">
+                          <option value="">Select Division</option>
+                          {divisionData?.map((div: any) => (
+                            <option key={div.name} value={div.name}>
+                              {div.name}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    />
+                  )}
+              </div>
+              
             {renderField("Booked Under", "booked_under", doc?.booked_under)}
             {renderField("Profit Center", "profit_center", doc?.profit_center)}
             {renderField("No. of Units", "number_of_units", doc?.number_of_units)}
             {renderField("No. of Premises", "number_of_premises", doc?.number_of_premises)}
-            {renderField("Premise No", "premise_no", doc?.premise_number)}
+            {renderField("Premise No", "premise_number", doc?.premise_number)}
             {renderField("Staff Allocated", "staff_allocated", doc?.staff_allocated)}
           </div>
 
@@ -222,7 +397,7 @@ useEffect(() => {
               
               {renderField(
                 "Connection No",
-                "electricity_connection_no",
+                "electricity_connection_numbers",
                 doc?.electricity_connection_numbers
               )}
 
@@ -246,7 +421,7 @@ useEffect(() => {
               {isView ? (
                 <div className="flex items-center gap-2 py-1 text-sm">
                   <span className="font-medium text-gray-600">CDC Expiry:</span>
-                  <span className={doc?.cdc_expiry}>
+                  <span className={getHighlightColor?.(doc?.cdc_expiry)}>
                     {formatDate(doc?.cdc_expiry)}
                   </span>
                 </div>
@@ -256,7 +431,7 @@ useEffect(() => {
                 {isView ? (
                 <div className="flex items-center gap-2 py-1 text-sm">
                   <span className="font-medium text-gray-600">Hassantuk Expiry:</span>
-                  <span className={doc?.hassantuk_expiry}>
+                  <span className={getHighlightColor?.(doc?.hassantuk_expiry)}>
                     {formatDate(doc?.hassantuk_expiry)}
                   </span>
                 </div>
@@ -272,40 +447,63 @@ useEffect(() => {
             <h2 className="text-lg font-semibold">Documents</h2>
 
             {isView ? (
-              <div className="space-y-2 mb-10">
-                {doc?.documents && doc.documents.length > 0 ? (
-                  doc.documents.map((file: any, index: number) => (
-                    <div
-                      key={index}
-                      className="flex items-center gap-1 rounded px-3"
-                    >
-                      <span className="text-sm text-gray-700">
-                        {file.attachment || `Document ${index + 1}`}
-                      </span>
+                <div className="space-y-2 mb-10">
+                  {doc?.documents && doc.documents.length > 0 ? (
+                    doc.documents.map((file: any, index: number) => (
+                      <div key={index} className="flex items-center gap-2 px-3">
+                        <span className="text-sm text-gray-700">
+                          {getFileName(file.attachment)}
+                        </span>
 
-                      <a
-                        href={file.attachment}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 text-sm underline cursor-pointer"
-                      >
-                        View
-                      </a>
+                        <a
+                          href={file.attachment}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 text-sm underline"
+                        >
+                          View
+                        </a>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-gray-500">No documents available</p>
+                  )}
+                </div>
+              ) : (
+                <>
+                  {/*  Existing files */}
+                  {doc?.documents?.length > 0 && (
+                    <div className="space-y-2 mb-4">
+                      <p className="text-sm font-medium text-gray-600">Existing Files</p>
+
+                      {doc.documents.map((file: any, index: number) => (
+                        <div key={index} className="flex items-center gap-2 px-3">
+                          <span className="text-sm text-gray-700">
+                            {getFileName(file.attachment)}
+                          </span>
+
+                          <a
+                            href={file.attachment}
+                            target="_blank"
+                            className="text-blue-600 text-sm underline"
+                          >
+                            View
+                          </a>
+                        </div>
+                      ))}
                     </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-gray-500">No documents available</p>
-                )}
-              </div>
-            ) : (
-              <FileAttachment />
-            )}
+                  )}
+
+                  {/*  Upload new files */}
+                  <FileAttachment files={files} setFiles={setFiles} />
+                </>
+              )}
 
             <Separator/>
             
-            {/* <div className="mb-30">
+            <div className="mb-30">
               <h3 className="font-semibold">Renewal History</h3>
-            </div> */}
+            </div>
 
           </form>
         </ScrollArea>
@@ -324,11 +522,19 @@ useEffect(() => {
                   Cancel
                 </Button>
 
-                <Button
+               <Button
                   type="submit"
+                  form={formId}
+                  disabled={
+                    isSubmitting || !isValid  
+                  }
                   className="w-full bg-[#972e26] hover:bg-[#972e26]/90"
                 >
-                  {isEdit ? "Update Property" : "Create Property"}
+                  {isSubmitting
+                    ? "Saving..."
+                    : isEdit
+                    ? "Update Property"
+                    : "Create Property"}
                 </Button>
               </>
             }
