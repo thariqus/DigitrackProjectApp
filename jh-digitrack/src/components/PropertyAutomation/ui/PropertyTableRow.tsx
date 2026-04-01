@@ -1,7 +1,14 @@
 import { TableRow, TableCell } from "@/components/ui/table";
 import { Pencil } from "lucide-react";
+import { useOutletContext } from "react-router";
+
+type ContextType = {
+  propertyRole: any;
+};
 
 function PropertyTableRow({ property, index, onClick,isLoading,onEdit,renewalColorHighlight,formatDate }: any) {
+
+   const { propertyRole } = useOutletContext<ContextType>();
 
   if(isLoading){
     return (
@@ -29,17 +36,21 @@ function PropertyTableRow({ property, index, onClick,isLoading,onEdit,renewalCol
       </TableCell>
       <TableCell>pending</TableCell>
 
-  <TableCell>
-    <div
-    className="flex justify-center items-center cursor-pointer"
-    onClick={(e) => {
-      e.stopPropagation(); //  prevent row click
-      onEdit(property.name);
-    }}
-  >
-    <Pencil size={13} />
-  </div>
-  </TableCell>
+      {propertyRole && (
+        <TableCell>
+        <div
+        className="flex justify-center items-center cursor-pointer"
+        onClick={(e) => {
+          e.stopPropagation(); //  prevent row click
+          onEdit(property.name);
+        }}
+      >
+        <Pencil size={13} />
+      </div>
+      </TableCell>
+      )
+        
+      }
   
     </TableRow>
   );
