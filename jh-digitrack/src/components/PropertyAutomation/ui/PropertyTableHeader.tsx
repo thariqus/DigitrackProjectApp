@@ -1,6 +1,13 @@
 import { TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useOutletContext } from "react-router";
+
+type ContextType = {
+  propertyRole: any;
+};
 
 export const PropertyTableHeader = ()=> {
+
+  const { propertyRole } = useOutletContext<ContextType>();
 
   return (
     <TableHeader>
@@ -37,7 +44,10 @@ export const PropertyTableHeader = ()=> {
         </TableHead>
 
         {/* Actions */}
-        <TableHead className="w-[100px] text-center">Actions</TableHead>
+
+        {propertyRole && (
+          <TableHead className="w-[100px] text-center">Actions</TableHead>
+        )}
       </TableRow>
     </TableHeader>
   );
