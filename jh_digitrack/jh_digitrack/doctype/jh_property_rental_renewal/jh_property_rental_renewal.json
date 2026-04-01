@@ -213,7 +213,7 @@
    "fieldname": "workflow_state",
    "fieldtype": "Select",
    "label": "Workflow State",
-   "options": "Draft\nPending_GM_Review\nPending_Admin_HOD\nPending_CFO\nPending_MD\nPending_Cheque_Details\nPending_Property_PO\nPending_MIRO\nCompleted\nRejected",
+   "options": "Draft\nPending_GM_Review\nPending_Cheque_Details\nPending_Admin_HOD\nPending_CFO\nPending_MD\nPending_Property_PO\nPending_MIRO\nCompleted\nRejected",
    "read_only": 1
   },
   {
@@ -227,7 +227,6 @@
    "label": "Calculation"
   },
   {
-   "fetch_from": "property.percent_calculation",
    "fieldname": "data_gisi",
    "fieldtype": "Percent",
    "label": "Percent Calculation",
