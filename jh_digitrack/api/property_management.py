@@ -2,6 +2,11 @@ import frappe
 from frappe import _
 from frappe.utils import cint
 
+PROPERTY_ACCESS_ROLES = {
+    "JH Property Dept",
+    "JH Digitrack Admin",
+}
+
 ROLE_PRIORITY = [
     "module_admin",
     "cfo",
@@ -82,16 +87,26 @@ def has_property_automation_role(email=None):
     if frappe.session.user == "Administrator" or email == "Administrator":
         return {"message": {"has_access": True}}
 
-    allowed_roles = {
-        "JH Property Dept",
-        "JH Digitrack Admin",
-        
-    }
-
     user_roles = set(frappe.get_roles(email))
-    has_access = bool(user_roles.intersection(allowed_roles))
+    has_access = bool(user_roles.intersection(PROPERTY_ACCESS_ROLES))
 
     return {"message": {"has_access": has_access}}
+
+
+@frappe.whitelist(methods=["GET"])
+def get_logged_in_property_user():
+    user = frappe.session.user
+    user_roles = set(frappe.get_roles(user))
+
+    return {
+        "message": {
+            "user": user,
+            "has_property_access": user == "Administrator"
+            or bool(user_roles.intersection(PROPERTY_ACCESS_ROLES)),
+            "has_property_dept_role": user == "Administrator" or "JH Property Dept" in user_roles,
+            "roles": sorted(user_roles),
+        }
+    }
 
 
 @frappe.whitelist(methods=["GET"])
@@ -120,6 +135,8 @@ def whoami(renewal_id: str = None, is_new: bool = False):
         matches.add("admin_hod")
     if "JH Property Dept" in user_roles:
         matches.add("property_dept")
+    if "JH Licensing Team" in user_roles:
+        matches.add("licensing")
 
     if is_new:
         for role in ROLE_PRIORITY:
@@ -141,8 +158,6 @@ def whoami(renewal_id: str = None, is_new: bool = False):
         if user == division_gm_user:
             matches.add("division_gm")
 
-    if renewal.owner == user:
-        matches.add("licensing")
 
     for role in ROLE_PRIORITY:
         if role in matches:
