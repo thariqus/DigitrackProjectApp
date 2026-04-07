@@ -12,7 +12,8 @@
   "business",
   "sap_reference_id",
   "section_break_gkrn",
-  "division_gm"
+  "division_gm",
+  "division_head"
  ],
  "fields": [
   {
@@ -46,11 +47,17 @@
    "fieldtype": "Link",
    "label": "Division GM",
    "options": "User"
+  },
+  {
+   "fieldname": "division_head",
+   "fieldtype": "Link",
+   "label": "Division Head",
+   "options": "User"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-03-31 22:36:07.603068",
+ "modified": "2026-04-06 15:52:18.105631",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Division Master",
@@ -93,6 +100,7 @@
   }
  ],
  "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
  "show_title_field_in_link": 1,
  "sort_field": "modified",
  "sort_order": "DESC",

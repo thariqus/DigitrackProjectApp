@@ -9,10 +9,13 @@
   "section_break_afv9",
   "property_name",
   "type_of_property",
+  "business_used",
   "division_used",
+  "approver_1",
+  "approver_2",
+  "column_break_rpia",
   "booked_under",
   "profit_center",
-  "column_break_rpia",
   "number_of_units",
   "number_of_premises",
   "premise_number",
@@ -244,12 +247,31 @@
    "fieldtype": "Table",
    "label": "Documents",
    "options": "JH Property Document"
+  },
+  {
+   "fieldname": "business_used",
+   "fieldtype": "Link",
+   "label": "Business Used",
+   "options": "JH Business Master"
+  },
+  {
+   "fieldname": "approver_1",
+   "fieldtype": "Link",
+   "label": "Approver 1",
+   "options": "User",
+   "reqd": 1
+  },
+  {
+   "fieldname": "approver_2",
+   "fieldtype": "Link",
+   "label": "Approver 2",
+   "options": "User"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-03-31 22:10:26.164443",
+ "modified": "2026-04-06 16:39:34.381698",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Property Master",

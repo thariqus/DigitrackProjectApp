@@ -12,6 +12,8 @@ class JHTravelRequest(Document):
             self.description = frappe.utils.sanitize_html(self.description, always_sanitize=True)
         if self.passenger_information:
             self.passenger_information = frappe.utils.sanitize_html(self.passenger_information, always_sanitize=True)
+        if not self.attachments:
+            frappe.throw("Please add at least one attachment before saving.")
 
     def before_insert(self):
         user = frappe.session.user
