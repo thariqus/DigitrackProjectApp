@@ -11,10 +11,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import FileAttachment from "./FileAttachment";
 import { useDocDetail, useDocs, useSaveDoc, useUpdateDoc } from "@/hooks/doc";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { PropertyMaster } from "@/types/JHDigitrack/JHPropertyAutomation";
 import { toast } from "sonner";
 import { queryClient } from "@/utils/query-client";
+import StartRenewalModal from "./StartRenewalModal";
 
 type PropertySheetProps = {
   open: boolean;
@@ -23,6 +24,7 @@ type PropertySheetProps = {
   mode: "view" | "edit" | "create";
   formatDate: (date?: string) => string;
   renewalColorHighlight: (date?: string) => string;
+  typeOptions: string[];
 };
 
 // ZOD SCHEMA
@@ -62,9 +64,10 @@ const propertySchema = z.object({
   hassantuk_expiry: z.string().optional().optional(),
 });
 
-export default function PropertySheet({ open, onOpenChange, propertyId , mode, formatDate, renewalColorHighlight}: PropertySheetProps) {
+export default function PropertySheet({ open, onOpenChange, propertyId , mode, formatDate, renewalColorHighlight, typeOptions}: PropertySheetProps) {
 
   const [files, setFiles] = useState<File[]>([]);
+  const [isRenewalModalOpen, setIsRenewalModalOpen] = useState(false);
 
   const getFileName = (url: string) => {
   return url.split("/").pop();
@@ -82,6 +85,14 @@ export default function PropertySheet({ open, onOpenChange, propertyId , mode, f
     name: propertyId || "",
     disabled: !propertyId,
   });
+
+  const { data: renewalsData } = useDocs({
+    doctype: "JH Property Rental Renewal",
+    filters: propertyId ? [["property", "=", propertyId]] : [],
+    enabled: !!propertyId,
+  });
+
+  const hasExistingRenewals = !!(renewalsData && renewalsData.length > 0);
 
   const { data: divisionData } = useDocs({
   doctype: "JH Division Master",
@@ -143,8 +154,6 @@ export default function PropertySheet({ open, onOpenChange, propertyId , mode, f
   return data.message.file_url; 
 };
 
-
-
 const onSubmit = async (data: any) => {
   try {
     let uploadedFiles: string[] = [];
@@ -168,8 +177,6 @@ const onSubmit = async (data: any) => {
       doctype: "JH Property Master",
       documents
     };
-
-    
 
     if (isEdit && propertyId) {
       await updateDoc.mutateAsync({
@@ -262,13 +269,31 @@ const onSubmit = async (data: any) => {
         <SheetHeader className="flex-row text-2xl justify-between items-center px-0 py-2">
           <SheetTitle>
             {isCreate ? "Create Property" : isEdit ? "Edit Property" : "Property Details"}
+
+            <span className="pl-5">
+               {/* Renewal card */}
+          {(!isView && !isCreate) && (
+            <>
+              <Button 
+                className="bg-primary text-white rounded-full" 
+                onClick={() => setIsRenewalModalOpen(true)}
+                disabled={hasExistingRenewals}
+                title={hasExistingRenewals ? "Property has existing renewal(s)" : ""}>
+                Start Renewal
+              </Button>
+                <StartRenewalModal
+                open={isRenewalModalOpen}
+                onOpenChange={setIsRenewalModalOpen}
+                propertyId={propertyId || ''}
+                propertyName={doc?.property_name || ''}
+                currentRent={doc?.current_rent}
+                mode="new"
+              />
+            </>
+          )}
+            </span>
           </SheetTitle>
-
-          {/* Renewal card */}
-          <Button className="bg-primary text-white ">
-            Start Renewal
-          </Button>
-
+          
           <Button variant="ghost" size="icon"  onClick={() => onOpenChange(false)}>
             <XIcon className="size-4" />
           </Button>
