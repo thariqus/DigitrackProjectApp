@@ -2,12 +2,14 @@ import { Outlet, Navigate, useLocation, useNavigate } from "react-router";
 import { useHasPropertyAccess } from "@/hooks/userrole";
 import { PropertyTabs } from "./ui/PropertyTabs";
 import { useEffect, useState } from "react";
+import { useCurrentJhUser } from "@/hooks/auth";
 
 
 export default function PropertyAutomation() {
 
   const [description, setDescription] = useState("");
   const { data: propertyRole, isLoading, isFetching } = useHasPropertyAccess();
+  const { data: currentJhUser } = useCurrentJhUser();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -48,7 +50,7 @@ export default function PropertyAutomation() {
           onTabChange={handleTabChange}
           onDescriptionChange={() => {}}
         />
-      <Outlet context={{ propertyRole }}/>
+      <Outlet context={{ propertyRole }} currentJhUser={{currentJhUser}}/>
     </div>
     
   );
