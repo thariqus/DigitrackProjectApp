@@ -213,7 +213,7 @@
    "fieldname": "workflow_state",
    "fieldtype": "Select",
    "label": "Workflow State",
-   "options": "Draft\nPending_GM_Review\nPending_Cheque_Details\nPending_Admin_HOD\nPending_CFO\nPending_MD\nPending_Property_PO\nPending_MIRO\nCompleted\nRejected",
+   "options": "Draft\nPending Approver 1\nPending Approver 2\nPending Cheque Details\nPending CFO\nPending MD\nPending Property PO\nPending MIRO\nCompleted\nRejected",
    "read_only": 1
   },
   {
@@ -237,7 +237,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-03-31 22:10:56.017059",
+ "modified": "2026-04-07 12:35:32.839309",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Property Rental Renewal",

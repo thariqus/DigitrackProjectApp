@@ -52,12 +52,12 @@ export const  useHasPropertyAccess = () => {
       if (!currentJhUser?.email) return { message: { has_access: false } };
 
       const res = await frappe.api.get<{
-        message: { message: { has_access: boolean } };
+        message: { has_access: boolean };
       }>("jh_digitrack.api.property_management.has_property_automation_role", {
         email: currentJhUser?.email,
       });
 
-      return { message: res.message.message };
+      return { message: res.message };
     },
     enabled: !!currentJhUser?.email,
     staleTime: 0,

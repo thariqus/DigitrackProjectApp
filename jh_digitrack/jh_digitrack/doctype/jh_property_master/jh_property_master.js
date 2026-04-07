@@ -12,14 +12,14 @@ frappe.ui.form.on('JH Property Master', {
         if (frm.doc.division_used) {
             frappe.db.get_doc('JH Division Master', frm.doc.division_used)
                 .then(doc => {
-                    // If GM exists
+                    // If Head exists
                     if (doc.division_gm) {
-                        frm.set_value('approver_1', doc.division_gm);
-                        frm.set_value('approver_2', doc.division_head);
-                    } 
-                    // If GM NOT exists → fallback
-                    else {
                         frm.set_value('approver_1', doc.division_head);
+                        frm.set_value('approver_2', doc.division_gm);
+                    } 
+                    // If Head NOT exists → fallback
+                    else {
+                        frm.set_value('approver_1', doc.division_gm);
                         frm.set_value('approver_2', null);
                     }
 
