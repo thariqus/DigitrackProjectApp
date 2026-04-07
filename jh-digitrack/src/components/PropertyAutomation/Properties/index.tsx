@@ -18,6 +18,16 @@ type ContextType = {
   propertyRole: any;
 };
 
+const tableHeadings = [
+  "Property Name",
+  "Type",
+  "Division",
+  "Emirate",
+  "Current Rent",
+  "Renewal Date",
+  "Renewal Status"
+]
+
 function Properties() {
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -181,53 +191,68 @@ function Properties() {
           }
       </div>
 
-      <FilterButtons
-        emirateOptions={emirateOptions}
-        typeOptions={typeOptions}
-        divisionOptions={divisionOptions}
-        selectedEmirate={selectedEmirate}
-        selectedType={selectedType}
-        selectedDivision={selectedDivision}
-        expiringSoon={expiringSoon}
-        onEmirateChange={(value: string) => {
-        setSelectedEmirate((prev) =>
-          prev.includes(value)
-            ? prev.filter((item) => item !== value)
-            : [...prev, value]
-        );
-        setCurrentPage(1);
-      }}
-        onTypeChange={(value: string) => {
-          setSelectedType((prev) =>
-                        prev.includes(value)
-                          ? prev.filter((item) => item !== value)
-                          : [...prev, value]
-                      );
-          setCurrentPage(1);
-        }}
-        onDivisionChange={(value: string) => {
-          setSelectedDivision((prev) =>
-                        prev.includes(value)
-                          ? prev.filter((item) => item !== value)
-                          : [...prev, value]
-                      );
-          setCurrentPage(1);
-        }}
-        onExpiringSoonToggle={() => {
-          setExpiringSoon(prev => !prev);
-          setCurrentPage(1);
-        }}
-        onClear={() => {
-          setSelectedEmirate([]);
-          setSelectedType([]);
-          setSelectedDivision([]);
-          setExpiringSoon(false);
-        }}  
-      />
+          <FilterButtons
+            filters={[
+              {
+                label: "Emirates",
+                options: emirateOptions,
+                selected: selectedEmirate,
+                onChange: (value: string) => {
+                  setSelectedEmirate((prev) =>
+                    prev.includes(value)
+                      ? prev.filter((item) => item !== value)
+                      : [...prev, value]
+                  );
+                  setCurrentPage(1);
+                },
+              },
+              {
+                label: "Type",
+                options: typeOptions,
+                selected: selectedType,
+                onChange: (value: string) => {
+                  setSelectedType((prev) =>
+                    prev.includes(value)
+                      ? prev.filter((item) => item !== value)
+                      : [...prev, value]
+                  );
+                  setCurrentPage(1);
+                },
+              },
+              {
+                label: "Division",
+                options: divisionOptions,
+                selected: selectedDivision,
+                onChange: (value: string) => {
+                  setSelectedDivision((prev) =>
+                    prev.includes(value)
+                      ? prev.filter((item) => item !== value)
+                      : [...prev, value]
+                  );
+                  setCurrentPage(1);
+                },
+              },
+            ]}
+            quickFilter={{
+              label: "Expiring Soon",
+              active: expiringSoon,
+              onToggle: () => {
+                setExpiringSoon((prev) => !prev);
+                setCurrentPage(1);
+              },
+            }}
+            onClear={() => {
+              setSelectedEmirate([]);
+              setSelectedType([]);
+              setSelectedDivision([]);
+              setExpiringSoon(false);
+              setCurrentPage(1);
+            }}
+          />
 
       <div className="rounded-md border">
         <Table className="w-full table-fixed">
-          <PropertyTableHeader />
+          <PropertyTableHeader tableHeadings={tableHeadings}/>
           <TableBody>
             {properties.map((item, index) => (
               <PropertyTableRow
@@ -261,6 +286,7 @@ function Properties() {
         mode={mode}
         renewalColorHighlight={getUrgencyColor}
         formatDate={formatDate}
+        typeOptions={typeOptions}
       />
     </div>
   );
