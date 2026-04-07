@@ -12,8 +12,8 @@
   "business",
   "sap_reference_id",
   "section_break_gkrn",
-  "division_gm",
-  "division_head"
+  "division_head",
+  "division_gm"
  ],
  "fields": [
   {
@@ -57,7 +57,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-04-06 15:52:18.105631",
+ "modified": "2026-04-07 09:17:03.041778",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Division Master",
