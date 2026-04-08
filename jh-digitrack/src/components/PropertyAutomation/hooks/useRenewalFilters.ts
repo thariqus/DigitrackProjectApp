@@ -4,7 +4,8 @@ interface UseRenewalFiltersProps {
   searchQuery: string;
   selectedWorkflowStage: string[]
   selectedRenewalDateRange: string[];
-  PendingMyAction : boolean;
+  PendingMyAction: boolean;
+  myPendingFilters?: any[]; // New prop from parent
 
   selectedDivision: string[];
   currentJhUser: any;
@@ -16,6 +17,7 @@ export const useRenewalFilters = ({
   selectedDivision,
   selectedRenewalDateRange,
   PendingMyAction,
+  myPendingFilters,
   currentJhUser,
 }: UseRenewalFiltersProps) => {
   const filters = useMemo(() => {
@@ -95,14 +97,13 @@ export const useRenewalFilters = ({
   }
 }
 
-    if (PendingMyAction && currentJhUser) {
-      f.push([
-        "JH Property Rental Renewal",
-        "next_action_by",
-        "=",
-        currentJhUser,
-      ]);
-    }
+  if (PendingMyAction && myPendingFilters && myPendingFilters.length > 0) {
+    f.push(...myPendingFilters);
+  } else if (PendingMyAction) {
+    // Default fallback or licensing team: Draft
+    f.push(["workflow_state", "=", "Draft"]);
+  }
+ 
 
     return f;
   }, [
