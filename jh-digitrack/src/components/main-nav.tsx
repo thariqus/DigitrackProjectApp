@@ -52,7 +52,7 @@ export function MainNav() {
 
   const attachment = attachmentDetailed?.docs[0];
   const { data: pmsRole } = useHasPmsAccess();
-  const { data: propertyRole } = useHasPropertyAccess();
+  const { data: propertyRole, isLoading: isPropertyRoleLoading, isFetching: isPropertyRoleFetching } = useHasPropertyAccess();
 
   return (
     <header className="border-b">
@@ -100,7 +100,7 @@ export function MainNav() {
           <button
             onClick={() => {
               window.location.href =
-                "https://digitrack.jaleelholdings.com/employee-search";
+                "https://digitrack.jaleelholdings.com/app/employee-search";
             }}
             className="flex items-center gap-2 text-gray-600 hover:text-primary"
           >
@@ -124,6 +124,10 @@ export function MainNav() {
 
           <button
             onClick={() => {
+              if (isPropertyRoleLoading || isPropertyRoleFetching) {
+                return;
+              }
+
               if (!propertyRole?.message?.has_access) {
                 alert("You have no access to Property Automation. Please contact admin.");
                 return;

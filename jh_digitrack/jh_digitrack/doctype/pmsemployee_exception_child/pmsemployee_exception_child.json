@@ -17,9 +17,10 @@
   },
   {
    "fieldname": "emp_id",
-   "fieldtype": "Data",
+   "fieldtype": "Link",
    "in_list_view": 1,
-   "label": "EMP ID"
+   "label": "EMP ID",
+   "options": "JH User Master"
   },
   {
    "fieldname": "designation",
@@ -39,7 +40,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-03-09 17:00:29.403051",
+ "modified": "2026-03-13 11:35:06.838764",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "PMSEmployee Exception Child",

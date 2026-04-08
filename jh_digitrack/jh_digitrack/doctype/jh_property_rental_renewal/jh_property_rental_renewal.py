@@ -16,6 +16,10 @@ def get_org_role_users():
 
 
 class JHPropertyRentalRenewal(Document):
+
+	def before_save(self):
+		self.calculate_rent_change_percent()
+
 	def calculate_rent_change_percent(self):
 		current_rent = flt(self.current_rent)
 		proposed_rent = flt(self.proposed_rent)
@@ -25,8 +29,4 @@ class JHPropertyRentalRenewal(Document):
 			return
 
 		self.rent_change_percent = ((proposed_rent - current_rent) / current_rent) * 100
-
-
-def before_save_rental_renewal(doc, method=None):
-	doc.calculate_rent_change_percent()
  

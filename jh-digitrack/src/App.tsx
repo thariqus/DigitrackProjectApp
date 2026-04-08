@@ -25,7 +25,7 @@ import Maintenance from "./components/Maintenance";
 import Dashboard from "./components/dashboard";
 import JRCPermission from "./components/jrc-permission";
 import Properties from "./components/PropertyAutomation/Properties";
-import Renewals from "./components/PropertyAutomation/Renewals";
+// import Renewals from "./components/PropertyAutomation/Renewals";
 const PropertyAutomation = lazy(()=> import("./components/PropertyAutomation"));
 
 function AppWrapper() {
@@ -85,7 +85,7 @@ function AppWrapper() {
               <Route path="property" element={<PropertyAutomation />} >
                  <Route index element={<Navigate to="properties" replace />} />  
                  <Route path="properties" element={<Properties />} />
-                 <Route path="renewals" element={<Renewals/>} />
+                 {/* <Route path="renewals" element={<Renewals/>} /> */}
               </Route>
               <Route path="meetings" element={<Meetings />} />
               <Route path="meetings/:meetingId" element={<MeetingTasks />} />

@@ -1,14 +1,21 @@
 import frappe
 from frappe import _
-from frappe.utils import cint
+from frappe.utils import cint, flt
+
+PROPERTY_ACCESS_ROLES = {
+    "JH Property Department",
+    "JH GL Team",
+    "JH Digitrack Admin",
+}
 
 ROLE_PRIORITY = [
     "module_admin",
     "cfo",
     "md",
-    "admin_hod",
-    "division_gm",
+    "approver_1",
+    "approver_2",
     "property_dept",
+    "gl_team",
     "licensing",
 ]
 
@@ -16,82 +23,125 @@ WORKFLOW_TRANSITIONS = {
     "submit": {
         "Draft": {
             "roles": {"licensing", "module_admin", "Administrator"},
-            "next_state": "Pending_GM_Review",
+            "next_state": "Pending Approver 1",
         },
     },
+
     "approve": {
-        "Pending_GM_Review": {
-            "roles": {"division_gm", "module_admin", "Administrator"},
-            "next_state": "Pending_Cheque_Details",
+        "Pending Approver 1": {
+            "roles": {"approver_1", "module_admin", "Administrator"},
+            "next_state": "Pending Approver 2",
         },
-        "Pending_Cheque_Details": {
+
+        "Pending Approver 2": {
+            "roles": {"approver_2", "module_admin", "Administrator"},
+            "next_state": "Pending Cheque Details",
+        },
+
+        "Pending Cheque Details": {
             "roles": {"property_dept", "module_admin", "Administrator"},
-            "next_state": "Pending_Admin_HOD",
+            "next_state": "Pending CFO",
         },
-        "Pending_Admin_HOD": {
-            "roles": {"admin_hod", "module_admin", "Administrator"},
-            "next_state": None,
-        },
-        "Pending_CFO": {
+
+        "Pending CFO": {
             "roles": {"cfo", "module_admin", "Administrator"},
-            "next_state": "Pending_Property_PO",
+            "next_state": None,  # handled dynamically
         },
-        "Pending_MD": {
+
+        "Pending MD": {
             "roles": {"md", "module_admin", "Administrator"},
-            "next_state": "Pending_Property_PO",
+            "next_state": "Pending Property PO",
         },
-        "Pending_Property_PO": {
+
+        "Pending Property PO": {
             "roles": {"property_dept", "module_admin", "Administrator"},
-            "next_state": "Pending_MIRO",
+            "next_state": "Pending MIRO",
         },
-        "Pending_MIRO": {
-            "roles": {"property_dept", "module_admin", "Administrator"},
+
+        "Pending MIRO": {
+            "roles": {"gl_team", "module_admin", "Administrator"},
             "next_state": "Completed",
         },
     },
+
     "reject": {
-        "Pending_GM_Review": {
-            "roles": {"division_gm", "module_admin", "Administrator"},
-            "next_state": "Rejected",
-        },
-        "Pending_Cheque_Details": {
-            "roles": {"property_dept", "module_admin", "Administrator"},
-            "next_state": "Rejected",
-        },
-        "Pending_Admin_HOD": {
-            "roles": {"admin_hod", "module_admin", "Administrator"},
-            "next_state": "Rejected",
-        },
-        "Pending_CFO": {
-            "roles": {"cfo", "module_admin", "Administrator"},
-            "next_state": "Rejected",
-        },
-        "Pending_MD": {
-            "roles": {"md", "module_admin", "Administrator"},
-            "next_state": "Rejected",
-        },
+        "Pending Approver 1": {"roles": {"approver_1"}, "next_state": "Rejected"},
+        "Pending Approver 2": {"roles": {"approver_2"}, "next_state": "Rejected"},
+        "Pending CFO": {"roles": {"cfo"}, "next_state": "Rejected"},
+        "Pending MD": {"roles": {"md"}, "next_state": "Rejected"},
     },
 }
 
 
-@frappe.whitelist(methods=["GET"])
+@frappe.whitelist(allow_guest=True, methods=["GET"])
 def has_property_automation_role(email=None):
-    if not email:
-        frappe.throw(_("Email is required"))
+    try:
+        if not email:
+            frappe.throw(_("Email is required"))
 
-    if frappe.session.user == "Administrator" or email == "Administrator":
-        return {"message": {"has_access": True}}
+        user = email
 
-    allowed_roles = {
-        "JH Property Dept",
-        "JH Digitrack Admin",
-        
+        if user == "Administrator":
+            return {"has_access": True}
+
+        user_roles = set(frappe.get_roles(user))
+        settings = frappe.get_single("JH Digitrack Settings")
+
+        has_access = (
+            "JH Property Department" in user_roles
+            or "JH GL Team" in user_roles
+            or "JH Licensing Team" in user_roles
+            or user == settings.cfo_user
+            or user == settings.md_user
+        )
+
+        return {"has_access": has_access}
+
+    except frappe.ValidationError as e:
+        # Known validation errors (like missing email)
+        return {
+            "has_access": False,
+            "error": str(e)
+        }
+
+    except Exception as e:
+        # Unexpected errors
+        frappe.log_error(frappe.get_traceback(), "has_property_automation_role Error")
+
+        return {
+            "has_access": False,
+            "error": "Something went wrong. Please contact administrator."
+        }
+
+
+@frappe.whitelist(allow_guest=True,methods=["GET"])
+def get_logged_in_property_user():
+    user = frappe.session.user
+    user_roles = set(frappe.get_roles(user))
+    settings = frappe.get_single("JH Digitrack Settings")  
+
+    return {
+        "message": {
+            "user": user,
+            "has_property_access": (
+                user == "Administrator"
+                or "JH Property Department" in user_roles
+                or "JH GL Team" in user_roles
+                or "JH Licensing Team" in user_roles
+                or user == settings.cfo_user
+                or user == settings.md_user
+            ),
+            "has_property_dept_role": (
+                user == "Administrator"
+                or "JH Property Department" in user_roles
+            ),
+            "has_gl_team_role": (
+                user == "Administrator"
+                or "JH GL Team" in user_roles
+            ),
+            "roles": sorted(user_roles),
+        }
     }
-
-    user_roles = set(frappe.get_roles(email))
-    has_access = bool(user_roles.intersection(allowed_roles))
-
-    return {"message": {"has_access": has_access}}
 
 
 @frappe.whitelist(methods=["GET"])
@@ -106,7 +156,6 @@ def whoami(renewal_id: str = None, is_new: bool = False):
     # Shared organization-role mappings from JH Digitrack Settings (Single).
     cfo_user = frappe.db.get_single_value("JH Digitrack Settings", "cfo_user")
     md_user = frappe.db.get_single_value("JH Digitrack Settings", "md_user")
-    admin_hod_user = frappe.db.get_single_value("JH Digitrack Settings", "admin_hod_user")
 
     matches = set()
 
@@ -116,10 +165,12 @@ def whoami(renewal_id: str = None, is_new: bool = False):
         matches.add("cfo")
     if user == md_user:
         matches.add("md")
-    if user == admin_hod_user:
-        matches.add("admin_hod")
-    if "JH Property Dept" in user_roles:
+    if "JH Property Department" in user_roles:
         matches.add("property_dept")
+    if "JH GL Team" in user_roles:
+        matches.add("gl_team")
+    if "JH Licensing Team" in user_roles:
+        matches.add("licensing")
 
     if is_new:
         for role in ROLE_PRIORITY:
@@ -132,18 +183,17 @@ def whoami(renewal_id: str = None, is_new: bool = False):
         frappe.throw(_("renewal_id is required when is_new is false"))
 
     renewal = frappe.get_doc("JH Property Rental Renewal", renewal_id)
-    division = renewal.division
-    if not division and renewal.property:
-        division = frappe.db.get_value("JH Property Master", renewal.property, "division_used")
 
-    if division:
-        division_gm_user = frappe.db.get_value("JH Division Master", division, "division_gm")
-        if user == division_gm_user:
-            matches.add("division_gm")
+    if renewal.property:
+        property_doc = frappe.get_doc("JH Property Master", renewal.property)
 
-    if renewal.owner == user:
-        matches.add("licensing")
+        if user == property_doc.approver_1:
+            matches.add("approver_1")
 
+        if user == property_doc.approver_2:
+            matches.add("approver_2")
+
+    
     for role in ROLE_PRIORITY:
         if role in matches:
             return {"role": role}
@@ -151,14 +201,75 @@ def whoami(renewal_id: str = None, is_new: bool = False):
     frappe.throw(_("You are not allowed to access property renewal workflow."))
 
 
-def _get_next_state_for_admin_hod(renewal):
-    if renewal.rent_change_percent is None:
-        renewal.calculate_rent_change_percent()
 
-    if renewal.rent_change_percent <= 5:
-        return "Pending_CFO"
 
-    return "Pending_MD"
+def notify_md(renewal):
+    settings = frappe.get_single("JH Digitrack Settings")
+
+    if not settings.md_user:
+        return  # no MD configured
+
+    frappe.sendmail(
+        recipients=[settings.md_user],
+        subject="Rental Renewal Approved (No MD Approval Required)",
+        message=f"""
+        Rental Renewal <b>{renewal.name}</b> has been approved by CFO.<br><br>
+        Rent change is ≤ 5%, so MD approval is not required.<br><br>
+        This is for your information.
+        """
+    )
+
+
+@frappe.whitelist(methods=["GET"])
+def get_division_gm(division: str = None, property: str = None, renewal_id: str = None):
+    if not any([division, property, renewal_id]):
+        frappe.throw(_("One of division, property, or renewal_id is required"))
+
+    resolved_division = division
+
+    if not resolved_division and property:
+        resolved_division = frappe.db.get_value("JH Property Master", property, "division_used")
+
+    if not resolved_division and renewal_id:
+        renewal = frappe.get_doc("JH Property Rental Renewal", renewal_id)
+        resolved_division = renewal.division
+
+        if not resolved_division and renewal.property:
+            resolved_division = frappe.db.get_value(
+                "JH Property Master", renewal.property, "division_used"
+            )
+
+    if not resolved_division:
+        frappe.throw(_("Division could not be resolved"))
+
+    gm_user = frappe.db.get_value("JH Division Master", resolved_division, "division_gm")
+
+    return {
+        "message": {
+            "division": resolved_division,
+            "gm_user": gm_user,
+        }
+    }
+
+
+@frappe.whitelist(methods=["GET"])
+def calculate_rent_change_percent(current_rent=None, proposed_rent=None):
+    current_rent = flt(current_rent)
+    proposed_rent = flt(proposed_rent)
+
+    if not current_rent:
+        return {
+            
+                "rent_change_percent": 0,
+            }
+
+    rent_change_percent = ((proposed_rent - current_rent) / current_rent) * 100
+
+    return {
+        
+            "rent_change_percent": rent_change_percent,
+        }
+    
 
 
 @frappe.whitelist(methods=["POST"])
@@ -188,8 +299,19 @@ def apply_workflow_action(renewal_id: str, action: str):
         )
 
     next_state = transition["next_state"]
-    if current_state == "Pending_Admin_HOD" and action == "approve":
-        next_state = _get_next_state_for_admin_hod(renewal)
+
+    if current_state == "Pending CFO" and action == "approve":
+
+        # ensure value is calculated
+        if renewal.rent_change_percent is None:
+            renewal.calculate_rent_change_percent()
+
+        if renewal.rent_change_percent > 5:
+            next_state = "Pending MD"
+        else:
+            next_state = "Pending Property PO"
+            notify_md(renewal)
+    
 
     renewal.workflow_state = next_state
     renewal.save(ignore_permissions=True)

@@ -12,8 +12,7 @@
   "maintenance_to",
   "organization_roles_section",
   "cfo_user",
-  "md_user",
-  "admin_hod_user"
+  "md_user"
  ],
  "fields": [
   {
@@ -59,18 +58,12 @@
    "fieldtype": "Link",
    "label": "MD",
    "options": "User"
-  },
-  {
-   "fieldname": "admin_hod_user",
-   "fieldtype": "Link",
-   "label": "Admin HOD",
-   "options": "User"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-04-01 11:21:35.255250",
+ "modified": "2026-04-06 15:50:25.888521",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Digitrack Settings",
@@ -107,6 +100,7 @@
   }
  ],
  "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],

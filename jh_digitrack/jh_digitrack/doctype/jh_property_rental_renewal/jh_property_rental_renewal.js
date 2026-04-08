@@ -31,3 +31,25 @@ function calculate_percent(frm) {
 	frm.set_value("rent_change_percent", rent_change_percent);
 	frm.set_value("data_gisi", rent_change_percent);
 }
+
+frappe.ui.form.on('JH Property Rental Renewal', {
+
+    validate: function(frm) {
+
+        let today = frappe.datetime.get_today();
+
+        // Check Renewal From >= Today
+        if (frm.doc.renewal_from && frm.doc.renewal_from < today) {
+            frappe.throw("Renewal From date cannot be in the past.");
+        }
+
+        // Check Renewal To > Renewal From
+        if (frm.doc.renewal_from && frm.doc.renewal_to) {
+            if (frm.doc.renewal_to <= frm.doc.renewal_from) {
+                frappe.throw("Renewal To date must be after Renewal From date.");
+            }
+        }
+
+    }
+
+});

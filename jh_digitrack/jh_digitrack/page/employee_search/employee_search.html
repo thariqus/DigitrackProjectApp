@@ -1,0 +1,44 @@
+<div class="employee-search-page">
+  <img class="logo" src="/assets/jh_digitrack/images/jaleel%20holdings%201.png" alt="Logo" />
+  <h1 class="page-title">Employee Lookup</h1>
+  <div class="search-wrapper">
+    <div id="searchTip" class="tooltip">Press Enter or click 🔍 to search employee</div>
+    <div class="search-container">
+      <input type="text" id="search" placeholder="Employee code,First name,Last name or Email " autocomplete="off">
+      <button class="search-btn" type="button" onclick="searchEmployee()">
+        <span class="material-icons">search</span>
+      </button>
+    </div>
+  </div>
+
+  <div id="resultHint" class="result-hint">
+    <i>ℹ️</i> Click an employee name to view more profile details.
+  </div>
+
+  <div id="results"></div>
+
+  <div id="employeeModal" class="modal">
+    <div class="modal-content employee-modal">
+      <span class="close" title="Close (Esc)">&times;</span>
+
+      <div class="profile-section">
+        <div class="profile-left">
+          <img id="employeeAvatar" class="employee-avatar" src="/assets/jh_digitrack/images/avatar-logo.png" alt="Avatar" />
+          <h3 id="employeeFullName" class="employee-name"></h3>
+        </div>
+
+        <div class="profile-right">
+          <div class="contact-block">
+            <h4 class="section-title">Contact Info</h4>
+            <div id="contactDetails" class="details-grid"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-block">
+        <h4 class="section-title">Job Info</h4>
+        <div id="jobDetails" class="details-grid"></div>
+      </div>
+    </div>
+  </div>
+</div>

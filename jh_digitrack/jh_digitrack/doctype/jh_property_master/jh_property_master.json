@@ -9,10 +9,13 @@
   "section_break_afv9",
   "property_name",
   "type_of_property",
+  "business_used",
   "division_used",
+  "approver_1",
+  "approver_2",
+  "column_break_rpia",
   "booked_under",
   "profit_center",
-  "column_break_rpia",
   "number_of_units",
   "number_of_premises",
   "premise_number",
@@ -29,6 +32,7 @@
   "landlord",
   "real_estate",
   "tenancy_period",
+  "lease_start_date",
   "column_break_nbh3",
   "current_rent",
   "renewal_date",
@@ -244,12 +248,36 @@
    "fieldtype": "Table",
    "label": "Documents",
    "options": "JH Property Document"
+  },
+  {
+   "fieldname": "business_used",
+   "fieldtype": "Link",
+   "label": "Business Used",
+   "options": "JH Business Master"
+  },
+  {
+   "fieldname": "approver_1",
+   "fieldtype": "Link",
+   "label": "Approver 1",
+   "options": "User",
+   "reqd": 1
+  },
+  {
+   "fieldname": "approver_2",
+   "fieldtype": "Link",
+   "label": "Approver 2",
+   "options": "User"
+  },
+  {
+   "fieldname": "lease_start_date",
+   "fieldtype": "Date",
+   "label": "Lease start Date"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-03-31 22:10:26.164443",
+ "modified": "2026-04-07 18:09:45.295102",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Property Master",
