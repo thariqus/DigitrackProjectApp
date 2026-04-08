@@ -1,32 +1,29 @@
 import { TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useOutletContext } from "react-router";
 
-type ContextType = {
-  propertyRole: any;
-};
 
-export const PropertyTableHeader = ({ tableHeadings }: { tableHeadings: string[] })=> {
-
-  const { propertyRole } = useOutletContext<ContextType>();
+export const PropertyTableHeader = ({ tableHeadings,canHaveAccess }: { tableHeadings: string[],canHaveAccess ?: boolean })=> {
 
   return (
     <TableHeader>
       <TableRow>
 
         {/* Index */}
-        <TableHead className="w-[50px]">#</TableHead>
+        <TableHead className="w-[45px]">#</TableHead>
 
         {
           tableHeadings.map((heading,index) => (
-              <TableHead key={index} className="cursor-pointer">
-              {heading}
-            </TableHead>
+            <TableHead
+                key={index}
+                className={`cursor-pointer ${heading === "Workflow Stage" ? "w-[150px]" : ""}`}
+              >
+                {heading}
+              </TableHead>
           )  
           )
         }
         {/* Actions */}
 
-        {propertyRole && (
+        {canHaveAccess  && (
           <TableHead className="w-[60px] text-center">Actions</TableHead>
         )}
       </TableRow>
