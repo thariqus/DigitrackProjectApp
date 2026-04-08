@@ -1,4 +1,5 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useLocation } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { Table, TableBody, TableFooter } from "@/components/ui/table";
@@ -21,6 +22,7 @@ type ContextType = {
 
 function Renewals() {
 
+  const location = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [renewalsPerPage, setRenewalsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
@@ -30,11 +32,64 @@ function Renewals() {
   const [selectedRenewalDateRange, setSelectedRenewalDateRange] = useState<string[]>([]);
   const [selectedDivision, setSelectedDivision] = useState<string[]>([]);
   const [pendingMyAction, setPendingMyAction] = useState(false);
-
+  const [roleBasedAccess,setRoleBasedAccess] = useState([])
   const [selectedRenewal, setSelectedRenewal] = useState<string | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
-  const { currentJhUser } = useOutletContext<ContextType>();
+  // permission access for particular user
+  useEffect(() => {
+  const fetchRole = async () => {
+    try {
+      const res = await fetch(
+        "/api/method/jh_digitrack.api.property_management.get_logged_in_property_user",
+        {
+          credentials: "include",
+        }
+      );
+
+      const data = await res.json();
+      setRoleBasedAccess(data);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  fetchRole();
+}, []);
+
+  // Auto-open specific renewal from navigation state
+  useEffect(() => {
+    const openRenewal = location.state?.openRenewal as string | null;
+    if (openRenewal && !selectedRenewal) {
+      setSelectedRenewal(openRenewal);
+      setMode("view");
+      setIsSheetOpen(true);
+    }
+  }, [location.state?.openRenewal, selectedRenewal]);
+
+  const { currentJhUser } = useOutletContext<ContextType>(); 
+
+  // Fetch dynamic pending filters when pendingMyAction toggled
+  const [myPendingFilters, setMyPendingFilters] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (pendingMyAction) {
+      fetch('/api/method/jh_digitrack.api.property_management.get_my_pending_filters')
+        .then(res => res.json())
+        .then((res: Response) => res.json())
+        .then((data: any) => {
+          // data.message.filters is array of filter groups; flatten or use first for simple case
+          if (data.message?.filters && data.message.filters.length > 0) {
+            const primaryFilter = data.message.filters[0]; // e.g. [["workflow_state","=","Pending Approver 2"], ["property","in",["prop1","prop2"]]]
+            // Flatten to AND filters for useDocs
+            setMyPendingFilters(primaryFilter.flat());
+          }
+        })
+        .catch(console.error);
+    } else {
+      setMyPendingFilters([]);
+    }
+  }, [pendingMyAction]);
 
   const { filters } = useRenewalFilters({
     searchQuery,
@@ -42,6 +97,7 @@ function Renewals() {
     selectedRenewalDateRange,
     selectedDivision,
     PendingMyAction: pendingMyAction,
+    myPendingFilters,
     currentJhUser,
   });
 
@@ -80,7 +136,6 @@ function Renewals() {
     },
   });
 
-  console.log(renewals,"renewals")
 
   const handleSearchChange = useCallback((value: string) => {
     setSearchQuery(value);
@@ -139,6 +194,12 @@ function Renewals() {
   });
 
   const totalPages = Math.ceil(renewalsCounter.length / renewalsPerPage);
+
+  // access to edit renewal permisssion 
+  const roles = roleBasedAccess?.message?.message?.roles || [];
+  const isLicensingTeam = roles.includes("JH Licensing Team");
+
+  const roleBasedFilter = renewals.filter(renewal => renewal.division)
 
   return (
     <div className="w-full space-y-4">
@@ -211,7 +272,7 @@ function Renewals() {
 
       <div className="rounded-md border">
         <Table className="w-full table-fixed">
-          <PropertyTableHeader tableHeadings={tableHeadings} />
+          <PropertyTableHeader tableHeadings={tableHeadings}  canHaveAccess ={isLicensingTeam}/>
 
           <TableBody>
             {renewals.map((item, index) => (
@@ -224,6 +285,7 @@ function Renewals() {
                 onEdit={handleEditClick}
                 formatDate={formatDate}
                 renewalColorHighlight={undefined}
+                isLicensingTeam={isLicensingTeam}
               />
             ))}
           </TableBody>
@@ -248,6 +310,7 @@ function Renewals() {
         formatDate={formatDate}
         workflowColorHighlight={() => 'text-black'}
         typeOptions={[]}
+        isLicensingTeam = {isLicensingTeam}
       />
     </div>
   );
