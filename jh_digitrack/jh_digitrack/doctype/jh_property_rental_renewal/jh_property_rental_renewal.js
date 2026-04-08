@@ -21,7 +21,7 @@ function calculate_percent(frm) {
 	const current_rent = flt(frm.doc.current_rent);
 	const proposed_rent = flt(frm.doc.proposed_rent);
 
-	if (!current_rent) {
+	if (!current_rent || !frm.doc.proposed_rent) {
 		frm.set_value("rent_change_percent", 0);
 		frm.set_value("data_gisi", 0);
 		return;

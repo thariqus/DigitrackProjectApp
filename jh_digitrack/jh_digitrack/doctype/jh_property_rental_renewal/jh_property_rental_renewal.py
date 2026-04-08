@@ -24,7 +24,7 @@ class JHPropertyRentalRenewal(Document):
 		current_rent = flt(self.current_rent)
 		proposed_rent = flt(self.proposed_rent)
 
-		if not current_rent:
+		if not current_rent or self.proposed_rent in (None, ""):
 			self.rent_change_percent = 0
 			return
 
