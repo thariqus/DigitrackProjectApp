@@ -1,14 +1,11 @@
 import { TableRow, TableCell } from "@/components/ui/table";
 import { Pencil } from "lucide-react";
 import { useOutletContext } from "react-router";
+import StatusBadge from "./StatusBadge";
 
-type ContextType = {
- propertyCreateOrUpdateRole: any;
-};
 
-function RenewalTableRow({ renewals , index, onClick,isLoading,onEdit,renewalColorHighlight,formatDate }: any) {
+function RenewalTableRow({ renewals , index, onClick,isLoading,onEdit,renewalColorHighlight,formatDate,isLicensingTeam  }: any) {
 
-   const { propertyCreateOrUpdateRole } = useOutletContext<ContextType>();
 
    const renewalPeriod = (() => {
         if (!renewals.renewal_from || !renewals.renewal_to) return "";
@@ -44,22 +41,25 @@ function RenewalTableRow({ renewals , index, onClick,isLoading,onEdit,renewalCol
       <TableCell>{renewals.proposed_rent}</TableCell>
       <TableCell>{renewals.rent_change_percent}</TableCell>
       <TableCell>{renewalPeriod}</TableCell>
-      <TableCell>{renewals.workflow_state}</TableCell>
+      <TableCell><StatusBadge status={renewals.workflow_state} /></TableCell>
       <TableCell>{renewals.modified}</TableCell>
 
-      
+      {isLicensingTeam  && 
         <TableCell>
-        <div
-        className="flex justify-center items-center cursor-pointer"
-        onClick={(e) => {
-          e.stopPropagation(); //  prevent row click
-          onEdit(renewals.name);
-        }}
-        title="Edit Renewal"
-      >
-        <Pencil size={13} />
-      </div>
+          
+             <div
+                className="flex justify-center items-center cursor-pointer"
+                onClick={(e) => {
+                  e.stopPropagation(); //  prevent row click
+                  onEdit(renewals.name);
+                }}
+                title="Edit Renewal"
+              >
+                <Pencil size={13} />
+            </div>
+       
       </TableCell>
+}
       
   
     </TableRow>
