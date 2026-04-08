@@ -2,7 +2,7 @@
  "actions": [],
  "allow_rename": 1,
  "autoname": "RNW-.YYYY.-.#####",
- "creation": "2026-03-19 13:26:26.854097",
+ "creation": "2026-04-08 15:56:33.818342",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
@@ -221,6 +221,7 @@
    "default": "Draft",
    "fieldname": "workflow_state",
    "fieldtype": "Select",
+   "in_list_view": 1,
    "label": "Workflow State",
    "options": "Draft\nPending Approver 1\nPending Approver 2\nPending Cheque Details\nPending CFO\nPending MD\nPending Property PO\nPending MIRO\nCompleted\nRejected",
    "read_only": 1
@@ -270,7 +271,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-04-08 12:56:19.686764",
+ "modified": "2026-04-08 16:10:44.526190",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Property Rental Renewal",

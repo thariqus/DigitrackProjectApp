@@ -43,7 +43,7 @@ export const useHasJrcPermission = () => {
 };
 
 
-export const  useHasPropertyAccess = () => {
+export const useHasPropertyAccess = () => {
   const { data: currentJhUser } = useCurrentJhUser();
 
   return useQuery({
@@ -53,9 +53,7 @@ export const  useHasPropertyAccess = () => {
 
       const res = await frappe.api.get<{
         message: { has_access: boolean };
-      }>("jh_digitrack.api.property_management.has_property_automation_role", {
-        email: currentJhUser?.email,
-      });
+      }>("jh_digitrack.api.property_management.has_property_automation_role");
 
       return { message: res.message };
     },
