@@ -38,7 +38,10 @@
   "number_of_units",
   "tenancy_period",
   "section_break_kpz9",
-  "workflow_state"
+  "workflow_state",
+  "audit_section",
+  "audit_trail",
+  "amended_from"
  ],
  "fields": [
   {
@@ -126,14 +129,18 @@
    "label": "PO Details"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "po_number",
    "fieldtype": "Data",
-   "label": "PO Number"
+   "label": "PO Number",
+   "permlevel": 2
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "renewed_contract_document",
    "fieldtype": "Attach",
-   "label": "Renewed Contract Document"
+   "label": "Renewed Contract Document",
+   "permlevel": 2
   },
   {
    "fieldname": "miro_details_section",
@@ -141,9 +148,11 @@
    "label": "MIRO Details"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "miro_number",
    "fieldtype": "Data",
-   "label": "MIRO Number"
+   "label": "MIRO Number",
+   "permlevel": 3
   },
   {
    "fieldname": "property_information_section",
@@ -228,16 +237,40 @@
    "read_only": 1
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "cheque_details",
    "fieldtype": "Table",
    "label": "Cheque Details",
-   "options": "JH Property Cheque Detail"
+   "options": "JH Property Cheque Detail",
+   "permlevel": 2
+  },
+  {
+   "fieldname": "audit_section",
+   "fieldtype": "Section Break",
+   "label": "Audit"
+  },
+  {
+   "fieldname": "audit_trail",
+   "fieldtype": "Table",
+   "label": "Audit Trail",
+   "options": "JH Property Renewal Audit"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "JH Property Rental Renewal",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
+ "is_submittable": 1,
  "links": [],
- "modified": "2026-04-07 12:35:32.839309",
+ "modified": "2026-04-08 12:56:19.686764",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Property Rental Renewal",
@@ -252,7 +285,49 @@
    "print": 1,
    "read": 1,
    "report": 1,
-   "role": "System Manager",
+   "role": "JH Digitrack Admin",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "JH Property Department",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "permlevel": 2,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "JH Property Department",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "permlevel": 3,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "JH GL Team",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "JH GL Team",
    "share": 1,
    "write": 1
   },
@@ -264,18 +339,7 @@
    "print": 1,
    "read": 1,
    "report": 1,
-   "role": "JH Digitrack Admin",
-   "share": 1,
-   "write": 1
-  },
-  {
-   "create": 1,
-   "email": 1,
-   "export": 1,
-   "print": 1,
-   "read": 1,
-   "report": 1,
-   "role": "JH Property Dept",
+   "role": "JH Licensing Team",
    "share": 1,
    "write": 1
   }

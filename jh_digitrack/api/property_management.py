@@ -220,6 +220,13 @@ def notify_md(renewal):
     )
 
 
+def update_property_master_renewal_date(renewal):
+    if renewal.workflow_state != "Completed" or not renewal.property or not renewal.renewal_to:
+        return
+
+    frappe.db.set_value("JH Property Master", renewal.property, "renewal_date", renewal.renewal_to)
+
+
 @frappe.whitelist(methods=["GET"])
 def get_division_gm(division: str = None, property: str = None, renewal_id: str = None):
     if not any([division, property, renewal_id]):
@@ -315,6 +322,7 @@ def apply_workflow_action(renewal_id: str, action: str):
 
     renewal.workflow_state = next_state
     renewal.save(ignore_permissions=True)
+    update_property_master_renewal_date(renewal)
 
     return {
         "name": renewal.name,
