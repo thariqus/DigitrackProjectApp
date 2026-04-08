@@ -17,6 +17,8 @@ import { useEffect } from "react";
 import { useSaveDoc } from "@/hooks/doc";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { useCallback, useEffect, useState } from "react";
+import { debounce } from "lodash"; 
 
 const schema = z.object({
   proposed_rent: z
@@ -60,6 +62,8 @@ export default function StartRenewalModal({
 
   const isNewMode = mode === 'new';
 
+  const [rentChangePercentState, setRentChangePercentState] = useState("0");
+
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
     mode: "onBlur",
@@ -70,7 +74,33 @@ export default function StartRenewalModal({
     },
   });
 
-  // Reset form properly when modal opens
+  // Debounced API call for rent calculation
+  // const debouncedCalculateRent = useCallback(
+  //   debounce(async (currentRent: number, proposedRentStr: string) => {
+  //     const proposedRent = parseFloat(proposedRentStr);
+  //     if (isNaN(proposedRent) || currentRent <= 0) {
+  //       setRentChangePercentState("0");
+  //       return;
+  //     }
+  //     try {
+  //       const params = new URLSearchParams({
+  //         current_rent: currentRent.toString(),
+  //         proposed_rent: proposedRent.toString()
+  //       });
+  //       const res = await fetch(`/api/method/jh_digitrack.api.property_management.calculate_rent_change?${params}`, {
+  //         credentials: "include",
+  //       });
+  //       const data = await res.json();
+  //       setRentChangePercentState((data.message?.rent_change_percent || 0).toString());
+  //     } catch (error) {
+  //       console.error("Rent calc error:", error);
+  //       setRentChangePercentState("0");
+  //     }
+  //   }, 500),
+  //   []
+  // );
+
+  // Reset form and state when modal opens
   useEffect(() => {
     if (open) {
       form.reset({
@@ -78,17 +108,22 @@ export default function StartRenewalModal({
         renewal_from: '',
         renewal_to: '',
       });
+      setRentChangePercentState("0");
     }
   }, [open, isNewMode, currentRent, form]);
 
-  const rentChangePercent = form.watch("proposed_rent") && currentRent
-    ? ((Number(form.watch("proposed_rent")) - currentRent) / currentRent * 100).toFixed(1)
-    : "0";
+  // Watch proposed_rent and trigger debounced calculation
+  // const proposedRentValue = form.watch("proposed_rent");
+  // useEffect(() => {
+  //   if (currentRent && proposedRentValue) {
+  //     debouncedCalculateRent(currentRent, proposedRentValue);
+  //   }
+  // }, [proposedRentValue, currentRent, debouncedCalculateRent]);
 
   const onSubmit = async (data: FormData) => {
     try {
       const proposedRentNum = Number(data.proposed_rent);
-      const rentChangePercentNum = currentRent ? ((proposedRentNum - currentRent) / currentRent * 100) : 0;
+      // const rentChangePercentNum = Number(rentChangePercentState) || 0;
 
       const renewalDoc = {
         doctype: "JH Property Rental Renewal",
@@ -96,7 +131,7 @@ export default function StartRenewalModal({
         property_name: propertyName,
         current_rent: isNewMode ? null : (currentRent ?? 0),
         proposed_rent: proposedRentNum,
-        rent_change_percent: rentChangePercentNum,
+        // rent_change_percent: rentChangePercentNum,
         renewal_from: data.renewal_from,
         renewal_to: data.renewal_to,
         workflow_state: "Draft",
@@ -107,6 +142,7 @@ export default function StartRenewalModal({
       await queryClient.invalidateQueries({ queryKey: ["Docs"] });
       onOpenChange(false);
       form.reset();
+      // setRentChangePercentState("0");
     } catch (error: any) {
       console.error("Renewal creation error:", error);
       toast.error(error?.message || "Failed to create renewal");
@@ -155,6 +191,10 @@ export default function StartRenewalModal({
                 />
               )}
             />
+            {/* <div className="flex items-center gap-2 mt-1 text-sm">
+              <Label className="text-gray-600 whitespace-nowrap">Rent Change %:</Label>
+              <Input value={rentChangePercentState + "%"} readOnly className="bg-gray-100 w-24" />
+            </div> */}
             {form.formState.errors.proposed_rent && (
               <p className="text-red-500 text-xs mt-1">
                 {form.formState.errors.proposed_rent.message}
