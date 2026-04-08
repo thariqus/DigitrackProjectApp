@@ -32,6 +32,7 @@
   "landlord",
   "real_estate",
   "tenancy_period",
+  "lease_start_date",
   "column_break_nbh3",
   "current_rent",
   "renewal_date",
@@ -266,12 +267,17 @@
    "fieldtype": "Link",
    "label": "Approver 2",
    "options": "User"
+  },
+  {
+   "fieldname": "lease_start_date",
+   "fieldtype": "Date",
+   "label": "Lease start Date"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-04-06 16:39:34.381698",
+ "modified": "2026-04-07 18:09:45.295102",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Property Master",
