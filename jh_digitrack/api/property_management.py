@@ -1,9 +1,10 @@
 import frappe
 from frappe import _
-from frappe.utils import cint
+from frappe.utils import cint, flt
 
 PROPERTY_ACCESS_ROLES = {
     "JH Property Department",
+    "JH GL Team",
     "JH Digitrack Admin",
 }
 
@@ -14,6 +15,7 @@ ROLE_PRIORITY = [
     "approver_1",
     "approver_2",
     "property_dept",
+    "gl_team",
     "licensing",
 ]
 
@@ -57,7 +59,7 @@ WORKFLOW_TRANSITIONS = {
         },
 
         "Pending MIRO": {
-            "roles": {"property_dept", "module_admin", "Administrator"},
+            "roles": {"gl_team", "module_admin", "Administrator"},
             "next_state": "Completed",
         },
     },
@@ -87,6 +89,7 @@ def has_property_automation_role(email=None):
 
         has_access = (
             "JH Property Department" in user_roles
+            or "JH GL Team" in user_roles
             or "JH Licensing Team" in user_roles
             or user == settings.cfo_user
             or user == settings.md_user
@@ -123,6 +126,7 @@ def get_logged_in_property_user():
             "has_property_access": (
                 user == "Administrator"
                 or "JH Property Department" in user_roles
+                or "JH GL Team" in user_roles
                 or "JH Licensing Team" in user_roles
                 or user == settings.cfo_user
                 or user == settings.md_user
@@ -130,6 +134,10 @@ def get_logged_in_property_user():
             "has_property_dept_role": (
                 user == "Administrator"
                 or "JH Property Department" in user_roles
+            ),
+            "has_gl_team_role": (
+                user == "Administrator"
+                or "JH GL Team" in user_roles
             ),
             "roles": sorted(user_roles),
         }
@@ -159,6 +167,8 @@ def whoami(renewal_id: str = None, is_new: bool = False):
         matches.add("md")
     if "JH Property Department" in user_roles:
         matches.add("property_dept")
+    if "JH GL Team" in user_roles:
+        matches.add("gl_team")
     if "JH Licensing Team" in user_roles:
         matches.add("licensing")
 
@@ -240,6 +250,26 @@ def get_division_gm(division: str = None, property: str = None, renewal_id: str 
             "gm_user": gm_user,
         }
     }
+
+
+@frappe.whitelist(methods=["GET"])
+def calculate_rent_change_percent(current_rent=None, proposed_rent=None):
+    current_rent = flt(current_rent)
+    proposed_rent = flt(proposed_rent)
+
+    if not current_rent:
+        return {
+            
+                "rent_change_percent": 0,
+            }
+
+    rent_change_percent = ((proposed_rent - current_rent) / current_rent) * 100
+
+    return {
+        
+            "rent_change_percent": rent_change_percent,
+        }
+    
 
 
 @frappe.whitelist(methods=["POST"])
