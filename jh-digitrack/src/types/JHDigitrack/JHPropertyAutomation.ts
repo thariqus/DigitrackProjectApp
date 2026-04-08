@@ -2,9 +2,12 @@ export interface PropertyMaster {
   name: string;
   property_name: string;
 
-  type_of_property: "Shop" | "Office" | "Warehouse" | "Other";
+type_of_property: "Shop" | "Office" | "Warehouse" | "Other";
+  business_used?: string;
 
   division_used: string;
+  approver_1: string;
+  approver_2?: string;
   booked_under: string;
   profit_center: string;
 
@@ -112,6 +115,8 @@ export interface DivisionMaster {
   name: string;
   division_name: string;
   division_code: string;
+  division_head: string;
+  division_gm: string;
   gm_user: string;
   active: boolean;
 }
