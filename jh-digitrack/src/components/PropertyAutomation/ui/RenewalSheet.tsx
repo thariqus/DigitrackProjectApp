@@ -10,10 +10,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import FileAttachment from "./FileAttachment";
 import { useDocDetail, useDocs, useSaveDoc, useUpdateDoc } from "@/hooks/doc";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { debounce } from "lodash";
+import { useApplyWorkflowAction } from "../hooks/useApplyWorkflowAction";
 import { PropertyMaster, RentalRenewal, ChequeDetail } from "@/types/JHDigitrack/JHPropertyAutomation";
-import { toast } from "sonner";
-import { queryClient } from "@/utils/query-client";
 
 type RenewalSheetProps = {
   open: boolean;
@@ -23,6 +23,7 @@ type RenewalSheetProps = {
   formatDate: (date?: string) => string;
   workflowColorHighlight?: (date?: string) => string;
   typeOptions?: string[];
+  isLicensingTeam:boolean;
 };
 
 // Renewal Schema matching doctype
@@ -40,7 +41,7 @@ const renewalSchema = z.object({
 
 }).partial();
 
-export default function RenewalSheet({ open, onOpenChange, propertyId, mode, formatDate, workflowColorHighlight = () => '', typeOptions = [] }: RenewalSheetProps) {
+export default function RenewalSheet({ open, onOpenChange, propertyId, mode, formatDate, workflowColorHighlight,isLicensingTeam }: RenewalSheetProps) {
 
   // Separate file states for different Attach fields
   const [supportingFiles, setSupportingFiles] = useState<File[]>([]);
@@ -48,6 +49,7 @@ export default function RenewalSheet({ open, onOpenChange, propertyId, mode, for
   const [chequeDetails, setChequeDetails] = useState<ChequeDetail[]>([]);
   const saveDoc = useSaveDoc();
   const updateDoc = useUpdateDoc();
+  const { mutate: applyAction } = useApplyWorkflowAction();
    const isView = mode === "view";
   const isEdit = mode === "edit";
   const formId = "renewal-form";
@@ -75,6 +77,8 @@ export default function RenewalSheet({ open, onOpenChange, propertyId, mode, for
     doctype: "JH Division Master",
   });
 
+  const [rentChangePercentState, setRentChangePercentState] = useState("0");
+
   const {
     register,
     handleSubmit,
@@ -87,10 +91,38 @@ export default function RenewalSheet({ open, onOpenChange, propertyId, mode, for
     mode: "onChange",
   });
 
-  // Dynamic rent % calculation
   const proposedRent = useWatch({ control, name: "proposed_rent" }) || '0';
   const currentRent = renewalDoc?.current_rent || 0;
-  const rentChangePercent = ((Number(proposedRent) - currentRent) / currentRent * 100).toFixed(1);
+
+  // Debounced rent calculation
+  const debouncedCalculateRent = useCallback(
+    debounce(async (currentRentNum: number, proposedRentNum: number) => {
+      if (currentRentNum <= 0) {
+        setRentChangePercentState("0");
+        return;
+      }
+      try {
+        const params = new URLSearchParams({
+          current_rent: currentRentNum.toString(),
+          proposed_rent: proposedRentNum.toString(),
+        });
+        const res = await fetch(`/api/method/jh_digitrack.api.property_management.calculate_rent_change_percent?${params}`, {
+          credentials: "include",
+        });
+        const data = await res.json();
+        setRentChangePercentState((data.message?.rent_change_percent || 0).toString());
+      } catch (error) {
+        console.error("Rent calc error:", error);
+        setRentChangePercentState("0");
+      }
+    }, 500),
+    []
+  );
+
+  useEffect(() => {
+    const proposedNum = Number(proposedRent);
+    debouncedCalculateRent(currentRent, proposedNum);
+  }, [proposedRent, currentRent, debouncedCalculateRent]);
 
   useEffect(() => {
     if (renewalDoc) {
@@ -144,7 +176,7 @@ export default function RenewalSheet({ open, onOpenChange, propertyId, mode, for
         [contractDocUrl] = await Promise.all(contractFiles.map(uploadFile));
       }
 
-      const rentPercent = Number(rentChangePercent);
+      const rentPercent = Number(rentChangePercentState) || 0;
 
       const payload: Partial<RentalRenewal> = {
         ...data,
@@ -244,7 +276,7 @@ export default function RenewalSheet({ open, onOpenChange, propertyId, mode, for
             {/* Property Details - READONLY */}
             <div>
               <h2 className="text-lg font-semibold mb-4">Property Details</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2  rounded-lg">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2  rounded-lg">
                 {property && (
                   <>
                     {renderReadonlyField("Property Name", property.property_name)}
@@ -261,7 +293,9 @@ export default function RenewalSheet({ open, onOpenChange, propertyId, mode, for
               </div>
             </div>
 
-            <Separator />
+
+              <>
+               <Separator />
 
             {/* Renewal Edit Fields */}
             <h2 className="text-lg font-semibold">Renewal Details</h2>
@@ -274,19 +308,19 @@ export default function RenewalSheet({ open, onOpenChange, propertyId, mode, for
               >
               {renderRenewalField("Proposed Rent", "proposed_rent", String(renewalDoc?.proposed_rent), "number")}
               {renderRenewalField("Additional Charges", "additional_charges", String(renewalDoc?.additional_charges), "number")}
-              <div className={`${isView? "flex" : "flex flex-col gap-1"}`}>
+              <div className={`${isView? "flex gap-2" : "flex flex-col gap-1"}`}>
                 <Label className="text-gray-600 text-nowarp">Rent Change %: </Label>
                  {isView ? (
-                    <div>{renewalDoc?.rent_change_percent}</div>
+                    <div>{renewalDoc?.rent_change_percent}%</div>
                   ): (
-                <Input value={rentChangePercent + "%"} readOnly className="bg-gray-200" />
+                <Input value={rentChangePercentState + "%"} readOnly className="bg-gray-200" />
                   )}
               </div>
               {renderRenewalField("Renewal From", "renewal_from", renewalDoc?.renewal_from, "date")}
               {renderRenewalField("Renewal To", "renewal_to", renewalDoc?.renewal_to, "date")}
               {renderRenewalField("Payment Schedule", "payment_schedule", renewalDoc?.payment_schedule || '')}
               {renderRenewalField("New Security Deposit", "new_security_deposit", String(renewalDoc?.new_security_deposit), "number")}
-              <div className={`${isView? "flex py-1" : "flex flex-col gap-1 py-1"}`}>
+              <div className={`${isView? "flex py-1 gap-2" : "flex flex-col gap-1 py-1"}`}>
                   <Label className="text-gray-600">Remarks: </Label> 
                   {isView ? (
                     <div>{renewalDoc?.remarks}</div>
@@ -311,140 +345,81 @@ export default function RenewalSheet({ open, onOpenChange, propertyId, mode, for
                     ) : <p>No document</p>}
                   </div>
                 ) : (
-                  <FileAttachment files={supportingFiles} setFiles={setSupportingFiles} maxFiles={1} />
+                  <FileAttachment files={supportingFiles} setFiles={setSupportingFiles} />
                 )}
               </div>
-
-
-            <Separator />
-
-            {/* Cheque Details */}
-            <h2 className="text-lg font-semibold">Cheque Details</h2>
-            {isView ? (
-              <div className="space-y-2">
-                {chequeDetails.length > 0 ? (
-                  chequeDetails.map((cheque, index) => (
-                    <div key={index} className="border p-3 rounded-md bg-gray-50">
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
-                        {renderReadonlyField("Bank Name", cheque.bank_name)}
-                        {renderReadonlyField("Cheque Number", cheque.cheque_number)}
-                        {renderReadonlyField("Amount", cheque.cheque_amount)}
-                        {renderReadonlyField("Cheque Date", cheque.cheque_date)}
-                        {renderReadonlyField("Payee", cheque.payee)}
-                        {renderReadonlyField("Signatory", cheque.signatory)}
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-gray-500">No cheque details</p>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {/* {chequeDetails.map((cheque, index) => ( */}
-                  <div  className="border p-4 rounded-md space-y-2">
-                    <Input 
-                      placeholder="Bank Name" 
-                      value={chequeDetails.bank_name || ''}
-                      onChange={(e) => {
-                        const newDetails = e.target.value;
-                        setChequeDetails(newDetails);
-                      }}
-                    />
-                    <div className="grid grid-cols-2 gap-2">
-                      <Input 
-                        placeholder="Cheque Number" 
-                        value={chequeDetails.cheque_number || ''} 
-                        onChange={(e) => {
-                          const newDetails  = e.target.value;
-                          setChequeDetails(newDetails);
-                        }} 
-                      />
-                      <Input 
-                        placeholder="Amount" 
-                        type="number" 
-                        value={chequeDetails.cheque_amount || ''} 
-                        onChange={(e) => {
-                          const newDetails = Number(e.target.value);
-                          setChequeDetails(newDetails);
-                        }} 
-                      />
-                    </div>
-                    <Input 
-                      placeholder="Cheque Date" 
-                      type="date" 
-                      value={chequeDetails.cheque_date || ''} 
-                      onChange={(e) => {
-                        const newDetails = e.target.value;
-                        setChequeDetails(newDetails);
-                      }} 
-                    />
-                    <div className="grid grid-cols-2 gap-2">
-                      <Input 
-                        placeholder="Payee" 
-                        value={chequeDetails.payee || ''} 
-                        onChange={(e) => {
-                          const newDetails =  e.target.value;
-                          setChequeDetails(newDetails);
-                        }} 
-                      />
-                      <Input 
-                        placeholder="Signatory" 
-                        value={chequeDetails.signatory || ''} 
-                        onChange={(e) => {
-                          const newDetails =  e.target.value;
-                          setChequeDetails(newDetails);
-                        }} 
-                      />
-                    </div>
-                   
-                  </div>
-               
-                {/* <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => setChequeDetails(prev => [...prev, {bank_name: '', cheque_number: '', cheque_amount: 0, cheque_date: '', payee: '', signatory: ''}])}>
-                  Add Cheque Detail
-                </Button> */}
-              </div>
-            )}
-             
-            <Separator />
-
-            {/*  Fields */}
-              <h2 className="text-lg font-semibold">PO Details</h2>
-            <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-4 items-start gap-4">
-              {renderRenewalField("PO Number", "po_number", renewalDoc?.po_number || '')}
-              </div>
-
-              {/* Renewed Contract Document */}
-              <div>
-                <h3 className="text-md font-semibold mb-2">Renewed Contract Document</h3>
-              {isView ? (
-                <div className="space-y-2">
-                  {renewalDoc?.renewed_contract_document ? (
-                    <div className="flex items-center gap-2 px-3 py-1 bg-gray-100 rounded">
-                      <span className="text-sm">{getFileName(renewalDoc.renewed_contract_document)}</span>
-                      <a href={renewalDoc.renewed_contract_document} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline text-sm">View</a>
-                    </div>
-                  ) : <p>No document</p>}
-                </div>
-              ) : (
-                <FileAttachment files={contractFiles} setFiles={setContractFiles} maxFiles={1} />
-              )}
-            </div>
-
-              <h2 className="text-lg font-semibold ">MIRO Details</h2>
-            <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-4 items-start gap-4 pb-10">
-                {renderRenewalField("MIRO Number", "miro_number", renewalDoc?.miro_number || '')}
-              </div>
-            
+              </>
           </form>
         </ScrollArea>
 
-        <SheetFooter className="absolute bottom-0 w-full bg-white px-5">
+        <SheetFooter className="absolute bottom-0 w-full pr-10 bg-white">
           <div className="flex w-full gap-2">
-            {isView ? (
+              {isView && isLicensingTeam && renewalDoc?.workflow_state === "Draft" ? (
+              <>
+               
+                <Button variant="outline" 
+                  className="" 
+                  type="button">Close</Button>
+                <Button 
+                  className="w-full bg-primary text-white" 
+                  type="button" 
+                  onClick={() => {
+                    if (!propertyId) return;
+                    applyAction({ renewalId: propertyId, action: "submit" }, {
+                      onSuccess: () => {
+                        onOpenChange(false);
+                      }
+                    });
+                  }}
+                >
+                  Submit for Approver 1
+                </Button>
+              </>
+            ) : (
+                renewalDoc?.workflow_state === "Pending Approver 1" && isView ? (
+              <div className="flex gap-3 w-full">
+               
+                <Button variant="outline" 
+                  className="w-full " 
+                  type="button">Withdraw</Button>
+                   <Button className="w-full bg-gray-400" type="button">Send Back</Button>
+                   <Button 
+                  className="w-full bg-primary text-white" 
+                  type="button" 
+                  onClick={() => {
+                    if (!propertyId) return;
+                    applyAction({ renewalId: propertyId, action: "approve" }, {
+                      onSuccess: () => {
+                        onOpenChange(false);
+                      }
+                    });
+                  }}
+                >
+                  Submit for Approver 2
+                </Button>
+               
+              </div>
+
+            ) : renewalDoc?.workflow_state === "Pending Approver 2" && isView ? (
+              <div className="flex gap-3 w-full">
+                <Button variant="outline" className="w-full" type="button">Withdraw</Button>
+                <Button className="w-full bg-gray-400" type="button">Send Back</Button>
+                <Button 
+                  className="w-full bg-primary text-white" 
+                  type="button" 
+                  onClick={() => {
+                    if (!propertyId) return;
+                    applyAction({ renewalId: propertyId, action: "approve" }, {
+                      onSuccess: () => {
+                        onOpenChange(false);
+                      }
+                    });
+                  }}
+                >
+                  Submit for Cheque Entry
+                </Button>
+              </div>
+            ) : !isView ? (
               <Button variant="outline" className="w-full" type="button" onClick={() => onOpenChange(false)}>
                 Close
               </Button>
@@ -453,16 +428,16 @@ export default function RenewalSheet({ open, onOpenChange, propertyId, mode, for
                 <Button variant="outline" className="w-full" type="button" onClick={() => onOpenChange(false)}>
                   Cancel
                 </Button>
-                <Button
+                {/* <Button
                   type="submit"
                   form={formId}
                   disabled={isSubmitting || !isValid}
                   className="w-full bg-[#972e26] hover:bg-[#972e26]/90"
                 >
                   {isSubmitting ? "Saving..." : "Update Renewal"}
-                </Button>
+                </Button> */}
               </>
-            )}
+            ))}
           </div>
         </SheetFooter>
       </SheetContent>
