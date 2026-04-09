@@ -2,12 +2,6 @@ import frappe
 from frappe import _
 from frappe.utils import cint, flt
 
-PROPERTY_ACCESS_ROLES = {
-    "JH Property Department",
-    "JH GL Team",
-    "JH Digitrack Admin",
-}
-
 ROLE_PRIORITY = [
     "module_admin",
     "cfo",
@@ -73,74 +67,52 @@ WORKFLOW_TRANSITIONS = {
 }
 
 
-@frappe.whitelist(allow_guest=True, methods=["GET"])
-def has_property_automation_role(email=None):
-    try:
-        if not email:
-            frappe.throw(_("Email is required"))
+@frappe.whitelist(methods=["GET"])
+def has_property_automation_role():
+    user = frappe.session.user
 
-        user = email
+    if user == "Administrator":
+        return {"has_access": True}
 
-        if user == "Administrator":
-            return {"has_access": True}
+    user_roles = set(frappe.get_roles(user))
+    settings = frappe.get_single("JH Digitrack Settings")
 
-        user_roles = set(frappe.get_roles(user))
-        settings = frappe.get_single("JH Digitrack Settings")
+    has_access = (
+        "JH Property Department" in user_roles
+        or "JH GL Team" in user_roles
+        or "JH Licensing Team" in user_roles
+        or user == settings.cfo_user
+        or user == settings.md_user
+    )
 
-        has_access = (
-            "JH Property Department" in user_roles
+    return {"has_access": has_access}
+
+
+@frappe.whitelist(methods=["GET"])
+def get_logged_in_property_user():
+    user = frappe.session.user
+    user_roles = set(frappe.get_roles(user))
+    settings = frappe.get_single("JH Digitrack Settings")
+
+    return {
+        "user": user,
+        "has_property_access": (
+            user == "Administrator"
+            or "JH Property Department" in user_roles
             or "JH GL Team" in user_roles
             or "JH Licensing Team" in user_roles
             or user == settings.cfo_user
             or user == settings.md_user
-        )
-
-        return {"has_access": has_access}
-
-    except frappe.ValidationError as e:
-        # Known validation errors (like missing email)
-        return {
-            "has_access": False,
-            "error": str(e)
-        }
-
-    except Exception as e:
-        # Unexpected errors
-        frappe.log_error(frappe.get_traceback(), "has_property_automation_role Error")
-
-        return {
-            "has_access": False,
-            "error": "Something went wrong. Please contact administrator."
-        }
-
-
-@frappe.whitelist(allow_guest=True,methods=["GET"])
-def get_logged_in_property_user():
-    user = frappe.session.user
-    user_roles = set(frappe.get_roles(user))
-    settings = frappe.get_single("JH Digitrack Settings")  
-
-    return {
-        "message": {
-            "user": user,
-            "has_property_access": (
-                user == "Administrator"
-                or "JH Property Department" in user_roles
-                or "JH GL Team" in user_roles
-                or "JH Licensing Team" in user_roles
-                or user == settings.cfo_user
-                or user == settings.md_user
-            ),
-            "has_property_dept_role": (
-                user == "Administrator"
-                or "JH Property Department" in user_roles
-            ),
-            "has_gl_team_role": (
-                user == "Administrator"
-                or "JH GL Team" in user_roles
-            ),
-            "roles": sorted(user_roles),
-        }
+        ),
+        "has_property_dept_role": (
+            user == "Administrator"
+            or "JH Property Department" in user_roles
+        ),
+        "has_gl_team_role": (
+            user == "Administrator"
+            or "JH GL Team" in user_roles
+        ),
+        "roles": sorted(user_roles),
     }
 
 
@@ -193,14 +165,11 @@ def whoami(renewal_id: str = None, is_new: bool = False):
         if user == property_doc.approver_2:
             matches.add("approver_2")
 
-    
     for role in ROLE_PRIORITY:
         if role in matches:
             return {"role": role}
 
     frappe.throw(_("You are not allowed to access property renewal workflow."))
-
-
 
 
 def notify_md(renewal):
@@ -213,11 +182,18 @@ def notify_md(renewal):
         recipients=[settings.md_user],
         subject="Rental Renewal Approved (No MD Approval Required)",
         message=f"""
-        Rental Renewal <b>{renewal.name}</b> has been approved by CFO.<br><br>
+        Rental Renewal <b>{frappe.utils.escape_html(renewal.name)}</b> has been approved by CFO.<br><br>
         Rent change is ≤ 5%, so MD approval is not required.<br><br>
         This is for your information.
         """
     )
+
+
+def update_property_master_renewal_date(renewal):
+    if renewal.workflow_state != "Completed" or not renewal.property or not renewal.renewal_to:
+        return
+
+    frappe.db.set_value("JH Property Master", renewal.property, "renewal_date", renewal.renewal_to)
 
 
 @frappe.whitelist(methods=["GET"])
@@ -245,10 +221,8 @@ def get_division_gm(division: str = None, property: str = None, renewal_id: str 
     gm_user = frappe.db.get_value("JH Division Master", resolved_division, "division_gm")
 
     return {
-        "message": {
-            "division": resolved_division,
-            "gm_user": gm_user,
-        }
+        "division": resolved_division,
+        "gm_user": gm_user,
     }
 
 
@@ -258,18 +232,11 @@ def calculate_rent_change_percent(current_rent=None, proposed_rent=None):
     proposed_rent = flt(proposed_rent)
 
     if not current_rent:
-        return {
-            
-                "rent_change_percent": 0,
-            }
+        return {"rent_change_percent": 0}
 
     rent_change_percent = ((proposed_rent - current_rent) / current_rent) * 100
 
-    return {
-        
-            "rent_change_percent": rent_change_percent,
-        }
-    
+    return {"rent_change_percent": rent_change_percent}
 
 
 @frappe.whitelist(methods=["POST"])
@@ -301,20 +268,21 @@ def apply_workflow_action(renewal_id: str, action: str):
     next_state = transition["next_state"]
 
     if current_state == "Pending CFO" and action == "approve":
+        current_rent = flt(renewal.current_rent)
+        proposed_rent = flt(renewal.proposed_rent)
+        rent_change_percent = (
+            ((proposed_rent - current_rent) / current_rent) * 100 if current_rent else 0
+        )
 
-        # ensure value is calculated
-        if renewal.rent_change_percent is None:
-            renewal.calculate_rent_change_percent()
-
-        if renewal.rent_change_percent > 5:
+        if rent_change_percent > 5:
             next_state = "Pending MD"
         else:
             next_state = "Pending Property PO"
             notify_md(renewal)
-    
 
     renewal.workflow_state = next_state
     renewal.save(ignore_permissions=True)
+    update_property_master_renewal_date(renewal)
 
     return {
         "name": renewal.name,
