@@ -9,19 +9,19 @@ from frappe.utils import flt
 WORKFLOW_TRANSITIONS = {
 	"approve": {
 		"Pending Approver 1": "Pending Approver 2",
-		"Pending Approver 2": "Pending Cheque Details",
-		"Pending Cheque Details": "Pending CFO",
-		"Pending CFO": "Pending MD",
-		"Pending MD": "Pending Property PO",
+		"Pending Approver 2": "Pending CFO",
+		"Pending CFO": "Pending MD",  # default; overridden dynamically: ≤5% → Pending Cheque Details
+		"Pending MD": "Pending Cheque Details",
+		"Pending Cheque Details": "Pending Property PO",
 		"Pending Property PO": "Pending MIRO",
 		"Pending MIRO": "Completed",
 	},
 	"withdraw": {
 		"Pending Approver 1": "Rejected",
 		"Pending Approver 2": "Rejected",
-		"Pending Cheque Details": "Rejected",
 		"Pending CFO": "Rejected",
 		"Pending MD": "Rejected",
+		"Pending Cheque Details": "Rejected",
 		"Pending Property PO": "Rejected",
 		"Pending MIRO": "Rejected",
 	},
@@ -30,11 +30,11 @@ WORKFLOW_TRANSITIONS = {
 SENDBACK_TRANSITIONS = {
 	"Pending Approver 1": {"Draft"},
 	"Pending Approver 2": {"Pending Approver 1", "Draft"},
-	"Pending Cheque Details": {"Pending Approver 2", "Pending Approver 1", "Draft"},
-	"Pending CFO": {"Pending Cheque Details", "Pending Approver 2", "Pending Approver 1", "Draft"},
-	"Pending MD": {"Pending CFO", "Pending Cheque Details", "Pending Approver 2", "Pending Approver 1", "Draft"},
-	"Pending Property PO": {"Pending MD", "Pending CFO", "Pending Cheque Details", "Pending Approver 2", "Pending Approver 1", "Draft"},
-	"Pending MIRO": {"Pending Property PO", "Pending MD", "Pending CFO", "Pending Cheque Details", "Pending Approver 2", "Pending Approver 1", "Draft"},
+	"Pending CFO": {"Pending Approver 2", "Pending Approver 1", "Draft"},
+	"Pending MD": {"Pending CFO", "Pending Approver 2", "Pending Approver 1", "Draft"},
+	"Pending Cheque Details": {"Pending MD", "Pending CFO", "Pending Approver 2", "Pending Approver 1", "Draft"},
+	"Pending Property PO": {"Pending Cheque Details", "Pending MD", "Pending CFO", "Pending Approver 2", "Pending Approver 1", "Draft"},
+	"Pending MIRO": {"Pending Property PO", "Pending Cheque Details", "Pending MD", "Pending CFO", "Pending Approver 2", "Pending Approver 1", "Draft"},
 }
 
 STATE_ROLE_MAP = {
@@ -78,9 +78,9 @@ class JHPropertyRentalRenewal(Document):
 			"Draft",
 			"Pending Approver 1",
 			"Pending Approver 2",
-			"Pending Cheque Details",
 			"Pending CFO",
 			"Pending MD",
+			"Pending Cheque Details",
 			"Pending Property PO",
 			"Pending MIRO",
 		]
@@ -204,7 +204,7 @@ def apply_workflow_action(renewal_id: str, action: str, target_state: str = None
 			frappe.throw(_("Action {0} is not allowed from {1}.").format(action, current_state))
 
 	if action == "approve" and current_state == "Pending CFO":
-		next_state = "Pending MD" if flt(renewal.rent_change_percent) > 5 else "Pending Property PO"
+		next_state = "Pending MD" if flt(renewal.rent_change_percent) > 5 else "Pending Cheque Details"
 
 	renewal.db_set("workflow_state", next_state, update_modified=True)
 

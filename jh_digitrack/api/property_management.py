@@ -16,11 +16,11 @@ ROLE_PRIORITY = [
 SENDBACK_TRANSITIONS = {
     "Pending Approver 1": {"Draft"},
     "Pending Approver 2": {"Pending Approver 1", "Draft"},
-    "Pending Cheque Details": {"Pending Approver 2", "Pending Approver 1", "Draft"},
-    "Pending CFO": {"Pending Cheque Details", "Pending Approver 2", "Pending Approver 1", "Draft"},
-    "Pending MD": {"Pending CFO", "Pending Cheque Details", "Pending Approver 2", "Pending Approver 1", "Draft"},
-    "Pending Property PO": {"Pending MD", "Pending CFO", "Pending Cheque Details", "Pending Approver 2", "Pending Approver 1", "Draft"},
-    "Pending MIRO": {"Pending Property PO", "Pending MD", "Pending CFO", "Pending Cheque Details", "Pending Approver 2", "Pending Approver 1", "Draft"},
+    "Pending CFO": {"Pending Approver 2", "Pending Approver 1", "Draft"},
+    "Pending MD": {"Pending CFO", "Pending Approver 2", "Pending Approver 1", "Draft"},
+    "Pending Cheque Details": {"Pending MD", "Pending CFO", "Pending Approver 2", "Pending Approver 1", "Draft"},
+    "Pending Property PO": {"Pending Cheque Details", "Pending MD", "Pending CFO", "Pending Approver 2", "Pending Approver 1", "Draft"},
+    "Pending MIRO": {"Pending Property PO", "Pending Cheque Details", "Pending MD", "Pending CFO", "Pending Approver 2", "Pending Approver 1", "Draft"},
 }
 
 STATE_ROLE_MAP = {
@@ -49,21 +49,21 @@ WORKFLOW_TRANSITIONS = {
 
         "Pending Approver 2": {
             "roles": {"approver_2", "module_admin", "Administrator"},
-            "next_state": "Pending Cheque Details",
-        },
-
-        "Pending Cheque Details": {
-            "roles": {"property_dept", "module_admin", "Administrator"},
             "next_state": "Pending CFO",
         },
 
         "Pending CFO": {
             "roles": {"cfo", "module_admin", "Administrator"},
-            "next_state": None,  # handled dynamically
+            "next_state": None,  # handled dynamically: >5% → Pending MD, else → Pending Cheque Details
         },
 
         "Pending MD": {
             "roles": {"md", "module_admin", "Administrator"},
+            "next_state": "Pending Cheque Details",
+        },
+
+        "Pending Cheque Details": {
+            "roles": {"property_dept", "module_admin", "Administrator"},
             "next_state": "Pending Property PO",
         },
 
@@ -94,21 +94,21 @@ WORKFLOW_TRANSITIONS = {
             "roles": {"approver_2", "module_admin", "Administrator"},
             "next_state": "Pending Approver 1",
         },
-        "Pending Cheque Details": {
-            "roles": {"property_dept", "module_admin", "Administrator"},
-            "next_state": "Pending Approver 2",
-        },
         "Pending CFO": {
             "roles": {"cfo", "module_admin", "Administrator"},
-            "next_state": "Pending Cheque Details",
+            "next_state": "Pending Approver 2",
         },
         "Pending MD": {
             "roles": {"md", "module_admin", "Administrator"},
             "next_state": "Pending CFO",
         },
-        "Pending Property PO": {
+        "Pending Cheque Details": {
             "roles": {"property_dept", "module_admin", "Administrator"},
             "next_state": "Pending CFO",
+        },
+        "Pending Property PO": {
+            "roles": {"property_dept", "module_admin", "Administrator"},
+            "next_state": "Pending Cheque Details",
         },
         "Pending MIRO": {
             "roles": {"gl_team", "module_admin", "Administrator"},
@@ -581,7 +581,7 @@ def apply_workflow_action(renewal_id: str, action: str):
         if rent_change_percent > 5:
             next_state = "Pending MD"
         else:
-            next_state = "Pending Property PO"
+            next_state = "Pending Cheque Details"
             notify_md(renewal)
 
     renewal.append(
