@@ -94,6 +94,11 @@ def get_logged_in_property_user():
     user_roles = set(frappe.get_roles(user))
     settings = frappe.get_single("JH Digitrack Settings")
 
+    is_approver = bool(
+        frappe.db.count("JH Property Master", filters={"approver_1": user})
+        or frappe.db.count("JH Property Master", filters={"approver_2": user})
+    )
+
     return {
         "user": user,
         "has_property_access": (
@@ -103,6 +108,7 @@ def get_logged_in_property_user():
             or "JH Licensing Team" in user_roles
             or user == settings.cfo_user
             or user == settings.md_user
+            or is_approver
         ),
         "has_property_dept_role": (
             user == "Administrator"
@@ -112,6 +118,7 @@ def get_logged_in_property_user():
             user == "Administrator"
             or "JH GL Team" in user_roles
         ),
+        "is_approver": is_approver,
         "roles": sorted(user_roles),
     }
 
@@ -224,6 +231,71 @@ def get_division_gm(division: str = None, property: str = None, renewal_id: str 
         "division": resolved_division,
         "gm_user": gm_user,
     }
+
+
+@frappe.whitelist(methods=["GET"])
+def get_my_pending_filters():
+    user = frappe.session.user
+    user_roles = set(frappe.get_roles(user))
+
+    cfo_user = frappe.db.get_single_value("JH Digitrack Settings", "cfo_user")
+    md_user = frappe.db.get_single_value("JH Digitrack Settings", "md_user")
+
+    # Admins see all active renewals
+    if user == "Administrator" or "JH Digitrack Admin" in user_roles:
+        return {
+            "filters": [
+                ["JH Property Rental Renewal", "workflow_state", "in", [
+                    "Draft", "Pending Approver 1", "Pending Approver 2",
+                    "Pending Cheque Details", "Pending CFO", "Pending MD",
+                    "Pending Property PO", "Pending MIRO",
+                ]]
+            ]
+        }
+
+    pending_states = []
+
+    if "JH Licensing Team" in user_roles:
+        pending_states.append("Draft")
+    if "JH Property Department" in user_roles:
+        pending_states.extend(["Pending Cheque Details", "Pending Property PO"])
+    if "JH GL Team" in user_roles:
+        pending_states.append("Pending MIRO")
+    if user == cfo_user:
+        pending_states.append("Pending CFO")
+    if user == md_user:
+        pending_states.append("Pending MD")
+
+    # Per-property approver roles
+    approver_1_props = frappe.get_all(
+        "JH Property Master", filters={"approver_1": user}, pluck="name"
+    )
+    approver_2_props = frappe.get_all(
+        "JH Property Master", filters={"approver_2": user}, pluck="name"
+    )
+    approver_properties = list(set(approver_1_props + approver_2_props))
+
+    if approver_1_props:
+        pending_states.append("Pending Approver 1")
+    if approver_2_props:
+        pending_states.append("Pending Approver 2")
+
+    if not pending_states:
+        return {"filters": []}
+
+    filters = [
+        ["JH Property Rental Renewal", "workflow_state", "in", list(set(pending_states))]
+    ]
+
+    # If the user's only pending role is as a property-specific approver,
+    # also restrict by the properties they are assigned to.
+    only_approver_states = set(pending_states) <= {"Pending Approver 1", "Pending Approver 2"}
+    if only_approver_states and approver_properties:
+        filters.append(
+            ["JH Property Rental Renewal", "property", "in", approver_properties]
+        )
+
+    return {"filters": filters}
 
 
 @frappe.whitelist(methods=["GET"])
