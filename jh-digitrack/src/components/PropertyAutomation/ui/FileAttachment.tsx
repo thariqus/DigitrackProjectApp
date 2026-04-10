@@ -3,6 +3,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { File, X, Cloud } from "lucide-react";
 import { ScrollBar } from "@/components/ui/scroll-area";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 interface FileAttachmentProps {
@@ -10,14 +11,18 @@ interface FileAttachmentProps {
   setFiles: React.Dispatch<React.SetStateAction<File[]>>;
 }
 
-export default function FileAttachment({files,setFiles}: FileAttachmentProps) {
+export default function FileAttachment({files, setFiles}: FileAttachmentProps) {
+  
 
   const [isDragging, setIsDragging] = useState(false);
 
   // Handle file input selection
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      setFiles((prev) => [...prev, ...Array.from(e.target.files)]);
+      const newFiles = Array.from(e.target.files);
+      setFiles((prev) => [...prev, ...newFiles]);
+      // Reset input
+      e.target.value = '';
     }
   };
 

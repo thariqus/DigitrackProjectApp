@@ -1,12 +1,13 @@
 import { TableRow, TableCell } from "@/components/ui/table";
 import { Pencil } from "lucide-react";
 import { useOutletContext } from "react-router";
+import StatusBadge from "./StatusBadge";
 
 type ContextType = {
   propertyRole: any;
 };
 
-function PropertyTableRow({ property, index, onClick,isLoading,onEdit,renewalColorHighlight,formatDate }: any) {
+function PropertyTableRow({ property, index, onClick,isLoading,onEdit,renewalColorHighlight,getRenewalStatus,formatDate,canCreateOrEditProperty, }: any) {
 
    const { propertyRole } = useOutletContext<ContextType>();
 
@@ -34,9 +35,11 @@ function PropertyTableRow({ property, index, onClick,isLoading,onEdit,renewalCol
       <TableCell className={renewalColorHighlight(property.renewal_date)}>
         {formatDate(property.renewal_date)}
       </TableCell>
-      <TableCell>pending</TableCell>
+      <TableCell>
+        <StatusBadge status={getRenewalStatus(property.renewal_date)} />
+      </TableCell>
 
-      {propertyRole && (
+      {canCreateOrEditProperty && (
         <TableCell>
         <div
         className="flex justify-center items-center cursor-pointer"

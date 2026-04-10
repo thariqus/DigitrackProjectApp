@@ -1,4 +1,16 @@
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
+import { Skeleton } from "@/components/ui/skeleton";
+import { 
+  Command, 
+  CommandEmpty, 
+  CommandGroup, 
+  CommandInput, 
+  CommandItem, 
+  CommandList 
+} from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Check, ChevronDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -6,15 +18,18 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { XIcon } from "lucide-react";
 
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
+import { useNavigate } from "react-router";
+import { RentalRenewal } from "@/types/JHDigitrack/JHPropertyAutomation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import FileAttachment from "./FileAttachment";
 import { useDocDetail, useDocs, useSaveDoc, useUpdateDoc } from "@/hooks/doc";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { PropertyMaster } from "@/types/JHDigitrack/JHPropertyAutomation";
 import { toast } from "sonner";
 import { queryClient } from "@/utils/query-client";
+import StartRenewalModal from "./StartRenewalModal";
 
 type PropertySheetProps = {
   open: boolean;
@@ -23,6 +38,7 @@ type PropertySheetProps = {
   mode: "view" | "edit" | "create";
   formatDate: (date?: string) => string;
   renewalColorHighlight: (date?: string) => string;
+  typeOptions: string[];
 };
 
 // ZOD SCHEMA
@@ -30,6 +46,7 @@ type PropertySheetProps = {
 const propertySchema = z.object({
   property_name: z.string().min(1, "Required"),
   type_of_property: z.string().optional(),
+  business_used: z.string().optional(),
   division_used: z.string().optional(),
   booked_under: z.string().optional(),
   profit_center: z.string().optional(),
@@ -60,11 +77,15 @@ const propertySchema = z.object({
 
   cdc_expiry: z.string().optional().optional(),
   hassantuk_expiry: z.string().optional().optional(),
+  approver_1: z.string().min(1, "Required"),
+  approver_2: z.string().optional(),
 });
 
-export default function PropertySheet({ open, onOpenChange, propertyId , mode, formatDate, renewalColorHighlight}: PropertySheetProps) {
+export default function PropertySheet({ open, onOpenChange, propertyId , mode, formatDate, renewalColorHighlight, typeOptions}: PropertySheetProps) {
 
   const [files, setFiles] = useState<File[]>([]);
+  const [isRenewalModalOpen, setIsRenewalModalOpen] = useState(false);
+  const navigate = useNavigate();
 
   const getFileName = (url: string) => {
   return url.split("/").pop();
@@ -83,11 +104,29 @@ export default function PropertySheet({ open, onOpenChange, propertyId , mode, f
     disabled: !propertyId,
   });
 
+  const { data: renewalsData } = useDocs<RentalRenewal>({
+    doctype: "JH Property Rental Renewal",
+    filters: propertyId ? [["property", "=", propertyId]] : [],
+    enabled: !!propertyId,
+  });
+
+  const hasExistingRenewals = !!(renewalsData && renewalsData.length > 0);
+  const activeRenewal = renewalsData 
+    ? renewalsData.sort((a: RentalRenewal, b: RentalRenewal) => 
+        new Date(b.modified).getTime() - new Date(a.modified).getTime()
+      )[0]?.name 
+    : null;
+
   const { data: divisionData } = useDocs({
   doctype: "JH Division Master",
-});
+  });
 
-  const doc = propertyData?.docs?.[0];
+  const { data: businessData } = useDocs({
+    doctype: "JH Business Master",
+  });
+
+  const doc = propertyData?.docs?.[0] as PropertyMaster | undefined;
+
   const requiredFields = ["property_name", "renewal_date"];
 
   const {
@@ -95,11 +134,45 @@ export default function PropertySheet({ open, onOpenChange, propertyId , mode, f
   handleSubmit,
   reset,
   control,
+  setValue,
   formState: { errors, isSubmitting, isValid, isDirty },
 } = useForm({
   resolver: zodResolver(propertySchema),
   mode: "onChange",        
 });
+
+  const divisionWatch = useWatch({ 
+    control,
+    name: "division_used" 
+  });
+
+  const { data: usersData, isLoading: usersLoading, error: usersError } = useDocs<User>({
+    doctype: "User",
+    limit: 200,
+    fields: ["name", "full_name", "email"]
+  });
+
+const { data: selectedDivisionData } = useDocs({
+    doctype: "JH Division Master",
+    fields: ["name", "division_head", "division_gm"],
+    filters: divisionWatch ? [["name", "=", divisionWatch]] : [],
+    limit: 1,
+  });
+
+  const selectedDivision = selectedDivisionData?.[0];
+
+// Auto-fetch approvers when division changes (matches backend JS logic)
+  useEffect(() => {
+    const div = selectedDivision ?? selectedDivisionData?.[0];
+    if (div?.division_head) {
+      setValue("approver_1", div.division_head, { shouldValidate: true, shouldDirty: true });
+      setValue("approver_2", div.division_gm || "", { shouldValidate: true, shouldDirty: true });
+    } else if (div?.division_gm) {
+      // Fallback if no head
+      setValue("approver_1", div.division_gm, { shouldValidate: true, shouldDirty: true });
+      setValue("approver_2", "", { shouldValidate: true, shouldDirty: true });
+    }
+  }, [selectedDivision, selectedDivisionData, setValue]);
 
    useEffect(() => {
   if (isCreate) {
@@ -143,8 +216,6 @@ export default function PropertySheet({ open, onOpenChange, propertyId , mode, f
   return data.message.file_url; 
 };
 
-
-
 const onSubmit = async (data: any) => {
   try {
     let uploadedFiles: string[] = [];
@@ -168,8 +239,6 @@ const onSubmit = async (data: any) => {
       doctype: "JH Property Master",
       documents
     };
-
-    
 
     if (isEdit && propertyId) {
       await updateDoc.mutateAsync({
@@ -206,7 +275,103 @@ const onSubmit = async (data: any) => {
 
   const propertyTypeOptions = ["Shop", "Office", "Warehouse", "Other"];
 
-  const renderField = (
+const renderApproverField = (
+  label: string,
+  name: keyof z.infer<typeof propertySchema>,
+  value?: string,
+  required = false
+) => {
+  return (
+    <div className="flex flex-col gap-1">
+      {!isView && (
+        <Label className="text-sm text-gray-600">
+          {label} {required && <span className="text-red-500">*</span>}
+        </Label>
+      )}
+
+{isView ? (
+        <div className="flex items-center gap-2 py-1 text-sm">
+          <span className="font-medium text-gray-600">{label}:</span>
+          {usersLoading ? (
+            <Skeleton className="h-4 w-32" />
+          ) : usersError || !usersData ? (
+            <span className="text-gray-400 text-xs">Error loading user</span>
+          ) : (() => {
+            const user = usersData?.find((u: any) => u.name === value);
+            const display = user?.email || value || "-";
+            const tooltip = user?.full_name ? `${user.full_name} (${user.email || value})` : value || "No approver";
+            return <span className="font-medium text-sm max-w-48 truncate" title={tooltip}>{display}</span>;
+          })()}
+        </div>
+      ) : (
+              <Controller
+          name={name}
+          control={control}
+          render={({ field }) => {
+            const selectedUser = usersData?.find((u: any) => u.name === field.value);
+            const displayValue = selectedUser?.email || field.value || "";
+            return (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    className="w-full justify-between text-sm capitalize"
+                  >
+                    {displayValue || `Select ${label.toLowerCase()}`}
+                    <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0 max-h-64">
+                  <Command>
+                    <CommandInput placeholder={`Search ${label.toLowerCase()}...`} />
+                    <CommandEmpty>No users found.</CommandEmpty>
+                    <CommandGroup>
+                      <CommandList>
+                      {usersLoading ? (
+                        <div className="p-4 text-center text-sm text-gray-500">Loading users...</div>
+                      ) : usersError ? (
+                        <div className="p-4 text-center text-sm text-red-500">Error loading users</div>
+                      ) : !usersData?.length ? (
+                        <div className="p-4 text-center text-sm text-gray-500">No users available</div>
+                      ) : (
+                        usersData.map((user: any) => (
+                          <CommandItem
+                            key={user.name}
+                            value={user.name}
+                            onSelect={() => {
+                              field.onChange(user.name);
+                            }}
+                          >
+                            <Check 
+                              className={cn(
+                                "mr-2 h-4 w-4", 
+                                field.value === user.name 
+                                  ? "opacity-100" 
+                                  : "opacity-0"
+                              )} 
+                            />
+
+                            <span className="truncate">{`${user.email} (${user.full_name ?? 'No name'})`}</span>
+                          </CommandItem>
+                        ))
+                      )}
+                      </CommandList>
+                    </CommandGroup>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            );
+          }}
+        />
+
+      )}
+    </div>
+  );
+};
+
+const renderField = (
   label: string,
   name: keyof z.infer<typeof propertySchema>,
   value?: string | number,
@@ -262,13 +427,36 @@ const onSubmit = async (data: any) => {
         <SheetHeader className="flex-row text-2xl justify-between items-center px-0 py-2">
           <SheetTitle>
             {isCreate ? "Create Property" : isEdit ? "Edit Property" : "Property Details"}
+
+            <span className="pl-5">
+               {/* Renewal card */}
+          {(!isView && !isCreate) && (
+            <>
+              <Button 
+                className="bg-primary text-white rounded-full" 
+                onClick={() => {
+                  if (hasExistingRenewals && activeRenewal) {
+                    navigate("/jh-digitrack/property/renewals", { state: { openRenewal: activeRenewal } });
+                  } else {
+                    setIsRenewalModalOpen(true);
+                  }
+                }}
+              >
+                {hasExistingRenewals ? "View Active Renewal" : "Start Renewal"}
+              </Button>
+                <StartRenewalModal
+                open={isRenewalModalOpen}
+                onOpenChange={setIsRenewalModalOpen}
+                propertyId={propertyId || ''}
+                propertyName={doc?.property_name || ''}
+                currentRent={doc?.current_rent}
+                mode="new"
+              />
+            </>
+          )}
+            </span>
           </SheetTitle>
-
-          {/* Renewal card */}
-          <Button className="bg-primary text-white ">
-            Start Renewal
-          </Button>
-
+          
           <Button variant="ghost" size="icon"  onClick={() => onOpenChange(false)}>
             <XIcon className="size-4" />
           </Button>
@@ -312,6 +500,37 @@ const onSubmit = async (data: any) => {
                 )}
               </div>
 
+              {/* Business Used */}
+              <div className="flex flex-col gap-1">
+                {!isView && (
+                  <Label className="text-sm text-gray-600">
+                    Business Used
+                  </Label>
+                )}
+
+                {isView ? (
+                  <div className="flex items-center gap-2 py-1 text-sm">
+                    <span className="font-medium text-gray-600">Business Used:</span>
+                    <span>{doc?.business_used || "-"}</span>
+                  </div>
+                ) : (
+                  <Controller
+                    name="business_used"
+                    control={control}
+                    render={({ field }) => (
+                      <select {...field} className="border rounded px-2 py-2 text-sm">
+                        <option value="">Select Business</option>
+                        {businessData?.map((business: any) => (
+                          <option key={business.name} value={business.name}>
+                            {business.name}
+                          </option>
+                        )) || []}
+                      </select>
+                    )}
+                  />
+                )}
+              </div>
+
               <div className="flex flex-col gap-1">
                 {!isView && (
                   <Label className="text-sm text-gray-600">
@@ -322,7 +541,7 @@ const onSubmit = async (data: any) => {
                 {isView ? (
                     <div className="flex items-center gap-2 py-1 text-sm">
                       <span className="font-medium text-gray-600">Division Used:</span>
-                      <span>{doc?.division_used || "-"}</span>
+                      <span>{doc?.division_used}</span>
                     </div>
                   ) : (
                     <Controller
@@ -341,7 +560,8 @@ const onSubmit = async (data: any) => {
                     />
                   )}
               </div>
-              
+            {renderApproverField("Approver 1", "approver_1", doc?.approver_1, true)}
+            {renderApproverField("Approver 2", "approver_2", doc?.approver_2, false)}
             {renderField("Booked Under", "booked_under", doc?.booked_under)}
             {renderField("Profit Center", "profit_center", doc?.profit_center)}
             {renderField("No. of Units", "number_of_units", doc?.number_of_units)}
@@ -448,8 +668,8 @@ const onSubmit = async (data: any) => {
 
             {isView ? (
                 <div className="space-y-2 mb-10">
-                  {doc?.documents && doc.documents.length > 0 ? (
-                    doc.documents.map((file: any, index: number) => (
+              {doc?.documents?.length > 0 ? (
+                    doc!.documents!.map((file: any, index: number) => (
                       <div key={index} className="flex items-center gap-2 px-3">
                         <span className="text-sm text-gray-700">
                           {getFileName(file.attachment)}
@@ -476,7 +696,7 @@ const onSubmit = async (data: any) => {
                     <div className="space-y-2 mb-4">
                       <p className="text-sm font-medium text-gray-600">Existing Files</p>
 
-                      {doc.documents.map((file: any, index: number) => (
+                  {doc.documents!.map((file: any, index: number) => (
                         <div key={index} className="flex items-center gap-2 px-3">
                           <span className="text-sm text-gray-700">
                             {getFileName(file.attachment)}
