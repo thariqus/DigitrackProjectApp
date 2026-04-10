@@ -379,6 +379,93 @@ def get_division_gm(division: str = None, property: str = None, renewal_id: str 
 
 
 @frappe.whitelist(methods=["GET"])
+def get_my_pending_renewals():
+    """
+    Returns the actual renewal records where the logged-in user is the next actor.
+    Uses ignore_permissions=True because approvers have no DocType-level read role —
+    actor filtering is enforced here instead.
+    """
+    user = frappe.session.user
+    user_roles = set(frappe.get_roles(user))
+
+    cfo_user = frappe.db.get_single_value("JH Digitrack Settings", "cfo_user")
+    md_user = frappe.db.get_single_value("JH Digitrack Settings", "md_user")
+
+    is_admin = user == "Administrator" or "JH Digitrack Admin" in user_roles
+
+    RENEWAL_FIELDS = [
+        "name", "property", "current_rent", "proposed_rent",
+        "rent_change_percent", "renewal_from", "renewal_to",
+        "division", "workflow_state", "modified",
+    ]
+
+    # Admins see all active (non-terminal) renewals
+    if is_admin:
+        renewals = frappe.get_all(
+            "JH Property Rental Renewal",
+            filters={"workflow_state": ["not in", ["Completed", "Rejected"]]},
+            fields=RENEWAL_FIELDS,
+            ignore_permissions=True,
+        )
+        return {"renewals": renewals}
+
+    # Build a set of (workflow_state, optional property restriction) clauses
+    # We'll collect results per segment and union them.
+    seen = set()
+    results = []
+
+    def _fetch(filters):
+        rows = frappe.get_all(
+            "JH Property Rental Renewal",
+            filters=filters,
+            fields=RENEWAL_FIELDS,
+            ignore_permissions=True,
+        )
+        for r in rows:
+            if r["name"] not in seen:
+                seen.add(r["name"])
+                results.append(r)
+
+    if "JH Licensing Team" in user_roles:
+        _fetch({"workflow_state": "Draft"})
+
+    if "JH Property Department" in user_roles:
+        _fetch({"workflow_state": "Pending Cheque Details"})
+        _fetch({"workflow_state": "Pending Property PO"})
+
+    if "JH GL Team" in user_roles:
+        _fetch({"workflow_state": "Pending MIRO"})
+
+    if user == cfo_user:
+        _fetch({"workflow_state": "Pending CFO"})
+
+    if user == md_user:
+        _fetch({"workflow_state": "Pending MD"})
+
+    # Approver 1: only renewals for properties where this user is approver_1
+    approver_1_props = frappe.get_all(
+        "JH Property Master", filters={"approver_1": user}, pluck="name"
+    )
+    if approver_1_props:
+        _fetch({
+            "workflow_state": "Pending Approver 1",
+            "property": ["in", approver_1_props],
+        })
+
+    # Approver 2: only renewals for properties where this user is approver_2
+    approver_2_props = frappe.get_all(
+        "JH Property Master", filters={"approver_2": user}, pluck="name"
+    )
+    if approver_2_props:
+        _fetch({
+            "workflow_state": "Pending Approver 2",
+            "property": ["in", approver_2_props],
+        })
+
+    return {"renewals": results}
+
+
+@frappe.whitelist(methods=["GET"])
 def get_my_pending_filters():
     user = frappe.session.user
     user_roles = set(frappe.get_roles(user))
