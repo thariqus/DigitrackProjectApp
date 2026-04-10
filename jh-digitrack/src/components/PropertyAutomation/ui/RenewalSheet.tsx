@@ -24,6 +24,7 @@ type RenewalSheetProps = {
   workflowColorHighlight?: (date?: string) => string;
   typeOptions?: string[];
   isLicensingTeam:boolean;
+  isJHPropertyDEpartment:boolean;
 };
 
 // Renewal Schema matching doctype
@@ -41,7 +42,7 @@ const renewalSchema = z.object({
 
 }).partial();
 
-export default function RenewalSheet({ open, onOpenChange, propertyId, mode, formatDate, workflowColorHighlight,isLicensingTeam }: RenewalSheetProps) {
+export default function RenewalSheet({ open, onOpenChange, propertyId, mode, formatDate, workflowColorHighlight,isLicensingTeam,isJHPropertyDEpartment }: RenewalSheetProps) {
 
   // Separate file states for different Attach fields
   const [supportingFiles, setSupportingFiles] = useState<File[]>([]);
@@ -55,7 +56,7 @@ export default function RenewalSheet({ open, onOpenChange, propertyId, mode, for
   const formId = "renewal-form";
 
   // Fetch renewal document
-  const { data: renewalData, isLoading: renewalLoading } = useDocDetail<RentalRenewal>({
+  const { data: renewalData, isLoading: renewalLoading, refetch: refetchRenewal } = useDocDetail<RentalRenewal>({
     doctype: "JH Property Rental Renewal",
     name: propertyId || "",
     disabled: !propertyId,
@@ -223,6 +224,9 @@ export default function RenewalSheet({ open, onOpenChange, propertyId, mode, for
     </div>
   );
 
+  console.log(isLicensingTeam,"lice")
+  console.log(renewalDoc?.workflow_state,"workflow")
+
   const renderRenewalField = (label: string, name: keyof z.infer<typeof renewalSchema>, value?: string, type = "text") => {
     if (isView) {
       return (
@@ -348,6 +352,84 @@ export default function RenewalSheet({ open, onOpenChange, propertyId, mode, for
                   <FileAttachment files={supportingFiles} setFiles={setSupportingFiles} />
                 )}
               </div>
+
+              
+              {isJHPropertyDEpartment && (
+                <>
+
+                <Separator />
+            <h2 className="text-lg font-semibold">Cheque Details</h2>
+              <div className="space-y-4 pb-10">
+                {/* {chequeDetails.map((cheque, index) => ( */}
+                  <div  className="border p-4 rounded-md space-y-2">
+                    <Input
+                      placeholder="Bank Name"
+                      value={chequeDetails.bank_name || ''}
+                      onChange={(e) => {
+                        const newDetails = e.target.value;
+                        setChequeDetails(newDetails);
+                      }}
+                    />
+                    <div className="grid grid-cols-2 gap-2">
+                      <Input
+                        placeholder="Cheque Number"
+                        value={chequeDetails.cheque_number || ''}
+                        onChange={(e) => {
+                          const newDetails  = e.target.value;
+                          setChequeDetails(newDetails);
+                        }}
+                      />
+                      <Input
+                        placeholder="Amount"
+                        type="number"
+                        value={chequeDetails.cheque_amount || ''}
+                        onChange={(e) => {
+                          const newDetails = Number(e.target.value);
+                          setChequeDetails(newDetails);
+                        }}
+                      />
+                    </div>
+                    <Input
+                      placeholder="Cheque Date"
+                      type="date"
+                      value={chequeDetails.cheque_date || ''}
+                      onChange={(e) => {
+                        const newDetails = e.target.value;
+                        setChequeDetails(newDetails);
+                      }}
+                    />
+                    <div className="grid grid-cols-2 gap-2">
+                      <Input
+                        placeholder="Payee"
+                        value={chequeDetails.payee || ''}
+                        onChange={(e) => {
+                          const newDetails =  e.target.value;
+                          setChequeDetails(newDetails);
+                        }}
+                      />
+                      <Input
+                        placeholder="Signatory"
+                        value={chequeDetails.signatory || ''}
+                        onChange={(e) => {
+                          const newDetails =  e.target.value;
+                          setChequeDetails(newDetails);
+                        }}
+                      />
+                    </div>
+                   
+                  </div>
+               
+                {/* <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setChequeDetails(prev => [...prev, {bank_name: '', cheque_number: '', cheque_amount: 0, cheque_date: '', payee: '', signatory: ''}])}>
+                  Add Cheque Detail
+                </Button> */}
+              </div>
+                </>  
+            
+            )}
+             
               </>
           </form>
         </ScrollArea>
@@ -355,26 +437,28 @@ export default function RenewalSheet({ open, onOpenChange, propertyId, mode, for
         <SheetFooter className="absolute bottom-0 w-full pr-10 bg-white">
           <div className="flex w-full gap-2">
               {isView && isLicensingTeam && renewalDoc?.workflow_state === "Draft" ? (
-              <>
+               <div className="flex gap-3 w-full">
                
                 <Button variant="outline" 
-                  className="" 
+                  className="w-full" 
                   type="button">Close</Button>
                 <Button 
                   className="w-full bg-primary text-white" 
                   type="button" 
                   onClick={() => {
                     if (!propertyId) return;
-                    applyAction({ renewalId: propertyId, action: "submit" }, {
-                      onSuccess: () => {
+                    applyAction({ renewal_id: propertyId, action: "submit" }, {
+                      onSuccess: (data) => {
+                        console.log("Button Success:", data);
+                        refetchRenewal();
                         onOpenChange(false);
                       }
                     });
                   }}
                 >
-                  Submit for Approver 1
+                  Submit for Head Review
                 </Button>
-              </>
+              </div>
             ) : (
                 renewalDoc?.workflow_state === "Pending Approver 1" && isView ? (
               <div className="flex gap-3 w-full">
@@ -388,14 +472,14 @@ export default function RenewalSheet({ open, onOpenChange, propertyId, mode, for
                   type="button" 
                   onClick={() => {
                     if (!propertyId) return;
-                    applyAction({ renewalId: propertyId, action: "approve" }, {
+                    applyAction({renewal_id: propertyId, action: "approve" }, {
                       onSuccess: () => {
                         onOpenChange(false);
                       }
                     });
                   }}
                 >
-                  Submit for Approver 2
+                  Submit for GM Review
                 </Button>
                
               </div>
@@ -409,7 +493,7 @@ export default function RenewalSheet({ open, onOpenChange, propertyId, mode, for
                   type="button" 
                   onClick={() => {
                     if (!propertyId) return;
-                    applyAction({ renewalId: propertyId, action: "approve" }, {
+                    applyAction({ renewal_id: propertyId, action: "approve" }, {
                       onSuccess: () => {
                         onOpenChange(false);
                       }
@@ -419,7 +503,50 @@ export default function RenewalSheet({ open, onOpenChange, propertyId, mode, for
                   Submit for Cheque Entry
                 </Button>
               </div>
-            ) : !isView ? (
+            ) : isJHPropertyDEpartment && renewalDoc?.workflow_state === "Pending Cheque Details" && isView ? (
+              <div className="flex gap-3 w-full">
+                <Button variant="outline" className="w-full" type="button" onClick={() => onOpenChange(false)}>
+                Close
+              </Button>
+                {/* <Button variant="outline" className="w-full" type="button">Withdraw</Button>
+                <Button className="w-full bg-gray-400" type="button">Send Back</Button> */}
+                <Button className="w-full bg-gray-400" type="button">Save Cheque Entry</Button>
+                <Button 
+                  className="w-full bg-primary text-white" 
+                  type="button" 
+                  onClick={() => {
+                    if (!propertyId) return;
+                    applyAction({ renewal_id: propertyId, action: "submit" }, {
+                      onSuccess: () => {
+                        onOpenChange(false);
+                      }
+                    });
+                  }}
+                >
+                  Confirm Cheque Entry
+                </Button>
+              </div>
+            ): renewalDoc?.workflow_state === "Pending CFO" && isView ? (
+              <div className="flex gap-3 w-full">
+                <Button variant="outline" className="w-full" type="button">Withdraw</Button>
+                <Button className="w-full bg-gray-400" type="button">Send Back</Button>
+                <Button 
+                  className="w-full bg-primary text-white" 
+                  type="button" 
+                  onClick={() => {
+                    if (!propertyId) return;
+                    applyAction({ renewal_id: propertyId, action: "approve" }, {
+                      onSuccess: () => {
+                        onOpenChange(false);
+                      }
+                    });
+                  }}
+                >
+                  Submit
+                </Button>
+              </div>
+            ) :
+             !isView ? (
               <Button variant="outline" className="w-full" type="button" onClick={() => onOpenChange(false)}>
                 Close
               </Button>
