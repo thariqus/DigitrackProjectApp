@@ -175,6 +175,13 @@ def get_logged_in_property_user():
     user = frappe.session.user
     user_roles = set(frappe.get_roles(user))
     settings = frappe.get_single("JH Digitrack Settings")
+    is_administrator = user == "Administrator"
+    is_module_admin = is_administrator or "JH Digitrack Admin" in user_roles
+    is_cfo = is_administrator or user == settings.cfo_user
+    is_md = is_administrator or user == settings.md_user
+    has_property_dept_role = is_administrator or "JH Property Department" in user_roles
+    has_gl_team_role = is_administrator or "JH GL Team" in user_roles
+    is_licensing = is_administrator or "JH Licensing Team" in user_roles
 
     is_approver = bool(
         frappe.db.count("JH Property Master", filters={"approver_1": user})
@@ -184,22 +191,20 @@ def get_logged_in_property_user():
     return {
         "user": user,
         "has_property_access": (
-            user == "Administrator"
-            or "JH Property Department" in user_roles
-            or "JH GL Team" in user_roles
-            or "JH Licensing Team" in user_roles
-            or user == settings.cfo_user
-            or user == settings.md_user
+            is_module_admin
+            or has_property_dept_role
+            or has_gl_team_role
+            or is_licensing
+            or is_cfo
+            or is_md
             or is_approver
         ),
-        "has_property_dept_role": (
-            user == "Administrator"
-            or "JH Property Department" in user_roles
-        ),
-        "has_gl_team_role": (
-            user == "Administrator"
-            or "JH GL Team" in user_roles
-        ),
+        "has_property_dept_role": has_property_dept_role,
+        "has_gl_team_role": has_gl_team_role,
+        "is_module_admin": is_module_admin,
+        "is_cfo": is_cfo,
+        "is_md": is_md,
+        "is_licensing": is_licensing,
         "is_approver": is_approver,
         "roles": sorted(user_roles),
     }
