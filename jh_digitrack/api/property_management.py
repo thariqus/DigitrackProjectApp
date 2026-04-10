@@ -13,6 +13,26 @@ ROLE_PRIORITY = [
     "licensing",
 ]
 
+SENDBACK_TRANSITIONS = {
+    "Pending Approver 1": {"Draft"},
+    "Pending Approver 2": {"Pending Approver 1", "Draft"},
+    "Pending Cheque Details": {"Pending Approver 2", "Pending Approver 1", "Draft"},
+    "Pending CFO": {"Pending Cheque Details", "Pending Approver 2", "Pending Approver 1", "Draft"},
+    "Pending MD": {"Pending CFO", "Pending Cheque Details", "Pending Approver 2", "Pending Approver 1", "Draft"},
+    "Pending Property PO": {"Pending MD", "Pending CFO", "Pending Cheque Details", "Pending Approver 2", "Pending Approver 1", "Draft"},
+    "Pending MIRO": {"Pending Property PO", "Pending MD", "Pending CFO", "Pending Cheque Details", "Pending Approver 2", "Pending Approver 1", "Draft"},
+}
+
+STATE_ROLE_MAP = {
+    "Pending Approver 1": {"approver_1", "module_admin", "Administrator"},
+    "Pending Approver 2": {"approver_2", "module_admin", "Administrator"},
+    "Pending Cheque Details": {"property_dept", "module_admin", "Administrator"},
+    "Pending CFO": {"cfo", "module_admin", "Administrator"},
+    "Pending MD": {"md", "module_admin", "Administrator"},
+    "Pending Property PO": {"property_dept", "module_admin", "Administrator"},
+    "Pending MIRO": {"gl_team", "module_admin", "Administrator"},
+}
+
 WORKFLOW_TRANSITIONS = {
     "submit": {
         "Draft": {
@@ -63,6 +83,68 @@ WORKFLOW_TRANSITIONS = {
         "Pending Approver 2": {"roles": {"approver_2"}, "next_state": "Rejected"},
         "Pending CFO": {"roles": {"cfo"}, "next_state": "Rejected"},
         "Pending MD": {"roles": {"md"}, "next_state": "Rejected"},
+    },
+
+    "sendback": {
+        "Pending Approver 1": {
+            "roles": {"approver_1", "module_admin", "Administrator"},
+            "next_state": "Draft",
+        },
+        "Pending Approver 2": {
+            "roles": {"approver_2", "module_admin", "Administrator"},
+            "next_state": "Pending Approver 1",
+        },
+        "Pending Cheque Details": {
+            "roles": {"property_dept", "module_admin", "Administrator"},
+            "next_state": "Pending Approver 2",
+        },
+        "Pending CFO": {
+            "roles": {"cfo", "module_admin", "Administrator"},
+            "next_state": "Pending Cheque Details",
+        },
+        "Pending MD": {
+            "roles": {"md", "module_admin", "Administrator"},
+            "next_state": "Pending CFO",
+        },
+        "Pending Property PO": {
+            "roles": {"property_dept", "module_admin", "Administrator"},
+            "next_state": "Pending CFO",
+        },
+        "Pending MIRO": {
+            "roles": {"gl_team", "module_admin", "Administrator"},
+            "next_state": "Pending Property PO",
+        },
+    },
+
+    "withdraw": {
+        "Pending Approver 1": {
+            "roles": {"approver_1", "module_admin", "Administrator"},
+            "next_state": "Rejected",
+        },
+        "Pending Approver 2": {
+            "roles": {"approver_2", "module_admin", "Administrator"},
+            "next_state": "Rejected",
+        },
+        "Pending Cheque Details": {
+            "roles": {"property_dept", "module_admin", "Administrator"},
+            "next_state": "Rejected",
+        },
+        "Pending CFO": {
+            "roles": {"cfo", "module_admin", "Administrator"},
+            "next_state": "Rejected",
+        },
+        "Pending MD": {
+            "roles": {"md", "module_admin", "Administrator"},
+            "next_state": "Rejected",
+        },
+        "Pending Property PO": {
+            "roles": {"property_dept", "module_admin", "Administrator"},
+            "next_state": "Rejected",
+        },
+        "Pending MIRO": {
+            "roles": {"gl_team", "module_admin", "Administrator"},
+            "next_state": "Rejected",
+        },
     },
 }
 
@@ -170,6 +252,64 @@ def whoami(renewal_id: str = None, is_new: bool = False):
             return {"role": role}
 
     frappe.throw(_("You are not allowed to access property renewal workflow."))
+
+
+def get_org_role_users():
+    settings = frappe.get_single("JH Digitrack Settings")
+
+    return {
+        "cfo_user": settings.cfo_user,
+        "md_user": settings.md_user,
+    }
+
+
+def get_user_workflow_roles(renewal):
+    user = frappe.session.user
+
+    if user == "Administrator":
+        return {"Administrator"}
+
+    user_roles = set(frappe.get_roles(user))
+    matches = set()
+    org_role_users = get_org_role_users()
+
+    if "JH Digitrack Admin" in user_roles:
+        matches.add("module_admin")
+    if "JH Property Department" in user_roles:
+        matches.add("property_dept")
+    if "JH GL Team" in user_roles:
+        matches.add("gl_team")
+    if user == org_role_users.get("cfo_user"):
+        matches.add("cfo")
+    if user == org_role_users.get("md_user"):
+        matches.add("md")
+
+    if renewal.property:
+        property_doc = frappe.get_cached_doc("JH Property Master", renewal.property)
+        if user == property_doc.approver_1:
+            matches.add("approver_1")
+        if user == property_doc.approver_2:
+            matches.add("approver_2")
+
+    return matches
+
+
+def get_permitted_actions(renewal):
+    current_state = renewal.workflow_state or "Draft"
+    user_workflow_roles = get_user_workflow_roles(renewal)
+    allowed_roles = STATE_ROLE_MAP.get(current_state, set())
+
+    if not user_workflow_roles.intersection(allowed_roles):
+        return []
+
+    actions = []
+    if current_state in WORKFLOW_TRANSITIONS.get("approve", {}):
+        actions.append("approve")
+    if current_state in SENDBACK_TRANSITIONS:
+        actions.append("sendback")
+    if current_state in WORKFLOW_TRANSITIONS.get("withdraw", {}):
+        actions.append("withdraw")
+    return actions
 
 
 def notify_md(renewal):
@@ -280,6 +420,18 @@ def apply_workflow_action(renewal_id: str, action: str):
             next_state = "Pending Property PO"
             notify_md(renewal)
 
+    renewal.append(
+        "audit_trail",
+        {
+            "user": frappe.session.user,
+            "role": role,
+            "current_state": current_state,
+            "changed_state": next_state,
+            "action": action.title(),
+            "action_time": frappe.utils.now_datetime(),
+        },
+    )
+    renewal.flags.ignore_validate_update_after_submit = True
     renewal.workflow_state = next_state
     renewal.save(ignore_permissions=True)
     update_property_master_renewal_date(renewal)
