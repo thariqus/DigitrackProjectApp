@@ -196,10 +196,12 @@ function Renewals() {
   const totalPages = Math.ceil(renewalsCounter.length / renewalsPerPage);
 
   // access to edit renewal permisssion 
-  const roles = roleBasedAccess?.message?.message?.roles || [];
+  const roles = roleBasedAccess?.message?.roles || [];
+  console.log(roles,"roles")
   const isLicensingTeam = roles.includes("JH Licensing Team");
-
+  const isJHPropertyDEpartment = roles.includes("JH Property Department");
   const roleBasedFilter = renewals.filter(renewal => renewal.division)
+  
 
   return (
     <div className="w-full space-y-4">
@@ -311,6 +313,7 @@ function Renewals() {
         workflowColorHighlight={() => 'text-black'}
         typeOptions={[]}
         isLicensingTeam = {isLicensingTeam}
+        isJHPropertyDEpartment={isJHPropertyDEpartment}
       />
     </div>
   );
