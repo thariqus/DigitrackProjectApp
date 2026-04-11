@@ -5,6 +5,7 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
+  "general_tab",
   "send_scheduled_emails",
   "send_welcome_emails",
   "user_manual",
@@ -12,7 +13,8 @@
   "maintenance_to",
   "organization_roles_section",
   "cfo_user",
-  "md_user"
+  "md_user",
+  "property_automation_tab"
  ],
  "fields": [
   {
@@ -58,13 +60,23 @@
    "fieldtype": "Link",
    "label": "MD",
    "options": "User"
+  },
+  {
+   "fieldname": "general_tab",
+   "fieldtype": "Tab Break",
+   "label": "General"
+  },
+  {
+   "fieldname": "property_automation_tab",
+   "fieldtype": "Tab Break",
+   "label": "Property Automation"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-04-06 15:50:25.888521",
- "modified_by": "Administrator",
+ "modified": "2026-04-11 11:33:07.148374",
+ "modified_by": "faris@bytsolv.com",
  "module": "JH Digitrack",
  "name": "JH Digitrack Settings",
  "owner": "Administrator",
