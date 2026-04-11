@@ -8,29 +8,39 @@ import { XIcon } from "lucide-react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { toast } from 'sonner';
 import FileAttachment from "./FileAttachment";
+import { useQueryClient } from '@tanstack/react-query';
 import { useDocDetail, useDocs, useSaveDoc, useUpdateDoc } from "@/hooks/doc";
 import { useCallback, useEffect, useState } from "react";
 import { debounce } from "lodash";
 import { useApplyWorkflowAction } from "../hooks/useApplyWorkflowAction";
-import { PropertyMaster, RentalRenewal, ChequeDetail } from "@/types/JHDigitrack/JHPropertyAutomation";
+import { useRef } from "react";
+import { PropertyMaster, RentalRenewal, ChequeDetail } from "@/types/PropertyAutomation";
 
 type RenewalSheetProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  propertyId: string | null; // actually renewal name
+  propertyId: string | null;
   mode: "view" | "edit" | "create";
   formatDate: (date?: string) => string;
   workflowColorHighlight?: (date?: string) => string;
   typeOptions?: string[];
   isLicensingTeam:boolean;
-  isJHPropertyDEpartment:boolean;
+  isJHPropertyDEpartment: boolean;
+  isCfo : boolean;
+  isGMTeam:boolean;
+   isMD: boolean;
+  isApprover:boolean;
+  isGLTeam:boolean;
+  isApprover1 : boolean;
+  isApprover2 : boolean;
 };
 
-// Renewal Schema matching doctype
+// Renewal Schema 
 const renewalSchema = z.object({
   division: z.string().optional(),
-  proposed_rent: z.coerce.number().min(0, "Must be positive"),
+  proposed_rent: z.coerce.number().min(0).optional(),
   renewal_from: z.string().optional(),
   renewal_to: z.string().optional(),
   additional_charges: z.coerce.number().min(0).optional(),
@@ -39,21 +49,69 @@ const renewalSchema = z.object({
   remarks: z.string().optional(),
   po_number: z.string().optional(),
   miro_number: z.string().optional(),
-
+        bank_name: z.string().optional(),
+        cheque_number: z.string().optional(),
+        cheque_amount: z.coerce.number().min(0).optional(),
+        cheque_date: z.string().optional(),
+        payee: z.string().optional(),
+        signatory: z.string().optional(),
 }).partial();
 
-export default function RenewalSheet({ open, onOpenChange, propertyId, mode, formatDate, workflowColorHighlight,isLicensingTeam,isJHPropertyDEpartment }: RenewalSheetProps) {
+export default function RenewalSheet({ open, onOpenChange, propertyId, mode, formatDate, workflowColorHighlight,isLicensingTeam,isGMTeam,isJHPropertyDEpartment,isCfo ,isMD,isApprover,isGLTeam,isApprover1,isApprover2}: RenewalSheetProps) {
 
   // Separate file states for different Attach fields
   const [supportingFiles, setSupportingFiles] = useState<File[]>([]);
   const [contractFiles, setContractFiles] = useState<File[]>([]);
-  const [chequeDetails, setChequeDetails] = useState<ChequeDetail[]>([]);
+
+  useEffect(() => {
+  if (open && propertyId) {
+    refetchRenewal();
+  }
+}, [open, propertyId]);
+
+
+  useEffect(() => {
+  if (renewalDoc && open) {
+    setLocalModified(renewalDoc.modified || "");
+
+    setCurrentChequeDetails(renewalDoc.cheque_details || []);
+
+    reset({
+      division: renewalDoc?.division || '',
+      proposed_rent: Number(renewalDoc?.proposed_rent || 0),
+      renewal_to: renewalDoc?.renewal_to || '',
+      renewal_from: renewalDoc?.renewal_from || '',
+      additional_charges: Number(renewalDoc?.additional_charges || 0),
+      payment_schedule: renewalDoc?.payment_schedule || '',
+      new_security_deposit: Number(renewalDoc?.new_security_deposit || 0),
+      remarks: renewalDoc?.remarks || '',
+      po_number: renewalDoc?.po_number || '',
+      miro_number: renewalDoc?.miro_number || '',
+    });
+
+    if (renewalDoc?.cheque_details?.[0]) {
+      const cd = renewalDoc.cheque_details[0];
+
+      setValue('bank_name', cd.bank_name || '');
+      setValue('cheque_number', cd.cheque_number || '');
+      setValue('cheque_amount', cd.cheque_amount || 0); // ✅ FIX (no string)
+      setValue('cheque_date', cd.cheque_date || '');
+      setValue('payee', cd.payee || '');
+      setValue('signatory', cd.signatory || '');
+    }
+  }
+}, [ open]); 
+
+//  form fields
   const saveDoc = useSaveDoc();
   const updateDoc = useUpdateDoc();
-  const { mutate: applyAction } = useApplyWorkflowAction();
-   const isView = mode === "view";
+  const isView = mode === "view";
   const isEdit = mode === "edit";
   const formId = "renewal-form";
+
+  const applyActionRef = useRef<((payload: any, options?: any) => void) | null>(null);
+  const workflowMutation = useApplyWorkflowAction();
+  applyActionRef.current = workflowMutation.mutate;
 
   // Fetch renewal document
   const { data: renewalData, isLoading: renewalLoading, refetch: refetchRenewal } = useDocDetail<RentalRenewal>({
@@ -78,7 +136,9 @@ export default function RenewalSheet({ open, onOpenChange, propertyId, mode, for
     doctype: "JH Division Master",
   });
 
-  const [rentChangePercentState, setRentChangePercentState] = useState("0");
+const [rentChangePercentState, setRentChangePercentState] = useState("0");
+  const [currentChequeDetails, setCurrentChequeDetails] = useState<ChequeDetail[]>([]);
+  const [localModified, setLocalModified] = useState<string>("");
 
   const {
     register,
@@ -87,6 +147,7 @@ export default function RenewalSheet({ open, onOpenChange, propertyId, mode, for
     control,
     formState: { errors, isSubmitting, isValid },
     setValue,
+    getValues,
   } = useForm({
     resolver: zodResolver(renewalSchema),
     mode: "onChange",
@@ -105,13 +166,13 @@ export default function RenewalSheet({ open, onOpenChange, propertyId, mode, for
       try {
         const params = new URLSearchParams({
           current_rent: currentRentNum.toString(),
-          proposed_rent: proposedRentNum.toString(),
+          proposed_rent: String(proposedRentNum),
         });
         const res = await fetch(`/api/method/jh_digitrack.api.property_management.calculate_rent_change_percent?${params}`, {
           credentials: "include",
         });
         const data = await res.json();
-        setRentChangePercentState((data.message?.rent_change_percent || 0).toString());
+        setRentChangePercentState(String(data.message?.rent_change_percent || 0));
       } catch (error) {
         console.error("Rent calc error:", error);
         setRentChangePercentState("0");
@@ -121,28 +182,51 @@ export default function RenewalSheet({ open, onOpenChange, propertyId, mode, for
   );
 
   useEffect(() => {
-    const proposedNum = Number(proposedRent);
+    const proposedNum = Number(proposedRent || '0');
     debouncedCalculateRent(currentRent, proposedNum);
   }, [proposedRent, currentRent, debouncedCalculateRent]);
 
   useEffect(() => {
     if (renewalDoc) {
-      reset({
+      // TRACK MODIFIED FOR CONFLICT CHECK
+      setLocalModified(renewalDoc.modified || "");
+      
+      // Preserve existing data
+      setCurrentChequeDetails(renewalDoc.cheque_details || []);
+      
+  reset({
         division: renewalDoc?.division || '',
-        proposed_rent: renewalDoc?.proposed_rent || '',
+        proposed_rent: Number(renewalDoc?.proposed_rent || 0),
         renewal_to: renewalDoc?.renewal_to || '',
         renewal_from: renewalDoc?.renewal_from || '',
-        additional_charges: renewalDoc?.additional_charges?.toString() || '',
+        additional_charges: Number(renewalDoc?.additional_charges || 0),
         payment_schedule: renewalDoc?.payment_schedule || '',
-        new_security_deposit: renewalDoc?.new_security_deposit?.toString() || '',
+        new_security_deposit: Number(renewalDoc?.new_security_deposit || 0),
         remarks: renewalDoc?.remarks || '',
         po_number: renewalDoc?.po_number || '',
         miro_number: renewalDoc?.miro_number || '',
       });
-      // Load existing cheque details
-      setChequeDetails(renewalDoc.cheque_details || []);
+      
+      // Load first cheque detail for form fields
+      if (renewalDoc?.cheque_details?.[0]) {
+        const cd = renewalDoc.cheque_details[0];
+        setValue('bank_name', cd.bank_name || '');
+        setValue('cheque_number', cd.cheque_number || '');
+        setValue('cheque_amount', cd.cheque_amount || 0);
+        setValue('cheque_date', cd.cheque_date || '');
+        setValue('payee', cd.payee || '');
+        setValue('signatory', cd.signatory || '');
+      }
     }
-  }, [renewalDoc, reset]);
+  }, [renewalDoc, reset, setValue]);
+
+  const applyAction = useCallback((payload: any, options?: any) => {
+    if (applyActionRef.current) {
+      applyActionRef.current(payload, options);
+    } else {
+      console.error('Workflow action not available');
+    }
+  }, []);
 
   const formatDateForAPI = (date?: string) => {
     if (!date) return "";
@@ -163,57 +247,124 @@ export default function RenewalSheet({ open, onOpenChange, propertyId, mode, for
     const data = await res.json();
     return data.message.file_url;
   };
+const onSubmit = async (data: z.infer<typeof renewalSchema>) => {
+  try {
+    //  ALWAYS get latest doc before saving (fix conflict issue)
+    const latest = await refetchRenewal();
+    const latestDoc = latest.data?.docs?.[0];
 
-  const onSubmit = async (data: z.infer<typeof renewalSchema>) => {
-    try {
-      // Handle multiple file types separately
-      let supportingDocUrl: string | undefined;
-      let contractDocUrl: string | undefined;
-      
-      if (supportingFiles.length > 0) {
-        [supportingDocUrl] = await Promise.all(supportingFiles.map(uploadFile));
-      }
-      if (contractFiles.length > 0) {
-        [contractDocUrl] = await Promise.all(contractFiles.map(uploadFile));
-      }
-
-      const rentPercent = Number(rentChangePercentState) || 0;
-
-      const payload: Partial<RentalRenewal> = {
-        ...data,
-        property: renewalDoc?.property || propertyId || '',
-        proposed_rent: Number(data.proposed_rent),
-        additional_charges: Number(data.additional_charges || 0),
-        new_security_deposit: Number(data.new_security_deposit || 0),
-        rent_change_percent: rentPercent,
-        renewal_from: formatDateForAPI(data.renewal_from),
-        renewal_to: formatDateForAPI(data.renewal_to),
-        cheque_details: chequeDetails,
-        supporting_documents: supportingDocUrl,
-        renewed_contract_document: contractDocUrl,
-        doctype: "JH Property Rental Renewal",
-      };
-
-      if (isEdit && propertyId) {
-        await updateDoc.mutateAsync({
-          doctype: "JH Property Rental Renewal",
-          name: propertyId,
-          doc: payload,
-        });
-        toast.success("Renewal updated successfully");
-      } else {
-        await saveDoc.mutateAsync(payload);
-        toast.success("Renewal created successfully");
-      }
-
-      queryClient.invalidateQueries({ queryKey: ["Docs"] });
-      onOpenChange(false);
-      reset();
-      refetchProperty();
-    } catch (error: any) {
-      toast.error(error?.message || "Something went wrong");
+    if (!latestDoc) {
+      toast.error("Failed to fetch latest document");
+      return;
     }
-  };
+
+    //  Detect conflict properly
+    if (localModified && latestDoc.modified !== localModified) {
+      toast.error("Document was updated by another user. Reloading latest data...");
+      reset(); // reset form
+      return;
+    }
+
+    //  Update local modified to latest
+    setLocalModified(latestDoc.modified);
+
+    //  Validate cheque
+    const chequeAmount = Number(getValues("cheque_amount") || 0);
+    if (isJHPropertyDEpartment && chequeAmount <= 0) {
+      toast.error("Please enter valid Cheque Amount (> 0)");
+      return;
+    }
+
+    //  File handling (preserve old if no new)
+    const supportingDocUrl = supportingFiles.length > 0
+      ? (await Promise.all(supportingFiles.map(uploadFile)))[0]
+      : latestDoc.supporting_documents;
+
+    const contractDocUrl = contractFiles.length > 0
+      ? (await Promise.all(contractFiles.map(uploadFile)))[0]
+      : latestDoc.renewed_contract_document;
+
+    const rentPercent = Number(rentChangePercentState) || 0;
+
+    //  Build cheque details properly
+    const formChequeData = {
+      doctype: "JH Property Cheque Detail",
+      bank_name: data.bank_name || "",
+      cheque_number: data.cheque_number || "",
+      cheque_amount: Number(data.cheque_amount || 0),
+      cheque_date: data.cheque_date || "",
+      payee: data.payee || "",
+      signatory: data.signatory || "",
+    };
+
+    let updatedChequeDetails = [...(latestDoc.cheque_details || [])];
+
+    if (formChequeData.cheque_amount > 0) {
+      updatedChequeDetails[0] = formChequeData;
+    }
+
+    //  FINAL PAYLOAD (use latestDoc, NOT stale renewalDoc)
+    const payload = {
+      doctype: "JH Property Rental Renewal",
+      name: propertyId,
+
+      division: data.division || "",
+      proposed_rent: Number(data.proposed_rent || 0),
+      renewal_from: formatDateForAPI(data.renewal_from),
+      renewal_to: formatDateForAPI(data.renewal_to),
+      additional_charges: Number(data.additional_charges || 0),
+      payment_schedule: data.payment_schedule || "",
+      new_security_deposit: Number(data.new_security_deposit || 0),
+      remarks: data.remarks || "",
+      po_number: data.po_number || "",
+      miro_number: data.miro_number || "",
+      rent_change_percent: rentPercent,
+
+      //  CRITICAL: always use latestDoc values
+      property: latestDoc.property,
+      current_rent: latestDoc.current_rent,
+
+      supporting_documents: supportingDocUrl,
+      renewed_contract_document: contractDocUrl,
+
+      cheque_details: updatedChequeDetails,
+
+      flags: {
+        ignore_validate_update_after_submit: true,
+      },
+    };
+
+    const result = await updateDoc.mutateAsync({
+      doctype: "JH Property Rental Renewal",
+      name: propertyId,
+      doc: payload,
+    });
+
+    console.log("Update SUCCESS:", result?.message || result);
+
+    toast.success("Cheque Entry saved successfully");
+
+    await refetchRenewal();
+    await refetchProperty();
+
+    onOpenChange(false);
+    reset();
+    setSupportingFiles([]);
+    setContractFiles([]);
+
+  } catch (error: any) {
+    console.error("Submit ERROR:", error);
+
+    //  HANDLE CONFLICT CLEANLY
+    if (error?.message?.includes("modified after")) {
+      toast.error("Document updated. Reloading latest data...");
+      await refetchRenewal();
+      return;
+    }
+
+    toast.error(error?.message || "Save failed");
+  }
+};
 
   const getFileName = (url: string) => url.split("/").pop() || '';
 
@@ -228,28 +379,55 @@ export default function RenewalSheet({ open, onOpenChange, propertyId, mode, for
   console.log(renewalDoc?.workflow_state,"workflow")
 
   const renderRenewalField = (label: string, name: keyof z.infer<typeof renewalSchema>, value?: string, type = "text") => {
-    if (isView) {
-      return (
-        <div className="flex items-center gap-2 py-1 text-sm">
-          <span className="font-medium text-gray-600">{label}:</span>
-          <span>{value !== undefined ? value : (renewalDoc?.[name as keyof RentalRenewal] as string) || "-"}</span>
-        </div>
-      );
-    }
     return (
-      <div className="flex flex-col gap-1">
-        <Label className="text-sm text-gray-600">{label}</Label>
-        <Controller
-          name={name}
-          control={control}
-          render={({ field }) => (
-            <Input
-              type={type}
-              {...field}
-              className={errors[name] ? "border-red-500" : ""}
+      <div>
+              {
+                isView  ? ( 
+              <div className="flex gap-1">
+                <Label className="text-sm text-gray-600">{label}</Label>
+                <span>{value}</span>
+              </div>
+              ) : (
+               <div className="flex flex-col gap-1">
+            <Label className="text-sm text-gray-600">{label}</Label>
+            <Controller
+              name={name}
+              control={control}
+              render={({ field }) => (
+                <Input
+                  type={type}
+                  {...field}
+                  className={errors[name] ? "border-red-500" : ""}
+                />
+              )}
             />
-          )}
-        />
+        {errors[name] && (
+          <span className="text-red-500 text-xs">{errors[name]?.message as string}</span>
+        )}
+      </div>
+        )}
+      </div>
+
+     
+    );
+  };
+
+
+   const renderRenewalRoleField = (label: string, name: keyof z.infer<typeof renewalSchema>, value?: string, type = "text") => {
+    return (
+               <div className="flex flex-col gap-1">
+            <Label className="text-sm text-gray-600">{label}</Label>
+            <Controller
+              name={name}
+              control={control}
+              render={({ field }) => (
+                <Input
+                  type={type}
+                  {...field}
+                  className={errors[name] ? "border-red-500" : ""}
+                />
+              )}
+            />
         {errors[name] && (
           <span className="text-red-500 text-xs">{errors[name]?.message as string}</span>
         )}
@@ -297,29 +475,27 @@ export default function RenewalSheet({ open, onOpenChange, propertyId, mode, for
               </div>
             </div>
 
-
-              <>
-               <Separator />
+             <Separator />
 
             {/* Renewal Edit Fields */}
             <h2 className="text-lg font-semibold">Renewal Details</h2>
            <div
                 className={`grid items-start gap-4 py-1${
                   isView
-                    ? "grid-cols-1 lg:grid-cols-5"
+                    ? "grid-cols-1 lg:grid-cols-3"
                     : "grid-cols-1 md:grid-cols-4 lg:grid-cols-5"
                 }`}
               >
               {renderRenewalField("Proposed Rent", "proposed_rent", String(renewalDoc?.proposed_rent), "number")}
               {renderRenewalField("Additional Charges", "additional_charges", String(renewalDoc?.additional_charges), "number")}
-              <div className={`${isView? "flex gap-2" : "flex flex-col gap-1"}`}>
-                <Label className="text-gray-600 text-nowarp">Rent Change %: </Label>
-                 {isView ? (
-                    <div>{renewalDoc?.rent_change_percent}%</div>
-                  ): (
-                <Input value={rentChangePercentState + "%"} readOnly className="bg-gray-200" />
-                  )}
-              </div>
+                <div className={`${isView ? "flex gap-2" : "flex flex-col gap-1"}`}>
+                  <Label className="text-gray-600">Rent Change %: </Label>
+                   {isView ? (
+                      <div>{renewalDoc?.rent_change_percent ?? 0}%</div>
+                    ): (
+                  <Input value={rentChangePercentState + "%"} readOnly className="bg-gray-200" />
+                    )}
+                </div>
               {renderRenewalField("Renewal From", "renewal_from", renewalDoc?.renewal_from, "date")}
               {renderRenewalField("Renewal To", "renewal_to", renewalDoc?.renewal_to, "date")}
               {renderRenewalField("Payment Schedule", "payment_schedule", renewalDoc?.payment_schedule || '')}
@@ -332,9 +508,9 @@ export default function RenewalSheet({ open, onOpenChange, propertyId, mode, for
                       <textarea {...register("remarks")} className="border rounded-md p-2 h-20 resize-vertical" /> 
                   )}
                   
-                  </div> 
+              </div> 
         
-              </div>
+            </div>
 
               {/* Supporting Documents  */}
               <div>
@@ -354,83 +530,65 @@ export default function RenewalSheet({ open, onOpenChange, propertyId, mode, for
               </div>
 
               
-              {isJHPropertyDEpartment && (
+            {isJHPropertyDEpartment && renewalDoc?.workflow_state === "Pending Cheque Details" && (
                 <>
-
-                <Separator />
-            <h2 className="text-lg font-semibold">Cheque Details</h2>
-              <div className="space-y-4 pb-10">
-                {/* {chequeDetails.map((cheque, index) => ( */}
-                  <div  className="border p-4 rounded-md space-y-2">
-                    <Input
-                      placeholder="Bank Name"
-                      value={chequeDetails.bank_name || ''}
-                      onChange={(e) => {
-                        const newDetails = e.target.value;
-                        setChequeDetails(newDetails);
-                      }}
-                    />
-                    <div className="grid grid-cols-2 gap-2">
-                      <Input
-                        placeholder="Cheque Number"
-                        value={chequeDetails.cheque_number || ''}
-                        onChange={(e) => {
-                          const newDetails  = e.target.value;
-                          setChequeDetails(newDetails);
-                        }}
-                      />
-                      <Input
-                        placeholder="Amount"
-                        type="number"
-                        value={chequeDetails.cheque_amount || ''}
-                        onChange={(e) => {
-                          const newDetails = Number(e.target.value);
-                          setChequeDetails(newDetails);
-                        }}
-                      />
+                  <Separator />
+                  <h2 className="text-lg font-semibold">Cheque Details</h2>
+                  <div className="space-y-4 pb-10">
+                    <div className="border p-4 rounded-md space-y-2">
+{renderRenewalRoleField("Bank Name", "bank_name")}
+                      <div className="grid grid-cols-2 gap-2">
+{renderRenewalRoleField("Cheque Number", "cheque_number")}
+{renderRenewalRoleField("Amount", "cheque_amount", undefined, "number")}
+                      </div>
+{renderRenewalRoleField("Cheque Date", "cheque_date", undefined, "date")}
+                      <div className="grid grid-cols-2 gap-2">
+{renderRenewalRoleField("Payee", "payee")}
+{renderRenewalRoleField("Signatory", "signatory")}
+                      </div>
                     </div>
-                    <Input
-                      placeholder="Cheque Date"
-                      type="date"
-                      value={chequeDetails.cheque_date || ''}
-                      onChange={(e) => {
-                        const newDetails = e.target.value;
-                        setChequeDetails(newDetails);
-                      }}
-                    />
-                    <div className="grid grid-cols-2 gap-2">
-                      <Input
-                        placeholder="Payee"
-                        value={chequeDetails.payee || ''}
-                        onChange={(e) => {
-                          const newDetails =  e.target.value;
-                          setChequeDetails(newDetails);
-                        }}
-                      />
-                      <Input
-                        placeholder="Signatory"
-                        value={chequeDetails.signatory || ''}
-                        onChange={(e) => {
-                          const newDetails =  e.target.value;
-                          setChequeDetails(newDetails);
-                        }}
-                      />
-                    </div>
-                   
                   </div>
-               
-                {/* <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setChequeDetails(prev => [...prev, {bank_name: '', cheque_number: '', cheque_amount: 0, cheque_date: '', payee: '', signatory: ''}])}>
-                  Add Cheque Detail
-                </Button> */}
+                </>
+              )}
+              
+               {isJHPropertyDEpartment && renewalDoc?.workflow_state === "Pending Property PO" && (
+                <>
+                  <Separator />
+                  <h2 className="text-lg font-semibold">PO Details</h2>
+
+                  <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-4 items-start gap-4">
+                  {renderRenewalRoleField("PO Number", "po_number", renewalDoc?.po_number || '')}
+                  </div>
+ 
+                  {/* Renewed Contract Document */}
+                  <div>
+                    <h3 className="text-md font-semibold mb-2">Renewed Contract Document</h3>
+                  {isView ? (
+                    <div className="space-y-2">
+                      {renewalDoc?.renewed_contract_document ? (
+                        <div className="flex items-center gap-2 px-3 py-1 bg-gray-100 rounded">
+                          <span className="text-sm">{getFileName(renewalDoc.renewed_contract_document)}</span>
+                          <a href={renewalDoc.renewed_contract_document} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline text-sm">View</a>
+                        </div>
+                      ) : <p>No document</p>}
+                    </div>
+                  ) : (
+                    <FileAttachment files={contractFiles} setFiles={setContractFiles}  />
+                  )}
+                </div>
+             </>
+               )}
+
+
+                 {isGLTeam && renewalDoc?.workflow_state === "Pending MIRO" && (
+                <>
+                  <Separator />
+                  <h2 className="text-lg font-semibold">Miro Details</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-4 items-start gap-4 pb-10">
+                {renderRenewalRoleField("MIRO Number", "miro_number", renewalDoc?.miro_number || '')}
               </div>
-                </>  
-            
-            )}
-             
               </>
+                 )}
           </form>
         </ScrollArea>
 
@@ -448,7 +606,7 @@ export default function RenewalSheet({ open, onOpenChange, propertyId, mode, for
                   onClick={() => {
                     if (!propertyId) return;
                     applyAction({ renewal_id: propertyId, action: "submit" }, {
-                      onSuccess: (data) => {
+                      onSuccess: (data: any) => {
                         console.log("Button Success:", data);
                         refetchRenewal();
                         onOpenChange(false);
@@ -460,7 +618,7 @@ export default function RenewalSheet({ open, onOpenChange, propertyId, mode, for
                 </Button>
               </div>
             ) : (
-                renewalDoc?.workflow_state === "Pending Approver 1" && isView ? (
+                isApprover1 && renewalDoc?.workflow_state === "Pending Approver 1" && isView ? (
               <div className="flex gap-3 w-full">
                
                 <Button variant="outline" 
@@ -473,7 +631,8 @@ export default function RenewalSheet({ open, onOpenChange, propertyId, mode, for
                   onClick={() => {
                     if (!propertyId) return;
                     applyAction({renewal_id: propertyId, action: "approve" }, {
-                      onSuccess: () => {
+                      onSuccess: (data: any) => {
+                        refetchRenewal();
                         onOpenChange(false);
                       }
                     });
@@ -484,7 +643,7 @@ export default function RenewalSheet({ open, onOpenChange, propertyId, mode, for
                
               </div>
 
-            ) : renewalDoc?.workflow_state === "Pending Approver 2" && isView ? (
+            ) : isApprover2 && renewalDoc?.workflow_state === "Pending Approver 2" && isView ? (
               <div className="flex gap-3 w-full">
                 <Button variant="outline" className="w-full" type="button">Withdraw</Button>
                 <Button className="w-full bg-gray-400" type="button">Send Back</Button>
@@ -495,6 +654,7 @@ export default function RenewalSheet({ open, onOpenChange, propertyId, mode, for
                     if (!propertyId) return;
                     applyAction({ renewal_id: propertyId, action: "approve" }, {
                       onSuccess: () => {
+                        refetchRenewal();
                         onOpenChange(false);
                       }
                     });
@@ -503,30 +663,7 @@ export default function RenewalSheet({ open, onOpenChange, propertyId, mode, for
                   Submit for Cheque Entry
                 </Button>
               </div>
-            ) : isJHPropertyDEpartment && renewalDoc?.workflow_state === "Pending Cheque Details" && isView ? (
-              <div className="flex gap-3 w-full">
-                <Button variant="outline" className="w-full" type="button" onClick={() => onOpenChange(false)}>
-                Close
-              </Button>
-                {/* <Button variant="outline" className="w-full" type="button">Withdraw</Button>
-                <Button className="w-full bg-gray-400" type="button">Send Back</Button> */}
-                <Button className="w-full bg-gray-400" type="button">Save Cheque Entry</Button>
-                <Button 
-                  className="w-full bg-primary text-white" 
-                  type="button" 
-                  onClick={() => {
-                    if (!propertyId) return;
-                    applyAction({ renewal_id: propertyId, action: "submit" }, {
-                      onSuccess: () => {
-                        onOpenChange(false);
-                      }
-                    });
-                  }}
-                >
-                  Confirm Cheque Entry
-                </Button>
-              </div>
-            ): renewalDoc?.workflow_state === "Pending CFO" && isView ? (
+            ) :  isCfo && renewalDoc?.workflow_state === "Pending CFO" && isView ? (
               <div className="flex gap-3 w-full">
                 <Button variant="outline" className="w-full" type="button">Withdraw</Button>
                 <Button className="w-full bg-gray-400" type="button">Send Back</Button>
@@ -537,32 +674,158 @@ export default function RenewalSheet({ open, onOpenChange, propertyId, mode, for
                     if (!propertyId) return;
                     applyAction({ renewal_id: propertyId, action: "approve" }, {
                       onSuccess: () => {
+                        refetchRenewal();
                         onOpenChange(false);
                       }
                     });
                   }}
                 >
-                  Submit
+                  Submit to next /complete
                 </Button>
               </div>
             ) :
+            isMD && renewalDoc?.workflow_state === "Pending MD" && isView ? (
+              <div className="flex gap-3 w-full">
+                <Button variant="outline" className="w-full" type="button">Withdraw</Button>
+                <Button className="w-full bg-gray-400" type="button">Send Back</Button>
+                <Button 
+                  className="w-full bg-primary text-white" 
+                  type="button" 
+                  onClick={() => {
+                    if (!propertyId) return;
+                    applyAction({ renewal_id: propertyId, action: "approve" }, {
+                      onSuccess: () => {
+                        refetchRenewal();
+                        onOpenChange(false);
+                      }
+                    });
+                  }}
+                >
+                  Approve
+                </Button>
+              </div>
+            ) :  isJHPropertyDEpartment && renewalDoc?.workflow_state === "Pending Cheque Details" && isView ? (
+              <div className="flex gap-3 w-full">
+                <Button variant="outline" className="w-full" type="button" onClick={() => onOpenChange(false)}>
+                Close
+              </Button>
+                {/* <Button variant="outline" className="w-full" type="button">Withdraw</Button>
+                <Button className="w-full bg-gray-400" type="button">Send Back</Button> */}
+                <Button 
+                  className="w-full bg-green-600 hover:bg-green-700 text-white" 
+                  type="submit"
+                  form={formId}
+                  disabled={isSubmitting || !isValid || (localModified && renewalDoc?.modified && localModified !== renewalDoc.modified)}
+                  title={localModified && renewalDoc?.modified && localModified !== renewalDoc.modified ? "Document modified externally - refresh first" : ""}
+                >
+                  {isSubmitting ? "Saving..." : "Save Cheque Entry"}
+                </Button>
+                <Button 
+                  className="w-full bg-primary text-white" 
+                  type="button" 
+                  onClick={() => {
+                    if (!propertyId) return;
+                    applyAction({ renewal_id: propertyId, action: "approve" }, {
+                      onSuccess: () => {
+                        refetchRenewal();
+                        onOpenChange(false);
+                      }
+                    });
+                  }}
+                >
+                  Confirm Cheque Entry
+                </Button>
+              </div>
+            ): 
+            isJHPropertyDEpartment && renewalDoc?.workflow_state === "Pending Property PO" && isView ? (
+              <div className="flex gap-3 w-full">
+                <Button variant="outline" className="w-full" type="button" onClick={() => onOpenChange(false)}>
+                Close
+              </Button>
+                {/* <Button variant="outline" className="w-full" type="button">Withdraw</Button>
+                <Button className="w-full bg-gray-400" type="button">Send Back</Button> */}
+                <Button 
+                  className="w-full bg-green-600 hover:bg-green-700 text-white" 
+                  type="submit"
+                  form={formId}
+                  disabled={isSubmitting || !isValid || (localModified && renewalDoc?.modified && localModified !== renewalDoc.modified)}
+                  title={localModified && renewalDoc?.modified && localModified !== renewalDoc.modified ? "Document modified externally - refresh first" : ""}
+                >
+                  {isSubmitting ? "Saving..." : "Save PO"}
+                </Button>
+                <Button 
+                  className="w-full bg-primary text-white" 
+                  type="button" 
+                  onClick={() => {
+                    if (!propertyId) return;
+                    applyAction({ renewal_id: propertyId, action: "approve" }, {
+                      onSuccess: () => {
+                        refetchRenewal();
+                        onOpenChange(false);
+                      }
+                    });
+                  }}
+                >
+                  Confirm PO
+                </Button>
+              </div>
+            ): 
+
+            isGLTeam && renewalDoc?.workflow_state === "Pending MIRO" && isView ? (
+              <div className="flex gap-3 w-full">
+                <Button variant="outline" className="w-full" type="button" onClick={() => onOpenChange(false)}>
+                Close
+              </Button>
+                {/* <Button variant="outline" className="w-full" type="button">Withdraw</Button>
+                <Button className="w-full bg-gray-400" type="button">Send Back</Button> */}
+                <Button 
+                  className="w-full bg-green-600 hover:bg-green-700 text-white" 
+                  type="submit"
+                  form={formId}
+                  disabled={isSubmitting || !isValid || (localModified && renewalDoc?.modified && localModified !== renewalDoc.modified)}
+                  title={localModified && renewalDoc?.modified && localModified !== renewalDoc.modified ? "Document modified externally - refresh first" : ""}
+                >
+                  {isSubmitting ? "Saving..." : "Save MIRO Details"}
+                </Button>
+                <Button 
+                  className="w-full bg-primary text-white" 
+                  type="button" 
+                  onClick={() => {
+                    if (!propertyId) return;
+                    applyAction({ renewal_id: propertyId, action: "approve" }, {
+                      onSuccess: () => {
+                        refetchRenewal();
+                        onOpenChange(false);
+                      }
+                    });
+                  }}
+                >
+                Mark Complete
+                </Button>
+              </div>
+            ): 
+           
              !isView ? (
+              <>
               <Button variant="outline" className="w-full" type="button" onClick={() => onOpenChange(false)}>
                 Close
               </Button>
+              <Button
+                  type="submit"
+                  form={formId}
+                  disabled={renewalDoc?.workflow_state !== "Draft"}
+                  className="w-full bg-[#972e26] hover:bg-[#972e26]/90"
+                >
+                  Update Renewal
+                </Button>
+              </>
+              
             ) : (
               <>
                 <Button variant="outline" className="w-full" type="button" onClick={() => onOpenChange(false)}>
                   Cancel
                 </Button>
-                {/* <Button
-                  type="submit"
-                  form={formId}
-                  disabled={isSubmitting || !isValid}
-                  className="w-full bg-[#972e26] hover:bg-[#972e26]/90"
-                >
-                  {isSubmitting ? "Saving..." : "Update Renewal"}
-                </Button> */}
+                
               </>
             ))}
           </div>
