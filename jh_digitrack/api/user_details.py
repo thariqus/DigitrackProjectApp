@@ -1619,6 +1619,49 @@ def run_post_hrms_sync():
                 ) t
             )
         """)
+        
+        # 2a. Set mail_id = '' only when: a) the employee is not a reporting manager, and b) the same mail_id already exists
+        frappe.db.sql("""
+            UPDATE `tabHRMS Users`
+            SET mail_id = ''
+            WHERE employee_code NOT IN (
+                SELECT reporting_manager
+                FROM (
+                    SELECT reporting_manager
+                    FROM `tabHRMS Users`
+                    WHERE reporting_manager IS NOT NULL
+                    AND reporting_manager <> ''
+                ) mgr
+            )
+            AND mail_id IN (
+                SELECT mail_id
+                FROM (
+                    SELECT mail_id
+                    FROM `tabHRMS Users`
+                    WHERE mail_id IS NOT NULL
+                    AND mail_id <> ''
+                    GROUP BY mail_id
+                    HAVING COUNT(*) > 1
+                ) dup
+            );
+        """)
+
+        # 2. Set mail_id = ''  when: the same mail_id already exists elsewhere in the system after the above step
+        frappe.db.sql("""
+            UPDATE `tabHRMS Users`
+            SET mail_id = ''
+            WHERE mail_id IN (
+                SELECT mail_id
+                FROM (
+                    SELECT mail_id
+                    FROM `tabHRMS Users`
+                    WHERE mail_id IS NOT NULL
+                    AND mail_id <> ''
+                    GROUP BY mail_id
+                    HAVING COUNT(*) > 1
+                ) dup
+            );
+        """)
 
         # 3. Update JH User Master
         frappe.db.sql("""
