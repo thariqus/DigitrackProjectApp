@@ -1646,7 +1646,7 @@ def run_post_hrms_sync():
             );
         """)
 
-        # 2. Set mail_id = ''  when: the same mail_id already exists elsewhere in the system after the above step
+        # 2b. Set mail_id = ''  when: the same mail_id already exists elsewhere in the system after the above step
         frappe.db.sql("""
             UPDATE `tabHRMS Users`
             SET mail_id = ''
