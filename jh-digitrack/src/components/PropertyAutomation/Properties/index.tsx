@@ -203,10 +203,11 @@ fields: [
   const totalPages = Math.ceil(propertiesCounter?.length / propertiesPerPage);
 
   // access to create/edit property permisssion 
-  const roles = createOrEditPermission?.message?.message?.roles || [];
+  const roles = createOrEditPermission?.message?.roles || [];
   const canCreateOrEditProperty =
   roles.includes("JH Property Department") ||
   roles.includes("JH Digitrack Admin");
+  console.log(roles,"yes")
 
   return (
     <div className="w-full space-y-4">
