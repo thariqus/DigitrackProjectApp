@@ -160,11 +160,14 @@ def has_property_automation_role():
     settings = frappe.get_single("JH Digitrack Settings")
 
     has_access = (
-        "JH Property Department" in user_roles
+        "JH Digitrack Admin" in user_roles
+        or "JH Property Department" in user_roles
         or "JH GL Team" in user_roles
         or "JH Licensing Team" in user_roles
         or user == settings.cfo_user
         or user == settings.md_user
+        or frappe.db.count("JH Property Master", filters={"approver_1": user}) > 0
+        or frappe.db.count("JH Property Master", filters={"approver_2": user}) > 0
     )
 
     return {"has_access": has_access}
