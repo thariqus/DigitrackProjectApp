@@ -183,10 +183,9 @@ def get_logged_in_property_user():
     has_gl_team_role = is_administrator or "JH GL Team" in user_roles
     is_licensing = is_administrator or "JH Licensing Team" in user_roles
 
-    is_approver = bool(
-        frappe.db.count("JH Property Master", filters={"approver_1": user})
-        or frappe.db.count("JH Property Master", filters={"approver_2": user})
-    )
+    is_approver_1 = bool(frappe.db.count("JH Property Master", filters={"approver_1": user}))
+    is_approver_2 = bool(frappe.db.count("JH Property Master", filters={"approver_2": user}))
+    is_approver = is_approver_1 or is_approver_2
 
     return {
         "user": user,
@@ -206,6 +205,8 @@ def get_logged_in_property_user():
         "is_md": is_md,
         "is_licensing": is_licensing,
         "is_approver": is_approver,
+        "is_approver_1": is_approver_1,
+        "is_approver_2": is_approver_2,
         "roles": sorted(user_roles),
     }
 
