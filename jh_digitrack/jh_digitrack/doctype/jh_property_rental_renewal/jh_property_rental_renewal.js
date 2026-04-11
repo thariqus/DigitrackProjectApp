@@ -39,7 +39,7 @@ async function add_workflow_action_buttons(frm) {
 	}
 
 	const response = await frappe.call({
-		method: "jh_digitrack.jh_digitrack.doctype.jh_property_rental_renewal.jh_property_rental_renewal.get_allowed_actions",
+		method: "jh_digitrack.api.property_management.get_allowed_actions",
 		args: {
 			renewal_id: frm.doc.name,
 		},
@@ -93,7 +93,7 @@ function show_sendback_options(frm, options) {
 
 function run_workflow_action(frm, action, target_state = null) {
 	frappe.call({
-		method: "jh_digitrack.jh_digitrack.doctype.jh_property_rental_renewal.jh_property_rental_renewal.apply_workflow_action",
+		method: "jh_digitrack.api.property_management.apply_workflow_action",
 		args: {
 			renewal_id: frm.doc.name,
 			action: action,
@@ -120,24 +120,3 @@ function calculate_percent(frm) {
 	frm.set_value("data_gisi", rent_change_percent);
 }
 
-frappe.ui.form.on('JH Property Rental Renewal', {
-
-    validate: function(frm) {
-
-        let today = frappe.datetime.get_today();
-
-        // Check Renewal From >= Today
-        if (frm.doc.renewal_from && frm.doc.renewal_from < today) {
-            frappe.throw("Renewal From date cannot be in the past.");
-        }
-
-        // Check Renewal To > Renewal From
-        if (frm.doc.renewal_from && frm.doc.renewal_to) {
-            if (frm.doc.renewal_to <= frm.doc.renewal_from) {
-                frappe.throw("Renewal To date must be after Renewal From date.");
-            }
-        }
-
-    }
-
-});

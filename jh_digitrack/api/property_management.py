@@ -328,6 +328,20 @@ def get_permitted_actions(renewal):
     return actions
 
 
+@frappe.whitelist(methods=["GET", "POST"])
+def get_allowed_actions(renewal_id: str):
+    if not renewal_id:
+        frappe.throw(_("renewal_id is required"))
+
+    renewal = frappe.get_doc("JH Property Rental Renewal", renewal_id)
+    allowed_actions = get_permitted_actions(renewal)
+
+    return {
+        "actions": allowed_actions,
+        "sendback_options": list(SENDBACK_TRANSITIONS.get(renewal.workflow_state or "Draft", [])),
+    }
+
+
 def notify_md(renewal):
     settings = frappe.get_single("JH Digitrack Settings")
 
@@ -349,7 +363,10 @@ def update_property_master_renewal_date(renewal):
     if renewal.workflow_state != "Completed" or not renewal.property or not renewal.renewal_to:
         return
 
-    frappe.db.set_value("JH Property Master", renewal.property, "renewal_date", renewal.renewal_to)
+    frappe.db.set_value("JH Property Master", renewal.property, {
+        "renewal_date": renewal.renewal_to,
+        "current_rent": renewal.proposed_rent,
+    })
 
 
 @frappe.whitelist(methods=["GET"])
@@ -532,6 +549,22 @@ def get_my_pending_filters():
         )
 
     return {"filters": filters}
+
+
+@frappe.whitelist(methods=["GET"])
+def get_renewal_audit_trail(renewal_id: str):
+    if not renewal_id:
+        frappe.throw(_("renewal_id is required"))
+
+    trail = frappe.get_all(
+        "JH Property Renewal Audit",
+        filters={"parent": renewal_id, "parenttype": "JH Property Rental Renewal"},
+        fields=["user", "role", "current_state", "changed_state", "action", "comments", "action_time"],
+        order_by="action_time asc",
+        ignore_permissions=True,
+    )
+
+    return {"audit_trail": trail}
 
 
 @frappe.whitelist(methods=["GET"])
