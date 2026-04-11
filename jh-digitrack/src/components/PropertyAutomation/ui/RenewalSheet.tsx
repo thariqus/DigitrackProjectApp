@@ -1,4 +1,6 @@
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
+import WithdrawCommentModal from "./WithdrawCommentModal";
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -61,7 +63,31 @@ export default function RenewalSheet({ open, onOpenChange, propertyId, mode, for
 
   // Separate file states for different Attach fields
   const [supportingFiles, setSupportingFiles] = useState<File[]>([]);
-  const [contractFiles, setContractFiles] = useState<File[]>([]);
+const [contractFiles, setContractFiles] = useState<File[]>([]);
+  const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
+  const [pendingWithdrawalId, setPendingWithdrawalId] = useState<string | null>(null);
+
+  const handleOpenWithdrawModal = (id: string) => {
+    setPendingWithdrawalId(id);
+    setIsWithdrawModalOpen(true);
+  };
+
+  const handleWithdrawSubmit = (comment: string) => {
+    if (!pendingWithdrawalId) return;
+    applyAction({ 
+      renewal_id: pendingWithdrawalId, 
+      action: "withdraw",
+      comment 
+    }, {
+      onSuccess: () => {
+        refetchRenewal();
+        onOpenChange(false);
+        toast.success("Renewal withdrawn successfully");
+        setIsWithdrawModalOpen(false);
+        setPendingWithdrawalId(null);
+      }
+    });
+  };
 
   useEffect(() => {
   if (open && propertyId) {
@@ -94,7 +120,7 @@ export default function RenewalSheet({ open, onOpenChange, propertyId, mode, for
 
       setValue('bank_name', cd.bank_name || '');
       setValue('cheque_number', cd.cheque_number || '');
-      setValue('cheque_amount', cd.cheque_amount || 0); // ✅ FIX (no string)
+      setValue('cheque_amount', cd.cheque_amount || 0); 
       setValue('cheque_date', cd.cheque_date || '');
       setValue('payee', cd.payee || '');
       setValue('signatory', cd.signatory || '');
@@ -597,9 +623,13 @@ const onSubmit = async (data: z.infer<typeof renewalSchema>) => {
               {isView && isLicensingTeam && renewalDoc?.workflow_state === "Draft" ? (
                <div className="flex gap-3 w-full">
                
-                <Button variant="outline" 
+<Button variant="outline" 
                   className="w-full" 
-                  type="button">Close</Button>
+                  type="button"
+                  onClick={() => onOpenChange(false)}
+                >
+                  Close
+                </Button>
                 <Button 
                   className="w-full bg-primary text-white" 
                   type="button" 
@@ -618,12 +648,18 @@ const onSubmit = async (data: z.infer<typeof renewalSchema>) => {
                 </Button>
               </div>
             ) : (
-                isApprover1 && renewalDoc?.workflow_state === "Pending Approver 1" && isView ? (
+isApprover1 && renewalDoc?.workflow_state === "Pending Approver 1" && isView ? (
               <div className="flex gap-3 w-full">
                
-                <Button variant="outline" 
-                  className="w-full " 
-                  type="button">Withdraw</Button>
+                <Button 
+                  variant="destructive" 
+                  className="w-full" 
+                  type="button"
+                  title="Closes the renewal process entirely. If needed, initiators can duplicate or create a new process for that property."
+                  onClick={() => propertyId && handleOpenWithdrawModal(propertyId)}
+                >
+                  Withdraw
+                </Button>
                    <Button className="w-full bg-gray-400" type="button">Send Back</Button>
                    <Button 
                   className="w-full bg-primary text-white" 
@@ -643,9 +679,17 @@ const onSubmit = async (data: z.infer<typeof renewalSchema>) => {
                
               </div>
 
-            ) : isApprover2 && renewalDoc?.workflow_state === "Pending Approver 2" && isView ? (
+                ): isApprover2 && renewalDoc?.workflow_state === "Pending Approver 2" && isView ? (
               <div className="flex gap-3 w-full">
-                <Button variant="outline" className="w-full" type="button">Withdraw</Button>
+                <Button 
+                  variant="destructive" 
+                  className="w-full" 
+                  type="button"
+                  title="Closes the renewal process entirely. If needed, initiators can duplicate or create a new process for that property."
+                  onClick={() => propertyId && handleOpenWithdrawModal(propertyId)}
+                >
+                  Withdraw
+                </Button>
                 <Button className="w-full bg-gray-400" type="button">Send Back</Button>
                 <Button 
                   className="w-full bg-primary text-white" 
@@ -660,12 +704,20 @@ const onSubmit = async (data: z.infer<typeof renewalSchema>) => {
                     });
                   }}
                 >
-                  Submit for Cheque Entry
+                  Submit for CFO
                 </Button>
               </div>
-            ) :  isCfo && renewalDoc?.workflow_state === "Pending CFO" && isView ? (
+     ):  isCfo && renewalDoc?.workflow_state === "Pending CFO" && isView ? (
               <div className="flex gap-3 w-full">
-                <Button variant="outline" className="w-full" type="button">Withdraw</Button>
+                <Button 
+                  variant="destructive" 
+                  className="w-full" 
+                  type="button"
+                  title="Closes the renewal process entirely. If needed, initiators can duplicate or create a new process for that property."
+                  onClick={() => propertyId && handleOpenWithdrawModal(propertyId)}
+                >
+                  Withdraw
+                </Button>
                 <Button className="w-full bg-gray-400" type="button">Send Back</Button>
                 <Button 
                   className="w-full bg-primary text-white" 
@@ -680,13 +732,21 @@ const onSubmit = async (data: z.infer<typeof renewalSchema>) => {
                     });
                   }}
                 >
-                  Submit to next /complete
+                  Submit to MD /complete
                 </Button>
               </div>
             ) :
             isMD && renewalDoc?.workflow_state === "Pending MD" && isView ? (
               <div className="flex gap-3 w-full">
-                <Button variant="outline" className="w-full" type="button">Withdraw</Button>
+                <Button 
+                  variant="destructive" 
+                  className="w-full" 
+                  type="button"
+                  title="Closes the renewal process entirely. If needed, initiators can duplicate or create a new process for that property."
+                  onClick={() => propertyId && handleOpenWithdrawModal(propertyId)}
+                >
+                  Withdraw
+                </Button>
                 <Button className="w-full bg-gray-400" type="button">Send Back</Button>
                 <Button 
                   className="w-full bg-primary text-white" 
@@ -831,6 +891,12 @@ const onSubmit = async (data: z.infer<typeof renewalSchema>) => {
           </div>
         </SheetFooter>
       </SheetContent>
+      <WithdrawCommentModal
+        open={isWithdrawModalOpen}
+        onOpenChange={setIsWithdrawModalOpen}
+        onWithdraw={handleWithdrawSubmit}
+        propertyId={pendingWithdrawalId}
+      />
     </Sheet>
   );
 }
