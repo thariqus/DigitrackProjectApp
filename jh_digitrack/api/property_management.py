@@ -346,18 +346,21 @@ def notify_md(renewal):
     settings = frappe.get_single("JH Digitrack Settings")
 
     if not settings.md_user:
-        return  # no MD configured
+       frappe.logger().warning("MD user not set. Skipping email.")
+       return
 
-    frappe.sendmail(
-        recipients=[settings.md_user],
-        subject="Rental Renewal Approved (No MD Approval Required)",
-        message=f"""
-        Rental Renewal <b>{frappe.utils.escape_html(renewal.name)}</b> has been approved by CFO.<br><br>
-        Rent change is ≤ 5%, so MD approval is not required.<br><br>
-        This is for your information.
-        """
-    )
-
+    try:
+        frappe.sendmail(
+            recipients=[settings.md_user],
+            subject="Rental Renewal Approved (No MD Approval Required)",
+            message=f"""
+            Rental Renewal <b>{frappe.utils.escape_html(renewal.name)}</b> has been approved by CFO.<br><br>
+            Rent change is ≤ 5%, so MD approval is not required.<br><br>
+            This is for your information.
+            """
+        )
+    except Exception as e:
+        frappe.logger().error(f"Failed to send MD notification: {str(e)}")
 
 def update_property_master_renewal_date(renewal):
     if renewal.workflow_state != "Completed" or not renewal.property or not renewal.renewal_to:
@@ -581,46 +584,40 @@ def calculate_rent_change_percent(current_rent=None, proposed_rent=None):
 
 
 @frappe.whitelist(methods=["POST"])
-def apply_workflow_action(renewal_id: str, action: str):
+def apply_workflow_action(renewal_id: str, action: str, target_state: str = None, comment: str = ""):
     if not renewal_id:
         frappe.throw(_("renewal_id is required"))
 
     action = (action or "").strip().lower()
-    if action not in WORKFLOW_TRANSITIONS:
-        frappe.throw(_("Unsupported workflow action: {0}").format(action))
-
     renewal = frappe.get_doc("JH Property Rental Renewal", renewal_id)
     current_state = renewal.workflow_state or "Draft"
     role = whoami(renewal_id=renewal_id, is_new=False).get("role")
 
-    transition = WORKFLOW_TRANSITIONS[action].get(current_state)
-    if not transition:
-        frappe.throw(
-            _("Action {0} is not allowed when workflow state is {1}.").format(action, current_state)
-        )
-
-    if role not in transition["roles"]:
-        frappe.throw(
-            _("Role {0} is not allowed to {1} a renewal in state {2}.").format(
-                role, action, current_state
-            )
-        )
-
-    next_state = transition["next_state"]
-
-    if current_state == "Pending CFO" and action == "approve":
-        current_rent = flt(renewal.current_rent)
-        proposed_rent = flt(renewal.proposed_rent)
-        rent_change_percent = (
-            ((proposed_rent - current_rent) / current_rent) * 100 if current_rent else 0
-        )
-
-        if rent_change_percent > 5:
-            next_state = "Pending MD"
-        else:
-            next_state = "Pending Cheque Details"
-            notify_md(renewal)
-
+    if action == "sendback":
+        if target_state not in SENDBACK_TRANSITIONS.get(current_state, set()):
+            frappe.throw(_("Invalid target state {0} for sendback from {1}").format(target_state, current_state))
+        next_state = target_state
+        if not comment:
+            frappe.throw(_("Comment is required for sendback"))
+    else:
+        if action not in WORKFLOW_TRANSITIONS:
+            frappe.throw(_("Unsupported workflow action: {0}").format(action))
+        transition = WORKFLOW_TRANSITIONS[action].get(current_state)
+        if not transition:
+            frappe.throw(_("Action {0} is not allowed when workflow state is {1}").format(action, current_state))
+        if role not in transition["roles"]:
+            frappe.throw(_("Role {0} is not allowed to {1} a renewal in state {2}").format(role, action, current_state))
+        next_state = transition["next_state"]
+        if current_state == "Pending CFO" and action == "approve":
+            current_rent = flt(renewal.current_rent)
+            proposed_rent = flt(renewal.proposed_rent)
+            rent_change_percent = ((proposed_rent - current_rent) / current_rent) * 100 if current_rent else 0
+            if rent_change_percent > 5:
+                next_state = "Pending MD"
+            else:
+                next_state = "Pending Cheque Details"
+                notify_md(renewal)
+ 
     renewal.append(
         "audit_trail",
         {
@@ -629,6 +626,7 @@ def apply_workflow_action(renewal_id: str, action: str):
             "current_state": current_state,
             "changed_state": next_state,
             "action": action.title(),
+            "comments": comment,
             "action_time": frappe.utils.now_datetime(),
         },
     )
