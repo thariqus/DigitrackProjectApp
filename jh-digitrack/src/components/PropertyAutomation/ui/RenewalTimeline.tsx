@@ -58,8 +58,8 @@ export default function RenewalTimeline({
   // Sort latest first
   const sortedAuditTrail = [...auditTrail].sort(
     (a, b) =>
-      new Date(b.timestamp).getTime() -
-      new Date(a.timestamp).getTime()
+      new Date(b.action_time).getTime() -
+      new Date(a.action_time).getTime()
   );
 
   const activityLogs = sortedAuditTrail.filter(
@@ -69,7 +69,7 @@ export default function RenewalTimeline({
   const commentLogs = sortedAuditTrail.filter(
     (log) => log.comments && log.comments.trim()
   );
-
+console.log(auditTrail,"audit")
 
   // const handleAddComment = () => {
   //   if (!comment.trim()) return;
@@ -118,8 +118,8 @@ export default function RenewalTimeline({
             </div>
 
             <span className="text-xs text-gray-500">
-              {log.timestamp
-                ? formatDistanceToNow(new Date(log.timestamp), {
+              {log.action_time
+                ? formatDistanceToNow(new Date(log.action_time), {
                     addSuffix: true,
                   })
                 : "—"}
@@ -176,35 +176,35 @@ export default function RenewalTimeline({
     >
       {/* Header */}
       <CollapsibleTrigger asChild>
-        <Button variant="ghost" className="w-full justify-between px-0">
-          <div className="flex items-center gap-2">
+        <Button variant="ghost" className="w-full  px-0">
+          <div className="flex justify-between w-full bg-rose-100 items-center gap-2 p-2">
+            <span className="text-md font-semibold font-gray-400">TimeLine</span>
             <ChevronDown
               className={`h-4 w-4 transition-transform ${
                 isOpen ? "rotate-180" : ""
               }`}
             />
-            <span className="text-lg font-semibold">TimeLine</span>
-            <Badge>{sortedAuditTrail.length}</Badge>
+            {/* <Badge>{sortedAuditTrail.length}</Badge> */}
           </div>
         </Button>
       </CollapsibleTrigger>
 
-      <CollapsibleContent className="mt-4 space-y-4 ">
+      <CollapsibleContent className="mt-4">
         {/* Tabs */}
         <Tabs defaultValue="all" className="w-full">
-        <div className="flex justify-end items-center mb-4">
+        <div className="flex justify-end items-center">
           {/* <div className="text-md font-bold">Timeline</div> */}
           <TabsList className="bg-rose-50">
             <TabsTrigger value="all">All</TabsTrigger>
-            <TabsTrigger value="activity">Activity</TabsTrigger>
+            {/* <TabsTrigger value="activity">Activity</TabsTrigger> */}
             <TabsTrigger value="comments">Comments</TabsTrigger>
           </TabsList>
         </div>
 
           {/* ALL */}
-          <TabsContent value="all" className="mt-4">
+          <TabsContent value="all" className="mt-1">
             {isLoading ? renderSkeleton() : (
-              <div className="max-h-80 overflow-y-auto">
+              <div className="">
                 {sortedAuditTrail.map((log, i) => (
                   <TimelineItem key={i} log={log} />
                 ))}
@@ -215,7 +215,7 @@ export default function RenewalTimeline({
           {/* ACTIVITY */}
           <TabsContent value="activity" className="mt-4">
             {isLoading ? renderSkeleton() : (
-              <div className="max-h-80 overflow-y-auto">
+              <div className="">
                 {activityLogs.map((log, i) => (
                   <TimelineItem key={i} log={log} />
                 ))}
@@ -226,7 +226,7 @@ export default function RenewalTimeline({
           {/* COMMENTS */}
           <TabsContent value="comments" className="mt-4">
             {isLoading ? renderSkeleton() : (
-              <div className="max-h-80 overflow-y-auto">
+              <div className="">
                 {commentLogs.map((log, i) => (
                   <TimelineItem key={i} log={log} />
                 ))}
