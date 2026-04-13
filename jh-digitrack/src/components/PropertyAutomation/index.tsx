@@ -14,21 +14,25 @@ export default function PropertyAutomation() {
   const navigate = useNavigate();
 
     // get active tab from url
-  const activeTab = location.pathname.includes("renewals")
-    ? "renewals" :
-    "properties";
+  const activeTab = location.pathname.includes("dashboard")
+  ? "dashboard"
+  : location.pathname.includes("renewals")
+  ? "renewals"
+  : "properties";
 
   const handleTabChange = (value: string) => {
   navigate(`/jh-digitrack/property/${value}`);
   };
 
    useEffect(() => {
-      if (activeTab === "properties") {
-        setDescription("All properties to create,view, or edit");
-      } else if (activeTab === "renewals") {
-        setDescription("All active renewals");
-      }
-    }, [activeTab]);
+  if (activeTab === "dashboard") {
+    setDescription("Overview of property and renewal insights");
+  } else if (activeTab === "properties") {
+    setDescription("All properties to create, view, or edit");
+  } else if (activeTab === "renewals") {
+    setDescription("All active renewals");
+  }
+}, [activeTab]);
 
   if (isLoading) {
   return <div>Loading...</div>; 
