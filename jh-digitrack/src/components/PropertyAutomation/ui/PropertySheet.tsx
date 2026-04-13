@@ -390,7 +390,7 @@ const renderField = (
       )}
 
       {isView ? (
-        <div className="flex items-center gap-2 py-1 text-sm">
+        <div className="flex items-start gap-2 py-1 text-sm">
           <span className="font-medium text-gray-600">{label}:</span>
           <span>{value || "-"}</span>
         </div>
