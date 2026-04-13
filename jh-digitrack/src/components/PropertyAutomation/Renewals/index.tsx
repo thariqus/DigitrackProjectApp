@@ -13,7 +13,20 @@ import { useOutletContext } from "react-router";
 import RenewalSheet from "../ui/RenewalSheet";
  
 type ContextType = {
-  currentJhUser: any;
+  currentJhUser?: unknown;
+};
+
+type LoggedInPropertyUser = {
+  roles?: string[];
+  is_cfo?: boolean;
+  is_md?: boolean;
+  is_approver_1?: boolean;
+  is_approver_2?: boolean;
+  has_gl_team_role?: boolean;
+};
+
+type LoggedInPropertyUserResponse = {
+  message?: LoggedInPropertyUser;
 };
  
 function Renewals() {
@@ -27,7 +40,7 @@ function Renewals() {
   const [selectedRenewalDateRange, setSelectedRenewalDateRange] = useState<string[]>([]);
   const [selectedDivision, setSelectedDivision] = useState<string[]>([]);
   const [pendingMyAction, setPendingMyAction] = useState(false);
-  const [roleBasedAccess, setRoleBasedAccess] = useState<any>([]);
+  const [roleBasedAccess, setRoleBasedAccess] = useState<LoggedInPropertyUserResponse | null>(null);
   const [selectedRenewal, setSelectedRenewal] = useState<string | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
  
@@ -43,7 +56,7 @@ function Renewals() {
           "/api/method/jh_digitrack.api.property_management.get_logged_in_property_user",
           { credentials: "include" }
         );
-        const data = await res.json();
+        const data: LoggedInPropertyUserResponse = await res.json();
         setRoleBasedAccess(data);
       } catch (error) {
         console.error(error);
@@ -80,7 +93,7 @@ function Renewals() {
       { credentials: "include" }
     )
       .then((res) => res.json())
-      .then((data: any) => {
+      .then((data: { message?: { renewals?: RentalRenewal[] } }) => {
         setPendingRenewals(data.message?.renewals ?? []);
       })
       .catch((err) => {
@@ -150,13 +163,9 @@ function Renewals() {
   const isLoading = pendingMyAction ? pendingLoading : docsLoading;
  
   
-  const renewals: RentalRenewal[] = useMemo(() => {
-    if (!pendingMyAction) {
-      return allFilteredRenewals;
-    }
- 
+  const filteredPendingRenewals = useMemo(() => {
     let rows = pendingRenewals;
- 
+
     if (selectedWorkflowStage.length) {
       rows = rows.filter((r) => selectedWorkflowStage.includes(r.workflow_state ?? ""));
     }
@@ -167,45 +176,59 @@ function Renewals() {
       const today = new Date();
       rows = rows.filter((r) => {
         if (!r.renewal_to) return false;
+
         const renewalTo = new Date(r.renewal_to);
+
         if (selectedRenewalDateRange.includes("This Month")) {
           const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
           if (renewalTo >= today && renewalTo <= end) return true;
         }
+
         if (selectedRenewalDateRange.includes("Next 3 Months")) {
           const future = new Date();
           future.setDate(today.getDate() + 90);
           if (renewalTo >= today && renewalTo <= future) return true;
         }
+
         if (selectedRenewalDateRange.includes("This Year")) {
           const end = new Date(today.getFullYear(), 11, 31);
           if (renewalTo >= today && renewalTo <= end) return true;
         }
+
         return false;
       });
     }
- 
-    // Client-side pagination for the pending list
-    const start = (currentPage - 1) * renewalsPerPage;
-    return rows.slice(start, start + renewalsPerPage);
+
+    return rows;
   }, [
-    pendingMyAction,
-    allFilteredRenewals,
     pendingRenewals,
     selectedWorkflowStage,
     selectedDivision,
     selectedRenewalDateRange,
+  ]);
+
+  const renewals: RentalRenewal[] = useMemo(() => {
+    if (!pendingMyAction) {
+      return allFilteredRenewals;
+    }
+
+    const start = (currentPage - 1) * renewalsPerPage;
+    return filteredPendingRenewals.slice(start, start + renewalsPerPage);
+  }, [
+    pendingMyAction,
+    allFilteredRenewals,
+    filteredPendingRenewals,
     currentPage,
     renewalsPerPage,
   ]);
  
   const totalPages = useMemo(() => {
     if (pendingMyAction) {
-      return Math.ceil(pendingRenewals.length / renewalsPerPage);
+      return Math.max(1, Math.ceil(filteredPendingRenewals.length / renewalsPerPage));
     }
     // useDocs counter query
     return Math.ceil(allFilteredRenewals.length / renewalsPerPage);
-  }, [pendingMyAction, pendingRenewals, allFilteredRenewals, renewalsPerPage]);
+  }, [pendingMyAction, filteredPendingRenewals.length, allFilteredRenewals.length, renewalsPerPage]);
  
   const handleRowClick = (name: string) => {
     setSelectedRenewal(name);
@@ -233,9 +256,6 @@ function Renewals() {
   const isApprover1 = roleBasedAccess?.message?.is_approver_1;
   const isApprover2 = roleBasedAccess?.message?.is_approver_2;
   const isGLTeam = roleBasedAccess?.message?.has_gl_team_role;
-  const roleBasedFilter = renewals.filter(renewal => renewal.Division)
-
-  console.log(roleBasedAccess,"roleaccess")
  
   return (
     <div className="w-full space-y-4">
