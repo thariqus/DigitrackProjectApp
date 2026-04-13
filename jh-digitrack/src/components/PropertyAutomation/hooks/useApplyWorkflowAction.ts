@@ -4,6 +4,8 @@ import { toast } from 'sonner';
 interface ApplyWorkflowPayload {
   renewal_id: string
   action: string
+  target_state?: string
+  comment?: string
 }
 
 export const useApplyWorkflowAction = () => {
@@ -18,6 +20,7 @@ export const useApplyWorkflowAction = () => {
         credentials: 'include',
         body: JSON.stringify(payload),
       });
+      console.log(res,"res")
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
