@@ -80,13 +80,13 @@ function RenewalPipeline() {
                 // onClick={() =>
                 //   navigate(`/property/renewals?status=${stage.status}`)
                 // }
-                className={`min-w-[100px] cursor-pointer rounded-2xl border p-4 shadow-sm hover:shadow-md transition ${
+                className={`min-w-[100px] h-30 cursor-pointer rounded-2xl border p-4 shadow-sm hover:shadow-md transition ${
                   stage.count === 0 ? "opacity-40" : stage.color
                 }`}
               >
                 <div className="flex flex-col items-center text-center">
                   <span className="text-lg font-bold">{stage.count}</span>
-                  <span className="text-sm font-semibold">
+                  <span className="text-xs font-semibold">
                     {stage.label}
                   </span>
                 </div>
