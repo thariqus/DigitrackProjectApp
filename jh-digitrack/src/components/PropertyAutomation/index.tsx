@@ -8,7 +8,7 @@ import { useCurrentJhUser } from "@/hooks/auth";
 export default function PropertyAutomation() {
 
   const [description, setDescription] = useState("");
-  const { data: propertyRole, isLoading, isFetching } = useHasPropertyAccess();
+  const { data: propertyRole, isLoading } = useHasPropertyAccess();
   const { data: currentJhUser } = useCurrentJhUser();
   const location = useLocation();
   const navigate = useNavigate();
@@ -54,7 +54,7 @@ export default function PropertyAutomation() {
           onTabChange={handleTabChange}
           onDescriptionChange={() => {}}
         />
-      <Outlet context={{ propertyRole }} currentJhUser={{currentJhUser}}/>
+      <Outlet context={{ propertyRole, currentJhUser }} />
     </div>
     
   );
