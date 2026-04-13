@@ -120,7 +120,7 @@ export interface DivisionMaster {
 
 export interface PropertyAuditTrail {
   id: string;
-  timestamp: string;
+  action_time: string;
   user: string;
   document_type: string;
   document_name: string;
@@ -131,4 +131,5 @@ export interface PropertyAuditTrail {
   old_value?: string;
   new_value?: string;
   comments?: string;
+  role?: string;
 }
