@@ -14,7 +14,7 @@ export const PropertyTableHeader = ({ tableHeadings,canHaveAccess }: { tableHead
           tableHeadings.map((heading,index) => (
             <TableHead
                 key={index}
-                className={`cursor-pointer ${heading === "Workflow Stage" ? "w-[150px]" : ""}`}
+                className={`cursor-pointer ${heading === "Workflow Stage" ? "w-[180px]" : ""}`}
               >
                 {heading}
               </TableHead>
