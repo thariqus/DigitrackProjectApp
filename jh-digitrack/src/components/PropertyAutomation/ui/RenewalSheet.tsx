@@ -1,4 +1,7 @@
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
+import RenewalTimeline from "./RenewalTimeline";
+import WithdrawCommentModal from "./WithdrawCommentModal";
+import SendBackModal from "./SendBackModal";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -16,7 +19,8 @@ import { useCallback, useEffect, useState } from "react";
 import { debounce } from "lodash";
 import { useApplyWorkflowAction } from "../hooks/useApplyWorkflowAction";
 import { useRef } from "react";
-import { PropertyMaster, RentalRenewal, ChequeDetail } from "@/types/PropertyAutomation";
+import { ChequeDetail, PropertyMaster, RentalRenewal } from "@/types/JHDigitrack/JHPropertyAutomation";
+
 
 type RenewalSheetProps = {
   open: boolean;
@@ -59,9 +63,67 @@ const renewalSchema = z.object({
 
 export default function RenewalSheet({ open, onOpenChange, propertyId, mode, formatDate, workflowColorHighlight,isLicensingTeam,isGMTeam,isJHPropertyDEpartment,isCfo ,isMD,isApprover,isGLTeam,isApprover1,isApprover2}: RenewalSheetProps) {
 
-  // Separate file states for different Attach fields
   const [supportingFiles, setSupportingFiles] = useState<File[]>([]);
   const [contractFiles, setContractFiles] = useState<File[]>([]);
+  const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
+  const [isSendBackModalOpen, setIsSendBackModalOpen] = useState(false);
+  const [pendingWithdrawalId, setPendingWithdrawalId] = useState<string | null>(null);
+  const [pendingSendBackId, setPendingSendBackId] = useState<string | null>(null);
+  const [sendbackOptions, setSendbackOptions] = useState<string[]>([]);
+
+  const handleOpenWithdrawModal = (id: string) => {
+    setPendingWithdrawalId(id);
+    setIsWithdrawModalOpen(true);
+  };
+
+  const handleOpenSendBackModal = async (id: string) => {
+    try {
+      const res = await fetch(`/api/method/jh_digitrack.api.property_management.get_allowed_actions?renewal_id=${id}`, {
+        credentials: 'include',
+      });
+      const data = await res.json();
+      setSendbackOptions(data.message?.sendback_options || []);
+      setPendingSendBackId(id);
+      setIsSendBackModalOpen(true);
+    } catch (error) {
+      toast.error('Failed to load sendback options');
+    }
+  };
+
+  const handleSendBackSubmit = (target_state: string, comment: string) => {
+    if (!pendingSendBackId) return;
+    applyAction({ 
+      renewal_id: pendingSendBackId, 
+      action: "sendback",
+      target_state,
+      comment 
+    }, {
+      onSuccess: () => {
+        refetchRenewal();
+        toast.success("Renewal sent back successfully");
+        setIsSendBackModalOpen(false);
+        setPendingSendBackId(null);
+        setSendbackOptions([]);
+      }
+    });
+  };
+
+  const handleWithdrawSubmit = (comment: string) => {
+    if (!pendingWithdrawalId) return;
+    applyAction({ 
+      renewal_id: pendingWithdrawalId, 
+      action: "withdraw",
+      comment 
+    }, {
+      onSuccess: () => {
+        refetchRenewal();
+        onOpenChange(false);
+        toast.success("Renewal withdrawn successfully");
+        setIsWithdrawModalOpen(false);
+        setPendingWithdrawalId(null);
+      }
+    });
+  };
 
   useEffect(() => {
   if (open && propertyId) {
@@ -94,7 +156,7 @@ export default function RenewalSheet({ open, onOpenChange, propertyId, mode, for
 
       setValue('bank_name', cd.bank_name || '');
       setValue('cheque_number', cd.cheque_number || '');
-      setValue('cheque_amount', cd.cheque_amount || 0); // ✅ FIX (no string)
+      setValue('cheque_amount', cd.cheque_amount || 0); 
       setValue('cheque_date', cd.cheque_date || '');
       setValue('payee', cd.payee || '');
       setValue('signatory', cd.signatory || '');
@@ -561,24 +623,18 @@ const onSubmit = async (data: z.infer<typeof renewalSchema>) => {
                   </div>
  
                   {/* Renewed Contract Document */}
-                  <div>
+                  <div  className=" pb-10">
                     <h3 className="text-md font-semibold mb-2">Renewed Contract Document</h3>
-                  {isView ? (
-                    <div className="space-y-2">
-                      {renewalDoc?.renewed_contract_document ? (
-                        <div className="flex items-center gap-2 px-3 py-1 bg-gray-100 rounded">
-                          <span className="text-sm">{getFileName(renewalDoc.renewed_contract_document)}</span>
-                          <a href={renewalDoc.renewed_contract_document} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline text-sm">View</a>
-                        </div>
-                      ) : <p>No document</p>}
-                    </div>
-                  ) : (
+                     {renewalDoc?.renewed_contract_document ? (
+                      <div className="flex items-center gap-2 px-3 py-1 bg-gray-100 rounded">
+                        <span className="text-sm">{getFileName(renewalDoc.renewed_contract_document)}</span>
+                        <a href={renewalDoc.renewed_contract_document} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline text-sm">View</a>
+                      </div>
+                    ) : <p>No document</p>}
                     <FileAttachment files={contractFiles} setFiles={setContractFiles}  />
-                  )}
                 </div>
-             </>
+                </>
                )}
-
 
                  {isGLTeam && renewalDoc?.workflow_state === "Pending MIRO" && (
                 <>
@@ -589,6 +645,14 @@ const onSubmit = async (data: z.infer<typeof renewalSchema>) => {
               </div>
               </>
                  )}
+          
+{propertyId && mode === "view" && (
+                <>
+                  {/* <Separator className="my-8" /> */}
+                  {/* <h3 className="text-lg font-semibold mb-4 text-gray-900 border-b pb-2">Timeline & Audit Trail</h3> */}
+                  <RenewalTimeline renewalId={propertyId!} defaultOpen={true} />
+                </>
+              )}
           </form>
         </ScrollArea>
 
@@ -597,9 +661,13 @@ const onSubmit = async (data: z.infer<typeof renewalSchema>) => {
               {isView && isLicensingTeam && renewalDoc?.workflow_state === "Draft" ? (
                <div className="flex gap-3 w-full">
                
-                <Button variant="outline" 
+<Button variant="outline" 
                   className="w-full" 
-                  type="button">Close</Button>
+                  type="button"
+                  onClick={() => onOpenChange(false)}
+                >
+                  Close
+                </Button>
                 <Button 
                   className="w-full bg-primary text-white" 
                   type="button" 
@@ -618,13 +686,25 @@ const onSubmit = async (data: z.infer<typeof renewalSchema>) => {
                 </Button>
               </div>
             ) : (
-                isApprover1 && renewalDoc?.workflow_state === "Pending Approver 1" && isView ? (
+isApprover1 && renewalDoc?.workflow_state === "Pending Approver 1" && isView ? (
               <div className="flex gap-3 w-full">
                
-                <Button variant="outline" 
-                  className="w-full " 
-                  type="button">Withdraw</Button>
-                   <Button className="w-full bg-gray-400" type="button">Send Back</Button>
+                <Button 
+                  variant="outline" 
+                  className="w-full" 
+                  type="button"
+                  title="Closes the renewal process entirely. If needed, initiators can duplicate or create a new process for that property."
+                  onClick={() => propertyId && handleOpenWithdrawModal(propertyId)}
+                >
+                  Withdraw
+                </Button>
+                <Button 
+                  className="w-full bg-rose-200 hover:bg-rose-100 text-gray-400" 
+                  type="button" 
+                  onClick={() => propertyId && handleOpenSendBackModal(propertyId)}
+                >
+                  Send Back
+                </Button>
                    <Button 
                   className="w-full bg-primary text-white" 
                   type="button" 
@@ -643,10 +723,24 @@ const onSubmit = async (data: z.infer<typeof renewalSchema>) => {
                
               </div>
 
-            ) : isApprover2 && renewalDoc?.workflow_state === "Pending Approver 2" && isView ? (
+                ): isApprover2 && renewalDoc?.workflow_state === "Pending Approver 2" && isView ? (
               <div className="flex gap-3 w-full">
-                <Button variant="outline" className="w-full" type="button">Withdraw</Button>
-                <Button className="w-full bg-gray-400" type="button">Send Back</Button>
+                <Button 
+                  variant="outline" 
+                  className="w-full" 
+                  type="button"
+                  title="Closes the renewal process entirely. If needed, initiators can duplicate or create a new process for that property."
+                  onClick={() => propertyId && handleOpenWithdrawModal(propertyId)}
+                >
+                  Withdraw
+                </Button>
+                <Button 
+                  className="w-full bg-rose-200 hover:bg-rose-100 text-gray-400" 
+                  type="button" 
+                  onClick={() => propertyId && handleOpenSendBackModal(propertyId)}
+                >
+                  Send Back
+                </Button>
                 <Button 
                   className="w-full bg-primary text-white" 
                   type="button" 
@@ -660,13 +754,27 @@ const onSubmit = async (data: z.infer<typeof renewalSchema>) => {
                     });
                   }}
                 >
-                  Submit for Cheque Entry
+                  Submit for CFO
                 </Button>
               </div>
-            ) :  isCfo && renewalDoc?.workflow_state === "Pending CFO" && isView ? (
+     ):  isCfo && renewalDoc?.workflow_state === "Pending CFO" && isView ? (
               <div className="flex gap-3 w-full">
-                <Button variant="outline" className="w-full" type="button">Withdraw</Button>
-                <Button className="w-full bg-gray-400" type="button">Send Back</Button>
+                <Button 
+                  variant="outline" 
+                  className="w-full" 
+                  type="button"
+                  title="Closes the renewal process entirely. If needed, initiators can duplicate or create a new process for that property."
+                  onClick={() => propertyId && handleOpenWithdrawModal(propertyId)}
+                >
+                  Withdraw
+                </Button>
+                <Button 
+                  className="w-full bg-rose-200 hover:bg-rose-100 text-gray-400" 
+                  type="button" 
+                  onClick={() => propertyId && handleOpenSendBackModal(propertyId)}
+                >
+                  Send Back
+                </Button>
                 <Button 
                   className="w-full bg-primary text-white" 
                   type="button" 
@@ -680,14 +788,28 @@ const onSubmit = async (data: z.infer<typeof renewalSchema>) => {
                     });
                   }}
                 >
-                  Submit to next /complete
+                  Submit to MD /complete
                 </Button>
               </div>
             ) :
             isMD && renewalDoc?.workflow_state === "Pending MD" && isView ? (
               <div className="flex gap-3 w-full">
-                <Button variant="outline" className="w-full" type="button">Withdraw</Button>
-                <Button className="w-full bg-gray-400" type="button">Send Back</Button>
+                <Button 
+                  variant="outline" 
+                  className="w-full" 
+                  type="button"
+                  title="Closes the renewal process entirely. If needed, initiators can duplicate or create a new process for that property."
+                  onClick={() => propertyId && handleOpenWithdrawModal(propertyId)}
+                >
+                  Withdraw
+                </Button>
+                <Button 
+                  className="w-full bg-rose-200 hover:bg-rose-100 text-gray-400" 
+                  type="button" 
+                  onClick={() => propertyId && handleOpenSendBackModal(propertyId)}
+                >
+                  Send Back
+                </Button>
                 <Button 
                   className="w-full bg-primary text-white" 
                   type="button" 
@@ -712,7 +834,7 @@ const onSubmit = async (data: z.infer<typeof renewalSchema>) => {
                 {/* <Button variant="outline" className="w-full" type="button">Withdraw</Button>
                 <Button className="w-full bg-gray-400" type="button">Send Back</Button> */}
                 <Button 
-                  className="w-full bg-green-600 hover:bg-green-700 text-white" 
+                  className="w-full bg-rose-200 hover:bg-rose-100 text-gray-400" 
                   type="submit"
                   form={formId}
                   disabled={isSubmitting || !isValid || (localModified && renewalDoc?.modified && localModified !== renewalDoc.modified)}
@@ -745,7 +867,7 @@ const onSubmit = async (data: z.infer<typeof renewalSchema>) => {
                 {/* <Button variant="outline" className="w-full" type="button">Withdraw</Button>
                 <Button className="w-full bg-gray-400" type="button">Send Back</Button> */}
                 <Button 
-                  className="w-full bg-green-600 hover:bg-green-700 text-white" 
+                  className="w-full bg-rose-200 hover:bg-rose-100 text-gray-400" 
                   type="submit"
                   form={formId}
                   disabled={isSubmitting || !isValid || (localModified && renewalDoc?.modified && localModified !== renewalDoc.modified)}
@@ -779,7 +901,7 @@ const onSubmit = async (data: z.infer<typeof renewalSchema>) => {
                 {/* <Button variant="outline" className="w-full" type="button">Withdraw</Button>
                 <Button className="w-full bg-gray-400" type="button">Send Back</Button> */}
                 <Button 
-                  className="w-full bg-green-600 hover:bg-green-700 text-white" 
+                  className="w-full bg-rose-200 hover:bg-rose-100 text-gray-400" 
                   type="submit"
                   form={formId}
                   disabled={isSubmitting || !isValid || (localModified && renewalDoc?.modified && localModified !== renewalDoc.modified)}
@@ -831,6 +953,20 @@ const onSubmit = async (data: z.infer<typeof renewalSchema>) => {
           </div>
         </SheetFooter>
       </SheetContent>
+      <WithdrawCommentModal
+        open={isWithdrawModalOpen}
+        onOpenChange={setIsWithdrawModalOpen}
+        onWithdraw={handleWithdrawSubmit}
+        propertyId={pendingWithdrawalId}
+      />
+      <SendBackModal
+        open={isSendBackModalOpen}
+        onOpenChange={setIsSendBackModalOpen}
+        sendback_options={sendbackOptions}
+        onSendBack={handleSendBackSubmit}
+        renewalId={pendingSendBackId || ""}
+        title={`Send Back ${renewalDoc?.name || ""}`}
+      />
     </Sheet>
   );
 }

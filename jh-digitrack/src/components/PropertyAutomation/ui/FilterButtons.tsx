@@ -93,7 +93,7 @@ export default function FilterButtons({
       )}
 
       {hasActiveFilters && (
-        <Button variant="ghost" onClick={onClear}>
+        <Button variant="ghost" className="text-primary" onClick={onClear}>
           Clear filter <X />
         </Button>
       )}

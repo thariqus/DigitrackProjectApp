@@ -8,27 +8,31 @@ import { useCurrentJhUser } from "@/hooks/auth";
 export default function PropertyAutomation() {
 
   const [description, setDescription] = useState("");
-  const { data: propertyRole, isLoading, isFetching } = useHasPropertyAccess();
+  const { data: propertyRole, isLoading } = useHasPropertyAccess();
   const { data: currentJhUser } = useCurrentJhUser();
   const location = useLocation();
   const navigate = useNavigate();
 
     // get active tab from url
-  const activeTab = location.pathname.includes("renewals")
-    ? "renewals" :
-    "properties";
+  const activeTab = location.pathname.includes("dashboard")
+  ? "dashboard"
+  : location.pathname.includes("renewals")
+  ? "renewals"
+  : "properties";
 
   const handleTabChange = (value: string) => {
   navigate(`/jh-digitrack/property/${value}`);
   };
 
    useEffect(() => {
-      if (activeTab === "properties") {
-        setDescription("All properties to create,view, or edit");
-      } else if (activeTab === "renewals") {
-        setDescription("All active renewals");
-      }
-    }, [activeTab]);
+  if (activeTab === "dashboard") {
+    setDescription("Overview of property and renewal insights");
+  } else if (activeTab === "properties") {
+    setDescription("All properties to create, view, or edit");
+  } else if (activeTab === "renewals") {
+    setDescription("All active renewals");
+  }
+}, [activeTab]);
 
   if (isLoading) {
   return <div>Loading...</div>; 
@@ -50,7 +54,7 @@ export default function PropertyAutomation() {
           onTabChange={handleTabChange}
           onDescriptionChange={() => {}}
         />
-      <Outlet context={{ propertyRole }} currentJhUser={{currentJhUser}}/>
+      <Outlet context={{ propertyRole, currentJhUser }} />
     </div>
     
   );

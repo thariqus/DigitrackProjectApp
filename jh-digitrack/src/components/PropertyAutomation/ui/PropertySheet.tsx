@@ -68,6 +68,7 @@ const propertySchema = z.object({
   renewal_date: z.string().min(1, "Required"),
   landlord_security_deposit: z.coerce.number().optional().optional(),
   tenancy_period: z.string().optional(),
+  lease_start_date: z.string().optional(),
 
   electricity_accounts: z.coerce.number().optional().optional(),
   electricity_connection_numbers: z.string().optional(),
@@ -79,6 +80,7 @@ const propertySchema = z.object({
   hassantuk_expiry: z.string().optional().optional(),
   approver_1: z.string().min(1, "Required"),
   approver_2: z.string().optional(),
+
 });
 
 export default function PropertySheet({ open, onOpenChange, propertyId , mode, formatDate, renewalColorHighlight, typeOptions}: PropertySheetProps) {
@@ -388,7 +390,7 @@ const renderField = (
       )}
 
       {isView ? (
-        <div className="flex items-center gap-2 py-1 text-sm">
+        <div className="flex items-start gap-2 py-1 text-sm">
           <span className="font-medium text-gray-600">{label}:</span>
           <span>{value || "-"}</span>
         </div>
@@ -605,6 +607,17 @@ const renderField = (
             )}
               {renderField("Landlord Security Deposit", "landlord_security_deposit", doc?.landlord_security_deposit)}
               {renderField("Tenancy Period", "tenancy_period", doc?.tenancy_period)}
+
+               {isView ? (
+              <div className="flex items-center gap-2 py-1 text-sm">
+                <span className="font-medium text-gray-600">Lease start date:</span>
+                <span className={doc?.lease_start_date}>
+                  {formatDate(doc?.rlease_start_date)}
+                </span>
+              </div>
+            ) : (
+              renderField("Lease start date", "lease_start_date", doc?.lease_start_date, "date")
+            )}
             </div>
 
             <Separator />

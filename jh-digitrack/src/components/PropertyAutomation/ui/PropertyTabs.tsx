@@ -1,6 +1,12 @@
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const filters = [
+  { 
+    label: "Dashboard", 
+    value: "dashboard", 
+    description: "Overview of property and renewal insights",
+    disabled: false 
+  },
   { label: "Propeties", 
     value: "properties", 
     description: "All properties",

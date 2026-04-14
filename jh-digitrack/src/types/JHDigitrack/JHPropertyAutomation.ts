@@ -2,7 +2,7 @@ export interface PropertyMaster {
   name: string;
   property_name: string;
 
-type_of_property: "Shop" | "Office" | "Warehouse" | "Other";
+  type_of_property: "Shop" | "Office" | "Warehouse" | "Other";
   business_used?: string;
 
   division_used: string;
@@ -32,6 +32,7 @@ type_of_property: "Shop" | "Office" | "Warehouse" | "Other";
   landlord_security_deposit: number;
 
   tenancy_period: string;
+  lease_start_date:string;
 
   electricity_accounts: number;
   electricity_connection_numbers: string;
@@ -59,8 +60,6 @@ export interface ChequeDetail {
 
 export interface RentalRenewal {
   name: string;
-
-  // Core Details
   property: string;
   current_rent: number;
   proposed_rent: number;
@@ -72,8 +71,6 @@ export interface RentalRenewal {
   payment_schedule?: string;
   new_security_deposit?: number;
   remarks?: string;
-
-  // Attach fields (single file each, Frappe stores as string URL)
   supporting_documents?: string;
   renewed_contract_document?: string;
 
@@ -96,13 +93,13 @@ export interface RentalRenewal {
   // Workflow
   workflow_state?:
     | "Draft"
-    | "Pending_GM_Review"
-    | "Pending_Cheque_Details"
-    | "Pending_Admin_HOD"
-    | "Pending_CFO"
-    | "Pending_MD"
-    | "Pending_Property_PO"
-    | "Pending_MIRO"
+    | "Pending Approver 1"
+    | "Pending Approver 2"
+    | "Pending CFO"
+    | "Pending MD"
+    | "Pending Cheque Details"
+    | "Pending Property PO"
+    | "Pending MIRO"
     | "Completed"
     | "Rejected";
 
@@ -123,15 +120,16 @@ export interface DivisionMaster {
 
 export interface PropertyAuditTrail {
   id: string;
-  timestamp: string;
+  action_time: string;
   user: string;
   document_type: string;
   document_name: string;
   action: string;
-  previous_state: string;
-  new_state: string;
+  changed_state: string;
+  current_state: string;
   field_changed?: string;
   old_value?: string;
   new_value?: string;
-  comment?: string;
+  comments?: string;
+  role?: string;
 }
