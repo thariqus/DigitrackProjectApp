@@ -25,7 +25,6 @@
   "round_trip",
   "return_date",
   "location",
-  "preferred_time",
   "preferred_hotel",
   "preferred_flight",
   "other_preffered_flight",
@@ -91,7 +90,6 @@
    "fieldname": "from_city",
    "fieldtype": "Link",
    "label": "From City",
-   "mandatory_depends_on": "eval:doc.request_type === \"Flight\"",
    "options": "JH Airport Code Master"
   },
   {
@@ -99,7 +97,6 @@
    "fieldname": "to_city",
    "fieldtype": "Link",
    "label": "To City",
-   "mandatory_depends_on": "eval:doc.request_type === \"Flight\"",
    "options": "JH Airport Code Master"
   },
   {
@@ -126,8 +123,7 @@
    "description": "Name and location of the preferred hotel.",
    "fieldname": "preferred_hotel",
    "fieldtype": "Data",
-   "label": "Preferred Hotel",
-   "mandatory_depends_on": "eval:doc.request_type === \"Hotel\""
+   "label": "Preferred Hotel"
   },
   {
    "depends_on": "eval:doc.request_type === \"Flight\"",
@@ -135,7 +131,6 @@
    "fieldname": "preferred_flight",
    "fieldtype": "Link",
    "label": "Preferred Flight",
-   "mandatory_depends_on": "eval:doc.request_type === \"Flight\"",
    "options": "JH Travel Flight Master"
   },
   {
@@ -221,8 +216,7 @@
    "depends_on": "eval:doc.request_type === \"Hotel\"",
    "fieldname": "location",
    "fieldtype": "Data",
-   "label": "Location",
-   "mandatory_depends_on": "eval:doc.request_type === \"Hotel\""
+   "label": "Location"
   },
   {
    "depends_on": "eval:doc.request_type === \"Flight\"",
@@ -243,8 +237,7 @@
    "depends_on": "eval:doc.request_type === \"Flight\" &&  doc.round_trip",
    "fieldname": "return_date",
    "fieldtype": "Date",
-   "label": "Return date",
-   "mandatory_depends_on": "eval:doc.request_type === \"Flight\" &&  doc.round_trip"
+   "label": "Return date"
   },
   {
    "default": "0",
@@ -284,6 +277,7 @@
    "mandatory_depends_on": "eval:doc.request_type === \"Flight\" && doc.preferred_flight === \"Other\" "
   },
   {
+   "default": "<b>Passenger Information</b>\n<br>\n<p></p>\n",
    "depends_on": "eval:doc.request_type === \"Flight\" || doc.request_type === \"Hotel\"",
    "fieldname": "passenger_information",
    "fieldtype": "Text Editor",
