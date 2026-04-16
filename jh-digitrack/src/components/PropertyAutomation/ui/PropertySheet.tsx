@@ -88,6 +88,12 @@ export default function PropertySheet({ open, onOpenChange, propertyId , mode, f
   const [files, setFiles] = useState<File[]>([]);
   const [isRenewalModalOpen, setIsRenewalModalOpen] = useState(false);
   const navigate = useNavigate();
+  
+  useEffect(() => {
+  if (open) {
+    setFiles([]);
+  }
+}, [open, propertyId]);
 
   const getFileName = (url: string) => {
   return url.split("/").pop();
