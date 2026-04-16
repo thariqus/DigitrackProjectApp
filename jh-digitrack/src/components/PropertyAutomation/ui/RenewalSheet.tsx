@@ -71,6 +71,12 @@ export default function RenewalSheet({ open, onOpenChange, propertyId, mode, for
   const [pendingSendBackId, setPendingSendBackId] = useState<string | null>(null);
   const [sendbackOptions, setSendbackOptions] = useState<string[]>([]);
 
+   useEffect(() => {
+    if (open) {
+      setSupportingFiles([]);
+    }
+  }, [open, propertyId]);
+
   const handleOpenWithdrawModal = (id: string) => {
     setPendingWithdrawalId(id);
     setIsWithdrawModalOpen(true);
@@ -218,35 +224,20 @@ const [rentChangePercentState, setRentChangePercentState] = useState("0");
   const proposedRent = useWatch({ control, name: "proposed_rent" }) || '0';
   const currentRent = renewalDoc?.current_rent || 0;
 
-  // Debounced rent calculation
-  const debouncedCalculateRent = useCallback(
-    debounce(async (currentRentNum: number, proposedRentNum: number) => {
-      if (currentRentNum <= 0) {
-        setRentChangePercentState("0");
-        return;
-      }
-      try {
-        const params = new URLSearchParams({
-          current_rent: currentRentNum.toString(),
-          proposed_rent: String(proposedRentNum),
-        });
-        const res = await fetch(`/api/method/jh_digitrack.api.property_management.calculate_rent_change_percent?${params}`, {
-          credentials: "include",
-        });
-        const data = await res.json();
-        setRentChangePercentState(String(data.message?.rent_change_percent || 0));
-      } catch (error) {
-        console.error("Rent calc error:", error);
-        setRentChangePercentState("0");
-      }
-    }, 500),
-    []
-  );
-
   useEffect(() => {
-    const proposedNum = Number(proposedRent || '0');
-    debouncedCalculateRent(currentRent, proposedNum);
-  }, [proposedRent, currentRent, debouncedCalculateRent]);
+  const current = Number(currentRent || 0);
+  const proposed = Number(proposedRent || 0);
+
+  if (current <= 0) {
+    setRentChangePercentState("0");
+    return;
+  }
+
+  const percent = ((proposed - current) / current) * 100;
+  setRentChangePercentState(percent.toFixed(2));
+}, [proposedRent, currentRent]);
+
+
 
   useEffect(() => {
     if (renewalDoc) {
@@ -332,10 +323,10 @@ const onSubmit = async (data: z.infer<typeof renewalSchema>) => {
 
     //  Validate cheque
     const chequeAmount = Number(getValues("cheque_amount") || 0);
-    if (isJHPropertyDEpartment && chequeAmount <= 0) {
-      toast.error("Please enter valid Cheque Amount (> 0)");
-      return;
-    }
+    if (isJHPropertyDEpartment &&  renewalDoc?.workflow_state === "Pending Cheque Details" && chequeAmount <= 0) {
+    toast.error("Please enter valid Cheque Amount (> 0)");
+    return;
+  }
 
     //  File handling (preserve old if no new)
     const supportingDocUrl = supportingFiles.length > 0
