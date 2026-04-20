@@ -372,11 +372,17 @@ def get_property_doc(name: str):
     )
  
     if not has_full_access:
-        approvers = frappe.db.get_value(
-            "JH Property Master", name, ["approver_1", "approver_2"], as_dict=True,
+        # Approvers can view any property detail — same rule as the list endpoint
+        is_approver = frappe.get_all(
+            "JH Property Master",
+            or_filters=[["approver_1", "=", user], ["approver_2", "=", user]],
+            pluck="name",
+            ignore_permissions=True,
+            limit=1,
         )
-        if not approvers or user not in [approvers.approver_1, approvers.approver_2]:
+        if not is_approver:
             frappe.throw(_("Not permitted"), frappe.PermissionError)
+ 
  
     frappe.flags.ignore_permissions = True
     try:
