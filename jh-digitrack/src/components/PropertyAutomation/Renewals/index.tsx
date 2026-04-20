@@ -3,69 +3,31 @@ import { useLocation } from "react-router";
 import { Table, TableBody, TableFooter } from "@/components/ui/table";
 import { PropertyTableHeader } from "../ui/PropertyTableHeader";
 import FilterButtons from "../ui/FilterButtons";
-import { useDocs } from "@/hooks/doc";
 import { RentalRenewal } from "@/types/JHDigitrack/JHPropertyAutomation";
-import { Filter } from "frappe-js-sdk/lib/db/types";
 import { PaginationControls } from "../ui/PaginationControls";
 import RenewalTableRow from "../ui/RenewalTableRow";
-import { useRenewalFilters } from "../hooks/useRenewalFilters";
-import { useOutletContext } from "react-router";
 import RenewalSheet from "../ui/RenewalSheet";
- 
-type ContextType = {
-  currentJhUser?: unknown;
-};
+import {
+  usePendingRenewals,
+  useRenewalList,
+  useUserAccess,
+} from "../hooks/useProperty";
 
-type LoggedInPropertyUser = {
-  roles?: string[];
-  is_cfo?: boolean;
-  is_md?: boolean;
-  is_approver_1?: boolean;
-  is_approver_2?: boolean;
-  has_gl_team_role?: boolean;
-};
-
-type LoggedInPropertyUserResponse = {
-  message?: LoggedInPropertyUser;
-};
- 
 function Renewals() {
   const location = useLocation();
-  const [searchQuery] = useState("");
   const [renewalsPerPage, setRenewalsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const [mode, setMode] = useState<"view" | "edit" | "create">("create");
- 
+
   const [selectedWorkflowStage, setSelectedWorkflowStage] = useState<string[]>([]);
   const [selectedRenewalDateRange, setSelectedRenewalDateRange] = useState<string[]>([]);
   const [selectedDivision, setSelectedDivision] = useState<string[]>([]);
   const [pendingMyAction, setPendingMyAction] = useState(false);
-  const [roleBasedAccess, setRoleBasedAccess] = useState<LoggedInPropertyUserResponse | null>(null);
   const [selectedRenewal, setSelectedRenewal] = useState<string | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
- 
-  // Renewals fetched directly from the actor-aware endpoint (bypasses DocType permissions)
-  const [pendingRenewals, setPendingRenewals] = useState<RentalRenewal[]>([]);
-  const [pendingLoading, setPendingLoading] = useState(false);
- 
-  // permission access for particular user
-  useEffect(() => {
-    const fetchRole = async () => {
-      try {
-        const res = await fetch(
-          "/api/method/jh_digitrack.api.property_management.get_logged_in_property_user",
-          { credentials: "include" }
-        );
-        const data: LoggedInPropertyUserResponse = await res.json();
-        setRoleBasedAccess(data);
-      } catch (error) {
-        console.error(error);
-      }
-    };
-    fetchRole();
-  }, []);
- 
-  // Auto-open specific renewal from navigation state
+
+  const { data: roleBasedAccess } = useUserAccess();
+
   useEffect(() => {
     const openRenewal = location.state?.openRenewal as string | null;
     if (openRenewal && !selectedRenewal) {
@@ -74,44 +36,40 @@ function Renewals() {
       setIsSheetOpen(true);
     }
   }, [location.state?.openRenewal, selectedRenewal]);
- 
-  const { currentJhUser } = useOutletContext<ContextType>();
- 
-  // When "Pending My Action" is toggled ON, fetch directly from the server-side
-  // actor-aware endpoint (ignore_permissions=True on the backend).
-  // This is necessary because approvers have no DocType-level read role, so
-  // going through useDocs / frappe.db.getDocList would return nothing for them.
-  useEffect(() => {
-    if (!pendingMyAction) {
-      setPendingRenewals([]);
-      return;
-    }
- 
-    setPendingLoading(true);
-    fetch(
-      "/api/method/jh_digitrack.api.property_management.get_my_pending_renewals",
-      { credentials: "include" }
-    )
-      .then((res) => res.json())
-      .then((data: { message?: { renewals?: RentalRenewal[] } }) => {
-        setPendingRenewals(data.message?.renewals ?? []);
-      })
-      .catch((err) => {
-        console.error(err);
-        setPendingRenewals([]);
-      })
-      .finally(() => setPendingLoading(false));
-  }, [pendingMyAction]);
- 
-  // Standard filters used by useDocs (only active when pendingMyAction is OFF)
-  const { filters } = useRenewalFilters({
-    searchQuery,
-    selectedWorkflowStage,
-    selectedRenewalDateRange,
-    selectedDivision,
-    currentJhUser,
-  });
- 
+
+  const { data: pendingRenewals = [], isLoading: pendingLoading } =
+    usePendingRenewals(pendingMyAction);
+
+  const listParams = useMemo(
+    () => ({
+      workflow_states: selectedWorkflowStage.length
+        ? JSON.stringify(selectedWorkflowStage)
+        : undefined,
+      divisions: selectedDivision.length ? JSON.stringify(selectedDivision) : undefined,
+      renewal_periods: selectedRenewalDateRange.length
+        ? JSON.stringify(selectedRenewalDateRange)
+        : undefined,
+      limit: renewalsPerPage,
+      page: currentPage,
+    }),
+    [
+      selectedWorkflowStage,
+      selectedDivision,
+      selectedRenewalDateRange,
+      renewalsPerPage,
+      currentPage,
+    ]
+  );
+
+  const { data: pageResult, isLoading: docsLoading } = useRenewalList(
+    listParams,
+    !pendingMyAction
+  );
+
+  const { data: allResult } = useRenewalList({ limit: 1000, page: 1 }, true);
+
+  const allRenewals: RentalRenewal[] = allResult?.renewals ?? [];
+
   const tableHeadings = [
     "Renewal ID",
     "Property Name",
@@ -123,60 +81,41 @@ function Renewals() {
     "Workflow Stage",
     "Last Updated",
   ];
- 
-  const { data: allFilteredRenewals = [], isLoading: docsLoading } = useDocs<RentalRenewal>({
-    doctype: "JH Property Rental Renewal",
-    fields: [
-      "name", "property", "current_rent", "proposed_rent",
-      "rent_change_percent", "renewal_from", "renewal_to",
-      "division", "workflow_state", "modified",
-    ],
-    limit: renewalsPerPage,
-    page: currentPage,
-    filters: filters as Filter<RentalRenewal>[],
-    orderBy: {
-      field: "`tabJH Property Rental Renewal`.`modified`",
-      order: "asc",
-    },
-    enabled: !pendingMyAction,
-  });
- 
-  const { data: allRenewals = [] } = useDocs<RentalRenewal>({
-    doctype: "JH Property Rental Renewal",
-    fields: ["workflow_state", "division"],
-    limit: 1000,
-  });
- 
-  const workflowOptions = useMemo(() => {
-    return Array.from(
-      new Set(allRenewals.map((item) => item.workflow_state || "").filter(Boolean) as string[])
-    );
-  }, [allRenewals]);
- 
-  const divisionOptions = useMemo(() => {
-    return Array.from(
-      new Set(allRenewals.map((item) => item.division || "").filter(Boolean) as string[])
-    );
-  }, [allRenewals]);
- 
-  // Decide which data + pagination to show
+
+  const workflowOptions = useMemo(
+    () =>
+      Array.from(new Set(allRenewals.map((r) => r.workflow_state || "").filter(Boolean))),
+    [allRenewals]
+  );
+
+  const divisionOptions = useMemo(
+    () =>
+      Array.from(new Set(allRenewals.map((r) => r.division || "").filter(Boolean))),
+    [allRenewals]
+  );
+
   const isLoading = pendingMyAction ? pendingLoading : docsLoading;
- 
-  
-  const filteredPendingRenewals = useMemo(() => {
+
+  const renewals: RentalRenewal[] = useMemo(() => {
+    if (!pendingMyAction) {
+      return pageResult?.renewals ?? [];
+    }
+
     let rows = pendingRenewals;
 
     if (selectedWorkflowStage.length) {
       rows = rows.filter((r) => selectedWorkflowStage.includes(r.workflow_state ?? ""));
     }
+
     if (selectedDivision.length) {
       rows = rows.filter((r) => selectedDivision.includes(r.division ?? ""));
     }
+
     if (selectedRenewalDateRange.length) {
       const today = new Date();
+
       rows = rows.filter((r) => {
         if (!r.renewal_to) return false;
-
         const renewalTo = new Date(r.renewal_to);
 
         if (selectedRenewalDateRange.includes("This Month")) {
@@ -199,64 +138,54 @@ function Renewals() {
       });
     }
 
-    return rows;
+    const start = (currentPage - 1) * renewalsPerPage;
+    return rows.slice(start, start + renewalsPerPage);
   }, [
+    pendingMyAction,
+    pageResult,
     pendingRenewals,
     selectedWorkflowStage,
     selectedDivision,
     selectedRenewalDateRange,
-  ]);
-
-  const renewals: RentalRenewal[] = useMemo(() => {
-    if (!pendingMyAction) {
-      return allFilteredRenewals;
-    }
-
-    const start = (currentPage - 1) * renewalsPerPage;
-    return filteredPendingRenewals.slice(start, start + renewalsPerPage);
-  }, [
-    pendingMyAction,
-    allFilteredRenewals,
-    filteredPendingRenewals,
     currentPage,
     renewalsPerPage,
   ]);
- 
+
   const totalPages = useMemo(() => {
-    if (pendingMyAction) {
-      return Math.max(1, Math.ceil(filteredPendingRenewals.length / renewalsPerPage));
-    }
-    // useDocs counter query
-    return Math.ceil(allFilteredRenewals.length / renewalsPerPage);
-  }, [pendingMyAction, filteredPendingRenewals.length, allFilteredRenewals.length, renewalsPerPage]);
- 
+    if (pendingMyAction) return Math.ceil(pendingRenewals.length / renewalsPerPage);
+    return Math.ceil((pageResult?.total ?? 0) / renewalsPerPage);
+  }, [pendingMyAction, pendingRenewals.length, pageResult?.total, renewalsPerPage]);
+
   const handleRowClick = (name: string) => {
     setSelectedRenewal(name);
     setMode("view");
     setIsSheetOpen(true);
   };
- 
+
   const handleEditClick = (name: string) => {
     setSelectedRenewal(name);
     setMode("edit");
     setIsSheetOpen(true);
   };
- 
+
   const formatDate = (date?: string) => {
     if (!date) return "";
     const d = new Date(date);
-    return `${String(d.getDate()).padStart(2, "0")}-${String(d.getMonth() + 1).padStart(2, "0")}-${d.getFullYear()}`;
+    return `${String(d.getDate()).padStart(2, "0")}-${String(d.getMonth() + 1).padStart(
+      2,
+      "0"
+    )}-${d.getFullYear()}`;
   };
- 
-  const roles = roleBasedAccess?.message?.roles || [];
+
+  const roles = roleBasedAccess?.roles || [];
   const isLicensingTeam = roles.includes("JH Licensing Team");
-  const isJHPropertyDEpartment = roles.includes("JH Property Department");
-  const isCfo = roleBasedAccess?.message?.is_cfo;
-  const isMD = roleBasedAccess?.message?.is_md;
-  const isApprover1 = roleBasedAccess?.message?.is_approver_1;
-  const isApprover2 = roleBasedAccess?.message?.is_approver_2;
-  const isGLTeam = roleBasedAccess?.message?.has_gl_team_role;
- 
+  const isJHPropertyDepartment = roles.includes("JH Property Department");
+  const isCfo = roleBasedAccess?.is_cfo;
+  const isMD = roleBasedAccess?.is_md;
+  const isApprover1 = roleBasedAccess?.is_approver_1;
+  const isApprover2 = roleBasedAccess?.is_approver_2;
+  const isGLTeam = roleBasedAccess?.has_gl_team_role;
+
   return (
     <div className="w-full space-y-4">
       <FilterButtons
@@ -311,11 +240,11 @@ function Renewals() {
           setCurrentPage(1);
         }}
       />
- 
+
       <div className="rounded-md border">
         <Table className="w-full table-fixed">
           <PropertyTableHeader tableHeadings={tableHeadings} canHaveAccess={isLicensingTeam} />
- 
+
           <TableBody>
             {renewals.map((item, index) => (
               <RenewalTableRow
@@ -331,7 +260,7 @@ function Renewals() {
               />
             ))}
           </TableBody>
- 
+
           <TableFooter>
             <PaginationControls
               datasPerPage={renewalsPerPage}
@@ -343,7 +272,7 @@ function Renewals() {
           </TableFooter>
         </Table>
       </div>
- 
+
       <RenewalSheet
         open={isSheetOpen}
         onOpenChange={setIsSheetOpen}
@@ -353,15 +282,17 @@ function Renewals() {
         workflowColorHighlight={() => "text-black"}
         typeOptions={[]}
         isLicensingTeam={isLicensingTeam}
-        isJHPropertyDEpartment={isJHPropertyDEpartment}
-        isCfo = {isCfo}
-        isApprover1= {isApprover1}
-        isApprover2 ={isApprover2}
-        isMD = {isMD}
-        isGLTeam= {isGLTeam}
+        isJHPropertyDepartment={isJHPropertyDepartment}
+        isCfo={isCfo}
+        isApprover1={isApprover1}
+        isApprover2={isApprover2}
+        isApprover={!!(isApprover1 || isApprover2)}
+        isGMTeam={false}
+        isMD={isMD}
+        isGLTeam={isGLTeam}
       />
     </div>
   );
 }
- 
+
 export default Renewals;
