@@ -216,8 +216,6 @@ def get_property_list(
     if expiring_soon:
         from frappe.utils import add_days, today
         filters["renewal_date"] = ["between", [today(), add_days(today(), 90)]]
-    if not has_full_access:
-        filters["name"] = ["in", approver_props]
  
     limit = cint(limit)
     page = cint(page)
@@ -906,6 +904,10 @@ def apply_workflow_action(renewal_id: str, action: str, target_state: str = None
         if role not in transition["roles"]:
             frappe.throw(_("Role {0} is not allowed to {1} a renewal in state {2}").format(role, action, current_state))
         next_state = transition["next_state"]
+        if current_state == "Pending Approver 1" and action == "approve":
+            approver_2 = frappe.db.get_value("JH Property Master", renewal.property, "approver_2") if renewal.property else None
+            if not approver_2:
+                next_state = "Pending CFO"
         if current_state == "Pending CFO" and action == "approve":
             current_rent = flt(renewal.current_rent)
             proposed_rent = flt(renewal.proposed_rent)
