@@ -94,6 +94,7 @@ export default function RenewalSheet({
   const isView = mode === "view";
   const isEdit = mode === "edit";
   const formId = "renewal-form";
+  
 
   const applyActionRef = useRef<((payload: any, options?: any) => void) | null>(null);
   const workflowMutation = useApplyWorkflowAction();
@@ -202,6 +203,50 @@ export default function RenewalSheet({
     return data.message.file_url as string;
   };
 
+  const validateBeforeWorkflow = () => {
+  const values = getValues();
+
+  // Property Dept → Cheque Details
+  if (
+    isJHPropertyDepartment &&
+    renewalDoc?.workflow_state === "Pending Cheque Details"
+  ) {
+    if (!values.bank_name || !values.cheque_number || !values.cheque_amount) {
+      toast.error("Please fill all cheque details before confirming");
+      return false;
+    }
+
+    if (Number(values.cheque_amount) <= 0) {
+      toast.error("Cheque amount must be greater than 0");
+      return false;
+    }
+  }
+
+  // Property Dept → PO
+  if (
+    isJHPropertyDepartment &&
+    renewalDoc?.workflow_state === "Pending Property PO"
+  ) {
+    if (!values.po_number) {
+      toast.error("PO Number is required before confirming");
+      return false;
+    }
+  }
+
+  // GL Team → MIRO
+  if (
+    isGLTeam &&
+    renewalDoc?.workflow_state === "Pending MIRO"
+  ) {
+    if (!values.miro_number) {
+      toast.error("MIRO Number is required before completing");
+      return false;
+    }
+  }
+
+  return true;
+};
+
   const getSuccessMessage = (state?: string) => {
     switch (state) {
       case "Pending Cheque Details":
@@ -273,6 +318,8 @@ export default function RenewalSheet({
       }
     );
   };
+
+  
 
   const onSubmit = async (data: z.infer<typeof renewalSchema>) => {
     try {
@@ -409,7 +456,7 @@ export default function RenewalSheet({
       <div>
         {isView ? (
           <div className="flex gap-1">
-            <Label className="text-sm text-gray-600">{label}</Label>
+            <Label className="text-sm text-gray-600">{label}:</Label>
             <span>{value}</span>
           </div>
         ) : (
@@ -869,6 +916,7 @@ export default function RenewalSheet({
                   type="button"
                   onClick={() => {
                     if (!propertyId) return;
+                    if (!validateBeforeWorkflow()) return;
                     applyAction(
                       { renewal_id: propertyId, action: "approve" },
                       {
@@ -911,6 +959,7 @@ export default function RenewalSheet({
                   type="button"
                   onClick={() => {
                     if (!propertyId) return;
+                     if (!validateBeforeWorkflow()) return;
                     applyAction(
                       { renewal_id: propertyId, action: "approve" },
                       {
@@ -953,6 +1002,7 @@ export default function RenewalSheet({
                   type="button"
                   onClick={() => {
                     if (!propertyId) return;
+                     if (!validateBeforeWorkflow()) return;
                     applyAction(
                       { renewal_id: propertyId, action: "approve" },
                       {
