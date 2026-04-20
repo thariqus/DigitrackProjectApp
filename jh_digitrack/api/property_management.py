@@ -740,10 +740,7 @@ def get_my_pending_renewals():
                 results.append(r)
  
     if "JH Licensing Team" in user_roles:
-        # Draft renewals should stay scoped to the logged-in licensing user.
-        # Otherwise every licensing user sees everyone else's drafts under
-        # "Pending My Action", which makes the filter feel broken.
-        _fetch({"workflow_state": "Draft", "owner": user})
+        _fetch({"workflow_state": "Draft"})
  
     if "JH Property Department" in user_roles:
         _fetch({"workflow_state": "Pending Cheque Details"})
