@@ -149,6 +149,282 @@ WORKFLOW_TRANSITIONS = {
 }
  
  
+def _get_property_user_context():
+    """
+    Returns a dict of booleans describing the current user's property access level.
+    MD and CFO are resolved from JH Digitrack Settings — not from Frappe roles —
+    so they get access even if they only hold JH Digitrack Member.
+    """
+    user = frappe.session.user
+    user_roles = set(frappe.get_roles(user))
+    settings = frappe.get_single("JH Digitrack Settings")
+    is_administrator = user == "Administrator"
+    return {
+        "user": user,
+        "is_admin": is_administrator or "JH Digitrack Admin" in user_roles,
+        "is_md": is_administrator or user == settings.md_user,
+        "is_cfo": is_administrator or user == settings.cfo_user,
+        "has_property_dept": is_administrator or "JH Property Department" in user_roles,
+        "has_gl_team": is_administrator or "JH GL Team" in user_roles,
+        "is_licensing": is_administrator or "JH Licensing Team" in user_roles,
+    }
+ 
+ 
+@frappe.whitelist(methods=["GET"])
+def get_property_list(
+    search=None,
+    emirate=None,
+    type_of_property=None,
+    division=None,
+    expiring_soon=None,
+    limit=10,
+    page=1,
+):
+    """
+    Returns JH Property Master records the current user is allowed to see.
+    MD and CFO are resolved from JH Digitrack Settings so they receive full
+    access without needing a property-specific Frappe role.
+    """
+    ctx = _get_property_user_context()
+    user = ctx["user"]
+ 
+    has_full_access = (
+        ctx["is_admin"] or ctx["is_md"] or ctx["is_cfo"]
+        or ctx["has_property_dept"] or ctx["has_gl_team"] or ctx["is_licensing"]
+    )
+ 
+    approver_props = []
+    if not has_full_access:
+        approver_props = frappe.get_all(
+            "JH Property Master",
+            or_filters=[["approver_1", "=", user], ["approver_2", "=", user]],
+            pluck="name",
+            ignore_permissions=True,
+        )
+        if not approver_props:
+            frappe.throw(_("Not permitted"), frappe.PermissionError)
+ 
+    filters = {}
+    if search:
+        filters["property_name"] = ["like", f"%{search}%"]
+    if emirate:
+        filters["emirate"] = emirate
+    if type_of_property:
+        filters["type_of_property"] = type_of_property
+    if division:
+        filters["division_used"] = division
+    if expiring_soon:
+        from frappe.utils import add_days, today
+        filters["renewal_date"] = ["between", [today(), add_days(today(), 90)]]
+    if not has_full_access:
+        filters["name"] = ["in", approver_props]
+ 
+    limit = cint(limit)
+    page = cint(page)
+    start = (page - 1) * limit
+ 
+    fields = [
+        "name", "property_name", "type_of_property", "division_used",
+        "approver_1", "approver_2", "booked_under", "profit_center",
+        "number_of_units", "number_of_premises", "premise_number",
+        "staff_allocated", "location", "emirate", "country",
+        "makani_number", "po_box_number", "po_box_renewal_date",
+        "landlord", "real_estate", "current_rent", "renewal_date",
+        "landlord_security_deposit", "tenancy_period",
+        "electricity_accounts", "electricity_connection_numbers",
+        "electricity_water_security_deposit", "landline_numbers",
+        "internet_connection", "cdc_expiry", "hassantuk_expiry",
+    ]
+ 
+    records = frappe.get_all(
+        "JH Property Master",
+        filters=filters,
+        fields=fields,
+        limit=limit,
+        start=start,
+        order_by="renewal_date asc",
+        ignore_permissions=True,
+    )
+    total = frappe.db.count("JH Property Master", filters=filters, cache=False)
+ 
+    return {"properties": records, "total": total}
+ 
+ 
+@frappe.whitelist(methods=["GET"])
+def get_renewal_list(
+    workflow_states=None,
+    divisions=None,
+    search=None,
+    property=None,
+    limit=10,
+    page=1,
+):
+    """
+    Returns JH Property Rental Renewal records the current user is allowed to see.
+    Row-level access mirrors property_renewal_query but runs regardless of DocType
+    permissions so MD/CFO (identified via settings) receive full visibility.
+    """
+    import json as _json
+ 
+    ctx = _get_property_user_context()
+    user = ctx["user"]
+ 
+    has_full_access = (
+        ctx["is_admin"] or ctx["is_md"] or ctx["is_cfo"]
+        or ctx["has_property_dept"] or ctx["has_gl_team"] or ctx["is_licensing"]
+    )
+ 
+    approver_props = []
+    if not has_full_access:
+        approver_props = frappe.get_all(
+            "JH Property Master",
+            or_filters=[["approver_1", "=", user], ["approver_2", "=", user]],
+            pluck="name",
+            ignore_permissions=True,
+        )
+        if not approver_props:
+            frappe.throw(_("Not permitted"), frappe.PermissionError)
+ 
+    filters = {}
+ 
+    if workflow_states:
+        states = _json.loads(workflow_states) if isinstance(workflow_states, str) else workflow_states
+        if states:
+            filters["workflow_state"] = ["in", states]
+ 
+    if divisions:
+        divs = _json.loads(divisions) if isinstance(divisions, str) else divisions
+        if divs:
+            filters["division"] = ["in", divs]
+ 
+    if search:
+        filters["property"] = ["like", f"%{search}%"]
+ 
+    if property:
+        filters["property"] = property
+ 
+    limit = cint(limit)
+    page = cint(page)
+    start = (page - 1) * limit
+ 
+    RENEWAL_FIELDS = [
+        "name", "property", "current_rent", "proposed_rent",
+        "rent_change_percent", "renewal_from", "renewal_to",
+        "division", "workflow_state", "modified",
+    ]
+ 
+    # Licensing-only: scope to owned docs. Approver-only: scope to their properties.
+    # Licensing + approver: union of both.
+    if not has_full_access:
+        if ctx["is_licensing"] and approver_props:
+            seen = set()
+            results = []
+            for extra_filter in [
+                {**filters, "owner": user},
+                {**filters, "property": ["in", approver_props]},
+            ]:
+                rows = frappe.get_all(
+                    "JH Property Rental Renewal",
+                    filters=extra_filter,
+                    fields=RENEWAL_FIELDS,
+                    order_by="modified desc",
+                    ignore_permissions=True,
+                )
+                for r in rows:
+                    if r["name"] not in seen:
+                        seen.add(r["name"])
+                        results.append(r)
+            total = len(results)
+            records = results[start: start + limit]
+            return {"renewals": records, "total": total}
+        elif ctx["is_licensing"]:
+            filters["owner"] = user
+        elif approver_props:
+            filters["property"] = ["in", approver_props]
+ 
+    records = frappe.get_all(
+        "JH Property Rental Renewal",
+        filters=filters,
+        fields=RENEWAL_FIELDS,
+        limit=limit,
+        start=start,
+        order_by="modified asc",
+        ignore_permissions=True,
+    )
+    total = frappe.db.count("JH Property Rental Renewal", filters=filters, cache=False)
+ 
+    return {"renewals": records, "total": total}
+ 
+ 
+@frappe.whitelist(methods=["GET"])
+def get_property_doc(name: str):
+    """
+    Returns a single JH Property Master document.
+    Bypasses DocType-level role check so MD/CFO can open property detail sheets.
+    """
+    if not name:
+        frappe.throw(_("name is required"))
+ 
+    ctx = _get_property_user_context()
+    user = ctx["user"]
+ 
+    has_full_access = (
+        ctx["is_admin"] or ctx["is_md"] or ctx["is_cfo"]
+        or ctx["has_property_dept"] or ctx["has_gl_team"] or ctx["is_licensing"]
+    )
+ 
+    if not has_full_access:
+        approvers = frappe.db.get_value(
+            "JH Property Master", name, ["approver_1", "approver_2"], as_dict=True,
+        )
+        if not approvers or user not in [approvers.approver_1, approvers.approver_2]:
+            frappe.throw(_("Not permitted"), frappe.PermissionError)
+ 
+    frappe.flags.ignore_permissions = True
+    try:
+        doc = frappe.get_doc("JH Property Master", name)
+    finally:
+        frappe.flags.ignore_permissions = False
+    return {"doc": doc.as_dict()}
+ 
+ 
+@frappe.whitelist(methods=["GET"])
+def get_renewal_doc(name: str):
+    """
+    Returns a single JH Property Rental Renewal document.
+    Bypasses DocType-level role check so MD/CFO can open renewal detail sheets.
+    """
+    if not name:
+        frappe.throw(_("name is required"))
+ 
+    ctx = _get_property_user_context()
+    user = ctx["user"]
+ 
+    frappe.flags.ignore_permissions = True
+    try:
+        renewal = frappe.get_doc("JH Property Rental Renewal", name)
+    finally:
+        frappe.flags.ignore_permissions = False
+ 
+    has_full_access = (
+        ctx["is_admin"] or ctx["is_md"] or ctx["is_cfo"]
+        or ctx["has_property_dept"] or ctx["has_gl_team"] or ctx["is_licensing"]
+    )
+ 
+    if not has_full_access:
+        is_approver = False
+        if renewal.property:
+            approvers = frappe.db.get_value(
+                "JH Property Master", renewal.property,
+                ["approver_1", "approver_2"], as_dict=True,
+            ) or frappe._dict()
+            is_approver = user in [approvers.approver_1, approvers.approver_2]
+        if not is_approver:
+            frappe.throw(_("Not permitted"), frappe.PermissionError)
+ 
+    return {"doc": renewal.as_dict()}
+ 
+ 
 @frappe.whitelist(methods=["GET"])
 def has_property_automation_role():
     user = frappe.session.user
@@ -252,15 +528,20 @@ def whoami(renewal_id: str = None, is_new: bool = False):
     if not renewal_id:
         frappe.throw(_("renewal_id is required when is_new is false"))
  
-    renewal = frappe.get_doc("JH Property Rental Renewal", renewal_id)
+    frappe.flags.ignore_permissions = True
+    try:
+        renewal = frappe.get_doc("JH Property Rental Renewal", renewal_id)
+    finally:
+        frappe.flags.ignore_permissions = False
  
     if renewal.property:
-        property_doc = frappe.get_doc("JH Property Master", renewal.property)
- 
-        if user == property_doc.approver_1:
+        approvers = frappe.db.get_value(
+            "JH Property Master", renewal.property,
+            ["approver_1", "approver_2"], as_dict=True,
+        ) or frappe._dict()
+        if user == approvers.approver_1:
             matches.add("approver_1")
- 
-        if user == property_doc.approver_2:
+        if user == approvers.approver_2:
             matches.add("approver_2")
  
     for role in ROLE_PRIORITY:
@@ -301,10 +582,13 @@ def get_user_workflow_roles(renewal):
         matches.add("md")
  
     if renewal.property:
-        property_doc = frappe.get_cached_doc("JH Property Master", renewal.property)
-        if user == property_doc.approver_1:
+        approvers = frappe.db.get_value(
+            "JH Property Master", renewal.property,
+            ["approver_1", "approver_2"], as_dict=True,
+        ) or frappe._dict()
+        if user == approvers.approver_1:
             matches.add("approver_1")
-        if user == property_doc.approver_2:
+        if user == approvers.approver_2:
             matches.add("approver_2")
  
     return matches
@@ -333,7 +617,11 @@ def get_allowed_actions(renewal_id: str):
     if not renewal_id:
         frappe.throw(_("renewal_id is required"))
  
-    renewal = frappe.get_doc("JH Property Rental Renewal", renewal_id)
+    frappe.flags.ignore_permissions = True
+    try:
+        renewal = frappe.get_doc("JH Property Rental Renewal", renewal_id)
+    finally:
+        frappe.flags.ignore_permissions = False
     allowed_actions = get_permitted_actions(renewal)
  
     return {
@@ -383,12 +671,14 @@ def get_division_gm(division: str = None, property: str = None, renewal_id: str 
         resolved_division = frappe.db.get_value("JH Property Master", property, "division_used")
  
     if not resolved_division and renewal_id:
-        renewal = frappe.get_doc("JH Property Rental Renewal", renewal_id)
-        resolved_division = renewal.division
- 
-        if not resolved_division and renewal.property:
+        renewal_data = frappe.db.get_value(
+            "JH Property Rental Renewal", renewal_id,
+            ["division", "property"], as_dict=True,
+        ) or frappe._dict()
+        resolved_division = renewal_data.division
+        if not resolved_division and renewal_data.property:
             resolved_division = frappe.db.get_value(
-                "JH Property Master", renewal.property, "division_used"
+                "JH Property Master", renewal_data.property, "division_used",
             )
  
     if not resolved_division:
@@ -593,7 +883,11 @@ def apply_workflow_action(renewal_id: str, action: str, target_state: str = None
         frappe.throw(_("renewal_id is required"))
  
     action = (action or "").strip().lower()
-    renewal = frappe.get_doc("JH Property Rental Renewal", renewal_id)
+    frappe.flags.ignore_permissions = True
+    try:
+        renewal = frappe.get_doc("JH Property Rental Renewal", renewal_id)
+    finally:
+        frappe.flags.ignore_permissions = False
     current_state = renewal.workflow_state or "Draft"
     role = whoami(renewal_id=renewal_id, is_new=False).get("role")
  
@@ -645,3 +939,4 @@ def apply_workflow_action(renewal_id: str, action: str, target_state: str = None
         "previous_state": current_state,
         "workflow_state": renewal.workflow_state,
     }
+ 
