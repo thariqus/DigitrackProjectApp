@@ -1,0 +1,48 @@
+import { useQuery } from "@tanstack/react-query";
+import { propertyApi } from "../api/property";
+
+export type QueryParams = Record<
+  string,
+  string | number | boolean | undefined
+>;
+
+export const useUserAccess = () =>
+  useQuery({
+    queryKey: ["UserAccess"],
+    queryFn: propertyApi.getUserAccess,
+    staleTime: 5 * 60 * 1000,
+  });
+
+export const usePropertyList = (params: QueryParams) =>
+  useQuery({
+    queryKey: ["PropertyList", JSON.stringify(params)],
+    queryFn: () => propertyApi.getPropertyList(params),
+  });
+
+export const usePendingRenewals = (enabled: boolean) =>
+  useQuery({
+    queryKey: ["PendingRenewals"],
+    queryFn: propertyApi.getPendingRenewals,
+    enabled,
+  });
+
+export const useRenewalDoc = (name?: string) =>
+  useQuery({
+    queryKey: ["RenewalDoc", name],
+    queryFn: () => propertyApi.getRenewalDoc(name!),
+    enabled: !!name,
+  });
+
+export const usePropertyDoc = (name?: string) =>
+  useQuery({
+    queryKey: ["PropertyDoc", name],
+    queryFn: () => propertyApi.getPropertyDoc(name!),
+    enabled: !!name,
+  });
+
+export const useRenewalList = (params: QueryParams, enabled = true) =>
+  useQuery({
+    queryKey: ["RenewalList", JSON.stringify(params)],
+    queryFn: () => propertyApi.getRenewalList(params),
+    enabled,
+  });
