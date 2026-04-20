@@ -139,7 +139,9 @@ export default function StartRenewalModal({
 
       await saveDoc.mutateAsync(renewalDoc);
       toast.success("Renewal created successfully!");
-      await queryClient.invalidateQueries({ queryKey: ["Docs"] });
+      await queryClient.refetchQueries({
+  queryKey: ["RenewalListForProperty", propertyId],
+});
       onOpenChange(false);
       form.reset();
       // setRentChangePercentState("0");
