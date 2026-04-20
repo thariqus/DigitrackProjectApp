@@ -13,7 +13,6 @@ import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { format, addYears } from "date-fns";
-import { useEffect } from "react";
 import { useSaveDoc } from "@/hooks/doc";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -36,6 +35,7 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>;
 
+
 interface StartRenewalModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -44,7 +44,8 @@ interface StartRenewalModalProps {
   currentRent?: number | null;
   renewalFrom?: string;
   renewalTo?: string;
-  mode?: 'new' | 'edit';
+  mode?: "new" | "edit";
+  onCreated?: () => Promise<void> | void;
 }
 
 export default function StartRenewalModal({
@@ -56,6 +57,7 @@ export default function StartRenewalModal({
   renewalFrom,
   renewalTo,
   mode = 'new',
+  onCreated
 }: StartRenewalModalProps) {
   const queryClient = useQueryClient();
   const saveDoc = useSaveDoc();
@@ -138,10 +140,13 @@ export default function StartRenewalModal({
       };
 
       await saveDoc.mutateAsync(renewalDoc);
+       await onCreated?.();
+       onOpenChange(false);
+    form.reset();
       toast.success("Renewal created successfully!");
-      await queryClient.refetchQueries({
-  queryKey: ["RenewalListForProperty", propertyId],
-});
+      await queryClient.invalidateQueries({
+        queryKey: ["RenewalList", { property: propertyId }],
+      });
       onOpenChange(false);
       form.reset();
       // setRentChangePercentState("0");
