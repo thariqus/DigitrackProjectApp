@@ -89,6 +89,7 @@ export default function PropertySheet({
   renewalColorHighlight,
   typeOptions,
 }: PropertySheetProps) {
+
   const [files, setFiles] = useState<File[]>([]);
   const [isRenewalModalOpen, setIsRenewalModalOpen] = useState(false);
   const navigate = useNavigate();
@@ -102,10 +103,18 @@ export default function PropertySheet({
   const formId = "property-form";
 
   const { data: propertyData, isLoading } = usePropertyDoc(propertyId);
-  const { data: renewalsListData } = useRenewalList(propertyId);
+  const { data: renewalsListData } = useRenewalList(
+  {
+    property: propertyId || undefined,
+    limit: 50,
+    page: 1,
+  },
+  !!propertyId
+);
+ const renewalsData = renewalsListData?.renewals ?? [];
 
   const doc = propertyData?.doc as PropertyMaster | undefined;
-  const renewalsData = renewalsListData?.renewals ?? [];
+ 
 
   const hasExistingRenewals = renewalsData.length > 0;
   const activeRenewal = renewalsData.length
