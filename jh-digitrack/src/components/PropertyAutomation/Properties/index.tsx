@@ -32,6 +32,7 @@ function Properties() {
   const [expiringSoon, setExpiringSoon] = useState(false);
   const [selectedProperty, setSelectedProperty] = useState<string | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  
 
   const { data: permissionData } = useUserAccess();
 
@@ -250,6 +251,7 @@ function Properties() {
         renewalColorHighlight={getUrgencyColor}
         formatDate={formatDate}
         typeOptions={typeOptions}
+        
       />
     </div>
   );
