@@ -1,36 +1,28 @@
+
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Check, ChevronDown, XIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
+import { Check, ChevronsUpDown, XIcon } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-
+import { cn } from "@/lib/utils";
+ 
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { useNavigate } from "react-router";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-
+ 
 import FileAttachment from "./FileAttachment";
 import StartRenewalModal from "./StartRenewalModal";
 import { useDocs, useSaveDoc, useUpdateDoc } from "@/hooks/doc";
 import { usePropertyDoc, useRenewalList } from "../hooks/useProperty";
 import { PropertyMaster } from "@/types/JHDigitrack/JHPropertyAutomation";
 import { queryClient } from "@/utils/query-client";
-
+ 
 type PropertySheetProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -40,7 +32,17 @@ type PropertySheetProps = {
   renewalColorHighlight: (date?: string) => string;
   typeOptions: string[];
 };
-
+ 
+type UserOption = {
+  name: string;
+  full_name?: string;
+  email?: string;
+};
+ 
+type NamedOption = {
+  name: string;
+};
+ 
 const propertySchema = z.object({
   property_name: z.string().min(1, "Required"),
   type_of_property: z.string().nullable().optional(),
@@ -52,14 +54,14 @@ const propertySchema = z.object({
   number_of_premises: z.coerce.number().optional(),
   premise_number: z.string().nullable().optional(),
   staff_allocated: z.string().nullable().optional(),
-
+ 
   location: z.string().nullable().optional(),
   emirate: z.string().nullable().optional(),
   country: z.string().default("UAE").optional(),
   makani_number: z.string().nullable().optional(),
   po_box_number: z.string().nullable().optional(),
   po_box_renewal_date: z.string().nullable().optional(),
-
+ 
   landlord: z.string().nullable().optional(),
   real_estate: z.string().nullable().optional(),
   current_rent: z.coerce.number().optional(),
@@ -67,19 +69,19 @@ const propertySchema = z.object({
   landlord_security_deposit: z.coerce.number().optional(),
   tenancy_period: z.string().nullable().optional(),
   lease_start_date: z.string().nullable().optional(),
-
+ 
   electricity_accounts: z.coerce.number().optional(),
   electricity_connection_numbers: z.string().nullable().optional(),
   electricity_water_security_deposit: z.coerce.number().optional(),
   landline_numbers: z.string().nullable().optional(),
   internet_connection: z.string().nullable().optional(),
-
+ 
   cdc_expiry: z.string().optional(),
   hassantuk_expiry: z.string().optional(),
   approver_1: z.string().min(1, "Required"),
   approver_2: z.string().nullable().optional(),
 });
-
+ 
 export default function PropertySheet({
   open,
   onOpenChange,
@@ -89,21 +91,26 @@ export default function PropertySheet({
   renewalColorHighlight,
   typeOptions,
 }: PropertySheetProps) {
-
+ 
   const [files, setFiles] = useState<File[]>([]);
   const [isRenewalModalOpen, setIsRenewalModalOpen] = useState(false);
+  const [approver1Search, setApprover1Search] = useState("");
+  const [approver2Search, setApprover2Search] = useState("");
+  const [openApproverField, setOpenApproverField] = useState<"approver_1" | "approver_2" | null>(null);
+  const lastAutoFilledDivisionRef = useRef<string | null>(null);
+  const approverFieldRefs = useRef<Partial<Record<"approver_1" | "approver_2", HTMLDivElement | null>>>({});
   const navigate = useNavigate();
-
+ 
   const saveDoc = useSaveDoc();
   const updateDoc = useUpdateDoc();
-
+ 
   const isView = mode === "view";
   const isEdit = mode === "edit";
   const isCreate = mode === "create";
   const formId = "property-form";
-
-  const { data: propertyData, isLoading } = usePropertyDoc(propertyId);
-  const { data: renewalsListData } = useRenewalList(
+ 
+  const { data: propertyData } = usePropertyDoc(propertyId);
+  const { data: renewalsListData,refetch: refetchRenewals } = useRenewalList(
   {
     property: propertyId || undefined,
     limit: 50,
@@ -111,34 +118,33 @@ export default function PropertySheet({
   },
   !!propertyId
 );
- const renewalsData = renewalsListData?.renewals ?? [];
-
+const renewalsData = renewalsListData?.renewals ?? [];
+ 
   const doc = propertyData?.doc as PropertyMaster | undefined;
  
-
+ 
   const hasExistingRenewals = renewalsData.length > 0;
   const activeRenewal = renewalsData.length
     ? [...renewalsData].sort(
         (a, b) => new Date(b.modified).getTime() - new Date(a.modified).getTime()
       )[0]?.name
     : null;
-
+ 
   const { data: divisionData } = useDocs({
     doctype: "JH Division Master",
   });
-
+ 
   const { data: businessData } = useDocs({
     doctype: "JH Business Master",
   });
-
-  const { data: usersData, isLoading: usersLoading, error: usersError } = useDocs<any>({
+ 
+  const { data: usersData, isLoading: usersLoading, error: usersError } = useDocs<UserOption>({
     doctype: "User",
     limit: 200,
     fields: ["name", "full_name", "email"],
   });
-
+ 
   const {
-    register,
     handleSubmit,
     reset,
     control,
@@ -148,26 +154,30 @@ export default function PropertySheet({
     resolver: zodResolver(propertySchema),
     mode: "onChange",
   });
-
+ 
   const divisionWatch = useWatch({
     control,
     name: "division_used",
   });
-
+ 
   const { data: selectedDivisionData } = useDocs({
     doctype: "JH Division Master",
     fields: ["name", "division_head", "division_gm"],
     filters: divisionWatch ? [["name", "=", divisionWatch]] : [],
     limit: 1,
   });
-
+ 
   const selectedDivision = selectedDivisionData?.[0];
-
+ 
   useEffect(() => {
     if (!open) return;
     setFiles([]);
-
+    setApprover1Search("");
+    setApprover2Search("");
+    setOpenApproverField(null);
+ 
     if (isCreate) {
+      lastAutoFilledDivisionRef.current = null;
       reset({
         country: "UAE",
         approver_1: "",
@@ -175,8 +185,9 @@ export default function PropertySheet({
       });
       return;
     }
-
+ 
     if (doc) {
+      lastAutoFilledDivisionRef.current = doc.division_used ?? null;
       reset({
         ...doc,
         renewal_date: doc.renewal_date?.split("T")[0],
@@ -187,48 +198,82 @@ export default function PropertySheet({
       });
     }
   }, [open, isCreate, doc, reset]);
-
+ 
   useEffect(() => {
+    if (!open) return;
+ 
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!openApproverField) return;
+ 
+      const activeContainer = approverFieldRefs.current[openApproverField];
+      if (activeContainer && !activeContainer.contains(event.target as Node)) {
+        setOpenApproverField(null);
+      }
+    };
+ 
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, [open, openApproverField]);
+ 
+  useEffect(() => {
+    if (!open || !divisionWatch) return;
+ 
     const div = selectedDivision ?? selectedDivisionData?.[0];
+    if (!div || lastAutoFilledDivisionRef.current === divisionWatch) return;
+ 
     if (div?.division_head) {
       setValue("approver_1", div.division_head, { shouldValidate: true, shouldDirty: true });
       setValue("approver_2", div.division_gm || "", { shouldValidate: true, shouldDirty: true });
     } else if (div?.division_gm) {
       setValue("approver_1", div.division_gm, { shouldValidate: true, shouldDirty: true });
       setValue("approver_2", "", { shouldValidate: true, shouldDirty: true });
+    } else {
+      setValue("approver_1", "", { shouldValidate: true, shouldDirty: true });
+      setValue("approver_2", "", { shouldValidate: true, shouldDirty: true });
     }
-  }, [selectedDivision, selectedDivisionData, setValue]);
-
+ 
+    lastAutoFilledDivisionRef.current = divisionWatch;
+  }, [divisionWatch, open, selectedDivision, selectedDivisionData, setValue]);
+ 
+  const userOptions = useMemo(
+    () =>
+      (usersData ?? []).map((user) => ({
+        value: user.name,
+        label: user.full_name ? `${user.email} (${user.full_name})` : user.email || user.name,
+      })),
+    [usersData]
+  );
+ 
   const formatDateForAPI = (date?: string) => {
     if (!date) return "";
     return new Date(date).toISOString().split("T")[0];
   };
-
+ 
   const uploadFile = async (file: File) => {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("is_private", "1");
-
+ 
     const res = await fetch("/api/method/upload_file", {
       method: "POST",
       body: formData,
       credentials: "include",
     });
-
+ 
     const data = await res.json();
     return data.message.file_url as string;
   };
-
+ 
   const onSubmit = async (data: z.infer<typeof propertySchema>) => {
     try {
       const uploadedFiles =
         files.length > 0 ? await Promise.all(files.map((file) => uploadFile(file))) : [];
-
+ 
       const documents = [
         ...(doc?.documents || []),
         ...uploadedFiles.map((url) => ({ attachment: url })),
       ];
-
+ 
       const payload = {
         ...data,
         name: propertyId,
@@ -239,7 +284,7 @@ export default function PropertySheet({
         doctype: "JH Property Master",
         documents,
       };
-
+ 
       if (isEdit && propertyId) {
         await updateDoc.mutateAsync({
           doctype: "JH Property Master",
@@ -251,23 +296,23 @@ export default function PropertySheet({
         await saveDoc.mutateAsync(payload);
         toast.success("Property created successfully");
       }
-
+ 
       await queryClient.invalidateQueries({ queryKey: ["PropertyList"], exact: false });
       await queryClient.invalidateQueries({ queryKey: ["PropertyDoc", propertyId] });
       await queryClient.invalidateQueries({ queryKey: ["RenewalList", propertyId] });
-
+ 
       onOpenChange(false);
       reset();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
-      toast.error(error?.message || "Something went wrong");
+      toast.error(error instanceof Error ? error.message : "Something went wrong");
     }
   };
-
+ 
   const requiredFields = ["property_name", "renewal_date"];
-
+ 
   const getFileName = (url: string) => url.split("/").pop() || "";
-
+ 
   const renderField = (
     label: string,
     name: keyof z.infer<typeof propertySchema>,
@@ -275,7 +320,7 @@ export default function PropertySheet({
     type = "text"
   ) => {
     const isRequired = requiredFields.includes(name as string);
-
+ 
     return (
       <div className="flex flex-col gap-1">
         {!isView && (
@@ -283,7 +328,7 @@ export default function PropertySheet({
             {label} {isRequired && <span className="text-red-500">*</span>}
           </Label>
         )}
-
+ 
         {isView ? (
           <div className="flex items-start gap-2 py-1 text-sm">
             <span className="font-medium text-gray-600">{label}:</span>
@@ -303,14 +348,14 @@ export default function PropertySheet({
             )}
           />
         )}
-
+ 
         {errors[name] && (
           <span className="text-red-500 text-xs">{errors[name]?.message as string}</span>
         )}
       </div>
     );
   };
-
+ 
   const renderApproverField = (
     label: string,
     name: keyof z.infer<typeof propertySchema>,
@@ -324,7 +369,7 @@ export default function PropertySheet({
             {label} {required && <span className="text-red-500">*</span>}
           </Label>
         )}
-
+ 
         {isView ? (
           <div className="flex items-center gap-2 py-1 text-sm">
             <span className="font-medium text-gray-600">{label}:</span>
@@ -333,7 +378,7 @@ export default function PropertySheet({
             ) : usersError || !usersData ? (
               <span className="text-gray-400 text-xs">Error loading user</span>
             ) : (() => {
-                const user = usersData?.find((u: any) => u.name === value);
+                const user = usersData?.find((u) => u.name === value);
                 const display = user?.email || value || "-";
                 const tooltip = user?.full_name
                   ? `${user.full_name} (${user.email || value})`
@@ -350,65 +395,93 @@ export default function PropertySheet({
             name={name}
             control={control}
             render={({ field }) => {
-              const selectedUser = usersData?.find((u: any) => u.name === field.value);
+              const selectedUser = usersData?.find((u) => u.name === field.value);
               const displayValue = selectedUser?.email || field.value || "";
-
+              const searchValue = name === "approver_1" ? approver1Search : approver2Search;
+              const setSearchValue = name === "approver_1" ? setApprover1Search : setApprover2Search;
+              const filteredUserOptions = userOptions.filter((option) =>
+                option.label.toLowerCase().includes(searchValue.toLowerCase())
+              );
+              const isOpen = openApproverField === name;
+ 
               return (
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      role="combobox"
-                      className="w-full justify-between text-sm capitalize"
-                    >
-                      {displayValue || `Select ${label.toLowerCase()}`}
-                      <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-
-                  <PopoverContent className="w-full p-0 max-h-64">
-                    <Command>
-                      <CommandInput placeholder={`Search ${label.toLowerCase()}...`} />
-                      <CommandEmpty>No users found.</CommandEmpty>
-                      <CommandGroup>
-                        <CommandList>
-                          {usersLoading ? (
-                            <div className="p-4 text-center text-sm text-gray-500">
-                              Loading users...
-                            </div>
-                          ) : usersError ? (
-                            <div className="p-4 text-center text-sm text-red-500">
-                              Error loading users
-                            </div>
-                          ) : !usersData?.length ? (
-                            <div className="p-4 text-center text-sm text-gray-500">
-                              No users available
-                            </div>
-                          ) : (
-                            usersData.map((user: any) => (
-                              <CommandItem
-                                key={user.name}
-                                value={user.name}
-                                onSelect={() => field.onChange(user.name)}
-                              >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    field.value === user.name ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                                <span className="truncate">
-                                  {`${user.email} (${user.full_name ?? "No name"})`}
-                                </span>
-                              </CommandItem>
-                            ))
-                          )}
-                        </CommandList>
-                      </CommandGroup>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
+                <div
+                  ref={(node) => {
+                    approverFieldRefs.current[name as "approver_1" | "approver_2"] = node;
+                  }}
+                  className="relative"
+                >
+                  <Button
+                    type="button"
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={isOpen}
+                    disabled={usersLoading || !!usersError}
+                    className={cn(
+                      "w-full justify-between text-sm",
+                      errors[name] ? "border-red-500" : ""
+                    )}
+                    onClick={() => {
+                      const nextOpen = !isOpen;
+                      setOpenApproverField(nextOpen ? (name as "approver_1" | "approver_2") : null);
+                      if (!nextOpen) {
+                        setSearchValue("");
+                      }
+                    }}
+                  >
+                    {displayValue || `Select ${label.toLowerCase()}`}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+ 
+                  {isOpen && (
+                    <div className="bg-popover text-popover-foreground absolute left-0 top-full z-50 mt-1 w-full rounded-md border shadow-md">
+                      <div className="border-b p-2">
+                        <Input
+                          value={searchValue}
+                          onChange={(event) => setSearchValue(event.target.value)}
+                          placeholder={`Search ${label.toLowerCase()}...`}
+                          className="h-9"
+                          autoFocus
+                        />
+                      </div>
+ 
+                      <div className="max-h-[300px] overflow-y-auto p-1">
+                        {usersLoading ? (
+                          <div className="px-2 py-3 text-sm text-gray-500">Loading users...</div>
+                        ) : usersError ? (
+                          <div className="px-2 py-3 text-sm text-red-500">Error loading users</div>
+                        ) : filteredUserOptions.length === 0 ? (
+                          <div className="px-2 py-3 text-sm text-gray-500">No users found.</div>
+                        ) : (
+                          filteredUserOptions.map((option) => (
+                            <button
+                              key={option.value}
+                              type="button"
+                              className={cn(
+                                "hover:bg-accent hover:text-accent-foreground flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm",
+                                field.value === option.value ? "bg-accent text-accent-foreground" : ""
+                              )}
+                              onMouseDown={(event) => {
+                                event.preventDefault();
+                                field.onChange(option.value);
+                                setSearchValue("");
+                                setOpenApproverField(null);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "h-4 w-4 shrink-0",
+                                  field.value === option.value ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              <span className="truncate">{option.label}</span>
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
               );
             }}
           />
@@ -416,11 +489,9 @@ export default function PropertySheet({
       </div>
     );
   };
-
-  const propertyTypeOptions = typeOptions?.length
-    ? typeOptions
-    : ["Shop", "Office", "Warehouse", "Other"];
-
+ 
+  const propertyTypeOptions =["Shop", "Office", "Warehouse", "Other"];
+ 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="sm:max-w-5xl px-5 pb-30">
@@ -429,7 +500,7 @@ export default function PropertySheet({
             <SheetTitle>
               {isCreate ? "Create Property" : isEdit ? "Edit Property" : "Property Details"}
             </SheetTitle>
-
+ 
              <div className="">
               {!isView && !isCreate && (
                 <>
@@ -448,7 +519,7 @@ export default function PropertySheet({
                   >
                     {hasExistingRenewals ? "View Active Renewal" : "Start Renewal"}
                   </Button>
-
+ 
                   <StartRenewalModal
                     open={isRenewalModalOpen}
                     onOpenChange={setIsRenewalModalOpen}
@@ -456,26 +527,33 @@ export default function PropertySheet({
                     propertyName={doc?.property_name || ""}
                     currentRent={doc?.current_rent}
                     mode="new"
+                    onCreated={async () => {
+                      await refetchRenewals();
+                      await queryClient.invalidateQueries({
+                        queryKey: ["RenewalList"],
+                        exact: false,
+                      });
+                    }}
                   />
                 </>
               )}
             </div>
-
+ 
           </div>
-
+ 
           <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)}>
             <XIcon className="size-4" />
           </Button>
         </SheetHeader>
-
+ 
         <ScrollArea className="h-[calc(100vh-100px)] pr-3">
           <form id={formId} onSubmit={handleSubmit(onSubmit)} className="space-y-6 mt-4">
-
+ 
             <h2 className="text-lg font-semibold">Identity</h2>
-
+ 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {renderField("Property Name", "property_name", doc?.property_name)}
-
+ 
               <div className="flex flex-col gap-1">
                 {!isView && <Label className="text-sm text-gray-600">Property Type</Label>}
                 {isView ? (
@@ -500,7 +578,7 @@ export default function PropertySheet({
                   />
                 )}
               </div>
-
+ 
               <div className="flex flex-col gap-1">
                 {!isView && <Label className="text-sm text-gray-600">Business Used</Label>}
                 {isView ? (
@@ -515,7 +593,7 @@ export default function PropertySheet({
                     render={({ field }) => (
                       <select {...field} className="border rounded px-2 py-2 text-sm">
                         <option value="">Select Business</option>
-                        {businessData?.map((business: any) => (
+                        {businessData?.map((business: NamedOption) => (
                           <option key={business.name} value={business.name}>
                             {business.name}
                           </option>
@@ -525,7 +603,7 @@ export default function PropertySheet({
                   />
                 )}
               </div>
-
+ 
               <div className="flex flex-col gap-1">
                 {!isView && <Label className="text-sm text-gray-600">Division Used</Label>}
                 {isView ? (
@@ -540,7 +618,7 @@ export default function PropertySheet({
                     render={({ field }) => (
                       <select {...field} className="border rounded px-2 py-2 text-sm">
                         <option value="">Select Division</option>
-                        {divisionData?.map((div: any) => (
+                        {divisionData?.map((div: NamedOption) => (
                           <option key={div.name} value={div.name}>
                             {div.name}
                           </option>
@@ -550,7 +628,7 @@ export default function PropertySheet({
                   />
                 )}
               </div>
-
+ 
               {renderApproverField("Approver 1", "approver_1", doc?.approver_1, true)}
               {renderApproverField("Approver 2", "approver_2", doc?.approver_2)}
               {renderField("Booked Under", "booked_under", doc?.booked_under)}
@@ -560,9 +638,9 @@ export default function PropertySheet({
               {renderField("Premise No", "premise_number", doc?.premise_number)}
               {renderField("Staff Allocated", "staff_allocated", doc?.staff_allocated)}
             </div>
-
+ 
             <Separator />
-
+ 
             <h2 className="text-lg font-semibold">Location</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {renderField("Location", "location", doc?.location)}
@@ -572,15 +650,15 @@ export default function PropertySheet({
               {renderField("PO Box", "po_box_number", doc?.po_box_number)}
               {renderField("PO Box Renewal", "po_box_renewal_date", doc?.po_box_renewal_date, "date")}
             </div>
-
+ 
             <Separator />
-
+ 
             <h2 className="text-lg font-semibold">Landlord</h2>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
               {renderField("Landlord", "landlord", doc?.landlord)}
               {renderField("Real Estate", "real_estate", doc?.real_estate)}
               {renderField("Current Rent", "current_rent", doc?.current_rent)}
-
+ 
               {isView ? (
                 <div className="flex items-center gap-2 py-1 text-sm">
                   <span className="font-medium text-gray-600">Renewal Date:</span>
@@ -591,14 +669,14 @@ export default function PropertySheet({
               ) : (
                 renderField("Renewal Date", "renewal_date", doc?.renewal_date, "date")
               )}
-
+ 
               {renderField(
                 "Landlord Security Deposit",
                 "landlord_security_deposit",
                 doc?.landlord_security_deposit
               )}
               {renderField("Tenancy Period", "tenancy_period", doc?.tenancy_period)}
-
+ 
               {isView ? (
                 <div className="flex items-center gap-2 py-1 text-sm">
                   <span className="font-medium text-gray-600">Lease start date:</span>
@@ -608,9 +686,9 @@ export default function PropertySheet({
                 renderField("Lease start date", "lease_start_date", doc?.lease_start_date, "date")
               )}
             </div>
-
+ 
             <Separator />
-
+ 
             <h2 className="text-lg font-semibold">Utilities</h2>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
               {renderField("Electricity Accounts", "electricity_accounts", doc?.electricity_accounts)}
@@ -623,9 +701,9 @@ export default function PropertySheet({
               {renderField("Landline Numbers", "landline_numbers", doc?.landline_numbers)}
               {renderField("Internet Connection", "internet_connection", doc?.internet_connection)}
             </div>
-
+ 
             <Separator />
-
+ 
             <h2 className="text-lg font-semibold">Compliance</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {isView ? (
@@ -638,7 +716,7 @@ export default function PropertySheet({
               ) : (
                 renderField("CDC Expiry", "cdc_expiry", doc?.cdc_expiry, "date")
               )}
-
+ 
               {isView ? (
                 <div className="flex items-center gap-2 py-1 text-sm">
                   <span className="font-medium text-gray-600">Hassantuk Expiry:</span>
@@ -650,15 +728,15 @@ export default function PropertySheet({
                 renderField("Hassantuk Expiry", "hassantuk_expiry", doc?.hassantuk_expiry, "date")
               )}
             </div>
-
+ 
             <Separator />
-
+ 
             <h2 className="text-lg font-semibold">Documents</h2>
-
+ 
             {isView ? (
               <div className="space-y-2 mb-10">
                 {doc?.documents?.length ? (
-                  doc.documents.map((file: any, index: number) => (
+                  doc.documents.map((file, index: number) => (
                     <div key={index} className="flex items-center gap-2 px-3">
                       <span className="text-sm text-gray-700">{getFileName(file.attachment)}</span>
                       <a
@@ -680,7 +758,7 @@ export default function PropertySheet({
                 {doc?.documents?.length ? (
                   <div className="space-y-2 mb-4">
                     <p className="text-sm font-medium text-gray-600">Existing Files</p>
-                    {doc.documents.map((file: any, index: number) => (
+                    {doc.documents.map((file, index: number) => (
                       <div key={index} className="flex items-center gap-2 px-3">
                         <span className="text-sm text-gray-700">{getFileName(file.attachment)}</span>
                         <a
@@ -695,19 +773,19 @@ export default function PropertySheet({
                     ))}
                   </div>
                 ) : null}
-
+ 
                 <FileAttachment files={files} setFiles={setFiles} />
               </>
             )}
-
+ 
             <Separator />
-
+ 
             <div className="mb-30">
               <h3 className="font-semibold">Renewal History</h3>
             </div>
           </form>
         </ScrollArea>
-
+ 
         <SheetFooter className="absolute bottom-0 w-full bg-white px-5">
           <div className="flex w-full gap-2">
             {!isView && (
@@ -715,7 +793,7 @@ export default function PropertySheet({
                 <Button variant="outline" className="w-full" type="button" onClick={() => onOpenChange(false)}>
                   Cancel
                 </Button>
-
+ 
                 <Button
                   type="submit"
                   form={formId}
@@ -732,3 +810,5 @@ export default function PropertySheet({
     </Sheet>
   );
 }
+ 
+ 
