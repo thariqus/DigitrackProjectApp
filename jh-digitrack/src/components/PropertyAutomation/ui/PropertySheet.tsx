@@ -31,6 +31,7 @@ type PropertySheetProps = {
   formatDate: (date?: string) => string;
   renewalColorHighlight: (date?: string) => string;
   typeOptions: string[];
+  hasPermisssionToViewRenewalHistory:boolean;
 };
  
 type UserOption = {
@@ -90,6 +91,7 @@ export default function PropertySheet({
   formatDate,
   renewalColorHighlight,
   typeOptions,
+  hasPermisssionToViewRenewalHistory
 }: PropertySheetProps) {
  
   const [files, setFiles] = useState<File[]>([]);
@@ -121,7 +123,6 @@ export default function PropertySheet({
 const renewalsData = renewalsListData?.renewals ?? [];
  
   const doc = propertyData?.doc as PropertyMaster | undefined;
- 
  
   const hasExistingRenewals = renewalsData.length > 0;
   const activeRenewal = renewalsData.length
@@ -778,11 +779,18 @@ const renewalsData = renewalsListData?.renewals ?? [];
               </>
             )}
  
-            <Separator />
+            {
+              hasPermisssionToViewRenewalHistory && (
+                <>
+                <Separator />
  
-            <div className="mb-30">
-              <h3 className="font-semibold">Renewal History</h3>
-            </div>
+                <div className="mb-30">
+                  <h3 className="font-semibold">Renewal History</h3>
+                </div>
+                </>
+              )
+            }
+            
           </form>
         </ScrollArea>
  
