@@ -39,7 +39,7 @@ function RenewalTableRow({ renewals , index, onClick,isLoading,onEdit,renewalCol
       <TableCell>{renewals.division}</TableCell>
       <TableCell>{renewals.current_rent} </TableCell>
       <TableCell>{renewals.proposed_rent}</TableCell>
-      <TableCell>{renewals.rent_change_percent}</TableCell>
+      <TableCell>{renewals.rent_change_percent != null ? `${Number(renewals.rent_change_percent).toFixed(2)}%` : "-"}</TableCell>
       <TableCell>{renewalPeriod}</TableCell>
       <TableCell><StatusBadge status={renewals.workflow_state} /></TableCell>
       <TableCell>{renewals.modified}</TableCell>
