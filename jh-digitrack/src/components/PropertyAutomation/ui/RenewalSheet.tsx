@@ -14,9 +14,9 @@ import * as z from "zod";
 import { toast } from "sonner";
 import FileAttachment from "./FileAttachment";
 import { useQueryClient } from "@tanstack/react-query";
-import { useDocs, useSaveDoc, useUpdateDoc } from "@/hooks/doc";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { ChequeDetail, PropertyMaster, RentalRenewal } from "@/types/JHDigitrack/JHPropertyAutomation";
+import { useUpdateDoc } from "@/hooks/doc";
+import { useEffect, useState } from "react";
+import { PropertyMaster, RentalRenewal } from "@/types/JHDigitrack/JHPropertyAutomation";
 import { usePropertyDoc, useRenewalDoc } from "../hooks/useProperty";
 import { propertyApi } from "../api/property";
 import { useApplyWorkflowAction } from "../hooks/useApplyWorkflowAction";
@@ -59,19 +59,17 @@ const renewalSchema = z.object({
   signatory: z.string().optional(),
 }).partial();
 
+type RenewalFormValues = z.infer<typeof renewalSchema>;
+
 export default function RenewalSheet({
   open,
   onOpenChange,
   propertyId,
   mode,
-  formatDate,
-  workflowColorHighlight,
   isLicensingTeam,
   isJHPropertyDepartment,
   isCfo,
-  isGMTeam,
   isMD,
-  isApprover,
   isGLTeam,
   isApprover1,
   isApprover2,
@@ -84,21 +82,16 @@ export default function RenewalSheet({
   const [pendingSendBackId, setPendingSendBackId] = useState<string | null>(null);
   const [sendbackOptions, setSendbackOptions] = useState<string[]>([]);
   const [rentChangePercentState, setRentChangePercentState] = useState("0");
-  const [currentChequeDetails, setCurrentChequeDetails] = useState<ChequeDetail[]>([]);
   const [localModified, setLocalModified] = useState<string>("");
 
   const queryClient = useQueryClient();
-  const saveDoc = useSaveDoc();
   const updateDoc = useUpdateDoc();
 
   const isView = mode === "view";
   const isEdit = mode === "edit";
   const formId = "renewal-form";
-  
-
-  const applyActionRef = useRef<((payload: any, options?: any) => void) | null>(null);
   const workflowMutation = useApplyWorkflowAction();
-  applyActionRef.current = workflowMutation.mutate;
+  const applyAction = workflowMutation.mutate;
 
   const { data: renewalData, isLoading: renewalLoading, refetch: refetchRenewal } =
     useRenewalDoc(propertyId || undefined);
@@ -110,17 +103,12 @@ export default function RenewalSheet({
   );
   const property = propertyData?.doc as PropertyMaster | undefined;
 
-  const { data: divisionData } = useDocs({
-    doctype: "JH Division Master",
-  });
-
   const {
     register,
     handleSubmit,
     reset,
     control,
     formState: { errors, isSubmitting, isValid },
-    setValue,
     getValues,
   } = useForm({
     resolver: zodResolver(renewalSchema),
@@ -128,7 +116,6 @@ export default function RenewalSheet({
   });
 
   const proposedRent = useWatch({ control, name: "proposed_rent" }) || 0;
-  const currentRent = property?.current_rent || 0;
 
   useEffect(() => {
     if (open) {
@@ -140,7 +127,6 @@ export default function RenewalSheet({
     if (!open || !renewalDoc) return;
 
     setLocalModified(renewalDoc.modified || "");
-    setCurrentChequeDetails(renewalDoc.cheque_details || []);
 
     reset({
       division: renewalDoc.division || "",
@@ -175,29 +161,32 @@ export default function RenewalSheet({
   setRentChangePercentState(percent.toFixed(2));
 }, [proposedRent, property?.current_rent]);
 
-  const applyAction = useCallback((payload: any, options?: any) => {
-    if (applyActionRef.current) {
-      applyActionRef.current(payload, options);
-    } else {
-      console.error("Workflow action not available");
-    }
-  }, []);
-
   const formatDateForAPI = (date?: string) => {
     if (!date) return "";
     return new Date(date).toISOString().split("T")[0];
   };
   const uploadFile = async (file: File) => {
     const formData = new FormData();
-    formData.append("file", file);
+    formData.append("file", file, file.name);
     formData.append("is_private", "1");
+    const csrfToken =
+      (window as { frappe?: { csrf_token?: string }; csrf_token?: string })?.frappe
+        ?.csrf_token ||
+      (window as { frappe?: { csrf_token?: string }; csrf_token?: string })?.csrf_token ||
+      "";
+
     const res = await fetch("/api/method/upload_file", {
       method: "POST",
       body: formData,
       credentials: "include",
+      headers: csrfToken ? { "X-Frappe-CSRF-Token": csrfToken } : undefined,
     });
 
     const data = await res.json();
+    if (!res.ok || !data?.message?.file_url) {
+      throw new Error(getUploadErrorMessage(data));
+    }
+
     return data.message.file_url as string;
   };
 
@@ -259,6 +248,145 @@ export default function RenewalSheet({
     }
   };
 
+  const isWorkflowProgressState = (state?: string) =>
+    state === "Pending Cheque Details" ||
+    state === "Pending Property PO" ||
+    state === "Pending MIRO";
+
+  const getErrorMessage = (error: unknown, fallback: string) =>
+    error instanceof Error ? error.message : fallback;
+
+  const getUploadErrorMessage = (payload: unknown) => {
+    if (payload && typeof payload === "object") {
+      const errorPayload = payload as {
+        message?: string;
+        _server_messages?: string;
+        exc?: string;
+      };
+
+      if (errorPayload.message) {
+        return errorPayload.message;
+      }
+
+      if (errorPayload._server_messages) {
+        try {
+          const serverMessages = JSON.parse(errorPayload._server_messages) as string[];
+          const firstMessage = serverMessages[0];
+          if (firstMessage) {
+            try {
+              const parsedMessage = JSON.parse(firstMessage) as { message?: string };
+              if (parsedMessage.message) {
+                return parsedMessage.message;
+              }
+            } catch {
+              return firstMessage;
+            }
+          }
+        } catch {
+          return errorPayload._server_messages;
+        }
+      }
+
+      if (errorPayload.exc) {
+        return errorPayload.exc;
+      }
+    }
+
+    return "File upload failed";
+  };
+
+  const saveWorkflowProgress = async (data: RenewalFormValues) => {
+    if (!propertyId) {
+      throw new Error("Renewal ID is missing");
+    }
+
+    const latest = await refetchRenewal();
+    const latestDoc = latest.data?.doc as RentalRenewal | undefined;
+
+    if (!latestDoc) {
+      throw new Error("Failed to fetch latest document");
+    }
+
+    if (localModified && latestDoc.modified !== localModified) {
+      throw new Error("Document was updated by another user. Reloading latest data...");
+    }
+
+    const currentState = latestDoc.workflow_state;
+    const payload: Record<string, string | number> = {
+      renewal_id: propertyId,
+    };
+
+    if (currentState === "Pending Cheque Details") {
+      payload.bank_name = data.bank_name || "";
+      payload.cheque_number = data.cheque_number || "";
+      payload.cheque_amount = Number(data.cheque_amount || 0);
+      payload.cheque_date = data.cheque_date || "";
+      payload.payee = data.payee || "";
+      payload.signatory = data.signatory || "";
+    }
+
+    if (currentState === "Pending Property PO") {
+      const contractDocUrl =
+        contractFiles.length > 0
+          ? (await Promise.all(contractFiles.map(uploadFile)))[0]
+          : latestDoc.renewed_contract_document || "";
+
+      payload.po_number = data.po_number || "";
+      payload.renewed_contract_document = contractDocUrl;
+    }
+
+    if (currentState === "Pending MIRO") {
+      payload.miro_number = data.miro_number || "";
+    }
+
+    if (!isWorkflowProgressState(currentState)) {
+      throw new Error("This renewal stage does not support progress save");
+    }
+
+    const savedDoc = await propertyApi.saveRenewalProgress(payload);
+    if (currentState === "Pending Property PO") {
+      setContractFiles([]);
+    }
+    setLocalModified(savedDoc?.modified || latestDoc.modified || "");
+
+    return { latestDoc, savedDoc };
+  };
+
+  const handleWorkflowConfirm = handleSubmit(async (data) => {
+    if (!propertyId) return;
+    if (!validateBeforeWorkflow()) return;
+
+    try {
+      await saveWorkflowProgress(data);
+
+      await new Promise<void>((resolve, reject) => {
+        applyAction(
+          { renewal_id: propertyId, action: "approve" },
+          {
+            onSuccess: async () => {
+              await queryClient.invalidateQueries({ queryKey: ["RenewalList"] });
+              await queryClient.invalidateQueries({ queryKey: ["PendingRenewals"] });
+              await refetchRenewal();
+              await refetchProperty();
+              setContractFiles([]);
+              onOpenChange(false);
+              resolve();
+            },
+            onError: (error: unknown) => reject(error),
+          }
+        );
+      });
+    } catch (error: unknown) {
+      const message = getErrorMessage(error, "Failed to save renewal progress");
+
+      if (message.includes("updated by another user")) {
+        await refetchRenewal();
+      }
+
+      toast.error(message);
+    }
+  });
+
   const handleOpenWithdrawModal = (id: string) => {
     setPendingWithdrawalId(id);
     setIsWithdrawModalOpen(true);
@@ -270,7 +398,7 @@ export default function RenewalSheet({
       setSendbackOptions(data?.sendback_options || []);
       setPendingSendBackId(id);
       setIsSendBackModalOpen(true);
-    } catch (error) {
+    } catch {
       toast.error("Failed to load sendback options");
     }
   };
@@ -323,8 +451,26 @@ export default function RenewalSheet({
 
   
 
-  const onSubmit = async (data: z.infer<typeof renewalSchema>) => {
+  const onSubmit = async (data: RenewalFormValues) => {
     try {
+      if (isWorkflowProgressState(renewalDoc?.workflow_state)) {
+        const { latestDoc } = await saveWorkflowProgress(data);
+
+        toast.success(getSuccessMessage(latestDoc.workflow_state));
+
+        await queryClient.invalidateQueries({ queryKey: ["RenewalList"] });
+        await queryClient.invalidateQueries({ queryKey: ["PendingRenewals"] });
+
+        await refetchRenewal();
+        await refetchProperty();
+
+        onOpenChange(false);
+        reset();
+        setSupportingFiles([]);
+        setContractFiles([]);
+        return;
+      }
+
       
       const latest = await refetchRenewal();
       const latestDoc = latest.data?.doc;
@@ -374,7 +520,7 @@ export default function RenewalSheet({
         signatory: data.signatory || "",
       };
 
-      let updatedChequeDetails = [...(latestDoc.cheque_details || [])];
+      const updatedChequeDetails = [...(latestDoc.cheque_details || [])];
       if (formChequeData.cheque_amount > 0) {
         updatedChequeDetails[0] = formChequeData;
       }
@@ -421,16 +567,17 @@ export default function RenewalSheet({
       reset();
       setSupportingFiles([]);
       setContractFiles([]);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Submit ERROR:", error);
+      const message = getErrorMessage(error, "Save failed");
 
-      if (error?.message?.includes("modified after")) {
+      if (message.includes("modified after")) {
         toast.error("Document updated. Reloading latest data...");
         await refetchRenewal();
         return;
       }
 
-      toast.error(error?.message || "Save failed");
+      toast.error(message);
     }
   };
 
@@ -719,7 +866,7 @@ export default function RenewalSheet({
               <>
                 <Separator />
                 <h2 className="text-lg font-semibold">Miro Details</h2>
-                <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-4 items-start gap-4 pb-10">
+                <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-4 items-start gap-4 ">
                   {renderRenewalRoleField("MIRO Number", "miro_number", renewalDoc?.miro_number || "")}
                 </div>
               </>
@@ -762,7 +909,7 @@ export default function RenewalSheet({
                     );
                   }}
                 >
-                  Submit for Head Review
+                 Approve
                 </Button>
               </div>
             ) : isApprover1 && renewalDoc?.workflow_state === "Pending Approver 1" && isView ? (
@@ -800,7 +947,7 @@ export default function RenewalSheet({
                     );
                   }}
                 >
-                  Submit for GM Review
+                  Approve
                 </Button>
               </div>
             ) : isApprover2 && renewalDoc?.workflow_state === "Pending Approver 2" && isView ? (
@@ -838,7 +985,7 @@ export default function RenewalSheet({
                     );
                   }}
                 >
-                  Submit for CFO
+                  Approve
                 </Button>
               </div>
             ) : isCfo && renewalDoc?.workflow_state === "Pending CFO" && isView ? (
@@ -876,7 +1023,7 @@ export default function RenewalSheet({
                     );
                   }}
                 >
-                  Submit to MD / complete
+                  Approve
                 </Button>
               </div>
             ) : isMD && renewalDoc?.workflow_state === "Pending MD" && isView ? (
@@ -942,20 +1089,7 @@ export default function RenewalSheet({
                 <Button
                   className="w-full bg-primary text-white"
                   type="button"
-                  onClick={() => {
-                    if (!propertyId) return;
-                    if (!validateBeforeWorkflow()) return;
-                    applyAction(
-                      { renewal_id: propertyId, action: "approve" },
-                      {
-                        onSuccess: () => {
-                          refetchRenewal();
-                          queryClient.invalidateQueries({ queryKey: ["RenewalList"] });
-                          onOpenChange(false);
-                        },
-                      }
-                    );
-                  }}
+                  onClick={handleWorkflowConfirm}
                 >
                   Confirm Cheque Entry
                 </Button>
@@ -985,20 +1119,7 @@ export default function RenewalSheet({
                 <Button
                   className="w-full bg-primary text-white"
                   type="button"
-                  onClick={() => {
-                    if (!propertyId) return;
-                     if (!validateBeforeWorkflow()) return;
-                    applyAction(
-                      { renewal_id: propertyId, action: "approve" },
-                      {
-                        onSuccess: () => {
-                          refetchRenewal();
-                          queryClient.invalidateQueries({ queryKey: ["RenewalList"] });
-                          onOpenChange(false);
-                        },
-                      }
-                    );
-                  }}
+                  onClick={handleWorkflowConfirm}
                 >
                   Confirm PO
                 </Button>
@@ -1028,20 +1149,7 @@ export default function RenewalSheet({
                 <Button
                   className="w-full bg-primary text-white"
                   type="button"
-                  onClick={() => {
-                    if (!propertyId) return;
-                     if (!validateBeforeWorkflow()) return;
-                    applyAction(
-                      { renewal_id: propertyId, action: "approve" },
-                      {
-                        onSuccess: () => {
-                          refetchRenewal();
-                          queryClient.invalidateQueries({ queryKey: ["RenewalList"] });
-                          onOpenChange(false);
-                        },
-                      }
-                    );
-                  }}
+                  onClick={handleWorkflowConfirm}
                 >
                   Mark Complete
                 </Button>
