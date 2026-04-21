@@ -266,6 +266,12 @@ const renewalsData = renewalsListData?.renewals ?? [];
   };
  
   const onSubmit = async (data: z.infer<typeof propertySchema>) => {
+
+    if (isCreate && data.renewal_date && new Date(data.renewal_date) <= new Date()) {
+      toast.error("Renewal Date must be a future date");
+      return;
+    }
+    
     try {
       const uploadedFiles =
         files.length > 0 ? await Promise.all(files.map((file) => uploadFile(file))) : [];
