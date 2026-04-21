@@ -746,17 +746,17 @@ def download_self_evaluation_pdf(year, employee_code):
         # GOALS TABLE
         # -----------------------------------------------------
         goal_col_widths = [
-            usable_width * 0.03,  
-            usable_width * 0.10,  
-            usable_width * 0.16,  
-            usable_width * 0.14,  
-            usable_width * 0.05,  
-            usable_width * 0.06,  
-            usable_width * 0.07,  
-            usable_width * 0.08,  
-            usable_width * 0.07,  
-            usable_width * 0.04,  
-            usable_width * 0.20,  
+            usable_width * 0.03,  # Sl
+            usable_width * 0.09,  # Goal
+            usable_width * 0.13,  # Description
+            usable_width * 0.12,  # Measurement
+            usable_width * 0.04,  # UOM
+            usable_width * 0.10,  # Target
+            usable_width * 0.07,  # Weightage
+            usable_width * 0.10,  # Ach Val
+            usable_width * 0.07,  # Score
+            usable_width * 0.04,  # U/D
+            usable_width * 0.21,  # Remark
         ]
 
         goal_table_data = [[
@@ -800,6 +800,7 @@ def download_self_evaluation_pdf(year, employee_code):
             ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
             ("FONT", (0, 0), (-1, 0), "Helvetica-Bold"),
             ("FONTSIZE", (0, 0), (-1, 0), 7),
+            ("FONTSIZE", (0, 1), (-1, -1), 7),
             ("ALIGN", (0, 0), (-1, 0), "CENTER"),
             ("ALIGN", (0, 1), (0, -1), "CENTER"),
             ("VALIGN", (0, 0), (-1, -1), "TOP"),
@@ -807,6 +808,7 @@ def download_self_evaluation_pdf(year, employee_code):
             ("RIGHTPADDING", (0, 0), (-1, -1), 3),
             ("TOPPADDING", (0, 0), (-1, -1), 2),
             ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
+            ("WORDWRAP", (10, 1), (10, -1), True),
         ]))
 
         elements.append(goal_table)
