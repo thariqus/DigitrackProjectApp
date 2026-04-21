@@ -128,7 +128,7 @@ export default function RenewalSheet({
   });
 
   const proposedRent = useWatch({ control, name: "proposed_rent" }) || 0;
-  const currentRent = renewalDoc?.current_rent || 0;
+  const currentRent = property?.current_rent || 0;
 
   useEffect(() => {
     if (open) {
@@ -162,18 +162,18 @@ export default function RenewalSheet({
     });
   }, [open, renewalDoc, reset]);
 
-  useEffect(() => {
-    const current = Number(currentRent || 0);
-    const proposed = Number(proposedRent || 0);
+ useEffect(() => {
+  const current = Number(property?.current_rent || 0);
+  const proposed = Number(proposedRent || 0);
 
-    if (current <= 0) {
-      setRentChangePercentState("0");
-      return;
-    }
+  if (current <= 0) {
+    setRentChangePercentState("0");
+    return;
+  }
 
-    const percent = ((proposed - current) / current) * 100;
-    setRentChangePercentState(percent.toFixed(2));
-  }, [proposedRent, currentRent]);
+  const percent = ((proposed - current) / current) * 100;
+  setRentChangePercentState(percent.toFixed(2));
+}, [proposedRent, property?.current_rent]);
 
   const applyAction = useCallback((payload: any, options?: any) => {
     if (applyActionRef.current) {
@@ -187,12 +187,10 @@ export default function RenewalSheet({
     if (!date) return "";
     return new Date(date).toISOString().split("T")[0];
   };
-
   const uploadFile = async (file: File) => {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("is_private", "1");
-
     const res = await fetch("/api/method/upload_file", {
       method: "POST",
       body: formData,
@@ -203,6 +201,7 @@ export default function RenewalSheet({
     return data.message.file_url as string;
   };
 
+
   const validateBeforeWorkflow = () => {
   const values = getValues();
 
@@ -211,7 +210,7 @@ export default function RenewalSheet({
     isJHPropertyDepartment &&
     renewalDoc?.workflow_state === "Pending Cheque Details"
   ) {
-    if (!values.bank_name || !values.cheque_number || !values.cheque_amount) {
+    if (!values.bank_name || !values.cheque_number || !values.cheque_date || !values.payee ||  !values.signatory||  !values.cheque_amount) {
       toast.error("Please fill all cheque details before confirming");
       return false;
     }
@@ -287,8 +286,9 @@ export default function RenewalSheet({
         comment,
       },
       {
-        onSuccess: () => {
+        onSuccess: async() => {
           refetchRenewal();
+          await queryClient.invalidateQueries({ queryKey: ["renewal", propertyId] });
           toast.success("Renewal sent back successfully");
           setIsSendBackModalOpen(false);
           setPendingSendBackId(null);
@@ -308,12 +308,14 @@ export default function RenewalSheet({
         comment,
       },
       {
-        onSuccess: () => {
+        onSuccess: async() => {
+          await queryClient.invalidateQueries({ queryKey: ["renewal", propertyId] });
+          await refetchRenewal();
           refetchRenewal();
-          onOpenChange(false);
           toast.success("Renewal withdrawn successfully");
           setIsWithdrawModalOpen(false);
           setPendingWithdrawalId(null);
+          onOpenChange(false);
         },
       }
     );
@@ -323,6 +325,7 @@ export default function RenewalSheet({
 
   const onSubmit = async (data: z.infer<typeof renewalSchema>) => {
     try {
+      
       const latest = await refetchRenewal();
       const latestDoc = latest.data?.doc;
 
@@ -607,31 +610,56 @@ export default function RenewalSheet({
             </div>
 
             <div>
-              <h3 className="text-md font-semibold mb-2">Supporting Documents</h3>
-              {isView ? (
-                <div className="space-y-2">
-                  {renewalDoc?.supporting_documents ? (
-                    <div className="flex items-center gap-2 px-3 py-1 bg-gray-100 rounded">
-                      <span className="text-sm">
-                        {getFileName(renewalDoc.supporting_documents)}
-                      </span>
-                      <a
-                        href={renewalDoc.supporting_documents}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 underline text-sm"
-                      >
-                        View
-                      </a>
-                    </div>
-                  ) : (
-                    <p>No document</p>
-                  )}
-                </div>
-              ) : (
-                <FileAttachment files={supportingFiles} setFiles={setSupportingFiles} />
-              )}
-            </div>
+  <h3 className="text-md font-semibold mb-2">Supporting Documents</h3>
+
+  {isView ? (
+    <div className="space-y-2 mb-10">
+      {renewalDoc?.supporting_documents ? (
+        <div className="flex items-center gap-2 px-3">
+          <span className="text-sm text-gray-700">
+            {getFileName(renewalDoc.supporting_documents)}
+          </span>
+          <a
+            href={renewalDoc.supporting_documents}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 text-sm underline"
+          >
+            View
+          </a>
+        </div>
+      ) : (
+        <p className="text-sm text-gray-500">No documents available</p>
+      )}
+    </div>
+  ) : (
+    <>
+      {renewalDoc?.supporting_documents && (
+        <div className="space-y-2 mb-4">
+          <p className="text-sm font-medium text-gray-600">Existing File</p>
+          <div className="flex items-center gap-2 px-3">
+            <span className="text-sm text-gray-700">
+              {getFileName(renewalDoc.supporting_documents)}
+            </span>
+            <a
+              href={renewalDoc.supporting_documents}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 text-sm underline"
+            >
+              View
+            </a>
+          </div>
+        </div>
+      )}
+
+      <FileAttachment
+        files={supportingFiles}
+        setFiles={setSupportingFiles}
+      />
+    </>
+  )}
+</div>
 
             {isJHPropertyDepartment && renewalDoc?.workflow_state === "Pending Cheque Details" && (
               <>
