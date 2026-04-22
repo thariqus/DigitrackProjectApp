@@ -415,8 +415,10 @@ export default function RenewalSheet({
       },
       {
         onSuccess: async() => {
-          refetchRenewal();
-          await queryClient.invalidateQueries({ queryKey: ["renewal", propertyId] });
+          await queryClient.invalidateQueries({ queryKey: ["RenewalDoc", pendingSendBackId] });
+          await queryClient.invalidateQueries({ queryKey: ["RenewalList"] });
+          await queryClient.invalidateQueries({ queryKey: ["PendingRenewals"] });
+          await refetchRenewal();
           toast.success("Renewal sent back successfully");
           setIsSendBackModalOpen(false);
           setPendingSendBackId(null);
@@ -437,9 +439,10 @@ export default function RenewalSheet({
       },
       {
         onSuccess: async() => {
-          await queryClient.invalidateQueries({ queryKey: ["renewal", propertyId] });
+          await queryClient.invalidateQueries({ queryKey: ["RenewalDoc", pendingWithdrawalId] });
+          await queryClient.invalidateQueries({ queryKey: ["RenewalList"] });
+          await queryClient.invalidateQueries({ queryKey: ["PendingRenewals"] });
           await refetchRenewal();
-          refetchRenewal();
           toast.success("Renewal withdrawn successfully");
           setIsWithdrawModalOpen(false);
           setPendingWithdrawalId(null);
