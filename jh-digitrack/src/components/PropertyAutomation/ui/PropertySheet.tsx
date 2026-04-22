@@ -13,7 +13,7 @@ import { Controller, useForm, useWatch } from "react-hook-form";
 import { useNavigate } from "react-router";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
  
 import FileAttachment from "./FileAttachment";
@@ -43,9 +43,17 @@ type UserOption = {
 type NamedOption = {
   name: string;
 };
+
+const requiredNumberField = z.preprocess(
+  (value) => (value === "" || value === null || value === undefined ? undefined : Number(value)),
+  z.number({
+    required_error: "Required field",
+    invalid_type_error: "Required",
+  })
+);
  
 const propertySchema = z.object({
-  property_name: z.string().min(1, "Required"),
+  property_name: z.string().min(1, "Required field"),
   type_of_property: z.string().nullable().optional(),
   business_used: z.string().nullable().optional(),
   division_used: z.string().nullable().optional(),
@@ -65,8 +73,8 @@ const propertySchema = z.object({
  
   landlord: z.string().nullable().optional(),
   real_estate: z.string().nullable().optional(),
-  current_rent: z.coerce.number().optional(),
-  renewal_date: z.string().min(1, "Required"),
+  current_rent: requiredNumberField,
+  renewal_date: z.string().min(1, "Required field"),
   landlord_security_deposit: z.coerce.number().optional(),
   tenancy_period: z.string().nullable().optional(),
   lease_start_date: z.string().nullable().optional(),
@@ -79,8 +87,45 @@ const propertySchema = z.object({
  
   cdc_expiry: z.string().optional(),
   hassantuk_expiry: z.string().optional(),
-  approver_1: z.string().min(1, "Required"),
+  approver_1: z.string().min(1, "Required field"),
   approver_2: z.string().nullable().optional(),
+});
+
+type PropertyFormValues = z.infer<typeof propertySchema>;
+
+const getEmptyPropertyFormValues = (): PropertyFormValues => ({
+  property_name: "",
+  type_of_property: "",
+  business_used: "",
+  division_used: "",
+  booked_under: "",
+  profit_center: "",
+  number_of_units: undefined,
+  number_of_premises: undefined,
+  premise_number: "",
+  staff_allocated: "",
+  location: "",
+  emirate: "",
+  country: "UAE",
+  makani_number: "",
+  po_box_number: "",
+  po_box_renewal_date: "",
+  landlord: "",
+  real_estate: "",
+  current_rent: undefined,
+  renewal_date: "",
+  landlord_security_deposit: undefined,
+  tenancy_period: "",
+  lease_start_date: "",
+  electricity_accounts: undefined,
+  electricity_connection_numbers: "",
+  electricity_water_security_deposit: undefined,
+  landline_numbers: "",
+  internet_connection: "",
+  cdc_expiry: "",
+  hassantuk_expiry: "",
+  approver_1: "",
+  approver_2: "",
 });
  
 export default function PropertySheet({
@@ -90,7 +135,6 @@ export default function PropertySheet({
   mode,
   formatDate,
   renewalColorHighlight,
-  typeOptions,
   hasPermisssionToViewRenewalHistory
 }: PropertySheetProps) {
  
@@ -154,6 +198,7 @@ const renewalsData = renewalsListData?.renewals ?? [];
   } = useForm({
     resolver: zodResolver(propertySchema),
     mode: "onChange",
+    defaultValues: getEmptyPropertyFormValues(),
   });
  
   const divisionWatch = useWatch({
@@ -169,27 +214,37 @@ const renewalsData = renewalsListData?.renewals ?? [];
   });
  
   const selectedDivision = selectedDivisionData?.[0];
- 
-  useEffect(() => {
-    if (!open) return;
+
+  const resetSheetState = useCallback((values: PropertyFormValues = getEmptyPropertyFormValues()) => {
     setFiles([]);
     setApprover1Search("");
     setApprover2Search("");
     setOpenApproverField(null);
+    reset(values);
+  }, [reset]);
+
+  const handleSheetOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen) {
+      lastAutoFilledDivisionRef.current = null;
+      resetSheetState();
+    }
+
+    onOpenChange(nextOpen);
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    resetSheetState();
  
     if (isCreate) {
       lastAutoFilledDivisionRef.current = null;
-      reset({
-        country: "UAE",
-        approver_1: "",
-        approver_2: "",
-      });
       return;
     }
- 
+
     if (doc) {
       lastAutoFilledDivisionRef.current = doc.division_used ?? null;
-      reset({
+      resetSheetState({
+        ...getEmptyPropertyFormValues(),
         ...doc,
         renewal_date: doc.renewal_date?.split("T")[0],
         lease_start_date: doc.lease_start_date?.split("T")[0],
@@ -198,7 +253,7 @@ const renewalsData = renewalsListData?.renewals ?? [];
         hassantuk_expiry: doc.hassantuk_expiry?.split("T")[0],
       });
     }
-  }, [open, isCreate, doc, reset]);
+  }, [open, isCreate, doc, resetSheetState]);
  
   useEffect(() => {
     if (!open) return;
@@ -308,15 +363,14 @@ const renewalsData = renewalsListData?.renewals ?? [];
       await queryClient.invalidateQueries({ queryKey: ["PropertyDoc", propertyId] });
       await queryClient.invalidateQueries({ queryKey: ["RenewalList", propertyId] });
  
-      onOpenChange(false);
-      reset();
+      handleSheetOpenChange(false);
     } catch (error: unknown) {
       console.error(error);
       toast.error(error instanceof Error ? error.message : "Something went wrong");
     }
   };
  
-  const requiredFields = ["property_name", "renewal_date"];
+  const requiredFields = ["property_name", "current_rent", "renewal_date"];
  
   const getFileName = (url: string) => url.split("/").pop() || "";
  
@@ -500,7 +554,7 @@ const renewalsData = renewalsListData?.renewals ?? [];
   const propertyTypeOptions =["Shop", "Office", "Warehouse", "Other"];
  
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
+    <Sheet open={open} onOpenChange={handleSheetOpenChange}>
       <SheetContent className="sm:max-w-5xl px-5 pb-30">
         <SheetHeader className="flex-row text-2xl justify-between items-center px-0 py-2">
           <div className="flex items-center gap-5">
@@ -548,7 +602,7 @@ const renewalsData = renewalsListData?.renewals ?? [];
  
           </div>
  
-          <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)}>
+          <Button variant="ghost" size="icon" onClick={() => handleSheetOpenChange(false)}>
             <XIcon className="size-4" />
           </Button>
         </SheetHeader>
@@ -804,7 +858,7 @@ const renewalsData = renewalsListData?.renewals ?? [];
           <div className="flex w-full gap-2">
             {!isView && (
               <>
-                <Button variant="outline" className="w-full" type="button" onClick={() => onOpenChange(false)}>
+                <Button variant="outline" className="w-full" type="button" onClick={() => handleSheetOpenChange(false)}>
                   Cancel
                 </Button>
  
