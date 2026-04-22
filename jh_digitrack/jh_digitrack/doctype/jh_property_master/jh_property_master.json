@@ -176,7 +176,8 @@
   {
    "fieldname": "current_rent",
    "fieldtype": "Currency",
-   "label": "Current Rent"
+   "label": "Current Rent",
+   "reqd": 1
   },
   {
    "fieldname": "renewal_date",
@@ -277,7 +278,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-04-13 22:28:05.507590",
+ "modified": "2026-04-22 10:20:43.907705",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Property Master",

@@ -877,7 +877,76 @@ def calculate_rent_change_percent(current_rent=None, proposed_rent=None):
  
     return {"rent_change_percent": rent_change_percent}
  
+@frappe.whitelist(methods=["POST"])
+def save_renewal_progress(
+    renewal_id: str,
+    bank_name: str = None,
+    cheque_number: str = None,
+    cheque_amount=None,
+    cheque_date: str = None,
+    payee: str = None,
+    signatory: str = None,
+    po_number: str = None,
+    miro_number: str = None,
+    renewed_contract_document: str = None,
+):
+    if not renewal_id:
+        frappe.throw(_("renewal_id is required"))
  
+    frappe.flags.ignore_permissions = True
+    try:
+        renewal = frappe.get_doc("JH Property Rental Renewal", renewal_id)
+    finally:
+        frappe.flags.ignore_permissions = False
+ 
+    current_state = renewal.workflow_state or "Draft"
+    role = whoami(renewal_id=renewal_id, is_new=False).get("role")
+    allowed_roles = STATE_ROLE_MAP.get(current_state, set())
+ 
+    if current_state not in {"Pending Cheque Details", "Pending Property PO", "Pending MIRO"}:
+        frappe.throw(_("Progress can only be saved in cheque, PO, or MIRO stages."))
+ 
+    if role not in allowed_roles:
+        frappe.throw(
+            _("Role {0} is not allowed to update a renewal in state {1}").format(role, current_state)
+        )
+ 
+    renewal.flags.ignore_validate_update_after_submit = True
+ 
+    if current_state == "Pending Cheque Details":
+        renewal.set("cheque_details", [])
+        renewal.append(
+            "cheque_details",
+            {
+                "bank_name": bank_name or "",
+                "cheque_number": cheque_number or "",
+                "cheque_amount": flt(cheque_amount),
+                "cheque_date": cheque_date or "",
+                "payee": payee or "",
+                "signatory": signatory or "",
+            },
+        )
+ 
+    if current_state == "Pending Property PO":
+        renewal.po_number = po_number or ""
+        if renewed_contract_document is not None:
+            renewal.renewed_contract_document = renewed_contract_document or ""
+ 
+    if current_state == "Pending MIRO":
+        renewal.miro_number = miro_number or ""
+ 
+    renewal.save(ignore_permissions=True)
+ 
+    return {
+        "name": renewal.name,
+        "workflow_state": renewal.workflow_state,
+        "modified": renewal.modified,
+        "po_number": renewal.po_number,
+        "miro_number": renewal.miro_number,
+        "renewed_contract_document": renewal.renewed_contract_document,
+        "cheque_details": renewal.cheque_details,
+    }
+
 @frappe.whitelist(methods=["POST"])
 def apply_workflow_action(renewal_id: str, action: str, target_state: str = None, comment: str = ""):
     if not renewal_id:
