@@ -516,10 +516,10 @@ useEffect(() => {
           <table className="w-full text-left table-auto border-collapse">
             <thead className="bg-gray-100 text-gray-700 text-xs font-normal">
               <tr>
-                <th className="py-3 px-1 w-[27.5%] sticky left-0 bg-gray-100 z-10">Goal Name/Goal Description</th>
-                <th className="py-3 px-1 w-[27.5%]">Measurement Criteria</th>
-                <th className="py-3 px-1 w-[8%] text-center">Target Value / UOM </th>
-                <th className="py-3 px-1 w-[5%] text-center">Achievement Value</th>
+                <th className="py-3 px-1 w-[24%] sticky left-0 bg-gray-100 z-10">Goal Name/Goal Description</th>
+                <th className="py-3 px-1 w-[24%]">Measurement Criteria</th>
+                <th className="py-3 px-1 w-[10%] text-center">Target Value / UOM </th>
+                <th className="py-3 px-1 w-[10%] text-center">Achievement Value</th>
                 <th className="py-3 px-1 w-[5%] text-center">Weightage/ Achieved Score</th> 
                 <th className="py-3 px-1 w-[27%] text-center">Remark</th>
               </tr>
@@ -595,10 +595,20 @@ useEffect(() => {
                       onChange={(e) => {
                         if (goal.uom === "Text" || isSubmitted) return;
 
-                        let value = e.target.value.replace(/[^0-9]/g, "").slice(0, 3);
+                        let value = e.target.value.replace(/[^0-9.]/g, "");
+                        const parts = value.split(".");
+                        const integerPart = (parts[0] || "").slice(0, 10);
+                        const decimalPart =
+                          parts.length > 1
+                            ? parts.slice(1).join("").slice(0, 2)
+                            : "";
+                        value =
+                          parts.length > 1
+                            ? `${integerPart}.${decimalPart}`
+                            : integerPart;
                         handleInputChange(idx, "score", value);
                       }}
-                      className={`border p-1 w-20 rounded text-center
+                      className={`border px-2 py-1 w-28 rounded text-left
                         ${goal.uom === "Text" ? "bg-gray-100 cursor-not-allowed" : ""}
                       `}
                     />

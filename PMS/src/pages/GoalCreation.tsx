@@ -672,19 +672,19 @@ Goals created by me
 
         {/* Table */}
         <div className="border rounded-lg w-full ">
-          <table className="w-full text-left table-auto table-fixed">
-            <thead className="bg-gray-100 text-gray-500 text-[11px]">
-              <tr>
-                <th className="py-2 px-2  w-[2%]"></th>
-                <th className="py-2 px-2  w-[38%]">Goal Name / Goal Description</th>
-                {/* <th className="py-2 px-4  w-[50%]">Goal Description</th> */}
-                <th className="py-2 px-1  w-[38%]">Measurement Criteria</th>
-                <th className="py-2 px-1  w-[6%]">UOM</th>
-                <th className="py-2 px-1  w-[4%]">Target</th>
-                <th className="py-2 px-1  w-[4%]">Weightage</th>
-                <th className="py-2 px-1 text-center  w-[6%]">Upward(U)/ Downward(D)</th>
-              </tr>
-            </thead>
+	          <table className="w-full text-left table-auto table-fixed">
+	            <thead className="bg-gray-100 text-gray-500 text-[11px]">
+	              <tr>
+	                <th className="py-2 px-2  w-[2%]"></th>
+	                <th className="py-2 px-2  w-[36%]">Goal Name / Goal Description</th>
+	                {/* <th className="py-2 px-4  w-[50%]">Goal Description</th> */}
+	                <th className="py-2 px-1  w-[36%]">Measurement Criteria</th>
+	                <th className="py-2 px-1  w-[6%]">UOM</th>
+	                <th className="py-2 px-2  w-[8%]">Target</th>
+	                <th className="py-2 px-1  w-[4%]">Weightage</th>
+	                <th className="py-2 px-1 text-center  w-[6%]">Upward(U)/ Downward(D)</th>
+	              </tr>
+	            </thead>
             <tbody>
               {currentRows.map((goal, index) => (
                 <tr key={goal.id} className="border-b text-xs align-top">
@@ -804,22 +804,25 @@ readOnly
                     </select>
                   </td>
 
-                  <td className="py-1 px-1 align-top">
+                  <td className="py-1 px-2 align-top">
                     <input
                       type="text"
                       value={goal.targetvalue}
                       onChange={(e) => {
                         let value = e.target.value;
+                        value = value.replace(/[^0-9.]/g, "");
 
-                        value = value.replace(/[^0-9]/g, "");
+                        const parts = value.split(".");
+                        const integerPart = (parts[0] || "").slice(0, 10);
+                        const decimalPart =
+                          parts.length > 1
+                            ? parts.slice(1).join("").slice(0, 2)
+                            : "";
 
-                        value = value.slice(0, 3);
-
-                        if (value !== "") {
-                          let num = Number(value);
-                          if (num < 1) num = 1;   
-                          value = String(num);
-                        }
+                        value =
+                          parts.length > 1
+                            ? `${integerPart}.${decimalPart}`
+                            : integerPart;
 
                         const updated = [...goals];
                         updated[indexOfFirstRow + index].targetvalue = value;
@@ -832,7 +835,7 @@ readOnly
                       // readOnly={isGoalLocked}
                       readOnly={isGoalLocked || goal.uom === "Text"}
                       disabled={goal.uom === "Text"}
-                      className={`border text-xs p-1 w-full rounded text-center
+                      className={`border text-xs px-2 py-1 w-full rounded text-left
                         ${goal.uom === "Text" ? "bg-gray-100 cursor-not-allowed" : ""}
                       `}
                     />
