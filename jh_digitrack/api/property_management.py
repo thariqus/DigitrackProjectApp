@@ -507,51 +507,76 @@ def whoami(renewal_id: str = None, is_new: bool = False):
     cfo_user = frappe.db.get_single_value("JH Digitrack Settings", "cfo_user")
     md_user = frappe.db.get_single_value("JH Digitrack Settings", "md_user")
  
+    from jh_digitrack.api.helpers.delegation import resolve_effective_user, has_outgoing_adhoc
+
     matches = set()
- 
+    # Maps role → delegator so on_behalf_of always corresponds to the role ROLE_PRIORITY selects.
+    # A single variable would be overwritten if the user holds delegations from multiple principals.
+    behalf_map = {}
+
+    # Frappe role-based matches — no delegation needed
     if "JH Digitrack Admin" in user_roles:
         matches.add("module_admin")
-    if user == cfo_user:
-        matches.add("cfo")
-    if user == md_user:
-        matches.add("md")
     if "JH Property Department" in user_roles:
         matches.add("property_dept")
     if "JH GL Team" in user_roles:
         matches.add("gl_team")
     if "JH Licensing Team" in user_roles:
         matches.add("licensing")
- 
+
+    # Settings-based — check Temporary/Permanent delegation (no document context yet)
+    if user == cfo_user:
+        matches.add("cfo")
+    elif resolve_effective_user(delegate=user, delegator=cfo_user):
+        matches.add("cfo")
+        behalf_map["cfo"] = cfo_user
+
+    if user == md_user:
+        matches.add("md")
+    elif resolve_effective_user(delegate=user, delegator=md_user):
+        matches.add("md")
+        behalf_map["md"] = md_user
+
     if is_new:
         for role in ROLE_PRIORITY:
             if role in matches:
-                return {"role": role}
- 
+                return {"role": role, "on_behalf_of": behalf_map.get(role)}
+
         frappe.throw(_("You are not allowed to access property renewal workflow."))
- 
+
     if not renewal_id:
         frappe.throw(_("renewal_id is required when is_new is false"))
- 
+
     frappe.flags.ignore_permissions = True
     try:
         renewal = frappe.get_doc("JH Property Rental Renewal", renewal_id)
     finally:
         frappe.flags.ignore_permissions = False
- 
+
     if renewal.property:
         approvers = frappe.db.get_value(
             "JH Property Master", renewal.property,
             ["approver_1", "approver_2"], as_dict=True,
         ) or frappe._dict()
+
         if user == approvers.approver_1:
+            if not has_outgoing_adhoc(user, renewal):
+                matches.add("approver_1")
+        elif resolve_effective_user(delegate=user, delegator=approvers.approver_1, document=renewal):
             matches.add("approver_1")
+            behalf_map["approver_1"] = approvers.approver_1
+
         if user == approvers.approver_2:
+            if not has_outgoing_adhoc(user, renewal):
+                matches.add("approver_2")
+        elif resolve_effective_user(delegate=user, delegator=approvers.approver_2, document=renewal):
             matches.add("approver_2")
- 
+            behalf_map["approver_2"] = approvers.approver_2
+
     for role in ROLE_PRIORITY:
         if role in matches:
-            return {"role": role}
- 
+            return {"role": role, "on_behalf_of": behalf_map.get(role)}
+
     frappe.throw(_("You are not allowed to access property renewal workflow."))
  
  
@@ -959,8 +984,10 @@ def apply_workflow_action(renewal_id: str, action: str, target_state: str = None
     finally:
         frappe.flags.ignore_permissions = False
     current_state = renewal.workflow_state or "Draft"
-    role = whoami(renewal_id=renewal_id, is_new=False).get("role")
- 
+    whoami_result = whoami(renewal_id=renewal_id, is_new=False)
+    role = whoami_result.get("role")
+    on_behalf_of = whoami_result.get("on_behalf_of")
+
     if action == "sendback":
         if target_state not in SENDBACK_TRANSITIONS.get(current_state, set()):
             frappe.throw(_("Invalid target state {0} for sendback from {1}").format(target_state, current_state))
@@ -990,6 +1017,13 @@ def apply_workflow_action(renewal_id: str, action: str, target_state: str = None
                 next_state = "Pending Cheque Details"
                 notify_md(renewal)
  
+    audit_comment = comment
+    if on_behalf_of:
+        delegate_name = frappe.db.get_value("User", frappe.session.user, "full_name") or frappe.session.user
+        delegator_name = frappe.db.get_value("User", on_behalf_of, "full_name") or on_behalf_of
+        delegation_note = f"{action.title()} by {delegate_name} on behalf of {delegator_name}"
+        audit_comment = f"{delegation_note}\n{comment}".strip() if comment else delegation_note
+
     renewal.append(
         "audit_trail",
         {
@@ -998,12 +1032,13 @@ def apply_workflow_action(renewal_id: str, action: str, target_state: str = None
             "current_state": current_state,
             "changed_state": next_state,
             "action": action.title(),
-            "comments": comment,
+            "comments": audit_comment,
             "action_time": frappe.utils.now_datetime(),
         },
     )
     renewal.flags.ignore_validate_update_after_submit = True
     renewal.workflow_state = next_state
+    renewal.step_entered_on = frappe.utils.now_datetime()
     renewal.save(ignore_permissions=True)
     update_property_master_renewal_date(renewal)
  

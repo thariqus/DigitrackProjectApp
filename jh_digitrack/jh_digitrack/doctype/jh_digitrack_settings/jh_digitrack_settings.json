@@ -14,7 +14,13 @@
   "organization_roles_section",
   "cfo_user",
   "md_user",
-  "property_automation_tab"
+  "property_automation_tab",
+  "property_automation_section",
+  "enable_property_renewal_reminders",
+  "property_renewal_reminders",
+  "section_break_od92",
+  "enable_workflow_tat",
+  "property_workflow_tat"
  ],
  "fields": [
   {
@@ -70,13 +76,46 @@
    "fieldname": "property_automation_tab",
    "fieldtype": "Tab Break",
    "label": "Property Automation"
+  },
+  {
+   "fieldname": "property_automation_section",
+   "fieldtype": "Section Break",
+   "label": "Property Automation\t"
+  },
+  {
+   "default": "0",
+   "fieldname": "enable_property_renewal_reminders",
+   "fieldtype": "Check",
+   "label": "Enable Property Renewal Reminders\t"
+  },
+  {
+   "fieldname": "property_renewal_reminders",
+   "fieldtype": "Table",
+   "label": "Property Renewal Reminders\t",
+   "options": "JH Property Renewal Reminder"
+  },
+  {
+   "fieldname": "section_break_od92",
+   "fieldtype": "Section Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "enable_workflow_tat",
+   "fieldtype": "Check",
+   "label": "Enable Workflow TAT"
+  },
+  {
+   "fieldname": "property_workflow_tat",
+   "fieldtype": "Table",
+   "label": "Property Workflow TAT\t",
+   "options": "JH Property Workflow TAT"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-04-11 11:33:07.148374",
- "modified_by": "faris@bytsolv.com",
+ "modified": "2026-04-22 18:27:21.136544",
+ "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Digitrack Settings",
  "owner": "Administrator",

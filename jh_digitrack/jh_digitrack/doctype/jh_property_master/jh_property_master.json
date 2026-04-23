@@ -48,7 +48,9 @@
   "cdc_expiry",
   "hassantuk_expiry",
   "documents_section",
-  "documents"
+  "documents",
+  "section_break_rezh",
+  "last_renewal_reminder"
  ],
  "fields": [
   {
@@ -101,7 +103,7 @@
   },
   {
    "fieldname": "premise_number",
-   "fieldtype": "Data",
+   "fieldtype": "Small Text",
    "label": "Premise Number"
   },
   {
@@ -202,7 +204,7 @@
   },
   {
    "fieldname": "electricity_connection_numbers",
-   "fieldtype": "Data",
+   "fieldtype": "Small Text",
    "label": "Electricity Connection Numbers"
   },
   {
@@ -273,12 +275,23 @@
    "fieldname": "lease_start_date",
    "fieldtype": "Date",
    "label": "Lease start Date"
+  },
+  {
+   "fieldname": "section_break_rezh",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "last_renewal_reminder",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Last Renewal Reminder",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-04-22 10:20:43.907705",
+ "modified": "2026-04-22 18:46:56.722669",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Property Master",

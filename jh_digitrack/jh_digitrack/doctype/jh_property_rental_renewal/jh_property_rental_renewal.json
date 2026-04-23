@@ -41,6 +41,9 @@
   "workflow_state",
   "audit_section",
   "audit_trail",
+  "step_entered_on",
+  "last_tat_notification",
+  "enable_escalation_notifications",
   "amended_from"
  ],
  "fields": [
@@ -265,13 +268,33 @@
    "print_hide": 1,
    "read_only": 1,
    "search_index": 1
+  },
+  {
+   "fieldname": "step_entered_on",
+   "fieldtype": "Datetime",
+   "hidden": 1,
+   "label": "Step Entered On\t",
+   "read_only": 1
+  },
+  {
+   "fieldname": "last_tat_notification",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Last TAT Notification\t",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "enable_escalation_notifications",
+   "fieldtype": "Check",
+   "label": "Enable Escalation Notifications"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-04-13 22:29:04.568450",
+ "modified": "2026-04-22 18:58:19.880414",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Property Rental Renewal",
