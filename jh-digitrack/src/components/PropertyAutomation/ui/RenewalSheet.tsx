@@ -877,7 +877,7 @@ export default function RenewalSheet({
 
             {propertyId && mode === "view" && (
               <>
-                <RenewalTimeline renewalId={propertyId} defaultOpen={true} />
+                <RenewalTimeline renewalId={propertyId} defaultOpen={true} title="Timeline"/>
               </>
             )}
           </form>
@@ -895,6 +895,7 @@ export default function RenewalSheet({
                 >
                   Close
                 </Button>
+                <Button className="w-full bg-gray-300 text-gray-500">Delegate</Button>
                 <Button
                   className="w-full bg-primary text-white"
                   type="button"
@@ -933,6 +934,7 @@ export default function RenewalSheet({
                 >
                   Send Back
                 </Button>
+                <Button className="w-full bg-gray-300 text-gray-500">Delegate</Button>
                 <Button
                   className="w-full bg-primary text-white"
                   type="button"
@@ -971,6 +973,7 @@ export default function RenewalSheet({
                 >
                   Send Back
                 </Button>
+                <Button className="w-full bg-gray-300 text-gray-500">Delegate</Button>
                 <Button
                   className="w-full bg-primary text-white"
                   type="button"
@@ -1009,6 +1012,7 @@ export default function RenewalSheet({
                 >
                   Send Back
                 </Button>
+                <Button className="w-full bg-gray-300 text-gray-500">Delegate</Button>
                 <Button
                   className="w-full bg-primary text-white"
                   type="button"
@@ -1047,6 +1051,7 @@ export default function RenewalSheet({
                 >
                   Send Back
                 </Button>
+                <Button className="w-full bg-gray-300 text-gray-500">Delegate</Button>
                 <Button
                   className="w-full bg-primary text-white"
                   type="button"
@@ -1089,6 +1094,7 @@ export default function RenewalSheet({
                 >
                   {isSubmitting ? "Saving..." : "Save Cheque Entry"}
                 </Button>
+                <Button className="w-full bg-gray-300 text-gray-500">Delegate</Button>
                 <Button
                   className="w-full bg-primary text-white"
                   type="button"
@@ -1119,6 +1125,7 @@ export default function RenewalSheet({
                 >
                   {isSubmitting ? "Saving..." : "Save PO"}
                 </Button>
+                <Button className="w-full bg-gray-300 text-gray-500">Delegate</Button>
                 <Button
                   className="w-full bg-primary text-white"
                   type="button"
@@ -1149,6 +1156,7 @@ export default function RenewalSheet({
                 >
                   {isSubmitting ? "Saving..." : "Save MIRO Details"}
                 </Button>
+                <Button className="w-full bg-gray-300 text-gray-500">Delegate</Button>
                 <Button
                   className="w-full bg-primary text-white"
                   type="button"
