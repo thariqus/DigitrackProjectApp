@@ -203,6 +203,14 @@ export function MainNav() {
               )}
 
               <DropdownMenuItem
+                onClick={() => {
+                  window.location.href = "/jh-digitrack/delegations";
+                }}
+              >
+                <span>Manage Delegation</span>
+              </DropdownMenuItem>
+
+              <DropdownMenuItem
                 className="w-full"
                 onSelect={(e) => {
                   e.preventDefault(); 
