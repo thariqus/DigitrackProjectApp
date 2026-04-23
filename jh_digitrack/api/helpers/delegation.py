@@ -110,24 +110,37 @@ def check_delegation_expiry():
 def get_delegations_for_user(user: str):
     """
     Returns all active delegations where user is delegator or delegate.
-    Used by the frontend delegation UI.
+    Two separate queries are used to correctly enforce status = Active on both sides.
+    Frappe or_filters drops AND conditions when combined with filters, so a single
+    query cannot express: status=Active AND (delegator=user OR delegate=user).
     """
-    return frappe.get_all(
+    fields = [
+        "name", "delegator", "delegator_name", "delegate", "delegate_name",
+        "delegation_type", "from_date", "to_date",
+        "reference_doctype", "reference_name", "comment", "status",
+    ]
+
+    as_delegator = frappe.get_all(
         "JH Delegation",
-        filters=[
-            ["status", "=", "Active"],
-            ["delegator", "=", user],
-        ],
-        or_filters=[
-            ["delegate", "=", user],
-        ],
-        fields=[
-            "name", "delegator", "delegator_name", "delegate", "delegate_name",
-            "delegation_type", "from_date", "to_date",
-            "reference_doctype", "reference_name", "comment", "status",
-        ],
+        filters={"status": "Active", "delegator": user},
+        fields=fields,
         ignore_permissions=True,
     )
+    as_delegate = frappe.get_all(
+        "JH Delegation",
+        filters={"status": "Active", "delegate": user},
+        fields=fields,
+        ignore_permissions=True,
+    )
+
+    seen = set()
+    result = []
+    for d in as_delegator + as_delegate:
+        if d.name not in seen:
+            seen.add(d.name)
+            result.append(d)
+
+    return result
 
 
 # ── Notification entry points ────────────────────────────────────────────────
