@@ -13,47 +13,24 @@ import {
 import { useEffect, useState } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { PropertyAuditTrail } from "@/types/JHDigitrack/JHPropertyAutomation";
+import { useRenewalAuditTrail } from "../hooks/useProperty";
 
 interface RenewalTimelineProps {
   renewalId: string;
   defaultOpen?: boolean;
+  title?: string;
 }
 
 export default function RenewalTimeline({
   renewalId,
   defaultOpen = false,
+  title
 }: RenewalTimelineProps) {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
-  const [auditTrail, setAuditTrail] = useState<PropertyAuditTrail[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
 
+  const [isOpen, setIsOpen] = useState(defaultOpen);
   const [comment, setComment] = useState("");
   const { data: currentJhUser } = useCurrentJhUser();
-
-  //  Fetch audit trail
-  const fetchAuditTrail = () => {
-    if (!renewalId) return;
-
-    setIsLoading(true);
-
-    fetch(
-      `/api/method/jh_digitrack.api.property_management.get_renewal_audit_trail?renewal_id=${renewalId}`,
-      { credentials: "include" }
-    )
-      .then((res) => res.json())
-      .then((data) => {
-        setAuditTrail(data.message?.audit_trail || []);
-      })
-      .catch((err) => {
-        console.error(err);
-        setAuditTrail([]);
-      })
-      .finally(() => setIsLoading(false));
-  };
-
-  useEffect(() => {
-    fetchAuditTrail();
-  }, [renewalId]);
+  const { data: auditTrail = [], isLoading } = useRenewalAuditTrail(renewalId);
 
   // Sort latest first
   const sortedAuditTrail = [...auditTrail].sort(
@@ -69,32 +46,15 @@ export default function RenewalTimeline({
   const commentLogs = sortedAuditTrail.filter(
     (log) => log.comments && log.comments.trim()
   );
-console.log(auditTrail,"audit")
+    console.log(auditTrail,"audit")
 
-  // const handleAddComment = () => {
-  //   if (!comment.trim()) return;
-
-  //   fetch(
-  //     "/api/method/jh_digitrack.api.property_management.apply_workflow_action",
-  //     {
-  //       method: "POST",
-  //       credentials: "include",
-  //       headers: {
-  //         "Content-Type": "application/json",
-  //       },
-  //       body: JSON.stringify({
-  //         renewal_id: renewalId,
-  //         action: "comment", 
-  //         comment: comment,
-  //       }),
-  //     }
-  //   )
-  //     .then(() => {
-  //       setComment("");
-  //       fetchAuditTrail(); // refresh timeline
-  //     })
-  //     .catch((err) => console.error(err));
-  // };
+    if (!sortedAuditTrail.length && !isLoading) {
+  return (
+    <div className="text-sm text-gray-500 mt-4">
+      No renewal history found
+    </div>
+  );
+}
 
   const TimelineItem = ({ log }: { log: PropertyAuditTrail }) => {
     const { data: user } = useJhUser(log.user);
@@ -166,8 +126,6 @@ console.log(auditTrail,"audit")
     </div>
   );
 
-  if (!sortedAuditTrail.length && !isLoading) return null;
-
   return (
     <Collapsible
       open={isOpen}
@@ -178,7 +136,7 @@ console.log(auditTrail,"audit")
       <CollapsibleTrigger asChild>
         <Button variant="ghost" className="w-full  px-0">
           <div className="flex justify-between w-full bg-rose-100 items-center gap-2 p-2">
-            <span className="text-md font-semibold font-gray-400">TimeLine</span>
+            <span className="text-md font-semibold font-gray-400">{title}</span>
             <ChevronDown
               className={`h-4 w-4 transition-transform ${
                 isOpen ? "rotate-180" : ""
@@ -192,7 +150,7 @@ console.log(auditTrail,"audit")
       <CollapsibleContent className="mt-4">
         {/* Tabs */}
         <Tabs defaultValue="all" className="w-full">
-        <div className="flex justify-end items-center">
+        <div className="flex justify-start items-center">
           {/* <div className="text-md font-bold">Timeline</div> */}
           <TabsList className="bg-rose-50">
             <TabsTrigger value="all">All</TabsTrigger>
