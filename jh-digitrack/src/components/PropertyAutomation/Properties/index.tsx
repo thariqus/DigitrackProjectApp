@@ -32,9 +32,8 @@ function Properties() {
   const [expiringSoon, setExpiringSoon] = useState(false);
   const [selectedProperty, setSelectedProperty] = useState<string | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
-  const { data: roleBasedAccess } = useUserAccess();
-
   const { data: permissionData } = useUserAccess();
+  console.log(permissionData,"permission")
 
   const listParams = useMemo(
     () => ({
@@ -57,10 +56,19 @@ function Properties() {
     ]
   );
 
-  // history viewing permission
-  const hasPermisssionToViewRenewalHistory =  roleBasedAccess?.message?.roles?.includes("JH Property Department") || roleBasedAccess?.message?.has_gl_team_role ||  
-                                              roleBasedAccess?.message?.is_approver_1 || roleBasedAccess?.message?.is_approver_2 ||
-                                              roleBasedAccess?.message?.is_cfo || roleBasedAccess?.message?.is_md
+  // view permission of renewal history
+    const message = permissionData;
+    const role = message?.roles || [];
+
+    const hasPermisssionToViewRenewalHistory = !!(
+      role.includes("JH Property Department") ||
+      message?.is_licensing ||
+      message?.is_approver_1 ||
+      message?.is_approver_2 ||
+      message?.is_cfo ||
+      message?.is_md ||
+      message?.has_gl_team_role  
+    );
 
   const { data: pageResult, isLoading } = usePropertyList(listParams);
 
