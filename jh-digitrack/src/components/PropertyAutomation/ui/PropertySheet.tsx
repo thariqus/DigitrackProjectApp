@@ -17,11 +17,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
  
 import FileAttachment from "./FileAttachment";
+import MultiValueInput from "./MultiValueInput";
 import StartRenewalModal from "./StartRenewalModal";
 import { useDocs, useSaveDoc, useUpdateDoc } from "@/hooks/doc";
 import { usePropertyDoc, useRenewalList } from "../hooks/useProperty";
 import { PropertyMaster } from "@/types/JHDigitrack/JHPropertyAutomation";
 import { queryClient } from "@/utils/query-client";
+import RenewalTimeline from "./RenewalTimeline";
  
 type PropertySheetProps = {
   open: boolean;
@@ -127,6 +129,12 @@ const getEmptyPropertyFormValues = (): PropertyFormValues => ({
   approver_1: "",
   approver_2: "",
 });
+
+const getMultiValueItems = (value?: string | null) =>
+  (value ?? "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
  
 export default function PropertySheet({
   open,
@@ -149,6 +157,10 @@ export default function PropertySheet({
  
   const saveDoc = useSaveDoc();
   const updateDoc = useUpdateDoc();
+
+  console.log(hasPermisssionToViewRenewalHistory,"hasPermisssionToViewRenewalHistory")
+  console.log(mode,"mode")
+  console.log(propertyId, "propertyId");
  
   const isView = mode === "view";
   const isEdit = mode === "edit";
@@ -381,6 +393,7 @@ const renewalsData = renewalsListData?.renewals ?? [];
     type = "text"
   ) => {
     const isRequired = requiredFields.includes(name as string);
+
  
     return (
       <div className="flex flex-col gap-1">
@@ -550,6 +563,59 @@ const renewalsData = renewalsListData?.renewals ?? [];
       </div>
     );
   };
+
+  const renderMultiValueField = (
+    label: string,
+    name: "premise_number" | "electricity_connection_numbers",
+    value?: string
+  ) => {
+    const items = getMultiValueItems(value);
+
+    return (
+      <div className="flex flex-col gap-1">
+        {!isView && <Label className="text-sm text-gray-600 text-nowrap">{label} 
+                      <span className="text-xs text-gray-400">({`Type and press Enter`})</span>
+                     </Label>}
+
+        {isView ? (
+          <div className="flex items-start gap-2 py-1 text-sm">
+            <span className="font-medium text-gray-600">{label}:</span>
+            {items.length > 0 ? (
+              <div className="flex flex-wrap gap-1">
+                {items.map((item) => (
+                  <span
+                    key={item}
+                    className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-foreground"
+                  >
+                    {item}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <span>-</span>
+            )}
+          </div>
+        ) : (
+          <Controller
+            name={name}
+            control={control}
+            render={({ field }) => (
+              <MultiValueInput
+                value={field.value}
+                onChange={field.onChange}
+                // placeholder={`Enter ${label.toLowerCase()} and press Enter`}
+                className={errors[name] ? "border-red-500" : ""}
+              />
+            )}
+          />
+        )}
+
+        {errors[name] && (
+          <span className="text-red-500 text-xs">{errors[name]?.message as string}</span>
+        )}
+      </div>
+    );
+  };
  
   const propertyTypeOptions =["Shop", "Office", "Warehouse", "Other"];
  
@@ -696,7 +762,7 @@ const renewalsData = renewalsListData?.renewals ?? [];
               {renderField("Profit Center", "profit_center", doc?.profit_center)}
               {renderField("No. of Units", "number_of_units", doc?.number_of_units)}
               {renderField("No. of Premises", "number_of_premises", doc?.number_of_premises)}
-              {renderField("Premise No", "premise_number", doc?.premise_number)}
+              {renderMultiValueField("Premise No", "premise_number", doc?.premise_number)}
               {renderField("Staff Allocated", "staff_allocated", doc?.staff_allocated)}
             </div>
  
@@ -751,9 +817,8 @@ const renewalsData = renewalsListData?.renewals ?? [];
             <Separator />
  
             <h2 className="text-lg font-semibold">Utilities</h2>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <div className={`grid grid-cols-1 ${isView ? "md:grid-cols-3" : "md:grid-cols-4"} gap-3`}>
               {renderField("Electricity Accounts", "electricity_accounts", doc?.electricity_accounts)}
-              {renderField("Connection No", "electricity_connection_numbers", doc?.electricity_connection_numbers)}
               {renderField(
                 "Electricity / Water Security Deposit",
                 "electricity_water_security_deposit",
@@ -761,6 +826,11 @@ const renewalsData = renewalsListData?.renewals ?? [];
               )}
               {renderField("Landline Numbers", "landline_numbers", doc?.landline_numbers)}
               {renderField("Internet Connection", "internet_connection", doc?.internet_connection)}
+              {renderMultiValueField(
+                "Connection No",
+                "electricity_connection_numbers",
+                doc?.electricity_connection_numbers
+              )}
             </div>
  
             <Separator />
@@ -839,18 +909,11 @@ const renewalsData = renewalsListData?.renewals ?? [];
               </>
             )}
  
-            {
-              hasPermisssionToViewRenewalHistory && (
-                <>
-                <Separator />
- 
-                <div className="mb-30">
-                  <h3 className="font-semibold">Renewal History</h3>
-                </div>
-                </>
-              )
-            }
-            
+             {hasPermisssionToViewRenewalHistory && propertyId && mode === "view" && (
+              <>
+                    <RenewalTimeline renewalId={activeRenewal} defaultOpen={true} title="Renewal history"/>
+              </> 
+              )}
           </form>
         </ScrollArea>
  
