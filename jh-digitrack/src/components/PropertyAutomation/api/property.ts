@@ -164,6 +164,15 @@ export const propertyApi = {
   const data = await res.json();
   return data.message?.audit_trail ?? [];
 },
+
+  getRenewalRole: async (renewalId: string) => {
+    const res = await fetch(
+      `${API_BASE}.get_renewal_role?renewal_id=${encodeURIComponent(renewalId)}`,
+      { credentials: "include" }
+    );
+    const data = await res.json();
+    return data.message as { role: string; on_behalf_of?: string } | undefined;
+  },
 };
 
 
