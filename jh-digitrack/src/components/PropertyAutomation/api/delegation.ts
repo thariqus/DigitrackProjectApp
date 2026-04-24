@@ -40,12 +40,35 @@ export const delegationApi = {
     delegation_type: string;
     from_date?: string;
     to_date?: string;
+    reference_doctype?: string;
+    reference_name?: string;
+    comment?: string;
   }) => {
     try {
       return await frappe.api.post(
         `${API_BASE}.create_delegation`,
         payload
       );
+    } catch (error) {
+      throw new Error(getApiErrorMessage(error));
+    }
+  },
+
+  revokeDelegation: async (name: string) => {
+    try {
+      return await frappe.api.post(`${API_BASE}.revoke_delegation`, { name });
+    } catch (error) {
+      throw new Error(getApiErrorMessage(error));
+    }
+  },
+
+  getDocumentDelegation: async (reference_doctype: string, reference_name: string) => {
+    try {
+      const res = await frappe.api.get(`${API_BASE}.get_document_delegation`, {
+        reference_doctype,
+        reference_name,
+      });
+      return res.message?.delegation ?? null;
     } catch (error) {
       throw new Error(getApiErrorMessage(error));
     }
