@@ -9,6 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { PaginationControls } from "./PaginationControls";
 
 type DelegationRecord = {
   name: string;
@@ -28,6 +29,10 @@ type DelegationTableProps = {
   delegations: DelegationRecord[];
   isLoading: boolean;
   tab: TabValue;
+  currentPage: number;
+  setCurrentPage: (page: number) => void;
+  datasPerPage: number;
+  setDatasPerPage: (value: number) => void;
 };
 
 const formatDate = (date?: string | null) => {
@@ -58,7 +63,16 @@ const formatDateRange = (delegation: DelegationRecord) => {
   return `${formatDate(delegation.from_date)} to ${formatDate(delegation.to_date)}`;
 };
 
-export function DelegationTable({ delegations, isLoading, tab }: DelegationTableProps) {
+export function DelegationTable({
+  delegations,
+  isLoading,
+  tab,
+  currentPage,
+  setCurrentPage,
+  datasPerPage,
+  setDatasPerPage,
+}: DelegationTableProps) {
+
   if (isLoading) {
     return (
       <div className="rounded-md border border-dashed px-6 py-10 text-center text-sm text-muted-foreground">
@@ -82,43 +96,59 @@ export function DelegationTable({ delegations, isLoading, tab }: DelegationTable
     );
   }
 
-  return (
-    <div className="rounded-md border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>{tab === "outgoing" ? "Delegated To" : "Delegated By"}</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead>Date Range</TableHead>
-            <TableHead>Status</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {delegations.map((delegation) => {
-            const counterpartName =
-              tab === "outgoing"
-                ? delegation.delegate_name || delegation.delegate
-                : delegation.delegator_name || delegation.delegator;
+  const totalPages = Math.ceil(delegations.length / datasPerPage);
+  const start = (currentPage - 1) * datasPerPage;
+  const paginatedDelegations = delegations.slice(start, start + datasPerPage);
 
-            return (
-              <TableRow key={delegation.name}>
-                <TableCell>
-                  <div className="font-medium">{counterpartName}</div>
-                </TableCell>
-                <TableCell>
-                  <Badge variant={delegation.delegation_type === "Permanent" ? "secondary" : "outline"}>
-                    {delegation.delegation_type}
-                  </Badge>
-                </TableCell>
-                <TableCell>{formatDateRange(delegation)}</TableCell>
-                <TableCell>
-                  <Badge>{delegation.status}</Badge>
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
+  return (
+    <div className="space-y-4">
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>#</TableHead>
+              <TableHead>{tab === "outgoing" ? "Delegated To" : "Delegated By"}</TableHead>              
+              <TableHead>Type</TableHead>
+              <TableHead>Date Range</TableHead>
+              <TableHead>Status</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {paginatedDelegations.map((delegation, index) => {
+              const counterpartName =
+                tab === "outgoing"
+                  ? delegation.delegate_name || delegation.delegate
+                  : delegation.delegator_name || delegation.delegator;
+
+              return (
+                <TableRow key={delegation.name} className="border-b ">
+                  <TableCell>{start + index + 1}</TableCell>
+                  <TableCell>
+                    <div className="font-medium">{counterpartName}</div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={delegation.delegation_type === "Permanent" ? "secondary" : "outline"}>
+                      {delegation.delegation_type}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>{formatDateRange(delegation)}</TableCell>
+                  <TableCell>
+                    <Badge>{delegation.status}</Badge>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+         <PaginationControls
+            datasPerPage={datasPerPage}
+            setDatasPerPage={setDatasPerPage}
+            totalPages={totalPages}
+            currentPage={currentPage}
+            setCurrentPage={setCurrentPage}
+          />
+      </div>
+     
     </div>
   );
 }
