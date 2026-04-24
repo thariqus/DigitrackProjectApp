@@ -47,11 +47,16 @@ export const useRenewalList = (params: QueryParams, enabled = true) =>
     enabled,
   });
 
-  export const useRenewalAuditTrail = (renewalId?: string) =>
+export const useRenewalAuditTrail = (renewalId?: string) =>
   useQuery({
     queryKey: ["RenewalAuditTrail", renewalId],
     queryFn: () => propertyApi.getRenewalAuditTrail(renewalId!),
     enabled: !!renewalId,
   });
 
-  
+export const useRenewalRole = (renewalId?: string) =>
+  useQuery({
+    queryKey: ["RenewalRole", renewalId],
+    queryFn: () => propertyApi.getRenewalRole(renewalId!),
+    enabled: !!renewalId,
+  });
