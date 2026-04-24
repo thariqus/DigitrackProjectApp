@@ -22,6 +22,10 @@ type DelegationTabsProps = {
   outgoingDelegations: DelegationRecord[];
   incomingDelegations: DelegationRecord[];
   isLoading: boolean;
+  currentPage: number;
+  setCurrentPage: (page: number) => void;
+  datasPerPage: number;
+  setDatasPerPage: (value: number) => void;
 };
 
 export function DelegationTabs({
@@ -30,6 +34,10 @@ export function DelegationTabs({
   outgoingDelegations,
   incomingDelegations,
   isLoading,
+  currentPage,
+  setCurrentPage,
+  datasPerPage,
+  setDatasPerPage,
 }: DelegationTabsProps) {
   return (
     <Tabs value={activeTab} onValueChange={(value) => onTabChange(value as TabValue)} className="space-y-4">
@@ -52,6 +60,10 @@ export function DelegationTabs({
           delegations={outgoingDelegations}
           isLoading={isLoading}
           tab="outgoing"
+          currentPage={currentPage}
+          setCurrentPage={setCurrentPage}
+          datasPerPage={datasPerPage}
+          setDatasPerPage={setDatasPerPage}
         />
       </TabsContent>
 
@@ -65,6 +77,10 @@ export function DelegationTabs({
           delegations={incomingDelegations}
           isLoading={isLoading}
           tab="incoming"
+          currentPage={currentPage}
+          setCurrentPage={setCurrentPage}
+          datasPerPage={datasPerPage}
+          setDatasPerPage={setDatasPerPage}
         />
       </TabsContent>
     </Tabs>
