@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
 import { XIcon } from "lucide-react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -14,12 +15,15 @@ import * as z from "zod";
 import { toast } from "sonner";
 import FileAttachment from "./FileAttachment";
 import { useQueryClient } from "@tanstack/react-query";
-import { useUpdateDoc } from "@/hooks/doc";
+import { useUpdateDoc, useDocs } from "@/hooks/doc";
+import { useCurrentUser } from "@/hooks/auth";
 import { useEffect, useState } from "react";
 import { PropertyMaster, RentalRenewal } from "@/types/JHDigitrack/JHPropertyAutomation";
-import { usePropertyDoc, useRenewalDoc } from "../hooks/useProperty";
+import { usePropertyDoc, useRenewalDoc, useRenewalRole } from "../hooks/useProperty";
 import { propertyApi } from "../api/property";
 import { useApplyWorkflowAction } from "../hooks/useApplyWorkflowAction";
+import { useCreateDelegation, useDocumentDelegation, useRevokeDelegation } from "../hooks/useDelegation";
+import { RenewalDelegationModal } from "./RenewalDelegationModal";
 
 type RenewalSheetProps = {
   open: boolean;
@@ -83,6 +87,7 @@ export default function RenewalSheet({
   const [sendbackOptions, setSendbackOptions] = useState<string[]>([]);
   const [rentChangePercentState, setRentChangePercentState] = useState("0");
   const [localModified, setLocalModified] = useState<string>("");
+  const [isDelegateModalOpen, setIsDelegateModalOpen] = useState(false);
 
   const queryClient = useQueryClient();
   const updateDoc = useUpdateDoc();
@@ -93,8 +98,51 @@ export default function RenewalSheet({
   const workflowMutation = useApplyWorkflowAction();
   const applyAction = workflowMutation.mutate;
 
+  const { data: currentUser, isLoading: isCurrentUserLoading } = useCurrentUser();
+  const currentUserId = currentUser || undefined;
+
+  const { data: usersData = [], isLoading: isUsersLoading } = useDocs<{ name: string; full_name?: string; email?: string }>({
+    doctype: "User",
+    fields: ["name", "full_name", "email"],
+    limit: 500,
+  });
+
+  const {
+    data: activeDelegation,
+    isLoading: isDelegationLoading,
+    refetch: refetchDelegation,
+  } = useDocumentDelegation(
+    propertyId ? "JH Property Rental Renewal" : undefined,
+    propertyId || undefined,
+  );
+
+  const createDelegationMutation = useCreateDelegation({
+    onClose: () => setIsDelegateModalOpen(false),
+  });
+
+  const revokeDelegationMutation = useRevokeDelegation({
+    onSuccess: () => {
+      refetchDelegation();
+      refetchRenewal();
+      queryClient.invalidateQueries({ queryKey: ["RenewalList"] });
+      queryClient.invalidateQueries({ queryKey: ["PendingRenewals"] });
+    },
+  });
+
   const { data: renewalData, isLoading: renewalLoading, refetch: refetchRenewal } =
     useRenewalDoc(propertyId || undefined);
+
+  const { data: renewalRoleData } = useRenewalRole(propertyId || undefined);
+
+  const effectiveRole = renewalRoleData?.role;
+  const isActingAsDelegate = !!renewalRoleData?.on_behalf_of;
+  const effectiveIsApprover1 = effectiveRole === "approver_1";
+  const effectiveIsApprover2 = effectiveRole === "approver_2";
+  const effectiveIsCfo = effectiveRole === "cfo";
+  const effectiveIsMd = effectiveRole === "md";
+  const effectiveIsPropertyDept = effectiveRole === "property_dept";
+  const effectiveIsGLTeam = effectiveRole === "gl_team";
+  const effectiveIsLicensing = effectiveRole === "licensing";
 
   const renewalDoc = renewalData?.doc as RentalRenewal | undefined;
 
@@ -196,7 +244,7 @@ export default function RenewalSheet({
 
   // Property Dept → Cheque Details
   if (
-    isJHPropertyDepartment &&
+    (isJHPropertyDepartment || effectiveIsPropertyDept) &&
     renewalDoc?.workflow_state === "Pending Cheque Details"
   ) {
     if (!values.bank_name || !values.cheque_number || !values.cheque_date || !values.payee ||  !values.signatory||  !values.cheque_amount) {
@@ -212,7 +260,7 @@ export default function RenewalSheet({
 
   // Property Dept → PO
   if (
-    isJHPropertyDepartment &&
+    (isJHPropertyDepartment || effectiveIsPropertyDept) &&
     renewalDoc?.workflow_state === "Pending Property PO"
   ) {
     if (!values.po_number) {
@@ -223,7 +271,7 @@ export default function RenewalSheet({
 
   // GL Team → MIRO
   if (
-    isGLTeam &&
+    (isGLTeam || effectiveIsGLTeam) &&
     renewalDoc?.workflow_state === "Pending MIRO"
   ) {
     if (!values.miro_number) {
@@ -452,7 +500,62 @@ export default function RenewalSheet({
     );
   };
 
-  
+  const handleDelegate = (values: { delegate: string; comment: string }) => {
+    if (!propertyId) return;
+    createDelegationMutation.mutate(
+      {
+        delegate: values.delegate,
+        delegation_type: "Ad-Hoc",
+        reference_doctype: "JH Property Rental Renewal",
+        reference_name: propertyId,
+        comment: values.comment,
+      },
+      {
+        onSuccess: () => {
+          refetchDelegation();
+          refetchRenewal();
+          queryClient.invalidateQueries({ queryKey: ["RenewalList"] });
+          queryClient.invalidateQueries({ queryKey: ["PendingRenewals"] });
+          toast.success("Delegation created successfully");
+        },
+      }
+    );
+  };
+
+  const handleRevoke = () => {
+    if (!activeDelegation?.name) return;
+    revokeDelegationMutation.mutate(activeDelegation.name);
+  };
+
+  const renderDelegateBadge = () => {
+    if (!isActingAsDelegate) return null;
+    return (
+      <Badge variant="secondary" className="bg-blue-100 text-blue-800 hover:bg-blue-100">
+        Acting on behalf of {renewalRoleData?.on_behalf_of}
+      </Badge>
+    );
+  };
+
+  const renderDelegationBadge = () => {
+    if (isDelegationLoading) return null;
+    if (!activeDelegation) return null;
+    return (
+      <div className="flex items-center gap-2">
+        <Badge variant="secondary" className="bg-amber-100 text-amber-800 hover:bg-amber-100">
+          Delegation Active: {activeDelegation.delegate_name || activeDelegation.delegate}
+        </Badge>
+        <Button
+          variant="outline"
+          size="sm"
+          className="bg-gray-300 text-gray-500"
+          onClick={handleRevoke}
+          disabled={revokeDelegationMutation.isPending}
+        >
+          {revokeDelegationMutation.isPending ? "Revoking..." : "Revoke"}
+        </Button>
+      </div>
+    );
+  };
 
   const onSubmit = async (data: RenewalFormValues) => {
     try {
@@ -493,7 +596,7 @@ export default function RenewalSheet({
 
       const chequeAmount = Number(getValues("cheque_amount") || 0);
       if (
-        isJHPropertyDepartment &&
+        (isJHPropertyDepartment || effectiveIsPropertyDept) &&
         renewalDoc?.workflow_state === "Pending Cheque Details" &&
         chequeAmount <= 0
       ) {
@@ -680,7 +783,10 @@ export default function RenewalSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="sm:max-w-5xl px-5 pb-30">
         <SheetHeader className="flex-row text-2xl justify-between items-center px-0 py-2">
-          <SheetTitle>{isEdit ? `Edit Renewal ${propertyId}` : "Renewal Details"}</SheetTitle>
+          <div className="flex items-center gap-3">
+            <SheetTitle>{isEdit ? `Edit Renewal ${propertyId}` : "Renewal Details"}</SheetTitle>
+            {renderDelegateBadge()}
+          </div>
           <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)}>
             <XIcon className="size-4" />
           </Button>
@@ -811,7 +917,7 @@ export default function RenewalSheet({
   )}
 </div>
 
-            {isJHPropertyDepartment && renewalDoc?.workflow_state === "Pending Cheque Details" && (
+            {(isJHPropertyDepartment || effectiveIsPropertyDept) && renewalDoc?.workflow_state === "Pending Cheque Details" && (
               <>
                 <Separator />
                 <h2 className="text-lg font-semibold">Cheque Details</h2>
@@ -832,7 +938,7 @@ export default function RenewalSheet({
               </>
             )}
 
-            {isJHPropertyDepartment && renewalDoc?.workflow_state === "Pending Property PO" && (
+            {(isJHPropertyDepartment || effectiveIsPropertyDept) && renewalDoc?.workflow_state === "Pending Property PO" && (
               <>
                 <Separator />
                 <h2 className="text-lg font-semibold">PO Details</h2>
@@ -865,7 +971,7 @@ export default function RenewalSheet({
               </>
             )}
 
-            {isGLTeam && renewalDoc?.workflow_state === "Pending MIRO" && (
+            {(isGLTeam || effectiveIsGLTeam) && renewalDoc?.workflow_state === "Pending MIRO" && (
               <>
                 <Separator />
                 <h2 className="text-lg font-semibold">Miro Details</h2>
@@ -884,287 +990,383 @@ export default function RenewalSheet({
         </ScrollArea>
 
         <SheetFooter className="absolute bottom-0 w-full pr-10 bg-white">
-          <div className="flex w-full gap-2">
-            {isView && isLicensingTeam && renewalDoc?.workflow_state === "Draft" ? (
-              <div className="flex gap-3 w-full">
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  type="button"
-                  onClick={() => onOpenChange(false)}
-                >
-                  Close
-                </Button>
-                <Button className="w-full bg-gray-300 text-gray-500">Delegate</Button>
-                <Button
-                  className="w-full bg-primary text-white"
-                  type="button"
-                  onClick={() => {
-                    if (!propertyId) return;
-                    applyAction(
-                      { renewal_id: propertyId, action: "submit" },
-                      {
-                        onSuccess: () => {
-                          refetchRenewal();
-                          queryClient.invalidateQueries({ queryKey: ["RenewalList"] });
-                          onOpenChange(false);
-                        },
-                      }
-                    );
-                  }}
-                >
-                 Approve
-                </Button>
-              </div>
-            ) : isApprover1 && renewalDoc?.workflow_state === "Pending Approver 1" && isView ? (
-              <div className="flex gap-3 w-full">
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  type="button"
-                  title="Closes the renewal process entirely. If needed, initiators can duplicate or create a new process for that property."
-                  onClick={() => propertyId && handleOpenWithdrawModal(propertyId)}
-                >
-                  Withdraw
-                </Button>
-                <Button
-                  className="w-full bg-rose-200 hover:bg-rose-100 text-gray-400"
-                  type="button"
-                  onClick={() => propertyId && handleOpenSendBackModal(propertyId)}
-                >
-                  Send Back
-                </Button>
-                <Button className="w-full bg-gray-300 text-gray-500">Delegate</Button>
-                <Button
-                  className="w-full bg-primary text-white"
-                  type="button"
-                  onClick={() => {
-                    if (!propertyId) return;
-                    applyAction(
-                      { renewal_id: propertyId, action: "approve" },
-                      {
-                        onSuccess: () => {
-                          refetchRenewal();
-                          queryClient.invalidateQueries({ queryKey: ["RenewalList"] });
-                          onOpenChange(false);
-                        },
-                      }
-                    );
-                  }}
-                >
-                  Approve
-                </Button>
-              </div>
-            ) : isApprover2 && renewalDoc?.workflow_state === "Pending Approver 2" && isView ? (
-              <div className="flex gap-3 w-full">
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  type="button"
-                  title="Closes the renewal process entirely. If needed, initiators can duplicate or create a new process for that property."
-                  onClick={() => propertyId && handleOpenWithdrawModal(propertyId)}
-                >
-                  Withdraw
-                </Button>
-                <Button
-                  className="w-full bg-rose-200 hover:bg-rose-100 text-gray-400"
-                  type="button"
-                  onClick={() => propertyId && handleOpenSendBackModal(propertyId)}
-                >
-                  Send Back
-                </Button>
-                <Button className="w-full bg-gray-300 text-gray-500">Delegate</Button>
-                <Button
-                  className="w-full bg-primary text-white"
-                  type="button"
-                  onClick={() => {
-                    if (!propertyId) return;
-                    applyAction(
-                      { renewal_id: propertyId, action: "approve" },
-                      {
-                        onSuccess: () => {
-                          refetchRenewal();
-                          queryClient.invalidateQueries({ queryKey: ["RenewalList"] });
-                          onOpenChange(false);
-                        },
-                      }
-                    );
-                  }}
-                >
-                  Approve
-                </Button>
-              </div>
-            ) : isCfo && renewalDoc?.workflow_state === "Pending CFO" && isView ? (
-              <div className="flex gap-3 w-full">
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  type="button"
-                  title="Closes the renewal process entirely. If needed, initiators can duplicate or create a new process for that property."
-                  onClick={() => propertyId && handleOpenWithdrawModal(propertyId)}
-                >
-                  Withdraw
-                </Button>
-                <Button
-                  className="w-full bg-rose-200 hover:bg-rose-100 text-gray-400"
-                  type="button"
-                  onClick={() => propertyId && handleOpenSendBackModal(propertyId)}
-                >
-                  Send Back
-                </Button>
-                <Button className="w-full bg-gray-300 text-gray-500">Delegate</Button>
-                <Button
-                  className="w-full bg-primary text-white"
-                  type="button"
-                  onClick={() => {
-                    if (!propertyId) return;
-                    applyAction(
-                      { renewal_id: propertyId, action: "approve" },
-                      {
-                        onSuccess: () => {
-                          refetchRenewal();
-                          queryClient.invalidateQueries({ queryKey: ["RenewalList"] });
-                          onOpenChange(false);
-                        },
-                      }
-                    );
-                  }}
-                >
-                  Approve
-                </Button>
-              </div>
-            ) : isMD && renewalDoc?.workflow_state === "Pending MD" && isView ? (
-              <div className="flex gap-3 w-full">
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  type="button"
-                  title="Closes the renewal process entirely. If needed, initiators can duplicate or create a new process for that property."
-                  onClick={() => propertyId && handleOpenWithdrawModal(propertyId)}
-                >
-                  Withdraw
-                </Button>
-                <Button
-                  className="w-full bg-rose-200 hover:bg-rose-100 text-gray-400"
-                  type="button"
-                  onClick={() => propertyId && handleOpenSendBackModal(propertyId)}
-                >
-                  Send Back
-                </Button>
-                <Button className="w-full bg-gray-300 text-gray-500">Delegate</Button>
-                <Button
-                  className="w-full bg-primary text-white"
-                  type="button"
-                  onClick={() => {
-                    if (!propertyId) return;
-                    applyAction(
-                      { renewal_id: propertyId, action: "approve" },
-                      {
-                        onSuccess: () => {
-                          refetchRenewal();
-                          queryClient.invalidateQueries({ queryKey: ["RenewalList"] });
-                          onOpenChange(false);
-                        },
-                      }
-                    );
-                  }}
-                >
-                  Approve
-                </Button>
-              </div>
-            ) : isJHPropertyDepartment && renewalDoc?.workflow_state === "Pending Cheque Details" && isView ? (
-              <div className="flex gap-3 w-full">
-                <Button variant="outline" className="w-full" type="button" onClick={() => onOpenChange(false)}>
-                  Close
-                </Button>
-                <Button
-                  className="w-full bg-rose-200 hover:bg-rose-100 text-gray-400"
-                  type="submit"
-                  form={formId}
-                  disabled={
-                    isSubmitting ||
-                    !isValid ||
-                    (localModified && renewalDoc?.modified && localModified !== renewalDoc.modified)
-                  }
-                  title={
-                    localModified && renewalDoc?.modified && localModified !== renewalDoc.modified
-                      ? "Document modified externally - refresh first"
-                      : ""
-                  }
-                >
-                  {isSubmitting ? "Saving..." : "Save Cheque Entry"}
-                </Button>
-                <Button className="w-full bg-gray-300 text-gray-500">Delegate</Button>
-                <Button
-                  className="w-full bg-primary text-white"
-                  type="button"
-                  onClick={handleWorkflowConfirm}
-                >
-                  Confirm Cheque Entry
-                </Button>
-              </div>
-            ) : isJHPropertyDepartment && renewalDoc?.workflow_state === "Pending Property PO" && isView ? (
-              <div className="flex gap-3 w-full">
-                <Button variant="outline" className="w-full" type="button" onClick={() => onOpenChange(false)}>
-                  Close
-                </Button>
-                <Button
-                  className="w-full bg-rose-200 hover:bg-rose-100 text-gray-400"
-                  type="submit"
-                  form={formId}
-                  disabled={
-                    isSubmitting ||
-                    !isValid ||
-                    (localModified && renewalDoc?.modified && localModified !== renewalDoc.modified)
-                  }
-                  title={
-                    localModified && renewalDoc?.modified && localModified !== renewalDoc.modified
-                      ? "Document modified externally - refresh first"
-                      : ""
-                  }
-                >
-                  {isSubmitting ? "Saving..." : "Save PO"}
-                </Button>
-                <Button className="w-full bg-gray-300 text-gray-500">Delegate</Button>
-                <Button
-                  className="w-full bg-primary text-white"
-                  type="button"
-                  onClick={handleWorkflowConfirm}
-                >
-                  Confirm PO
-                </Button>
-              </div>
-            ) : isGLTeam && renewalDoc?.workflow_state === "Pending MIRO" && isView ? (
-              <div className="flex gap-3 w-full">
-                <Button variant="outline" className="w-full" type="button" onClick={() => onOpenChange(false)}>
-                  Close
-                </Button>
-                <Button
-                  className="w-full bg-rose-200 hover:bg-rose-100 text-gray-400"
-                  type="submit"
-                  form={formId}
-                  disabled={
-                    isSubmitting ||
-                    !isValid ||
-                    (localModified && renewalDoc?.modified && localModified !== renewalDoc.modified)
-                  }
-                  title={
-                    localModified && renewalDoc?.modified && localModified !== renewalDoc.modified
-                      ? "Document modified externally - refresh first"
-                      : ""
-                  }
-                >
-                  {isSubmitting ? "Saving..." : "Save MIRO Details"}
-                </Button>
-                <Button className="w-full bg-gray-300 text-gray-500">Delegate</Button>
-                <Button
-                  className="w-full bg-primary text-white"
-                  type="button"
-                  onClick={handleWorkflowConfirm}
-                >
-                  Mark Complete
-                </Button>
-              </div>
+          <div className="flex w-full gap-2 items-center">
+            {(isView && (isLicensingTeam || effectiveIsLicensing) && renewalDoc?.workflow_state === "Draft") ? (
+              activeDelegation ? (
+                <div className="flex w-full justify-center">{renderDelegationBadge()}</div>
+              ) : (
+                <div className="flex gap-3 w-full">
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    type="button"
+                    onClick={() => onOpenChange(false)}
+                  >
+                    Close
+                  </Button>
+                  {!isActingAsDelegate && (
+                    <Button
+                      className="w-full bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      type="button"
+                      onClick={() => setIsDelegateModalOpen(true)}
+                    >
+                      Delegate
+                    </Button>
+                  )}
+                  <Button
+                    className="w-full bg-primary text-white"
+                    type="button"
+                    onClick={() => {
+                      if (!propertyId) return;
+                      applyAction(
+                        { renewal_id: propertyId, action: "submit" },
+                        {
+                          onSuccess: () => {
+                            refetchRenewal();
+                            queryClient.invalidateQueries({ queryKey: ["RenewalList"] });
+                            onOpenChange(false);
+                          },
+                        }
+                      );
+                    }}
+                  >
+                   Approve
+                  </Button>
+                </div>
+              )
+            ) : ((isApprover1 || effectiveIsApprover1) && renewalDoc?.workflow_state === "Pending Approver 1" && isView) ? (
+              activeDelegation ? (
+                <div className="flex w-full justify-center">{renderDelegationBadge()}</div>
+              ) : (
+                <div className="flex gap-3 w-full">
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    type="button"
+                    title="Closes the renewal process entirely. If needed, initiators can duplicate or create a new process for that property."
+                    onClick={() => propertyId && handleOpenWithdrawModal(propertyId)}
+                  >
+                    Withdraw
+                  </Button>
+                  <Button
+                    className="w-full bg-rose-200 hover:bg-rose-100 text-gray-400"
+                    type="button"
+                    onClick={() => propertyId && handleOpenSendBackModal(propertyId)}
+                  >
+                    Send Back
+                  </Button>
+                  {!isActingAsDelegate && (
+                    <Button
+                      className="w-full bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      type="button"
+                      onClick={() => setIsDelegateModalOpen(true)}
+                    >
+                      Delegate
+                    </Button>
+                  )}
+                  <Button
+                    className="w-full bg-primary text-white"
+                    type="button"
+                    onClick={() => {
+                      if (!propertyId) return;
+                      applyAction(
+                        { renewal_id: propertyId, action: "approve" },
+                        {
+                          onSuccess: () => {
+                            refetchRenewal();
+                            queryClient.invalidateQueries({ queryKey: ["RenewalList"] });
+                            onOpenChange(false);
+                          },
+                        }
+                      );
+                    }}
+                  >
+                    Approve
+                  </Button>
+                </div>
+              )
+            ) : ((isApprover2 || effectiveIsApprover2) && renewalDoc?.workflow_state === "Pending Approver 2" && isView) ? (
+              activeDelegation ? (
+                <div className="flex w-full justify-center">{renderDelegationBadge()}</div>
+              ) : (
+                <div className="flex gap-3 w-full">
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    type="button"
+                    title="Closes the renewal process entirely. If needed, initiators can duplicate or create a new process for that property."
+                    onClick={() => propertyId && handleOpenWithdrawModal(propertyId)}
+                  >
+                    Withdraw
+                  </Button>
+                  <Button
+                    className="w-full bg-rose-200 hover:bg-rose-100 text-gray-400"
+                    type="button"
+                    onClick={() => propertyId && handleOpenSendBackModal(propertyId)}
+                  >
+                    Send Back
+                  </Button>
+                  {!isActingAsDelegate && (
+                    <Button
+                      className="w-full bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      type="button"
+                      onClick={() => setIsDelegateModalOpen(true)}
+                    >
+                      Delegate
+                    </Button>
+                  )}
+                  <Button
+                    className="w-full bg-primary text-white"
+                    type="button"
+                    onClick={() => {
+                      if (!propertyId) return;
+                      applyAction(
+                        { renewal_id: propertyId, action: "approve" },
+                        {
+                          onSuccess: () => {
+                            refetchRenewal();
+                            queryClient.invalidateQueries({ queryKey: ["RenewalList"] });
+                            onOpenChange(false);
+                          },
+                        }
+                      );
+                    }}
+                  >
+                    Approve
+                  </Button>
+                </div>
+              )
+            ) : ((isCfo || effectiveIsCfo) && renewalDoc?.workflow_state === "Pending CFO" && isView) ? (
+              activeDelegation ? (
+                <div className="flex w-full justify-center">{renderDelegationBadge()}</div>
+              ) : (
+                <div className="flex gap-3 w-full">
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    type="button"
+                    title="Closes the renewal process entirely. If needed, initiators can duplicate or create a new process for that property."
+                    onClick={() => propertyId && handleOpenWithdrawModal(propertyId)}
+                  >
+                    Withdraw
+                  </Button>
+                  <Button
+                    className="w-full bg-rose-200 hover:bg-rose-100 text-gray-400"
+                    type="button"
+                    onClick={() => propertyId && handleOpenSendBackModal(propertyId)}
+                  >
+                    Send Back
+                  </Button>
+                  {!isActingAsDelegate && (
+                    <Button
+                      className="w-full bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      type="button"
+                      onClick={() => setIsDelegateModalOpen(true)}
+                    >
+                      Delegate
+                    </Button>
+                  )}
+                  <Button
+                    className="w-full bg-primary text-white"
+                    type="button"
+                    onClick={() => {
+                      if (!propertyId) return;
+                      applyAction(
+                        { renewal_id: propertyId, action: "approve" },
+                        {
+                          onSuccess: () => {
+                            refetchRenewal();
+                            queryClient.invalidateQueries({ queryKey: ["RenewalList"] });
+                            onOpenChange(false);
+                          },
+                        }
+                      );
+                    }}
+                  >
+                    Approve
+                  </Button>
+                </div>
+              )
+            ) : ((isMD || effectiveIsMd) && renewalDoc?.workflow_state === "Pending MD" && isView) ? (
+              activeDelegation ? (
+                <div className="flex w-full justify-center">{renderDelegationBadge()}</div>
+              ) : (
+                <div className="flex gap-3 w-full">
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    type="button"
+                    title="Closes the renewal process entirely. If needed, initiators can duplicate or create a new process for that property."
+                    onClick={() => propertyId && handleOpenWithdrawModal(propertyId)}
+                  >
+                    Withdraw
+                  </Button>
+                  <Button
+                    className="w-full bg-rose-200 hover:bg-rose-100 text-gray-400"
+                    type="button"
+                    onClick={() => propertyId && handleOpenSendBackModal(propertyId)}
+                  >
+                    Send Back
+                  </Button>
+                  {!isActingAsDelegate && (
+                    <Button
+                      className="w-full bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      type="button"
+                      onClick={() => setIsDelegateModalOpen(true)}
+                    >
+                      Delegate
+                    </Button>
+                  )}
+                  <Button
+                    className="w-full bg-primary text-white"
+                    type="button"
+                    onClick={() => {
+                      if (!propertyId) return;
+                      applyAction(
+                        { renewal_id: propertyId, action: "approve" },
+                        {
+                          onSuccess: () => {
+                            refetchRenewal();
+                            queryClient.invalidateQueries({ queryKey: ["RenewalList"] });
+                            onOpenChange(false);
+                          },
+                        }
+                      );
+                    }}
+                  >
+                    Approve
+                  </Button>
+                </div>
+              )
+            ) : ((isJHPropertyDepartment || effectiveIsPropertyDept) && renewalDoc?.workflow_state === "Pending Cheque Details" && isView) ? (
+              activeDelegation ? (
+                <div className="flex w-full justify-center">{renderDelegationBadge()}</div>
+              ) : (
+                <div className="flex gap-3 w-full">
+                  <Button variant="outline" className="w-full" type="button" onClick={() => onOpenChange(false)}>
+                    Close
+                  </Button>
+                  <Button
+                    className="w-full bg-rose-200 hover:bg-rose-100 text-gray-400"
+                    type="submit"
+                    form={formId}
+                    disabled={
+                      isSubmitting ||
+                      !isValid ||
+                      (localModified && renewalDoc?.modified && localModified !== renewalDoc.modified)
+                    }
+                    title={
+                      localModified && renewalDoc?.modified && localModified !== renewalDoc.modified
+                        ? "Document modified externally - refresh first"
+                        : ""
+                    }
+                  >
+                    {isSubmitting ? "Saving..." : "Save Cheque Entry"}
+                  </Button>
+                  {!isActingAsDelegate && (
+                    <Button
+                      className="w-full bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      type="button"
+                      onClick={() => setIsDelegateModalOpen(true)}
+                    >
+                      Delegate
+                    </Button>
+                  )}
+                  <Button
+                    className="w-full bg-primary text-white"
+                    type="button"
+                    onClick={handleWorkflowConfirm}
+                  >
+                    Confirm Cheque Entry
+                  </Button>
+                </div>
+              )
+            ) : ((isJHPropertyDepartment || effectiveIsPropertyDept) && renewalDoc?.workflow_state === "Pending Property PO" && isView) ? (
+              activeDelegation ? (
+                <div className="flex w-full justify-center">{renderDelegationBadge()}</div>
+              ) : (
+                <div className="flex gap-3 w-full">
+                  <Button variant="outline" className="w-full" type="button" onClick={() => onOpenChange(false)}>
+                    Close
+                  </Button>
+                  <Button
+                    className="w-full bg-rose-200 hover:bg-rose-100 text-gray-400"
+                    type="submit"
+                    form={formId}
+                    disabled={
+                      isSubmitting ||
+                      !isValid ||
+                      (localModified && renewalDoc?.modified && localModified !== renewalDoc.modified)
+                    }
+                    title={
+                      localModified && renewalDoc?.modified && localModified !== renewalDoc.modified
+                        ? "Document modified externally - refresh first"
+                        : ""
+                    }
+                  >
+                    {isSubmitting ? "Saving..." : "Save PO"}
+                  </Button>
+                  {!isActingAsDelegate && (
+                    <Button
+                      className="w-full bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      type="button"
+                      onClick={() => setIsDelegateModalOpen(true)}
+                    >
+                      Delegate
+                    </Button>
+                  )}
+                  <Button
+                    className="w-full bg-primary text-white"
+                    type="button"
+                    onClick={handleWorkflowConfirm}
+                  >
+                    Confirm PO
+                  </Button>
+                </div>
+              )
+            ) : ((isGLTeam || effectiveIsGLTeam) && renewalDoc?.workflow_state === "Pending MIRO" && isView) ? (
+              activeDelegation ? (
+                <div className="flex w-full justify-center">{renderDelegationBadge()}</div>
+              ) : (
+                <div className="flex gap-3 w-full">
+                  <Button variant="outline" className="w-full" type="button" onClick={() => onOpenChange(false)}>
+                    Close
+                  </Button>
+                  <Button
+                    className="w-full bg-rose-200 hover:bg-rose-100 text-gray-400"
+                    type="submit"
+                    form={formId}
+                    disabled={
+                      isSubmitting ||
+                      !isValid ||
+                      (localModified && renewalDoc?.modified && localModified !== renewalDoc.modified)
+                    }
+                    title={
+                      localModified && renewalDoc?.modified && localModified !== renewalDoc.modified
+                        ? "Document modified externally - refresh first"
+                        : ""
+                    }
+                  >
+                    {isSubmitting ? "Saving..." : "Save MIRO Details"}
+                  </Button>
+                  {!isActingAsDelegate && (
+                    <Button
+                      className="w-full bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      type="button"
+                      onClick={() => setIsDelegateModalOpen(true)}
+                    >
+                      Delegate
+                    </Button>
+                  )}
+                  <Button
+                    className="w-full bg-primary text-white"
+                    type="button"
+                    onClick={handleWorkflowConfirm}
+                  >
+                    Mark Complete
+                  </Button>
+                </div>
+              )
             ) : !isView ? (
               <>
                 <Button variant="outline" className="w-full" type="button" onClick={() => onOpenChange(false)}>
@@ -1204,6 +1406,16 @@ export default function RenewalSheet({
         onSendBack={handleSendBackSubmit}
         renewalId={pendingSendBackId || ""}
         title={`Send Back ${renewalDoc?.name || ""}`}
+      />
+
+      <RenewalDelegationModal
+        open={isDelegateModalOpen}
+        onOpenChange={setIsDelegateModalOpen}
+        usersData={usersData}
+        currentUserId={currentUserId}
+        isUsersLoading={isUsersLoading || isCurrentUserLoading}
+        onDelegate={handleDelegate}
+        isSubmitting={createDelegationMutation.isPending}
       />
     </Sheet>
   );
