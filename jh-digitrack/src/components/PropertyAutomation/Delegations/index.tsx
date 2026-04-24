@@ -19,8 +19,16 @@ type UserOption = {
 type TabValue = "outgoing" | "incoming";
 
 function Delegations() {
+  
   const [activeTab, setActiveTab] = useState<TabValue>("outgoing");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [datasPerPage, setDatasPerPage] = useState(10);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+
+  const handleTabChange = (value: TabValue) => {
+    setActiveTab(value);
+    setCurrentPage(1);
+  };
 
   const { data: currentUser, isLoading: isCurrentUserLoading } = useCurrentUser();
   const { data: usersData = [], isLoading: isUsersLoading } = useDocs<UserOption>({
@@ -73,10 +81,14 @@ function Delegations() {
 
       <DelegationTabs
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={handleTabChange}
         outgoingDelegations={outgoingDelegations}
         incomingDelegations={incomingDelegations}
         isLoading={isPageLoading}
+        currentPage={currentPage}
+        setCurrentPage={setCurrentPage}
+        datasPerPage={datasPerPage}
+        setDatasPerPage={setDatasPerPage}
       />
 
       <CreateDelegationDialog
