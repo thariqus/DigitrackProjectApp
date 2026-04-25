@@ -177,6 +177,7 @@ def get_property_list(
     type_of_property=None,
     division=None,
     expiring_soon=None,
+    renewal_filter=None,
     limit=10,
     page=1,
 ):
@@ -213,9 +214,21 @@ def get_property_list(
         filters["type_of_property"] = type_of_property
     if division:
         filters["division_used"] = division
-    if expiring_soon:
-        from frappe.utils import add_days, today
-        filters["renewal_date"] = ["between", [today(), add_days(today(), 90)]]
+ 
+    from frappe.utils import add_days, today
+    today_str = today()
+ 
+    if renewal_filter:
+        if renewal_filter == "30":
+            filters["renewal_date"] = ["between", [today_str, add_days(today_str, 30)]]
+        elif renewal_filter == "60":
+            filters["renewal_date"] = ["between", [today_str, add_days(today_str, 60)]]
+        elif renewal_filter == "90":
+            filters["renewal_date"] = ["between", [today_str, add_days(today_str, 90)]]
+        elif renewal_filter == "overdue":
+            filters["renewal_date"] = ["<", today_str]
+    elif expiring_soon:
+        filters["renewal_date"] = ["between", [today_str, add_days(today_str, 90)]]
  
     limit = cint(limit)
     page = cint(page)
@@ -246,6 +259,69 @@ def get_property_list(
     total = frappe.db.count("JH Property Master", filters=filters, cache=False)
  
     return {"properties": records, "total": total}
+ 
+ 
+@frappe.whitelist(methods=["GET"])
+def get_property_dashboard_counts():
+    """
+    Returns dashboard counts for properties.
+    Applies the same permission logic as get_property_list.
+    """
+    from frappe.utils import add_days, today
+ 
+    ctx = _get_property_user_context()
+    user = ctx["user"]
+ 
+    has_full_access = (
+        ctx["is_admin"] or ctx["is_md"] or ctx["is_cfo"]
+        or ctx["has_property_dept"] or ctx["has_gl_team"] or ctx["is_licensing"]
+    )
+ 
+    base_filters = {}
+    if not has_full_access:
+        approver_props = frappe.get_all(
+            "JH Property Master",
+            or_filters=[["approver_1", "=", user], ["approver_2", "=", user]],
+            pluck="name",
+            ignore_permissions=True,
+        )
+        if not approver_props:
+            frappe.throw(_("Not permitted"), frappe.PermissionError)
+        base_filters["name"] = ["in", approver_props]
+ 
+    today_str = today()
+ 
+    def _count(extra_filters=None):
+        filters = {**base_filters}
+        if extra_filters:
+            filters.update(extra_filters)
+        return frappe.db.count("JH Property Master", filters=filters, cache=False)
+ 
+    total_properties = _count()
+ 
+    renewals_30_days = _count({
+        "renewal_date": ["between", [today_str, add_days(today_str, 30)]]
+    })
+ 
+    renewals_60_days = _count({
+        "renewal_date": ["between", [today_str, add_days(today_str, 60)]]
+    })
+ 
+    renewals_90_days = _count({
+        "renewal_date": ["between", [today_str, add_days(today_str, 90)]]
+    })
+ 
+    overdue = _count({
+        "renewal_date": ["<", today_str]
+    })
+ 
+    return {
+        "total_properties": total_properties,
+        "renewals_30_days": renewals_30_days,
+        "renewals_60_days": renewals_60_days,
+        "renewals_90_days": renewals_90_days,
+        "overdue": overdue,
+    }
  
  
 @frappe.whitelist(methods=["GET"])
@@ -457,6 +533,29 @@ def has_property_automation_role():
         or frappe.db.count("JH Property Master", filters={"approver_1": user}) > 0
         or frappe.db.count("JH Property Master", filters={"approver_2": user}) > 0
     )
+    
+    if not has_access:
+        delegators = frappe.get_all(
+            "JH Delegation",
+            filters={"delegate": user, "status": "Active"},
+            pluck="delegator",
+            ignore_permissions=True,
+        )
+        for delegator in delegators:
+            delegator_roles = set(frappe.get_roles(delegator))
+            if (
+                "JH Digitrack Admin" in delegator_roles
+                or "JH Property Department" in delegator_roles
+                or "JH GL Team" in delegator_roles
+                or "JH Licensing Team" in delegator_roles
+                or delegator == settings.cfo_user
+                or delegator == settings.md_user
+                or frappe.db.count("JH Property Master", filters={"approver_1": delegator}) > 0
+                or frappe.db.count("JH Property Master", filters={"approver_2": delegator}) > 0
+            ):
+                has_access = True
+                break
+ 
     
  
     return {"has_access": has_access}
