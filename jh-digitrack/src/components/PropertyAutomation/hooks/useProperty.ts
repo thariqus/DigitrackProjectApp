@@ -19,6 +19,13 @@ export const usePropertyList = (params: QueryParams) =>
     queryFn: () => propertyApi.getPropertyList(params),
   });
 
+export const usePropertyDashboardCounts = () =>
+  useQuery({
+    queryKey: ["PropertyDashboardCounts"],
+    queryFn: () => propertyApi.getPropertyDashboardCounts(),
+    staleTime: 5 * 60 * 1000,
+  });
+
 export const usePendingRenewals = (enabled: boolean) =>
   useQuery({
     queryKey: ["PendingRenewals"],
