@@ -617,7 +617,7 @@ const renewalsData = renewalsListData?.renewals ?? [];
     );
   };
  
-  const propertyTypeOptions =["Shop", "Office", "Warehouse", "Other"];
+  const propertyTypeOptions =["Shop", "Villa", "Flat", "Other"];
  
   return (
     <Sheet open={open} onOpenChange={handleSheetOpenChange}>
