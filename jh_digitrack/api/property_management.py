@@ -149,17 +149,47 @@ WORKFLOW_TRANSITIONS = {
 }
  
  
+def _get_active_delegators(user):
+    """Returns list of users who have an active delegation to `user`."""
+    return frappe.get_all(
+        "JH Delegation",
+        filters={"delegate": user, "status": "Active"},
+        pluck="delegator",
+        ignore_permissions=True,
+    )
+
+
+def _get_approver_properties(user):
+    """Returns property names where user or any active delegator is approver_1 or approver_2."""
+    props = set(frappe.get_all(
+        "JH Property Master",
+        or_filters=[["approver_1", "=", user], ["approver_2", "=", user]],
+        pluck="name",
+        ignore_permissions=True,
+    ))
+    for delegator in _get_active_delegators(user):
+        props.update(frappe.get_all(
+            "JH Property Master",
+            or_filters=[["approver_1", "=", delegator], ["approver_2", "=", delegator]],
+            pluck="name",
+            ignore_permissions=True,
+        ))
+    return list(props)
+
+
 def _get_property_user_context():
     """
     Returns a dict of booleans describing the current user's property access level.
     MD and CFO are resolved from JH Digitrack Settings — not from Frappe roles —
     so they get access even if they only hold JH Digitrack Member.
+    Delegation is also checked: if a delegator has a qualifying role, the delegate inherits it.
     """
     user = frappe.session.user
     user_roles = set(frappe.get_roles(user))
     settings = frappe.get_single("JH Digitrack Settings")
     is_administrator = user == "Administrator"
-    return {
+
+    ctx = {
         "user": user,
         "is_admin": is_administrator or "JH Digitrack Admin" in user_roles,
         "is_md": is_administrator or user == settings.md_user,
@@ -168,6 +198,29 @@ def _get_property_user_context():
         "has_gl_team": is_administrator or "JH GL Team" in user_roles,
         "is_licensing": is_administrator or "JH Licensing Team" in user_roles,
     }
+
+    has_direct_access = (
+        ctx["is_admin"] or ctx["is_md"] or ctx["is_cfo"]
+        or ctx["has_property_dept"] or ctx["has_gl_team"] or ctx["is_licensing"]
+    )
+
+    if not has_direct_access and not is_administrator:
+        for delegator in _get_active_delegators(user):
+            delegator_roles = set(frappe.get_roles(delegator))
+            if "JH Digitrack Admin" in delegator_roles:
+                ctx["is_admin"] = True
+            if delegator == settings.cfo_user:
+                ctx["is_cfo"] = True
+            if delegator == settings.md_user:
+                ctx["is_md"] = True
+            if "JH Property Department" in delegator_roles:
+                ctx["has_property_dept"] = True
+            if "JH GL Team" in delegator_roles:
+                ctx["has_gl_team"] = True
+            if "JH Licensing Team" in delegator_roles:
+                ctx["is_licensing"] = True
+
+    return ctx
  
  
 @frappe.whitelist(methods=["GET"])
@@ -196,12 +249,7 @@ def get_property_list(
  
     approver_props = []
     if not has_full_access:
-        approver_props = frappe.get_all(
-            "JH Property Master",
-            or_filters=[["approver_1", "=", user], ["approver_2", "=", user]],
-            pluck="name",
-            ignore_permissions=True,
-        )
+        approver_props = _get_approver_properties(user)
         if not approver_props:
             frappe.throw(_("Not permitted"), frappe.PermissionError)
  
@@ -279,12 +327,7 @@ def get_property_dashboard_counts():
  
     base_filters = {}
     if not has_full_access:
-        approver_props = frappe.get_all(
-            "JH Property Master",
-            or_filters=[["approver_1", "=", user], ["approver_2", "=", user]],
-            pluck="name",
-            ignore_permissions=True,
-        )
+        approver_props = _get_approver_properties(user)
         if not approver_props:
             frappe.throw(_("Not permitted"), frappe.PermissionError)
         base_filters["name"] = ["in", approver_props]
@@ -350,12 +393,7 @@ def get_renewal_list(
  
     approver_props = []
     if not has_full_access:
-        approver_props = frappe.get_all(
-            "JH Property Master",
-            or_filters=[["approver_1", "=", user], ["approver_2", "=", user]],
-            pluck="name",
-            ignore_permissions=True,
-        )
+        approver_props = _get_approver_properties(user)
         if not approver_props:
             frappe.throw(_("Not permitted"), frappe.PermissionError)
  
@@ -756,11 +794,21 @@ def get_allowed_actions(renewal_id: str):
 def get_renewal_role(renewal_id: str):
     """
     Returns the current user's effective role for a specific renewal,
-    including delegation info via 'on_behalf_of'.
+    plus permitted actions so the frontend gates buttons on both role and state.
     """
     if not renewal_id:
         frappe.throw(_("renewal_id is required"))
-    return whoami(renewal_id=renewal_id, is_new=False)
+
+    result = whoami(renewal_id=renewal_id, is_new=False)
+
+    renewal = frappe.get_doc("JH Property Rental Renewal", renewal_id)
+    allowed_actions = get_permitted_actions(renewal)
+    result["actions"] = allowed_actions
+    result["sendback_options"] = (
+        list(SENDBACK_TRANSITIONS.get(renewal.workflow_state or "Draft", []))
+        if allowed_actions else []
+    )
+    return result
  
  
 def notify_md(renewal):
@@ -874,42 +922,42 @@ def get_my_pending_renewals():
                 seen.add(r["name"])
                 results.append(r)
  
-    if "JH Licensing Team" in user_roles:
-        _fetch({"workflow_state": "Draft"})
- 
-    if "JH Property Department" in user_roles:
-        _fetch({"workflow_state": "Pending Cheque Details"})
-        _fetch({"workflow_state": "Pending Property PO"})
- 
-    if "JH GL Team" in user_roles:
-        _fetch({"workflow_state": "Pending MIRO"})
- 
-    if user == cfo_user:
-        _fetch({"workflow_state": "Pending CFO"})
- 
-    if user == md_user:
-        _fetch({"workflow_state": "Pending MD"})
- 
-    # Approver 1: only renewals for properties where this user is approver_1
-    approver_1_props = frappe.get_all(
-        "JH Property Master", filters={"approver_1": user}, pluck="name"
-    )
-    if approver_1_props:
-        _fetch({
-            "workflow_state": "Pending Approver 1",
-            "property": ["in", approver_1_props],
-        })
- 
-    # Approver 2: only renewals for properties where this user is approver_2
-    approver_2_props = frappe.get_all(
-        "JH Property Master", filters={"approver_2": user}, pluck="name"
-    )
-    if approver_2_props:
-        _fetch({
-            "workflow_state": "Pending Approver 2",
-            "property": ["in", approver_2_props],
-        })
- 
+    def _fetch_for_actor(actor, actor_roles):
+        if "JH Licensing Team" in actor_roles:
+            _fetch({"workflow_state": "Draft"})
+
+        if "JH Property Department" in actor_roles:
+            _fetch({"workflow_state": "Pending Cheque Details"})
+            _fetch({"workflow_state": "Pending Property PO"})
+
+        if "JH GL Team" in actor_roles:
+            _fetch({"workflow_state": "Pending MIRO"})
+
+        if actor == cfo_user:
+            _fetch({"workflow_state": "Pending CFO"})
+
+        if actor == md_user:
+            _fetch({"workflow_state": "Pending MD"})
+
+        a1_props = frappe.get_all(
+            "JH Property Master", filters={"approver_1": actor},
+            pluck="name", ignore_permissions=True,
+        )
+        if a1_props:
+            _fetch({"workflow_state": "Pending Approver 1", "property": ["in", a1_props]})
+
+        a2_props = frappe.get_all(
+            "JH Property Master", filters={"approver_2": actor},
+            pluck="name", ignore_permissions=True,
+        )
+        if a2_props:
+            _fetch({"workflow_state": "Pending Approver 2", "property": ["in", a2_props]})
+
+    _fetch_for_actor(user, user_roles)
+
+    for delegator in _get_active_delegators(user):
+        _fetch_for_actor(delegator, set(frappe.get_roles(delegator)))
+
     return {"renewals": results}
  
  
