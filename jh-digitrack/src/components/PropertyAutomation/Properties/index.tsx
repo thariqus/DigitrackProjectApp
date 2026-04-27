@@ -1,6 +1,8 @@
 import { useCallback, useMemo, useState } from "react";
+import { useSearchParams } from "react-router";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Plus, X } from "lucide-react";
 import { Table, TableBody, TableFooter } from "@/components/ui/table";
 import { PropertyTableHeader } from "../ui/PropertyTableHeader";
 import PropertyTableRow from "../ui/PropertyTableRow";
@@ -22,6 +24,7 @@ const tableHeadings = [
 ];
 
 function Properties() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
   const [propertiesPerPage, setPropertiesPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
@@ -35,6 +38,8 @@ function Properties() {
   const { data: permissionData } = useUserAccess();
   console.log(permissionData,"permission")
 
+  const renewalFilter = searchParams.get("renewal_filter") || undefined;
+
   const listParams = useMemo(
     () => ({
       search: searchQuery || undefined,
@@ -42,6 +47,7 @@ function Properties() {
       type_of_property: selectedType.length === 1 ? selectedType[0] : undefined,
       division: selectedDivision.length === 1 ? selectedDivision[0] : undefined,
       expiring_soon: expiringSoon || undefined,
+      renewal_filter: renewalFilter,
       limit: propertiesPerPage,
       page: currentPage,
     }),
@@ -51,6 +57,7 @@ function Properties() {
       selectedType,
       selectedDivision,
       expiringSoon,
+      renewalFilter,
       propertiesPerPage,
       currentPage,
     ]
@@ -208,17 +215,45 @@ function Properties() {
           active: expiringSoon,
           onToggle: () => {
             setExpiringSoon((prev) => !prev);
+            if (!expiringSoon) {
+              const newParams = new URLSearchParams(searchParams);
+              newParams.delete("renewal_filter");
+              setSearchParams(newParams, { replace: true });
+            }
             setCurrentPage(1);
           },
         }}
+        extraActive={!!renewalFilter}
         onClear={() => {
           setSelectedEmirate([]);
           setSelectedType([]);
           setSelectedDivision([]);
           setExpiringSoon(false);
           setCurrentPage(1);
+          const newParams = new URLSearchParams(searchParams);
+          newParams.delete("renewal_filter");
+          setSearchParams(newParams, { replace: true });
         }}
       />
+
+      {renewalFilter && (
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">Filtered by:</span>
+          <Badge variant="secondary" className="gap-1">
+            Renewal {renewalFilter === "overdue" ? "Overdue" : `≤ ${renewalFilter} Days`}
+            <button
+              onClick={() => {
+                const newParams = new URLSearchParams(searchParams);
+                newParams.delete("renewal_filter");
+                setSearchParams(newParams, { replace: true });
+              }}
+              className="ml-1 rounded-full hover:bg-muted"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </Badge>
+        </div>
+      )}
 
       <div className="rounded-md border">
         <Table className="w-full table-fixed">
