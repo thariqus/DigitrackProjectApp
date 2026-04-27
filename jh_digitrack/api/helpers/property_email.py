@@ -76,7 +76,7 @@ def generate_property_notification_email(type, context):
         if type == "tat_reminder":
             header = (
                 f"Action required on Renewal <strong>{renewal.name}</strong>. "
-                f"You have <strong>{config.reminder_days} day(s)</strong> remaining before the TAT deadline."
+                f"You have <strong>{config.remind_days_before} day(s)</strong> remaining before the TAT deadline."
             )
         else:
             header = (
@@ -96,7 +96,7 @@ def generate_property_notification_email(type, context):
         assignee_display = context.get("assignee_display", "—")
         header = (
             f"Renewal <strong>{renewal.name}</strong> has exceeded its TAT deadline "
-            f"by <strong>{config.escalation_days} day(s)</strong> and requires your attention."
+            f"by <strong>{config.escalate_days_after} day(s)</strong> and requires your attention."
         )
         rows = [
             ("Renewal", renewal.name),
@@ -104,7 +104,7 @@ def generate_property_notification_email(type, context):
             ("Stalled At", renewal.workflow_state),
             ("Assigned To", assignee_display),
             ("TAT Allowed", f"{config.tat_days} day(s)"),
-            ("Days Overdue", str(config.escalation_days)),
+            ("Days Overdue", str(config.escalate_days_after)),
         ]
 
     return Template(TEMPLATE_STR).render(header=header, rows=rows, url=url)

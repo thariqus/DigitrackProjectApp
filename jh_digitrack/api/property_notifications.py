@@ -155,7 +155,7 @@ def _process_workflow_tat(settings):
         filters={
             "workflow_state": ["not in", ["Draft", "Completed", "Rejected"]],
         },
-        fields=["name", "workflow_state", "step_entered_on", "property", "last_tat_notification", "enable_escalation"],
+        fields=["name", "workflow_state", "step_entered_on", "property", "last_tat_notification", "enable_escalation_notifications"],
     )
 
     for renewal in active_renewals:
@@ -166,8 +166,8 @@ def _process_workflow_tat(settings):
         step_start = getdate(renewal.step_entered_on)
         days_in_step = date_diff(today_date, step_start)
 
-        remind_on = config.tat_days - config.reminder_days
-        escalate_on = config.tat_days + config.escalation_days
+        remind_on = config.tat_days - config.remind_days_before
+        escalate_on = config.tat_days + config.escalate_days_after
 
         if days_in_step == remind_on:
             notification_type = "reminder"
@@ -184,7 +184,7 @@ def _process_workflow_tat(settings):
 
         assignee = _resolve_step_assignee(renewal)
 
-        if notification_type == "escalation" and not renewal.enable_escalation:
+        if notification_type == "escalation" and not renewal.enable_escalation_notifications:
             continue
 
         if notification_type in ("reminder", "deadline"):
@@ -250,10 +250,10 @@ def _get_escalation_recipient(renewal):
         "Pending Approver 1":     property_doc.approver_2,
         "Pending Approver 2":     settings.cfo_user,
         "Pending CFO":            settings.md_user,
-        "Pending MD":             None,  # Top of chain
-        "Pending Cheque Details": settings.md_user,  # CFO already approved
-        "Pending Property PO":    settings.md_user,  # CFO already approved
-        "Pending MIRO":           settings.md_user,  # CFO already approved
+        "Pending MD":             None,  
+        "Pending Cheque Details": settings.md_user,  
+        "Pending Property PO":    settings.md_user,  
+        "Pending MIRO":           settings.md_user,  
     }
 
     return ESCALATION_MAP.get(state)

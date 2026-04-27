@@ -27,13 +27,13 @@ def preload_property_workflow_tat():
         return
 
     defaults = [
-        {"workflow_state": "Pending Approver 1",     "tat_days": 5, "reminder_days": 2, "escalation_days": 1},
-        {"workflow_state": "Pending Approver 2",     "tat_days": 5, "reminder_days": 2, "escalation_days": 1},
-        {"workflow_state": "Pending CFO",            "tat_days": 5, "reminder_days": 2, "escalation_days": 1},
-        {"workflow_state": "Pending MD",             "tat_days": 5, "reminder_days": 2, "escalation_days": 1},
-        {"workflow_state": "Pending Cheque Details", "tat_days": 3, "reminder_days": 1, "escalation_days": 1},
-        {"workflow_state": "Pending Property PO",    "tat_days": 3, "reminder_days": 1, "escalation_days": 1},
-        {"workflow_state": "Pending MIRO",           "tat_days": 3, "reminder_days": 1, "escalation_days": 1},
+        {"workflow_state": "Pending Approver 1",     "tat_days": 5, "remind_days_before": 2, "escalate_days_after": 1},
+        {"workflow_state": "Pending Approver 2",     "tat_days": 5, "remind_days_before": 2, "escalate_days_after": 1},
+        {"workflow_state": "Pending CFO",            "tat_days": 5, "remind_days_before": 2, "escalate_days_after": 1},
+        {"workflow_state": "Pending MD",             "tat_days": 5, "remind_days_before": 2, "escalate_days_after": 1},
+        {"workflow_state": "Pending Cheque Details", "tat_days": 3, "remind_days_before": 1, "escalate_days_after": 1},
+        {"workflow_state": "Pending Property PO",    "tat_days": 3, "remind_days_before": 1, "escalate_days_after": 1},
+        {"workflow_state": "Pending MIRO",           "tat_days": 3, "remind_days_before": 1, "escalate_days_after": 1},
     ]
 
     for row in defaults:

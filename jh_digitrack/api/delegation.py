@@ -74,3 +74,29 @@ def list_delegations():
     Returns all Active delegations where the current user is delegator or delegate.
     """
     return {"delegations": get_delegations_for_user(frappe.session.user)}
+
+ 
+@frappe.whitelist(methods=["GET"])
+def get_document_delegation(reference_doctype: str, reference_name: str):
+    """
+    Returns the current user's active Ad-Hoc delegation for a specific document.
+    """
+    if not reference_doctype or not reference_name:
+        frappe.throw(_("reference_doctype and reference_name are required"))
+ 
+    user = frappe.session.user
+    delegation = frappe.get_all(
+        "JH Delegation",
+        filters={
+            "delegator": user,
+            "delegation_type": "Ad-Hoc",
+            "status": "Active",
+            "reference_doctype": reference_doctype,
+            "reference_name": reference_name,
+        },
+        fields=["name", "delegate", "delegate_name", "comment", "status"],
+        limit=1,
+        ignore_permissions=True,
+    )
+ 
+    return {"delegation": delegation[0] if delegation else None}
