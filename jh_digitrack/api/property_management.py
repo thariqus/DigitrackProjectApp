@@ -298,14 +298,10 @@ def get_property_list(
     if not has_full_access:
         approver_props = _get_approver_properties(user)
         has_adhoc_delegation = bool(_get_adhoc_delegated_renewals(user))
-        if approver_props:
-            filters = {"name": ["in", approver_props]}
-        elif has_adhoc_delegation:
-            filters = {}
-        else:
+        if not approver_props and not has_adhoc_delegation:
             frappe.throw(_("Not permitted"), frappe.PermissionError)
-    else:
-        filters = {}
+ 
+    filters = {}
  
     if search:
         filters["property_name"] = ["like", f"%{search}%"]
@@ -382,9 +378,7 @@ def get_property_dashboard_counts():
     if not has_full_access:
         approver_props = _get_approver_properties(user)
         has_adhoc_delegation = bool(_get_adhoc_delegated_renewals(user))
-        if approver_props:
-            base_filters["name"] = ["in", approver_props]
-        elif not has_adhoc_delegation:
+        if not approver_props and not has_adhoc_delegation:
             frappe.throw(_("Not permitted"), frappe.PermissionError)
  
     today_str = today()
@@ -542,8 +536,8 @@ def get_property_doc(name: str):
     )
  
     if not has_full_access:
-        permitted_properties = set(_get_approver_properties(user))
-        if name not in permitted_properties and not _has_adhoc_delegated_property(user, name):
+        has_property_access = bool(_get_approver_properties(user) or _get_adhoc_delegated_renewals(user))
+        if not has_property_access:
             frappe.throw(_("Not permitted"), frappe.PermissionError)
  
  
