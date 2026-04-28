@@ -372,8 +372,9 @@ const renewalsData = renewalsListData?.renewals ?? [];
       }
  
       await queryClient.invalidateQueries({ queryKey: ["PropertyList"], exact: false });
+      await queryClient.invalidateQueries({ queryKey: ["PropertyDashboardCounts"] });
       await queryClient.invalidateQueries({ queryKey: ["PropertyDoc", propertyId] });
-      await queryClient.invalidateQueries({ queryKey: ["RenewalList", propertyId] });
+      await queryClient.invalidateQueries({ queryKey: ["RenewalList"], exact: false });
  
       handleSheetOpenChange(false);
     } catch (error: unknown) {

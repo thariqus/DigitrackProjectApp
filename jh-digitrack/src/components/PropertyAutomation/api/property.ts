@@ -2,7 +2,7 @@ import frappe from "@/utils/frappe-client";
 
 const API_BASE = "/api/method/jh_digitrack.api.property_management";
 
-type RenewalProgressPayload = {
+export type RenewalProgressPayload = {
   renewal_id: string;
   bank_name?: string;
   cheque_number?: string;
@@ -185,7 +185,14 @@ export const propertyApi = {
       { credentials: "include" }
     );
     const data = await res.json();
-    return data.message as { role: string; on_behalf_of?: string } | undefined;
+    return data.message as
+      | {
+          role: string;
+          on_behalf_of?: string;
+          actions?: string[];
+          sendback_options?: string[];
+        }
+      | undefined;
   },
 };
 
