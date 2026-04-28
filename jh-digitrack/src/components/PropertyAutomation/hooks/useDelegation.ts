@@ -20,6 +20,10 @@ export const useCreateDelegation = (options?: {
       toast.success("Delegation created");
       options?.onClose?.();
       queryClient.invalidateQueries({ queryKey: ["Delegations"] });
+      queryClient.invalidateQueries({ queryKey: ["DocumentDelegation"] });
+      queryClient.invalidateQueries({ queryKey: ["RenewalRole"] });
+      queryClient.invalidateQueries({ queryKey: ["RenewalList"] });
+      queryClient.invalidateQueries({ queryKey: ["PendingRenewals"] });
     },
     onError: (error) => {
       toast.error(error.message || "Failed to create delegation");
@@ -53,6 +57,9 @@ export const useRevokeDelegation = (options?: {
       options?.onSuccess?.();
       queryClient.invalidateQueries({ queryKey: ["Delegations"] });
       queryClient.invalidateQueries({ queryKey: ["DocumentDelegation"] });
+      queryClient.invalidateQueries({ queryKey: ["RenewalRole"] });
+      queryClient.invalidateQueries({ queryKey: ["RenewalList"] });
+      queryClient.invalidateQueries({ queryKey: ["PendingRenewals"] });
     },
     onError: (error) => {
       toast.error(error.message || "Failed to revoke delegation");
