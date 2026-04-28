@@ -113,7 +113,7 @@ export function DelegationTable({
               <TableHead>Status</TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody>
+          <TableBody className="border-b border-gray-200">
             {paginatedDelegations.map((delegation, index) => {
               const counterpartName =
                 tab === "outgoing"
@@ -121,19 +121,17 @@ export function DelegationTable({
                   : delegation.delegator_name || delegation.delegator;
 
               return (
-                <TableRow key={delegation.name} className="border-b ">
+                <TableRow key={delegation.name} className="">
                   <TableCell>{start + index + 1}</TableCell>
                   <TableCell>
                     <div className="font-medium">{counterpartName}</div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={delegation.delegation_type === "Permanent" ? "secondary" : "outline"}>
                       {delegation.delegation_type}
-                    </Badge>
                   </TableCell>
                   <TableCell>{formatDateRange(delegation)}</TableCell>
-                  <TableCell>
-                    <Badge>{delegation.status}</Badge>
+                  <TableCell
+                    className="bg-white text-green-500">{delegation.status}
                   </TableCell>
                 </TableRow>
               );

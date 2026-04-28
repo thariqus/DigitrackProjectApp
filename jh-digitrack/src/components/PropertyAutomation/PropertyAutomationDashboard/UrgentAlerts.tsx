@@ -1,6 +1,17 @@
 import { AlertTriangle, Clock, CheckCircle } from "lucide-react";
 
-export function UrgentAlerts({ alerts = [], navigate }) {
+export type AlertItem = {
+  message: string;
+  subText: string;
+  count: number;
+  severity: "critical" | "high" | "medium";
+  link: string;
+  cta: string;
+};
+
+type NavigateFn = (path: string) => void;
+
+export function UrgentAlerts({ alerts = [], navigate }: { alerts?: AlertItem[]; navigate: NavigateFn }) {
   // Sort by severity
   const severityOrder = { critical: 1, high: 2, medium: 3 };
   const sortedAlerts = [...alerts].sort(

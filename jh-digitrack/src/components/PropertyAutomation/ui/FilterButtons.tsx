@@ -29,17 +29,20 @@ interface FilterButtonsProps {
     active: boolean;
     onToggle: () => void;
   };
+  extraActive?: boolean;
   onClear: () => void;
 }
 
 export default function FilterButtons({
   filters,
   quickFilter,
+  extraActive,
   onClear,
 }: FilterButtonsProps) {
   const hasActiveFilters =
     filters.some((f) => f.selected.length > 0) ||
-    quickFilter?.active;
+    quickFilter?.active ||
+    extraActive;
 
   return (
     <div className="flex gap-2">

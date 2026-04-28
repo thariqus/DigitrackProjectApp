@@ -93,6 +93,20 @@ export const propertyApi = {
     return data.message as { properties: unknown[]; total: number };
   },
 
+  getPropertyDashboardCounts: async () => {
+    const res = await fetch(`${API_BASE}.get_property_dashboard_counts`, {
+      credentials: "include",
+    });
+    const data = await res.json();
+    return data.message as {
+      total_properties: number;
+      renewals_30_days: number;
+      renewals_60_days: number;
+      renewals_90_days: number;
+      overdue: number;
+    };
+  },
+
   getRenewalDoc: async (name: string) => {
     const res = await fetch(
       `${API_BASE}.get_renewal_doc?name=${encodeURIComponent(name)}`,
