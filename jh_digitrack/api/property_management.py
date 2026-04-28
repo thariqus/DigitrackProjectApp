@@ -24,6 +24,7 @@ SENDBACK_TRANSITIONS = {
 }
  
 STATE_ROLE_MAP = {
+    "Draft": {"licensing", "module_admin", "Administrator"},
     "Pending Approver 1": {"approver_1", "module_admin", "Administrator"},
     "Pending Approver 2": {"approver_2", "module_admin", "Administrator"},
     "Pending Cheque Details": {"property_dept", "module_admin", "Administrator"},
@@ -149,25 +150,72 @@ WORKFLOW_TRANSITIONS = {
 }
  
  
-def _get_active_delegators(user):
+def _get_active_delegators(user, delegation_types=None):
     """Returns list of users who have an active delegation to `user`."""
+    filters = {"delegate": user, "status": "Active"}
+    if delegation_types:
+        filters["delegation_type"] = ["in", list(delegation_types)]
+
     return frappe.get_all(
         "JH Delegation",
-        filters={"delegate": user, "status": "Active"},
+        filters=filters,
         pluck="delegator",
         ignore_permissions=True,
     )
 
 
+def _get_standing_delegators(user):
+    """Returns delegators whose Temporary/Permanent delegation grants standing authority."""
+    return _get_active_delegators(user, {"Temporary", "Permanent"})
+
+
+def _get_adhoc_delegated_renewals(user):
+    """Returns renewal names specifically delegated to `user` via active Ad-Hoc delegation."""
+    renewal_names = frappe.get_all(
+        "JH Delegation",
+        filters={
+            "delegate": user,
+            "status": "Active",
+            "delegation_type": "Ad-Hoc",
+            "reference_doctype": "JH Property Rental Renewal",
+        },
+        pluck="reference_name",
+        ignore_permissions=True,
+    )
+    return [name for name in renewal_names if name]
+
+
+def _has_adhoc_delegated_property(user, property_name):
+    """Returns True if `user` has an active Ad-Hoc renewal delegation for this property."""
+    return property_name in _get_adhoc_delegated_properties(user)
+
+
+def _get_adhoc_delegated_properties(user):
+    """Returns property names linked to renewals actively delegated to `user` via Ad-Hoc."""
+    delegated_renewals = _get_adhoc_delegated_renewals(user)
+    if not delegated_renewals:
+        return []
+
+    properties = frappe.get_all(
+        "JH Property Rental Renewal",
+        filters={
+            "name": ["in", delegated_renewals],
+        },
+        pluck="property",
+        ignore_permissions=True,
+    )
+    return [property_name for property_name in properties if property_name]
+
+
 def _get_approver_properties(user):
-    """Returns property names where user or any active delegator is approver_1 or approver_2."""
+    """Returns property names where user or a standing delegator is approver_1 or approver_2."""
     props = set(frappe.get_all(
         "JH Property Master",
         or_filters=[["approver_1", "=", user], ["approver_2", "=", user]],
         pluck="name",
         ignore_permissions=True,
     ))
-    for delegator in _get_active_delegators(user):
+    for delegator in _get_standing_delegators(user):
         props.update(frappe.get_all(
             "JH Property Master",
             or_filters=[["approver_1", "=", delegator], ["approver_2", "=", delegator]],
@@ -205,7 +253,7 @@ def _get_property_user_context():
     )
 
     if not has_direct_access and not is_administrator:
-        for delegator in _get_active_delegators(user):
+        for delegator in _get_standing_delegators(user):
             delegator_roles = set(frappe.get_roles(delegator))
             if "JH Digitrack Admin" in delegator_roles:
                 ctx["is_admin"] = True
@@ -247,13 +295,18 @@ def get_property_list(
         or ctx["has_property_dept"] or ctx["has_gl_team"] or ctx["is_licensing"]
     )
  
-    approver_props = []
     if not has_full_access:
         approver_props = _get_approver_properties(user)
-        if not approver_props:
+        has_adhoc_delegation = bool(_get_adhoc_delegated_renewals(user))
+        if approver_props:
+            filters = {"name": ["in", approver_props]}
+        elif has_adhoc_delegation:
+            filters = {}
+        else:
             frappe.throw(_("Not permitted"), frappe.PermissionError)
+    else:
+        filters = {}
  
-    filters = {}
     if search:
         filters["property_name"] = ["like", f"%{search}%"]
     if emirate:
@@ -328,9 +381,11 @@ def get_property_dashboard_counts():
     base_filters = {}
     if not has_full_access:
         approver_props = _get_approver_properties(user)
-        if not approver_props:
+        has_adhoc_delegation = bool(_get_adhoc_delegated_renewals(user))
+        if approver_props:
+            base_filters["name"] = ["in", approver_props]
+        elif not has_adhoc_delegation:
             frappe.throw(_("Not permitted"), frappe.PermissionError)
-        base_filters["name"] = ["in", approver_props]
  
     today_str = today()
  
@@ -392,9 +447,11 @@ def get_renewal_list(
     )
  
     approver_props = []
+    adhoc_renewals = []
     if not has_full_access:
         approver_props = _get_approver_properties(user)
-        if not approver_props:
+        adhoc_renewals = _get_adhoc_delegated_renewals(user)
+        if not approver_props and not adhoc_renewals:
             frappe.throw(_("Not permitted"), frappe.PermissionError)
  
     filters = {}
@@ -425,15 +482,14 @@ def get_renewal_list(
         "division", "workflow_state", "modified",
     ]
  
-    # Licensing-only: scope to owned docs. Approver-only: scope to their properties.
-    # Licensing + approver: union of both.
+    # Standing approver access is property-scoped. Ad-Hoc delegation is document-scoped.
     if not has_full_access:
-        if ctx["is_licensing"] and approver_props:
+        if approver_props and adhoc_renewals:
             seen = set()
             results = []
             for extra_filter in [
-                {**filters, "owner": user},
                 {**filters, "property": ["in", approver_props]},
+                {**filters, "name": ["in", adhoc_renewals]},
             ]:
                 rows = frappe.get_all(
                     "JH Property Rental Renewal",
@@ -449,8 +505,8 @@ def get_renewal_list(
             total = len(results)
             records = results[start: start + limit]
             return {"renewals": records, "total": total}
-        elif ctx["is_licensing"]:
-            filters["owner"] = user
+        elif adhoc_renewals:
+            filters["name"] = ["in", adhoc_renewals]
         elif approver_props:
             filters["property"] = ["in", approver_props]
  
@@ -486,15 +542,8 @@ def get_property_doc(name: str):
     )
  
     if not has_full_access:
-        # Approvers can view any property detail — same rule as the list endpoint
-        is_approver = frappe.get_all(
-            "JH Property Master",
-            or_filters=[["approver_1", "=", user], ["approver_2", "=", user]],
-            pluck="name",
-            ignore_permissions=True,
-            limit=1,
-        )
-        if not is_approver:
+        permitted_properties = set(_get_approver_properties(user))
+        if name not in permitted_properties and not _has_adhoc_delegated_property(user, name):
             frappe.throw(_("Not permitted"), frappe.PermissionError)
  
  
@@ -531,13 +580,13 @@ def get_renewal_doc(name: str):
  
     if not has_full_access:
         # Check direct approver assignment and delegation
-        is_approver = False
+        is_approver = renewal.name in _get_adhoc_delegated_renewals(user)
         if renewal.property:
             approvers = frappe.db.get_value(
                 "JH Property Master", renewal.property,
                 ["approver_1", "approver_2"], as_dict=True,
             ) or frappe._dict()
-            is_approver = user in [approvers.approver_1, approvers.approver_2]
+            is_approver = is_approver or user in [approvers.approver_1, approvers.approver_2]
             # Also check if user is a delegate for either approver
             if not is_approver:
                 from jh_digitrack.api.helpers.delegation import resolve_effective_user
@@ -573,13 +622,7 @@ def has_property_automation_role():
     )
     
     if not has_access:
-        delegators = frappe.get_all(
-            "JH Delegation",
-            filters={"delegate": user, "status": "Active"},
-            pluck="delegator",
-            ignore_permissions=True,
-        )
-        for delegator in delegators:
+        for delegator in _get_standing_delegators(user):
             delegator_roles = set(frappe.get_roles(delegator))
             if (
                 "JH Digitrack Admin" in delegator_roles
@@ -593,6 +636,9 @@ def has_property_automation_role():
             ):
                 has_access = True
                 break
+
+    if not has_access and _get_adhoc_delegated_renewals(user):
+        has_access = True
  
     
  
@@ -617,7 +663,8 @@ def get_logged_in_property_user():
     is_approver_1 = bool(frappe.db.count("JH Property Master", filters={"approver_1": user}))
     is_approver_2 = bool(frappe.db.count("JH Property Master", filters={"approver_2": user}))
     is_approver = is_approver_1 or is_approver_2
- 
+    has_adhoc_delegation = bool(_get_adhoc_delegated_renewals(user))
+
     return {
         "user": user,
         "has_property_access": (
@@ -628,6 +675,7 @@ def get_logged_in_property_user():
             or is_cfo
             or is_md
             or is_approver
+            or has_adhoc_delegation
         ),
         "has_property_dept_role": has_property_dept_role,
         "has_gl_team_role": has_gl_team_role,
@@ -638,6 +686,7 @@ def get_logged_in_property_user():
         "is_approver": is_approver,
         "is_approver_1": is_approver_1,
         "is_approver_2": is_approver_2,
+        "has_adhoc_delegation": has_adhoc_delegation,
         "roles": sorted(user_roles),
     }
  
@@ -669,26 +718,39 @@ def _get_effective_roles(user, renewal=None):
  
     from jh_digitrack.api.helpers.delegation import resolve_effective_user, has_outgoing_adhoc
  
-    # Frappe role-based matches
-    if "JH Digitrack Admin" in user_roles:
-        matches.add("module_admin")
-    if "JH Property Department" in user_roles:
-        matches.add("property_dept")
-    if "JH GL Team" in user_roles:
-        matches.add("gl_team")
-    if "JH Licensing Team" in user_roles:
-        matches.add("licensing")
+    def add_frappe_role_match(frappe_role, workflow_role):
+        if frappe_role in user_roles:
+            if not (renewal and has_outgoing_adhoc(user, renewal)):
+                matches.add(workflow_role)
+            return
+
+        for delegator in _get_active_delegators(user):
+            if frappe_role not in set(frappe.get_roles(delegator)):
+                continue
+            if resolve_effective_user(delegate=user, delegator=delegator, document=renewal):
+                matches.add(workflow_role)
+                behalf_map[workflow_role] = delegator
+                return
+
+    # Frappe role-based workflow roles with delegation support
+    add_frappe_role_match("JH Digitrack Admin", "module_admin")
+    add_frappe_role_match("JH Property Department", "property_dept")
+    add_frappe_role_match("JH GL Team", "gl_team")
+    add_frappe_role_match("JH Licensing Team", "licensing")
  
-    # Settings-based roles with delegation support
+    # Settings-based roles with delegation support. Ad-Hoc delegation is
+    # document-specific, so pass the renewal when resolving these roles.
     if user == cfo_user:
-        matches.add("cfo")
-    elif resolve_effective_user(delegate=user, delegator=cfo_user):
+        if not (renewal and has_outgoing_adhoc(user, renewal)):
+            matches.add("cfo")
+    elif resolve_effective_user(delegate=user, delegator=cfo_user, document=renewal):
         matches.add("cfo")
         behalf_map["cfo"] = cfo_user
  
     if user == md_user:
-        matches.add("md")
-    elif resolve_effective_user(delegate=user, delegator=md_user):
+        if not (renewal and has_outgoing_adhoc(user, renewal)):
+            matches.add("md")
+    elif resolve_effective_user(delegate=user, delegator=md_user, document=renewal):
         matches.add("md")
         behalf_map["md"] = md_user
  
@@ -763,6 +825,8 @@ def get_permitted_actions(renewal):
         return []
  
     actions = []
+    if current_state in WORKFLOW_TRANSITIONS.get("submit", {}):
+        actions.append("submit")
     if current_state in WORKFLOW_TRANSITIONS.get("approve", {}):
         actions.append("approve")
     if current_state in SENDBACK_TRANSITIONS:
@@ -955,8 +1019,15 @@ def get_my_pending_renewals():
 
     _fetch_for_actor(user, user_roles)
 
-    for delegator in _get_active_delegators(user):
+    for delegator in _get_standing_delegators(user):
         _fetch_for_actor(delegator, set(frappe.get_roles(delegator)))
+
+    adhoc_renewals = _get_adhoc_delegated_renewals(user)
+    if adhoc_renewals:
+        _fetch({
+            "name": ["in", adhoc_renewals],
+            "workflow_state": ["not in", ["Completed", "Rejected"]],
+        })
 
     return {"renewals": results}
  
