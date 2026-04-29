@@ -952,11 +952,12 @@ const renderDelegationBadge = () => {
                 <div className="space-y-4 pb-10">
                   <div className="border p-4 rounded-md space-y-2">
                     {renderRenewalRoleField("Bank Name", "bank_name")}
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-3 gap-2">
                       {renderRenewalRoleField("Cheque Number", "cheque_number")}
                       {renderRenewalRoleField("Amount", "cheque_amount", undefined, "number")}
+                       {renderRenewalRoleField("Cheque Date", "cheque_date", undefined, "date")}
                     </div>
-                    {renderRenewalRoleField("Cheque Date", "cheque_date", undefined, "date")}
+                   
                     <div className="grid grid-cols-2 gap-2">
                       {renderRenewalRoleField("Payee", "payee")}
                       {renderRenewalRoleField("Signatory", "signatory")}
