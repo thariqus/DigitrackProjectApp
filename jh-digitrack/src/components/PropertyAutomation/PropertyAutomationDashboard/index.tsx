@@ -67,9 +67,9 @@ function PropertyAutomationDashboard() {
 
   return (
     <div>
-        <div className="flex flex-col gap-1 pb-6">
+        <div className="flex flex-col gap-0 pb-6">
             <h2 className="text-lg font-bold text-primary">Property Management</h2>
-            <p className="text-gray-400">Your portfolio at a glance</p>
+            <p className="text-gray-400 text-sm">Your portfolio at a glance</p>
           </div>
         <div className="grid grid-cols-1 gap-2">
           {/* row1 */}
