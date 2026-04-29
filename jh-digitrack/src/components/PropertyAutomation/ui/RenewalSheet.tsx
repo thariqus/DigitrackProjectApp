@@ -265,6 +265,11 @@ useEffect(() => {
       toast.error("PO Number is required before confirming");
       return false;
     }
+    const hasContractDoc = contractFiles.length > 0 || !!renewalDoc?.renewed_contract_document;
+    if (!hasContractDoc) {
+      toast.error("Renewed Contract Document is required before confirming");
+      return false;
+    }
   }
  
   // GL Team → MIRO
@@ -402,12 +407,12 @@ useEffect(() => {
     if (!propertyId) return;
     if (!validateBeforeWorkflow()) return;
  
-    try {
-      await saveWorkflowProgress(data);
+   try {
+      const { latestDoc } = await saveWorkflowProgress(data);
  
       await new Promise<void>((resolve, reject) => {
         applyAction(
-          { renewal_id: propertyId, action: "approve" },
+          { renewal_id: propertyId, action: "approve", expected_state: latestDoc.workflow_state },
           {
             onSuccess: async () => {
               await queryClient.invalidateQueries({ queryKey: ["RenewalList"] });
@@ -422,7 +427,7 @@ useEffect(() => {
           }
         );
       });
-    } catch (error: unknown) {
+    }catch (error: unknown) {
       const message = getErrorMessage(error, "Failed to save renewal progress");
  
       if (message.includes("updated by another user")) {
@@ -458,6 +463,7 @@ useEffect(() => {
         action: "sendback",
         target_state,
         comment,
+        expected_state: renewalDoc?.workflow_state,
       },
       {
         onSuccess: async() => {
@@ -482,6 +488,7 @@ useEffect(() => {
         renewal_id: pendingWithdrawalId,
         action: "withdraw",
         comment,
+        expected_state: renewalDoc?.workflow_state,
       },
       {
         onSuccess: async() => {
@@ -1029,7 +1036,7 @@ const renderDelegationBadge = () => {
                     onClick={() => {
                       if (!propertyId) return;
                       applyAction(
-                        { renewal_id: propertyId, action: "submit" },
+                       { renewal_id: propertyId, action: "submit", expected_state: renewalDoc?.workflow_state },
                         {
                           onSuccess: () => {
                             refetchRenewal();
@@ -1070,7 +1077,7 @@ const renderDelegationBadge = () => {
                     onClick={() => {
                       if (!propertyId) return;
                       applyAction(
-                        { renewal_id: propertyId, action: "approve" },
+                        { renewal_id: propertyId, action: "approve", expected_state: renewalDoc?.workflow_state },
                         {
                           onSuccess: () => {
                             refetchRenewal();
@@ -1111,7 +1118,7 @@ const renderDelegationBadge = () => {
                     onClick={() => {
                       if (!propertyId) return;
                       applyAction(
-                        { renewal_id: propertyId, action: "approve" },
+                        { renewal_id: propertyId, action: "approve", expected_state: renewalDoc?.workflow_state },
                         {
                           onSuccess: () => {
                             refetchRenewal();
@@ -1152,7 +1159,7 @@ const renderDelegationBadge = () => {
                     onClick={() => {
                       if (!propertyId) return;
                       applyAction(
-                        { renewal_id: propertyId, action: "approve" },
+                        { renewal_id: propertyId, action: "approve" ,expected_state: renewalDoc?.workflow_state },
                         {
                           onSuccess: () => {
                             refetchRenewal();
@@ -1193,7 +1200,7 @@ const renderDelegationBadge = () => {
                     onClick={() => {
                       if (!propertyId) return;
                       applyAction(
-                        { renewal_id: propertyId, action: "approve" },
+                        { renewal_id: propertyId, action: "approve" ,expected_state: renewalDoc?.workflow_state },
                         {
                           onSuccess: () => {
                             refetchRenewal();
