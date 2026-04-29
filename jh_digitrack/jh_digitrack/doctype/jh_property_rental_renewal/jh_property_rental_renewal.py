@@ -18,6 +18,7 @@ class JHPropertyRentalRenewal(Document):
 	def before_submit(self):
 		if (self.workflow_state or "Draft") == "Draft":
 			self.workflow_state = "Pending Approver 1"
+			self.step_entered_on = frappe.utils.now_datetime()
 
 	def calculate_rent_change_percent(self):
 		current_rent = flt(self.current_rent)

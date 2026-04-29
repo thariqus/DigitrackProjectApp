@@ -9,6 +9,7 @@
   "property_audit_details_section",
   "user",
   "role",
+  "on_behalf_of",
   "current_state",
   "changed_state",
   "action",
@@ -63,13 +64,19 @@
    "fieldname": "action_time",
    "fieldtype": "Datetime",
    "label": "Action Time"
+  },
+  {
+   "fieldname": "on_behalf_of",
+   "fieldtype": "Link",
+   "label": "On Behalf Of",
+   "options": "User"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-04-12 19:28:39.000777",
+ "modified": "2026-04-29 10:42:31.611856",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Property Renewal Audit",

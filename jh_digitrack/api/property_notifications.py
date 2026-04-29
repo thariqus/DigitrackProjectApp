@@ -45,7 +45,10 @@ def _process_pre_renewal_reminders(settings):
 
     properties = frappe.get_all(
         "JH Property Master",
-        filters={"renewal_date": ["is", "set"]},
+        filters=[
+            ["renewal_date", "is", "set"],
+            ["renewal_date", ">=", today_date],
+        ],
         fields=[
             "name", "property_name", "renewal_date", "division_used",
             "current_rent", "landlord", "location", "last_renewal_reminder",
@@ -55,12 +58,12 @@ def _process_pre_renewal_reminders(settings):
     for prop in properties:
         days_until_renewal = date_diff(prop.renewal_date, today_date)
 
-        if days_until_renewal < 0 or days_until_renewal > max_days:
+        if days_until_renewal > max_days:
             continue
 
         active_renewal = frappe.db.exists(
             "JH Property Rental Renewal",
-            {"property": prop.name, "workflow_state": ["not in", ["Completed", "Rejected"]]},
+            {"property": prop.name, "workflow_state": ["not in", ["Completed", "Withdrawn"]]},
         )
 
         if active_renewal:
@@ -81,13 +84,14 @@ def _process_pre_renewal_reminders(settings):
             continue
 
         recipients = _get_pre_renewal_recipients(prop, matched_rule.include_escalation)
-        _send_pre_renewal_notification(prop, matched_rule, recipients, days_until_renewal)
+        sent = _send_pre_renewal_notification(prop, matched_rule, recipients, days_until_renewal)
 
-        frappe.db.set_value(
-            "JH Property Master", prop.name,
-            "last_renewal_reminder", dedup_key,
-            update_modified=False,
-        )
+        if sent:
+            frappe.db.set_value(
+                "JH Property Master", prop.name,
+                "last_renewal_reminder", dedup_key,
+                update_modified=False,
+            )
 
 
 def _get_pre_renewal_recipients(property_doc, include_escalation=False):
@@ -117,7 +121,7 @@ def _get_pre_renewal_recipients(property_doc, include_escalation=False):
 
 def _send_pre_renewal_notification(prop, rule, recipients, days_until_renewal):
     if not recipients:
-        return
+        return False
 
     urgency = "Urgent: " if rule.include_escalation else ""
     subject = f"DigiTrack: {urgency}Property Renewal Due in {days_until_renewal} Days - {prop.property_name or prop.name}"
@@ -137,8 +141,10 @@ def _send_pre_renewal_notification(prop, rule, recipients, days_until_renewal):
             subject=subject,
             message=message,
         )
+        return True
     except Exception:
         frappe.logger().error(frappe.get_traceback())
+        return False
 
 
 def _process_workflow_tat(settings):
@@ -153,7 +159,7 @@ def _process_workflow_tat(settings):
     active_renewals = frappe.get_all(
         "JH Property Rental Renewal",
         filters={
-            "workflow_state": ["not in", ["Draft", "Completed", "Rejected"]],
+            "workflow_state": ["not in", ["Draft", "Completed", "Withdrawn"]],
         },
         fields=["name", "workflow_state", "step_entered_on", "property", "last_tat_notification", "enable_escalation_notifications"],
     )
@@ -169,12 +175,14 @@ def _process_workflow_tat(settings):
         remind_on = config.tat_days - config.remind_days_before
         escalate_on = config.tat_days + config.escalate_days_after
 
-        if days_in_step == remind_on:
-            notification_type = "reminder"
-        elif days_in_step == config.tat_days:
-            notification_type = "deadline"
-        elif days_in_step == escalate_on:
+        # Use >= so a catch-up run after scheduler downtime still fires the
+        # most severe notification that applies. Priority: escalation > deadline > reminder.
+        if days_in_step >= escalate_on:
             notification_type = "escalation"
+        elif days_in_step >= config.tat_days:
+            notification_type = "deadline"
+        elif days_in_step >= remind_on:
+            notification_type = "reminder"
         else:
             continue
 
@@ -188,15 +196,16 @@ def _process_workflow_tat(settings):
             continue
 
         if notification_type in ("reminder", "deadline"):
-            _send_tat_notification(renewal, assignee, notification_type, config)
+            sent = _send_tat_notification(renewal, assignee, notification_type, config)
         else:
-            _send_tat_escalation(renewal, assignee, config)
+            sent = _send_tat_escalation(renewal, assignee, config)
 
-        frappe.db.set_value(
-            "JH Property Rental Renewal", renewal.name,
-            "last_tat_notification", dedup_key,
-            update_modified=False,
-        )
+        if sent:
+            frappe.db.set_value(
+                "JH Property Rental Renewal", renewal.name,
+                "last_tat_notification", dedup_key,
+                update_modified=False,
+            )
 
 
 def _resolve_step_assignee(renewal):
@@ -261,7 +270,7 @@ def _get_escalation_recipient(renewal):
 
 def _send_tat_notification(renewal, assignee, notification_type, config):
     if not assignee:
-        return
+        return False
 
     recipients = assignee if isinstance(assignee, list) else [assignee]
     label = "Reminder" if notification_type == "reminder" else "Deadline"
@@ -278,14 +287,16 @@ def _send_tat_notification(renewal, assignee, notification_type, config):
             subject=subject,
             message=message,
         )
+        return True
     except Exception:
         frappe.logger().error(frappe.get_traceback())
+        return False
 
 
 def _send_tat_escalation(renewal, assignee, config):
     escalation_recipient = _get_escalation_recipient(renewal)
     if not escalation_recipient:
-        return
+        return False
 
     recipients = escalation_recipient if isinstance(escalation_recipient, list) else [escalation_recipient]
     assignee_display = ", ".join(assignee) if isinstance(assignee, list) else (assignee or "—")
@@ -306,5 +317,7 @@ def _send_tat_escalation(renewal, assignee, config):
             subject=subject,
             message=message,
         )
+        return True
     except Exception:
         frappe.logger().error(frappe.get_traceback())
+        return False

@@ -93,8 +93,9 @@
   },
   {
    "fieldname": "payment_schedule",
-   "fieldtype": "Data",
-   "label": "Payment Schedule"
+   "fieldtype": "Select",
+   "label": "Payment Schedule",
+   "options": "Monthly\nQuarterly\nYearly"
   },
   {
    "fieldname": "new_security_deposit",
@@ -226,7 +227,7 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Workflow State",
-   "options": "Draft\nPending Approver 1\nPending Approver 2\nPending Cheque Details\nPending CFO\nPending MD\nPending Property PO\nPending MIRO\nCompleted\nRejected",
+   "options": "Draft\nPending Approver 1\nPending Approver 2\nPending Cheque Details\nPending CFO\nPending MD\nPending Property PO\nPending MIRO\nCompleted\nWithdrawn",
    "read_only": 1
   },
   {
@@ -294,7 +295,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-04-22 18:58:19.880414",
+ "modified": "2026-04-29 10:44:15.259178",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Property Rental Renewal",

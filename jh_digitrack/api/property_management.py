@@ -80,10 +80,10 @@ WORKFLOW_TRANSITIONS = {
     },
  
     "reject": {
-        "Pending Approver 1": {"roles": {"approver_1"}, "next_state": "Rejected"},
-        "Pending Approver 2": {"roles": {"approver_2"}, "next_state": "Rejected"},
-        "Pending CFO": {"roles": {"cfo"}, "next_state": "Rejected"},
-        "Pending MD": {"roles": {"md"}, "next_state": "Rejected"},
+        "Pending Approver 1": {"roles": {"approver_1"}, "next_state": "Withdrawn"},
+        "Pending Approver 2": {"roles": {"approver_2"}, "next_state": "Withdrawn"},
+        "Pending CFO": {"roles": {"cfo"}, "next_state": "Withdrawn"},
+        "Pending MD": {"roles": {"md"}, "next_state": "Withdrawn"},
     },
  
     "sendback": {
@@ -120,31 +120,31 @@ WORKFLOW_TRANSITIONS = {
     "withdraw": {
         "Pending Approver 1": {
             "roles": {"approver_1", "module_admin", "Administrator"},
-            "next_state": "Rejected",
+            "next_state": "Withdrawn",
         },
         "Pending Approver 2": {
             "roles": {"approver_2", "module_admin", "Administrator"},
-            "next_state": "Rejected",
+            "next_state": "Withdrawn",
         },
         "Pending Cheque Details": {
             "roles": {"property_dept", "module_admin", "Administrator"},
-            "next_state": "Rejected",
+            "next_state": "Withdrawn",
         },
         "Pending CFO": {
             "roles": {"cfo", "module_admin", "Administrator"},
-            "next_state": "Rejected",
+            "next_state": "Withdrawn",
         },
         "Pending MD": {
             "roles": {"md", "module_admin", "Administrator"},
-            "next_state": "Rejected",
+            "next_state": "Withdrawn",
         },
         "Pending Property PO": {
             "roles": {"property_dept", "module_admin", "Administrator"},
-            "next_state": "Rejected",
+            "next_state": "Withdrawn",
         },
         "Pending MIRO": {
             "roles": {"gl_team", "module_admin", "Administrator"},
-            "next_state": "Rejected",
+            "next_state": "Withdrawn",
         },
     },
 }
@@ -382,28 +382,45 @@ def get_property_dashboard_counts():
             frappe.throw(_("Not permitted"), frappe.PermissionError)
  
     today_str = today()
- 
+
+    # Properties with an in-progress renewal are excluded from upcoming/overdue
+    # buckets — they don't need a new renewal started.
+    properties_with_active_renewal = frappe.get_all(
+        "JH Property Rental Renewal",
+        filters={"workflow_state": ["not in", ["Completed", "Withdrawn"]]},
+        pluck="property",
+        ignore_permissions=True,
+    )
+
     def _count(extra_filters=None):
         filters = {**base_filters}
         if extra_filters:
             filters.update(extra_filters)
         return frappe.db.count("JH Property Master", filters=filters, cache=False)
- 
+
+    def _count_without_active(extra_filters=None):
+        filters = {**base_filters}
+        if extra_filters:
+            filters.update(extra_filters)
+        if properties_with_active_renewal:
+            filters["name"] = ["not in", properties_with_active_renewal]
+        return frappe.db.count("JH Property Master", filters=filters, cache=False)
+
     total_properties = _count()
- 
-    renewals_30_days = _count({
+
+    renewals_30_days = _count_without_active({
         "renewal_date": ["between", [today_str, add_days(today_str, 30)]]
     })
- 
-    renewals_60_days = _count({
+
+    renewals_60_days = _count_without_active({
         "renewal_date": ["between", [today_str, add_days(today_str, 60)]]
     })
- 
-    renewals_90_days = _count({
+
+    renewals_90_days = _count_without_active({
         "renewal_date": ["between", [today_str, add_days(today_str, 90)]]
     })
- 
-    overdue = _count({
+
+    overdue = _count_without_active({
         "renewal_date": ["<", today_str]
     })
  
@@ -956,7 +973,7 @@ def get_my_pending_renewals():
     if is_admin:
         renewals = frappe.get_all(
             "JH Property Rental Renewal",
-            filters={"workflow_state": ["not in", ["Completed", "Rejected"]]},
+            filters={"workflow_state": ["not in", ["Completed", "Withdrawn"]]},
             fields=RENEWAL_FIELDS,
             ignore_permissions=True,
         )
@@ -1020,7 +1037,7 @@ def get_my_pending_renewals():
     if adhoc_renewals:
         _fetch({
             "name": ["in", adhoc_renewals],
-            "workflow_state": ["not in", ["Completed", "Rejected"]],
+            "workflow_state": ["not in", ["Completed", "Withdrawn"]],
         })
 
     return {"renewals": results}
@@ -1119,6 +1136,37 @@ def calculate_rent_change_percent(current_rent=None, proposed_rent=None):
  
     return {"rent_change_percent": rent_change_percent}
  
+def _validate_stage_fields(renewal):
+    state = renewal.workflow_state
+
+    if state == "Pending Cheque Details":
+        if not renewal.cheque_details:
+            frappe.throw(_("At least one cheque detail row is required."))
+        row = renewal.cheque_details[0]
+        required = {
+            "bank_name": _("Bank Name"),
+            "cheque_number": _("Cheque Number"),
+            "cheque_date": _("Cheque Date"),
+            "payee": _("Payee"),
+            "signatory": _("Signatory"),
+        }
+        missing = [label for field, label in required.items() if not row.get(field)]
+        if missing:
+            frappe.throw(_("Missing required cheque fields: {0}").format(", ".join(missing)))
+        if not flt(row.get("cheque_amount")):
+            frappe.throw(_("Cheque Amount must be greater than zero."))
+
+    elif state == "Pending Property PO":
+        if not renewal.po_number:
+            frappe.throw(_("PO Number is required."))
+        if not renewal.renewed_contract_document:
+            frappe.throw(_("Renewed Contract Document is required."))
+
+    elif state == "Pending MIRO":
+        if not renewal.miro_number:
+            frappe.throw(_("MIRO Number is required."))
+
+
 @frappe.whitelist(methods=["POST"])
 def save_renewal_progress(
     renewal_id: str,
@@ -1176,7 +1224,8 @@ def save_renewal_progress(
  
     if current_state == "Pending MIRO":
         renewal.miro_number = miro_number or ""
- 
+
+    _validate_stage_fields(renewal)
     renewal.save(ignore_permissions=True)
  
     return {
@@ -1233,7 +1282,9 @@ def apply_workflow_action(renewal_id: str, action: str, target_state: str = None
             else:
                 next_state = "Pending Cheque Details"
                 notify_md(renewal)
- 
+        if action == "approve" and current_state in {"Pending Cheque Details", "Pending Property PO", "Pending MIRO"}:
+            _validate_stage_fields(renewal)
+
     audit_comment = comment
     if on_behalf_of:
         delegate_name = frappe.db.get_value("User", frappe.session.user, "full_name") or frappe.session.user
@@ -1245,6 +1296,7 @@ def apply_workflow_action(renewal_id: str, action: str, target_state: str = None
         "audit_trail",
         {
             "user": frappe.session.user,
+            "on_behalf_of": on_behalf_of,
             "role": role,
             "current_state": current_state,
             "changed_state": next_state,
@@ -1256,6 +1308,7 @@ def apply_workflow_action(renewal_id: str, action: str, target_state: str = None
     renewal.flags.ignore_validate_update_after_submit = True
     renewal.workflow_state = next_state
     renewal.step_entered_on = frappe.utils.now_datetime()
+    renewal.last_tat_notification = None
     renewal.save(ignore_permissions=True)
     update_property_master_renewal_date(renewal)
  
