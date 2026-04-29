@@ -543,7 +543,35 @@ const renderDelegationBadge = () => {
     if (!activeDelegation?.name) return;
     revokeDelegationMutation.mutate(activeDelegation.name);
   };
- 
+
+  const renderDelegationActionButton = () => {
+    if (isActingAsDelegate) return null;
+
+    if (activeDelegation) {
+      return (
+        <Button
+          className="w-full bg-gray-100 text-gray-700 hover:bg-gray-200"
+          type="button"
+          disabled={revokeDelegationMutation.isPending}
+          onClick={handleRevoke}
+        >
+          {revokeDelegationMutation.isPending ? "Revoking..." : "Revoke"}
+        </Button>
+      );
+    }
+
+    return (
+      <Button
+        className="w-full bg-gray-100 text-gray-700 hover:bg-gray-200"
+        type="button"
+        disabled={isDelegationLoading}
+        onClick={() => setIsDelegateModalOpen(true)}
+      >
+        Delegate
+      </Button>
+    );
+  };
+
   
  
   const onSubmit = async (data: RenewalFormValues) => {
@@ -994,15 +1022,7 @@ const renderDelegationBadge = () => {
                   >
                     Close
                   </Button>
-                  {!isActingAsDelegate && !activeDelegation && (
-                    <Button
-                      className="w-full bg-gray-100 text-gray-700 hover:bg-gray-200"
-                      type="button"
-                      onClick={() => setIsDelegateModalOpen(true)}
-                    >
-                      Delegate
-                    </Button>
-                  )}
+                  {renderDelegationActionButton()}
                   <Button
                     className="w-full bg-primary text-white"
                     type="button"
@@ -1043,15 +1063,7 @@ const renderDelegationBadge = () => {
                   >
                     Send Back
                   </Button>
-                  {!isActingAsDelegate && !activeDelegation && (
-                    <Button
-                      className="w-full bg-gray-100 text-gray-700 hover:bg-gray-200"
-                      type="button"
-                      onClick={() => setIsDelegateModalOpen(true)}
-                    >
-                      Delegate
-                    </Button>
-                  )}
+                  {renderDelegationActionButton()}
                   <Button
                     className="w-full bg-primary text-white"
                     type="button"
@@ -1092,15 +1104,7 @@ const renderDelegationBadge = () => {
                   >
                     Send Back
                   </Button>
-                  {!isActingAsDelegate && !activeDelegation && (
-                    <Button
-                      className="w-full bg-gray-100 text-gray-700 hover:bg-gray-200"
-                      type="button"
-                      onClick={() => setIsDelegateModalOpen(true)}
-                    >
-                      Delegate
-                    </Button>
-                  )}
+                  {renderDelegationActionButton()}
                   <Button
                     className="w-full bg-primary text-white"
                     type="button"
@@ -1141,15 +1145,7 @@ const renderDelegationBadge = () => {
                   >
                     Send Back
                   </Button>
-                  {!isActingAsDelegate && !activeDelegation && (
-                    <Button
-                      className="w-full bg-gray-100 text-gray-700 hover:bg-gray-200"
-                      type="button"
-                      onClick={() => setIsDelegateModalOpen(true)}
-                    >
-                      Delegate
-                    </Button>
-                  )}
+                  {renderDelegationActionButton()}
                   <Button
                     className="w-full bg-primary text-white"
                     type="button"
@@ -1190,15 +1186,7 @@ const renderDelegationBadge = () => {
                   >
                     Send Back
                   </Button>
-                  {!isActingAsDelegate && !activeDelegation && (
-                    <Button
-                      className="w-full bg-gray-100 text-gray-700 hover:bg-gray-200"
-                      type="button"
-                      onClick={() => setIsDelegateModalOpen(true)}
-                    >
-                      Delegate
-                    </Button>
-                  )}
+                  {renderDelegationActionButton()}
                   <Button
                     className="w-full bg-primary text-white"
                     type="button"
@@ -1241,15 +1229,7 @@ const renderDelegationBadge = () => {
                   >
                     {isSubmitting ? "Saving..." : "Save Cheque Entry"}
                   </Button>
-                  {!isActingAsDelegate && !activeDelegation && (
-                    <Button
-                      className="w-full bg-gray-100 text-gray-700 hover:bg-gray-200"
-                      type="button"
-                      onClick={() => setIsDelegateModalOpen(true)}
-                    >
-                      Delegate
-                    </Button>
-                  )}
+                  {renderDelegationActionButton()}
                   <Button
                     className="w-full bg-primary text-white"
                     type="button"
@@ -1280,15 +1260,7 @@ const renderDelegationBadge = () => {
                   >
                     {isSubmitting ? "Saving..." : "Save PO"}
                   </Button>
-                  {!isActingAsDelegate && !activeDelegation && (
-                    <Button
-                      className="w-full bg-gray-100 text-gray-700 hover:bg-gray-200"
-                      type="button"
-                      onClick={() => setIsDelegateModalOpen(true)}
-                    >
-                      Delegate
-                    </Button>
-                  )}
+                  {renderDelegationActionButton()}
                   <Button
                     className="w-full bg-primary text-white"
                     type="button"
@@ -1319,15 +1291,7 @@ const renderDelegationBadge = () => {
                   >
                     {isSubmitting ? "Saving..." : "Save MIRO Details"}
                   </Button>
-                  {!isActingAsDelegate && !activeDelegation && (
-                    <Button
-                      className="w-full bg-gray-100 text-gray-700 hover:bg-gray-200"
-                      type="button"
-                      onClick={() => setIsDelegateModalOpen(true)}
-                    >
-                      Delegate
-                    </Button>
-                  )}
+                  {renderDelegationActionButton()}
                   <Button
                     className="w-full bg-primary text-white"
                     type="button"
