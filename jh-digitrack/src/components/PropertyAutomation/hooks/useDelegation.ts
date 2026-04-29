@@ -24,6 +24,10 @@ export const useCreateDelegation = (options?: {
       queryClient.invalidateQueries({ queryKey: ["RenewalRole"] });
       queryClient.invalidateQueries({ queryKey: ["RenewalList"] });
       queryClient.invalidateQueries({ queryKey: ["PendingRenewals"] });
+      queryClient.invalidateQueries({ queryKey: ["UserAccess"] });
+      queryClient.invalidateQueries({ queryKey: ["property-nav-access"] });
+      queryClient.invalidateQueries({ queryKey: ["PropertyList"] });
+      queryClient.invalidateQueries({ queryKey: ["PropertyDashboardCounts"] });
     },
     onError: (error) => {
       toast.error(error.message || "Failed to create delegation");
@@ -60,6 +64,10 @@ export const useRevokeDelegation = (options?: {
       queryClient.invalidateQueries({ queryKey: ["RenewalRole"] });
       queryClient.invalidateQueries({ queryKey: ["RenewalList"] });
       queryClient.invalidateQueries({ queryKey: ["PendingRenewals"] });
+      queryClient.invalidateQueries({ queryKey: ["UserAccess"] });
+      queryClient.invalidateQueries({ queryKey: ["property-nav-access"] });
+      queryClient.invalidateQueries({ queryKey: ["PropertyList"] });
+      queryClient.invalidateQueries({ queryKey: ["PropertyDashboardCounts"] });
     },
     onError: (error) => {
       toast.error(error.message || "Failed to revoke delegation");
