@@ -1,7 +1,6 @@
-import { useNavigate } from "react-router";
+
 
 function RenewalPipeline() {
-  const navigate = useNavigate();
 
   const pipelineStages = [
     {
@@ -60,8 +59,8 @@ function RenewalPipeline() {
       color: "bg-green-100 text-green-800 border-green-200",
     },
     {
-      label: "Rejected",
-      status: "Rejected",
+      label: "Withdraw",
+      status: "Withdrawn",
       count: 2,
       color: "bg-red-100 text-red-800 border-red-200",
     },

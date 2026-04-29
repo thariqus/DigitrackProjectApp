@@ -101,7 +101,7 @@ export interface RentalRenewal {
     | "Pending Property PO"
     | "Pending MIRO"
     | "Completed"
-    | "Rejected";
+    | "Withdrawn";
 
   // Standard Frappe fields for dates
   creation: string;

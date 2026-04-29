@@ -519,41 +519,60 @@ useEffect(() => {
       }
     );
   };
+
+  const renderDelegateBadge = () => {
+  if (!isActingAsDelegate) return null;
+  return (
+    <Badge variant="secondary" className="bg-blue-100 text-blue-800 hover:bg-blue-100">
+      Acting on behalf of {renewalRoleData?.on_behalf_of}
+    </Badge>
+  );
+};
+
+const renderDelegationBadge = () => {
+  if (isDelegationLoading || !activeDelegation) return null;
+
+  return (
+    <Badge variant="secondary" className="bg-amber-100 text-amber-800 hover:bg-amber-100">
+      Delegation Active: {activeDelegation.delegate_name || activeDelegation.delegate}
+    </Badge>
+  );
+};
  
   const handleRevoke = () => {
     if (!activeDelegation?.name) return;
     revokeDelegationMutation.mutate(activeDelegation.name);
   };
- 
-  const renderDelegateBadge = () => {
-    if (!isActingAsDelegate) return null;
-    return (
-      <Badge variant="secondary" className="bg-blue-100 text-blue-800 hover:bg-blue-100">
-        Acting on behalf of {renewalRoleData?.on_behalf_of}
-      </Badge>
-    );
-  };
- 
-  const renderDelegationBadge = () => {
-    if (isDelegationLoading) return null;
-    if (!activeDelegation) return null;
-    return (
-      <div className="flex items-center gap-2">
-        <Badge variant="secondary" className="bg-amber-100 text-amber-800 hover:bg-amber-100">
-          Delegation Active: {activeDelegation.delegate_name || activeDelegation.delegate}
-        </Badge>
+
+  const renderDelegationActionButton = () => {
+    if (isActingAsDelegate) return null;
+
+    if (activeDelegation) {
+      return (
         <Button
-          variant="outline"
-          size="sm"
-          className="bg-gray-300 text-gray-500"
-          onClick={handleRevoke}
+          className="w-full bg-gray-100 text-gray-700 hover:bg-gray-200"
+          type="button"
           disabled={revokeDelegationMutation.isPending}
+          onClick={handleRevoke}
         >
           {revokeDelegationMutation.isPending ? "Revoking..." : "Revoke"}
         </Button>
-      </div>
+      );
+    }
+
+    return (
+      <Button
+        className="w-full bg-gray-100 text-gray-700 hover:bg-gray-200"
+        type="button"
+        disabled={isDelegationLoading}
+        onClick={() => setIsDelegateModalOpen(true)}
+      >
+        Delegate
+      </Button>
     );
   };
+
+  
  
   const onSubmit = async (data: RenewalFormValues) => {
     if (!propertyId) return;
@@ -787,6 +806,7 @@ useEffect(() => {
               View renewal information and complete permitted workflow actions.
             </SheetDescription>
             {renderDelegateBadge()}
+            {renderDelegationBadge()}
           </div>
           <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)}>
             <XIcon className="size-4" />
@@ -990,11 +1010,9 @@ useEffect(() => {
           </form>
         </ScrollArea>
  
- <SheetFooter className="absolute bottom-0 w-full pr-10 bg-white">
+      <SheetFooter className="absolute bottom-0 w-full pr-10 bg-white">
           <div className="flex w-full gap-2 items-center">
-            {isView && activeDelegation ? (
-              <div className="flex w-full justify-center">{renderDelegationBadge()}</div>
-            ) : (isView && canSubmitWorkflow && renewalDoc?.workflow_state === "Draft") ? (
+            {(isView && canSubmitWorkflow && renewalDoc?.workflow_state === "Draft") ? (
               <div className="flex gap-3 w-full">
                   <Button
                     variant="outline"
@@ -1004,15 +1022,7 @@ useEffect(() => {
                   >
                     Close
                   </Button>
-                  {!isActingAsDelegate && (
-                    <Button
-                      className="w-full bg-gray-100 text-gray-700 hover:bg-gray-200"
-                      type="button"
-                      onClick={() => setIsDelegateModalOpen(true)}
-                    >
-                      Delegate
-                    </Button>
-                  )}
+                  {renderDelegationActionButton()}
                   <Button
                     className="w-full bg-primary text-white"
                     type="button"
@@ -1030,7 +1040,7 @@ useEffect(() => {
                       );
                     }}
                   >
-                   Approve
+                   Submit for Approver
                   </Button>
                 </div>
             ) : (canApproveWorkflow && renewalDoc?.workflow_state === "Pending Approver 1" && isView) ? (
@@ -1053,15 +1063,7 @@ useEffect(() => {
                   >
                     Send Back
                   </Button>
-                  {!isActingAsDelegate && (
-                    <Button
-                      className="w-full bg-gray-100 text-gray-700 hover:bg-gray-200"
-                      type="button"
-                      onClick={() => setIsDelegateModalOpen(true)}
-                    >
-                      Delegate
-                    </Button>
-                  )}
+                  {renderDelegationActionButton()}
                   <Button
                     className="w-full bg-primary text-white"
                     type="button"
@@ -1102,15 +1104,7 @@ useEffect(() => {
                   >
                     Send Back
                   </Button>
-                  {!isActingAsDelegate && (
-                    <Button
-                      className="w-full bg-gray-100 text-gray-700 hover:bg-gray-200"
-                      type="button"
-                      onClick={() => setIsDelegateModalOpen(true)}
-                    >
-                      Delegate
-                    </Button>
-                  )}
+                  {renderDelegationActionButton()}
                   <Button
                     className="w-full bg-primary text-white"
                     type="button"
@@ -1151,15 +1145,7 @@ useEffect(() => {
                   >
                     Send Back
                   </Button>
-                  {!isActingAsDelegate && (
-                    <Button
-                      className="w-full bg-gray-100 text-gray-700 hover:bg-gray-200"
-                      type="button"
-                      onClick={() => setIsDelegateModalOpen(true)}
-                    >
-                      Delegate
-                    </Button>
-                  )}
+                  {renderDelegationActionButton()}
                   <Button
                     className="w-full bg-primary text-white"
                     type="button"
@@ -1200,15 +1186,7 @@ useEffect(() => {
                   >
                     Send Back
                   </Button>
-                  {!isActingAsDelegate && (
-                    <Button
-                      className="w-full bg-gray-100 text-gray-700 hover:bg-gray-200"
-                      type="button"
-                      onClick={() => setIsDelegateModalOpen(true)}
-                    >
-                      Delegate
-                    </Button>
-                  )}
+                  {renderDelegationActionButton()}
                   <Button
                     className="w-full bg-primary text-white"
                     type="button"
@@ -1251,15 +1229,7 @@ useEffect(() => {
                   >
                     {isSubmitting ? "Saving..." : "Save Cheque Entry"}
                   </Button>
-                  {!isActingAsDelegate && (
-                    <Button
-                      className="w-full bg-gray-100 text-gray-700 hover:bg-gray-200"
-                      type="button"
-                      onClick={() => setIsDelegateModalOpen(true)}
-                    >
-                      Delegate
-                    </Button>
-                  )}
+                  {renderDelegationActionButton()}
                   <Button
                     className="w-full bg-primary text-white"
                     type="button"
@@ -1290,15 +1260,7 @@ useEffect(() => {
                   >
                     {isSubmitting ? "Saving..." : "Save PO"}
                   </Button>
-                  {!isActingAsDelegate && (
-                    <Button
-                      className="w-full bg-gray-100 text-gray-700 hover:bg-gray-200"
-                      type="button"
-                      onClick={() => setIsDelegateModalOpen(true)}
-                    >
-                      Delegate
-                    </Button>
-                  )}
+                  {renderDelegationActionButton()}
                   <Button
                     className="w-full bg-primary text-white"
                     type="button"
@@ -1329,15 +1291,7 @@ useEffect(() => {
                   >
                     {isSubmitting ? "Saving..." : "Save MIRO Details"}
                   </Button>
-                  {!isActingAsDelegate && (
-                    <Button
-                      className="w-full bg-gray-100 text-gray-700 hover:bg-gray-200"
-                      type="button"
-                      onClick={() => setIsDelegateModalOpen(true)}
-                    >
-                      Delegate
-                    </Button>
-                  )}
+                  {renderDelegationActionButton()}
                   <Button
                     className="w-full bg-primary text-white"
                     type="button"

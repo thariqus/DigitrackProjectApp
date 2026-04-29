@@ -78,6 +78,16 @@ export const useApplyWorkflowAction = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['Docs'] });
       queryClient.invalidateQueries({ queryKey: ['DocInfo'] });
+      queryClient.invalidateQueries({ queryKey: ['RenewalDoc'] });
+      queryClient.invalidateQueries({ queryKey: ['RenewalRole'] });
+      queryClient.invalidateQueries({ queryKey: ['RenewalList'] });
+      queryClient.invalidateQueries({ queryKey: ['PendingRenewals'] });
+      queryClient.invalidateQueries({ queryKey: ['Delegations'] });
+      queryClient.invalidateQueries({ queryKey: ['DocumentDelegation'] });
+      queryClient.invalidateQueries({ queryKey: ['UserAccess'] });
+      queryClient.invalidateQueries({ queryKey: ['property-nav-access'] });
+      queryClient.invalidateQueries({ queryKey: ['PropertyList'] });
+      queryClient.invalidateQueries({ queryKey: ['PropertyDashboardCounts'] });
       toast.success('Workflow action applied successfully');
     },
     onError: (error: unknown) => {
