@@ -27,6 +27,7 @@ import { useAppVersion } from "@/hooks/system";
 import { JHDigitrackSettings } from "@/types/JHDigitrack/JHDigitrackSettings";
 import { useDocDetail } from "@/hooks/doc";
 import { useHasPmsAccess, useHasPropertyAccess } from "@/hooks/userrole";
+import { useDelegationPanel } from "@/context/DelegationPanelContext";
 
 export function MainNav() {
   const { pathname } = useLocation();
@@ -34,6 +35,8 @@ export function MainNav() {
   const { data: appVersion } = useAppVersion();
   const { mutate: logout } = useLogout();
   const navigate = useNavigate()
+  const { setOpen } = useDelegationPanel();
+ 
  
 
   const className = (path: string[]) => {
@@ -203,9 +206,7 @@ export function MainNav() {
               )}
 
               <DropdownMenuItem
-                onClick={() => {
-                  window.location.href = "/jh-digitrack/delegations";
-                }}
+                onClick={() => setOpen(true)}
               >
                 <span>Manage Delegation</span>
               </DropdownMenuItem>
