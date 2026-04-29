@@ -169,13 +169,15 @@ def _get_standing_delegators(user):
     return _get_active_delegators(user, {"Temporary", "Permanent"})
 
 
-def _get_adhoc_delegated_renewals(user):
-    """Returns renewal names specifically delegated to `user` via active Ad-Hoc delegation."""
+def _get_adhoc_delegated_renewals(user, statuses=None):
+    """Returns renewal names delegated to `user` via Ad-Hoc delegation."""
+    if statuses is None:
+        statuses = ["Active"]
     renewal_names = frappe.get_all(
         "JH Delegation",
         filters={
             "delegate": user,
-            "status": "Active",
+            "status": ["in", statuses],
             "delegation_type": "Ad-Hoc",
             "reference_doctype": "JH Property Rental Renewal",
         },
@@ -185,14 +187,9 @@ def _get_adhoc_delegated_renewals(user):
     return [name for name in renewal_names if name]
 
 
-def _has_adhoc_delegated_property(user, property_name):
-    """Returns True if `user` has an active Ad-Hoc renewal delegation for this property."""
-    return property_name in _get_adhoc_delegated_properties(user)
-
-
-def _get_adhoc_delegated_properties(user):
-    """Returns property names linked to renewals actively delegated to `user` via Ad-Hoc."""
-    delegated_renewals = _get_adhoc_delegated_renewals(user)
+def _get_adhoc_delegated_properties(user, statuses=None):
+    """Returns property names linked to renewals delegated to `user` via Ad-Hoc."""
+    delegated_renewals = _get_adhoc_delegated_renewals(user, statuses=statuses)
     if not delegated_renewals:
         return []
 
@@ -205,6 +202,21 @@ def _get_adhoc_delegated_properties(user):
         ignore_permissions=True,
     )
     return [property_name for property_name in properties if property_name]
+
+
+def _get_visible_adhoc_renewals(user):
+    """Returns renewal names delegated to `user` via Ad-Hoc (Active or Expired)."""
+    return _get_adhoc_delegated_renewals(user, statuses=["Active", "Expired"])
+
+
+def _get_visible_adhoc_properties(user):
+    """Returns property names linked to renewals delegated to `user` via Ad-Hoc (Active or Expired)."""
+    return _get_adhoc_delegated_properties(user, statuses=["Active", "Expired"])
+
+
+def _has_adhoc_delegated_property(user, property_name):
+    """Returns True if `user` has an Ad-Hoc renewal delegation (Active or Expired) for this property."""
+    return property_name in _get_visible_adhoc_properties(user)
 
 
 def _get_approver_properties(user):
@@ -297,12 +309,12 @@ def get_property_list(
  
     if not has_full_access:
         approver_props = _get_approver_properties(user)
-        has_adhoc_delegation = bool(_get_adhoc_delegated_renewals(user))
+        has_adhoc_delegation = bool(_get_visible_adhoc_properties(user))
         if not approver_props and not has_adhoc_delegation:
             frappe.throw(_("Not permitted"), frappe.PermissionError)
- 
+
     filters = {}
- 
+
     if search:
         filters["property_name"] = ["like", f"%{search}%"]
     if emirate:
@@ -377,10 +389,10 @@ def get_property_dashboard_counts():
     base_filters = {}
     if not has_full_access:
         approver_props = _get_approver_properties(user)
-        has_adhoc_delegation = bool(_get_adhoc_delegated_renewals(user))
+        has_adhoc_delegation = bool(_get_visible_adhoc_renewals(user))
         if not approver_props and not has_adhoc_delegation:
             frappe.throw(_("Not permitted"), frappe.PermissionError)
- 
+
     today_str = today()
 
     # Properties with an in-progress renewal are excluded from upcoming/overdue
@@ -461,7 +473,7 @@ def get_renewal_list(
     adhoc_renewals = []
     if not has_full_access:
         approver_props = _get_approver_properties(user)
-        adhoc_renewals = _get_adhoc_delegated_renewals(user)
+        adhoc_renewals = _get_visible_adhoc_renewals(user)
         if not approver_props and not adhoc_renewals:
             frappe.throw(_("Not permitted"), frappe.PermissionError)
  
@@ -553,7 +565,7 @@ def get_property_doc(name: str):
     )
  
     if not has_full_access:
-        has_property_access = bool(_get_approver_properties(user) or _get_adhoc_delegated_renewals(user))
+        has_property_access = bool(_get_approver_properties(user) or _get_visible_adhoc_properties(user))
         if not has_property_access:
             frappe.throw(_("Not permitted"), frappe.PermissionError)
  
@@ -591,7 +603,7 @@ def get_renewal_doc(name: str):
  
     if not has_full_access:
         # Check direct approver assignment and delegation
-        is_approver = renewal.name in _get_adhoc_delegated_renewals(user)
+        is_approver = renewal.name in _get_visible_adhoc_renewals(user)
         if renewal.property:
             approvers = frappe.db.get_value(
                 "JH Property Master", renewal.property,
@@ -648,16 +660,55 @@ def has_property_automation_role():
                 has_access = True
                 break
 
-    if not has_access and _get_adhoc_delegated_renewals(user):
+    if not has_access and _get_visible_adhoc_renewals(user):
         has_access = True
- 
-    
- 
+
     return {"has_access": has_access}
- 
- 
- 
- 
+
+
+@frappe.whitelist(methods=["GET"])
+def has_property_automation_nav_access():
+    user = frappe.session.user
+
+    if user == "Administrator":
+        return {"has_access": True}
+
+    user_roles = set(frappe.get_roles(user))
+    settings = frappe.get_single("JH Digitrack Settings")
+
+    has_access = (
+        "JH Digitrack Admin" in user_roles
+        or "JH Property Department" in user_roles
+        or "JH GL Team" in user_roles
+        or "JH Licensing Team" in user_roles
+        or user == settings.cfo_user
+        or user == settings.md_user
+        or frappe.db.count("JH Property Master", filters={"approver_1": user}) > 0
+        or frappe.db.count("JH Property Master", filters={"approver_2": user}) > 0
+    )
+
+    if not has_access:
+        for delegator in _get_standing_delegators(user):
+            delegator_roles = set(frappe.get_roles(delegator))
+            if (
+                "JH Digitrack Admin" in delegator_roles
+                or "JH Property Department" in delegator_roles
+                or "JH GL Team" in delegator_roles
+                or "JH Licensing Team" in delegator_roles
+                or delegator == settings.cfo_user
+                or delegator == settings.md_user
+                or frappe.db.count("JH Property Master", filters={"approver_1": delegator}) > 0
+                or frappe.db.count("JH Property Master", filters={"approver_2": delegator}) > 0
+            ):
+                has_access = True
+                break
+
+    if not has_access and _get_visible_adhoc_renewals(user):
+        has_access = True
+
+    return {"has_access": has_access}
+
+
 @frappe.whitelist(methods=["GET"])
 def get_logged_in_property_user():
     user = frappe.session.user
@@ -675,6 +726,7 @@ def get_logged_in_property_user():
     is_approver_2 = bool(frappe.db.count("JH Property Master", filters={"approver_2": user}))
     is_approver = is_approver_1 or is_approver_2
     has_adhoc_delegation = bool(_get_adhoc_delegated_renewals(user))
+    has_visible_adhoc_renewal = bool(_get_visible_adhoc_renewals(user))
 
     return {
         "user": user,
@@ -698,6 +750,7 @@ def get_logged_in_property_user():
         "is_approver_1": is_approver_1,
         "is_approver_2": is_approver_2,
         "has_adhoc_delegation": has_adhoc_delegation,
+        "has_visible_adhoc_renewal": has_visible_adhoc_renewal,
         "roles": sorted(user_roles),
     }
  
@@ -727,12 +780,11 @@ def _get_effective_roles(user, renewal=None):
     cfo_user = org_role_users.get("cfo_user")
     md_user = org_role_users.get("md_user")
  
-    from jh_digitrack.api.helpers.delegation import resolve_effective_user, has_outgoing_adhoc
+    from jh_digitrack.api.helpers.delegation import resolve_effective_user
  
     def add_frappe_role_match(frappe_role, workflow_role):
         if frappe_role in user_roles:
-            if not (renewal and has_outgoing_adhoc(user, renewal)):
-                matches.add(workflow_role)
+            matches.add(workflow_role)
             return
 
         for delegator in _get_active_delegators(user):
@@ -752,15 +804,13 @@ def _get_effective_roles(user, renewal=None):
     # Settings-based roles with delegation support. Ad-Hoc delegation is
     # document-specific, so pass the renewal when resolving these roles.
     if user == cfo_user:
-        if not (renewal and has_outgoing_adhoc(user, renewal)):
-            matches.add("cfo")
+        matches.add("cfo")
     elif resolve_effective_user(delegate=user, delegator=cfo_user, document=renewal):
         matches.add("cfo")
         behalf_map["cfo"] = cfo_user
  
     if user == md_user:
-        if not (renewal and has_outgoing_adhoc(user, renewal)):
-            matches.add("md")
+        matches.add("md")
     elif resolve_effective_user(delegate=user, delegator=md_user, document=renewal):
         matches.add("md")
         behalf_map["md"] = md_user
@@ -773,15 +823,13 @@ def _get_effective_roles(user, renewal=None):
         ) or frappe._dict()
  
         if user == approvers.approver_1:
-            if not has_outgoing_adhoc(user, renewal):
-                matches.add("approver_1")
+            matches.add("approver_1")
         elif resolve_effective_user(delegate=user, delegator=approvers.approver_1, document=renewal):
             matches.add("approver_1")
             behalf_map["approver_1"] = approvers.approver_1
  
         if user == approvers.approver_2:
-            if not has_outgoing_adhoc(user, renewal):
-                matches.add("approver_2")
+            matches.add("approver_2")
         elif resolve_effective_user(delegate=user, delegator=approvers.approver_2, document=renewal):
             matches.add("approver_2")
             behalf_map["approver_2"] = approvers.approver_2
@@ -874,9 +922,23 @@ def get_renewal_role(renewal_id: str):
     if not renewal_id:
         frappe.throw(_("renewal_id is required"))
 
-    result = whoami(renewal_id=renewal_id, is_new=False)
+    try:
+        result = whoami(renewal_id=renewal_id, is_new=False)
+    except frappe.PermissionError:
+        user = frappe.session.user
+        if renewal_id in _get_visible_adhoc_renewals(user):
+            return {
+                "role": "adhoc_viewer",
+                "actions": [],
+                "sendback_options": [],
+            }
+        raise
 
-    renewal = frappe.get_doc("JH Property Rental Renewal", renewal_id)
+    frappe.flags.ignore_permissions = True
+    try:
+        renewal = frappe.get_doc("JH Property Rental Renewal", renewal_id)
+    finally:
+        frappe.flags.ignore_permissions = False
     allowed_actions = get_permitted_actions(renewal)
     result["actions"] = allowed_actions
     result["sendback_options"] = (
@@ -1035,10 +1097,26 @@ def get_my_pending_renewals():
 
     adhoc_renewals = _get_adhoc_delegated_renewals(user)
     if adhoc_renewals:
-        _fetch({
-            "name": ["in", adhoc_renewals],
-            "workflow_state": ["not in", ["Completed", "Withdrawn"]],
-        })
+        adhoc_rows = frappe.get_all(
+            "JH Property Rental Renewal",
+            filters={
+                "name": ["in", adhoc_renewals],
+                "workflow_state": ["not in", ["Completed", "Withdrawn"]],
+            },
+            fields=RENEWAL_FIELDS,
+            order_by="modified desc",
+            ignore_permissions=True,
+        )
+        for r in adhoc_rows:
+            if r["name"] not in seen:
+                frappe.flags.ignore_permissions = True
+                try:
+                    renewal_doc = frappe.get_doc("JH Property Rental Renewal", r["name"])
+                finally:
+                    frappe.flags.ignore_permissions = False
+                if get_permitted_actions(renewal_doc):
+                    seen.add(r["name"])
+                    results.append(r)
 
     return {"renewals": results}
  
@@ -1116,7 +1194,7 @@ def get_renewal_audit_trail(renewal_id: str):
     trail = frappe.get_all(
         "JH Property Renewal Audit",
         filters={"parent": renewal_id, "parenttype": "JH Property Rental Renewal"},
-        fields=["user", "role", "current_state", "changed_state", "action", "comments", "action_time"],
+        fields=["user", "on_behalf_of", "role", "current_state", "changed_state", "action", "comments", "action_time"],
         order_by="action_time asc",
         ignore_permissions=True,
     )
@@ -1239,7 +1317,13 @@ def save_renewal_progress(
     }
 
 @frappe.whitelist(methods=["POST"])
-def apply_workflow_action(renewal_id: str, action: str, target_state: str = None, comment: str = ""):
+def apply_workflow_action(
+    renewal_id: str,
+    action: str,
+    target_state: str = None,
+    comment: str = "",
+    expected_state: str = None,
+):
     if not renewal_id:
         frappe.throw(_("renewal_id is required"))
  
@@ -1250,6 +1334,12 @@ def apply_workflow_action(renewal_id: str, action: str, target_state: str = None
     finally:
         frappe.flags.ignore_permissions = False
     current_state = renewal.workflow_state or "Draft"
+    if expected_state and expected_state != current_state:
+        frappe.throw(
+            _("This renewal has already moved from {0} to {1}. Please refresh before taking action.")
+            .format(expected_state, current_state)
+        )
+
     whoami_result = whoami(renewal_id=renewal_id, is_new=False)
     role = whoami_result.get("role")
     on_behalf_of = whoami_result.get("on_behalf_of")
@@ -1311,7 +1401,10 @@ def apply_workflow_action(renewal_id: str, action: str, target_state: str = None
     renewal.last_tat_notification = None
     renewal.save(ignore_permissions=True)
     update_property_master_renewal_date(renewal)
- 
+
+    from jh_digitrack.api.helpers.delegation import expire_adhoc_delegations_for_document
+    expire_adhoc_delegations_for_document(renewal)
+
     return {
         "name": renewal.name,
         "role": role,

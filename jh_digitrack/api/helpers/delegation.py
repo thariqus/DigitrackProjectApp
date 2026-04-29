@@ -61,14 +61,10 @@ def has_outgoing_adhoc(user: str, document) -> bool:
     }))
 
 
-def expire_adhoc_delegations_on_update(doc, method=None):
+def expire_adhoc_delegations_for_document(doc):
     """
-    doc_events handler for JH Property Rental Renewal on_update.
-    Expires all Active Ad-Hoc delegations for the document when workflow_state changes.
+    Expires all Active Ad-Hoc delegations for a document.
     """
-    if not doc.has_value_changed("workflow_state"):
-        return
-
     delegations = frappe.get_all(
         "JH Delegation",
         filters={
@@ -83,6 +79,17 @@ def expire_adhoc_delegations_on_update(doc, method=None):
     for d in delegations:
         frappe.db.set_value("JH Delegation", d.name, "status", "Expired", update_modified=False)
         _safe_send(_send_adhoc_expired_notification, d)
+
+
+def expire_adhoc_delegations_on_update(doc, method=None):
+    """
+    doc_events handler for JH Property Rental Renewal on_update.
+    Expires all Active Ad-Hoc delegations for the document when workflow_state changes.
+    """
+    if not doc.has_value_changed("workflow_state"):
+        return
+
+    expire_adhoc_delegations_for_document(doc)
 
 
 def check_delegation_expiry():
