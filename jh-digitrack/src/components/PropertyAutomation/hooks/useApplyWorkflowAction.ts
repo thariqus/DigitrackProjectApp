@@ -7,6 +7,7 @@ interface ApplyWorkflowPayload {
   action: string
   target_state?: string
   comment?: string
+  expected_state ?:string;
 }
  
 const getWorkflowErrorMessage = (errorData: unknown) => {
