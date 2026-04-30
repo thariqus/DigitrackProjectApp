@@ -14,6 +14,7 @@ class JHDelegation(Document):
 		self._validate_users_active()
 		self._validate_type_rules()
 		self._validate_no_duplicate()
+		self._validate_single_standing_delegation()
 
 	def after_insert(self):
 		from jh_digitrack.api.helpers.delegation import notify_delegation_created
@@ -58,6 +59,23 @@ class JHDelegation(Document):
 				frappe.throw(_("Reference DocType and Reference Name are required for Ad-Hoc delegation."))
 			if not self.comment:
 				frappe.throw(_("Comment is mandatory for Ad-Hoc delegation."))
+
+	def _validate_single_standing_delegation(self):
+		if self.delegation_type not in ("Temporary", "Permanent"):
+			return
+
+		existing = frappe.db.exists("JH Delegation", {
+			"delegator": self.delegator,
+			"delegation_type": ["in", ["Temporary", "Permanent"]],
+			"status": "Active",
+			"name": ["!=", self.name],
+		})
+
+		if existing:
+			frappe.throw(
+				_("You already have an active Temporary or Permanent delegation. "
+				  "Please revoke it before creating a new one.")
+			)
 
 	def _validate_no_duplicate(self):
 		filters = {

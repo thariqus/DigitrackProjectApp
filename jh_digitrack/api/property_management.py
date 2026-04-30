@@ -728,6 +728,31 @@ def get_logged_in_property_user():
     has_adhoc_delegation = bool(_get_adhoc_delegated_renewals(user))
     has_visible_adhoc_renewal = bool(_get_visible_adhoc_renewals(user))
 
+    # Extend flags via standing (Temporary/Permanent) delegation
+    has_standing_delegation = False
+    if not is_administrator:
+        for delegator in _get_standing_delegators(user):
+            has_standing_delegation = True
+            delegator_roles = set(frappe.get_roles(delegator))
+            if not is_module_admin and "JH Digitrack Admin" in delegator_roles:
+                is_module_admin = True
+            if not is_cfo and delegator == settings.cfo_user:
+                is_cfo = True
+            if not is_md and delegator == settings.md_user:
+                is_md = True
+            if not has_property_dept_role and "JH Property Department" in delegator_roles:
+                has_property_dept_role = True
+            if not has_gl_team_role and "JH GL Team" in delegator_roles:
+                has_gl_team_role = True
+            if not is_licensing and "JH Licensing Team" in delegator_roles:
+                is_licensing = True
+            if not is_approver_1 and frappe.db.count("JH Property Master", filters={"approver_1": delegator}):
+                is_approver_1 = True
+                is_approver = True
+            if not is_approver_2 and frappe.db.count("JH Property Master", filters={"approver_2": delegator}):
+                is_approver_2 = True
+                is_approver = True
+
     return {
         "user": user,
         "has_property_access": (
@@ -739,6 +764,7 @@ def get_logged_in_property_user():
             or is_md
             or is_approver
             or has_adhoc_delegation
+            or has_standing_delegation
         ),
         "has_property_dept_role": has_property_dept_role,
         "has_gl_team_role": has_gl_team_role,
@@ -750,6 +776,7 @@ def get_logged_in_property_user():
         "is_approver_1": is_approver_1,
         "is_approver_2": is_approver_2,
         "has_adhoc_delegation": has_adhoc_delegation,
+        "has_standing_delegation": has_standing_delegation,
         "has_visible_adhoc_renewal": has_visible_adhoc_renewal,
         "roles": sorted(user_roles),
     }
