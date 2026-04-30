@@ -1,0 +1,369 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "PROP-.YYYY.-.#####",
+ "creation": "2026-03-19 12:18:46.401708",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_afv9",
+  "property_name",
+  "type_of_property",
+  "business_used",
+  "division_used",
+  "approver_1",
+  "approver_2",
+  "column_break_rpia",
+  "booked_under",
+  "profit_center",
+  "number_of_units",
+  "number_of_premises",
+  "premise_number",
+  "staff_allocated",
+  "location_details_section",
+  "location",
+  "emirate",
+  "country",
+  "column_break_muaf",
+  "makani_number",
+  "po_box_number",
+  "po_box_renewal_date",
+  "lease_information_section",
+  "landlord",
+  "real_estate",
+  "tenancy_period",
+  "lease_start_date",
+  "column_break_nbh3",
+  "current_rent",
+  "renewal_date",
+  "landlord_security_deposit",
+  "utilities_section",
+  "electricity_accounts",
+  "electricity_connection_numbers",
+  "electricity_water_security_deposit",
+  "column_break_vhrp",
+  "landline_numbers",
+  "internet_connection",
+  "compliance_section",
+  "cdc_expiry",
+  "hassantuk_expiry",
+  "documents_section",
+  "documents",
+  "section_break_rezh",
+  "last_renewal_reminder"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_afv9",
+   "fieldtype": "Section Break",
+   "label": "Basic Details"
+  },
+  {
+   "fieldname": "property_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Property Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "type_of_property",
+   "fieldtype": "Select",
+   "label": "Type of Property",
+   "options": "Flat\nShop\nVilla\nOther"
+  },
+  {
+   "fieldname": "division_used",
+   "fieldtype": "Link",
+   "label": "Division Used",
+   "options": "JH Division Master"
+  },
+  {
+   "fieldname": "booked_under",
+   "fieldtype": "Data",
+   "label": "Booked Under"
+  },
+  {
+   "fieldname": "profit_center",
+   "fieldtype": "Data",
+   "label": "Profit Center"
+  },
+  {
+   "fieldname": "column_break_rpia",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "number_of_units",
+   "fieldtype": "Int",
+   "label": "Number of Units"
+  },
+  {
+   "fieldname": "number_of_premises",
+   "fieldtype": "Int",
+   "label": "Number of Premises"
+  },
+  {
+   "fieldname": "premise_number",
+   "fieldtype": "Small Text",
+   "label": "Premise Number"
+  },
+  {
+   "fieldname": "staff_allocated",
+   "fieldtype": "Data",
+   "label": "Staff Allocated"
+  },
+  {
+   "fieldname": "location_details_section",
+   "fieldtype": "Section Break",
+   "label": "Location Details"
+  },
+  {
+   "fieldname": "location",
+   "fieldtype": "Data",
+   "label": "Location"
+  },
+  {
+   "fieldname": "emirate",
+   "fieldtype": "Data",
+   "label": "Emirate"
+  },
+  {
+   "default": "UAE",
+   "fieldname": "country",
+   "fieldtype": "Data",
+   "label": "Country"
+  },
+  {
+   "fieldname": "column_break_muaf",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "makani_number",
+   "fieldtype": "Data",
+   "label": "Makani Number"
+  },
+  {
+   "fieldname": "po_box_number",
+   "fieldtype": "Data",
+   "label": "PO Box Number"
+  },
+  {
+   "fieldname": "po_box_renewal_date",
+   "fieldtype": "Date",
+   "label": "PO Box Renewal Date"
+  },
+  {
+   "fieldname": "lease_information_section",
+   "fieldtype": "Section Break",
+   "label": "Lease Information"
+  },
+  {
+   "fieldname": "landlord",
+   "fieldtype": "Data",
+   "label": "Landlord"
+  },
+  {
+   "fieldname": "real_estate",
+   "fieldtype": "Data",
+   "label": "Real Estate"
+  },
+  {
+   "fieldname": "tenancy_period",
+   "fieldtype": "Data",
+   "label": "Tenancy Period"
+  },
+  {
+   "fieldname": "column_break_nbh3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "current_rent",
+   "fieldtype": "Currency",
+   "label": "Current Rent",
+   "reqd": 1
+  },
+  {
+   "fieldname": "renewal_date",
+   "fieldtype": "Date",
+   "label": "Renewal Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "landlord_security_deposit",
+   "fieldtype": "Currency",
+   "label": "Landlord Security Deposit"
+  },
+  {
+   "fieldname": "utilities_section",
+   "fieldtype": "Section Break",
+   "label": "Utilities"
+  },
+  {
+   "fieldname": "electricity_accounts",
+   "fieldtype": "Int",
+   "label": "Electricity Accounts"
+  },
+  {
+   "fieldname": "electricity_connection_numbers",
+   "fieldtype": "Small Text",
+   "label": "Electricity Connection Numbers"
+  },
+  {
+   "fieldname": "electricity_water_security_deposit",
+   "fieldtype": "Currency",
+   "label": "Electricity & Water Security Deposit"
+  },
+  {
+   "fieldname": "column_break_vhrp",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "landline_numbers",
+   "fieldtype": "Data",
+   "label": "Landline Numbers"
+  },
+  {
+   "fieldname": "internet_connection",
+   "fieldtype": "Data",
+   "label": "Internet Connection"
+  },
+  {
+   "fieldname": "compliance_section",
+   "fieldtype": "Section Break",
+   "label": "Compliance"
+  },
+  {
+   "fieldname": "cdc_expiry",
+   "fieldtype": "Date",
+   "label": "CDC Expiry"
+  },
+  {
+   "fieldname": "hassantuk_expiry",
+   "fieldtype": "Date",
+   "label": "Hassantuk Expiry"
+  },
+  {
+   "fieldname": "documents_section",
+   "fieldtype": "Section Break",
+   "label": "Documents"
+  },
+  {
+   "fieldname": "documents",
+   "fieldtype": "Table",
+   "label": "Documents",
+   "options": "JH Property Document"
+  },
+  {
+   "fieldname": "business_used",
+   "fieldtype": "Link",
+   "label": "Business Used",
+   "options": "JH Business Master"
+  },
+  {
+   "fieldname": "approver_1",
+   "fieldtype": "Link",
+   "label": "Approver 1",
+   "options": "User",
+   "reqd": 1
+  },
+  {
+   "fieldname": "approver_2",
+   "fieldtype": "Link",
+   "label": "Approver 2",
+   "options": "User"
+  },
+  {
+   "fieldname": "lease_start_date",
+   "fieldtype": "Date",
+   "label": "Lease start Date"
+  },
+  {
+   "fieldname": "section_break_rezh",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "last_renewal_reminder",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Last Renewal Reminder",
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-04-24 10:59:08.185623",
+ "modified_by": "Administrator",
+ "module": "JH Digitrack",
+ "name": "JH Property Master",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "select": 1,
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "JH Digitrack Admin",
+   "select": 1,
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "JH Property Department",
+   "select": 1,
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "JH GL Team",
+   "select": 1,
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "JH Licensing Team",
+   "select": 1,
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

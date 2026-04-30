@@ -159,7 +159,10 @@ doc_events = {
     # File upload validation to prevent malicious file uploads (VAPT fix)
     "File": {
         "before_insert": "jh_digitrack.api.helpers.file_validation.validate_file_before_insert"
-    }
+    },
+    "JH Property Rental Renewal": {
+        "on_update": "jh_digitrack.api.helpers.delegation.expire_adhoc_delegations_on_update"
+    },
 }     
 
 # Scheduled Tasks
@@ -179,6 +182,12 @@ scheduler_events = {
         ],
         "0 1 * * *": [
             "jh_digitrack.api.user_details.get_access_token"
+        ],
+        "0 7 * * *": [
+            "jh_digitrack.api.property_notifications.process_property_notifications"
+        ],
+        "0 0 * * *": [
+            "jh_digitrack.api.helpers.delegation.check_delegation_expiry"
         ]
     },
     # "hourly": [
@@ -279,7 +288,7 @@ fixtures = [
     },
     {
         "doctype": "Role",
-        "filters": [["role_name", "in", ["JRC Permission"]]],
+        "filters": [["role_name", "in", ["JRC Permission","JH Property Department","JH Licensing Team","JH GL Team"]]],
     },
 ]
 
