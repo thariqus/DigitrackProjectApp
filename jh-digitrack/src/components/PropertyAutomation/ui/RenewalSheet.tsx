@@ -24,6 +24,7 @@ import { propertyApi, type RenewalProgressPayload } from "../api/property";
 import { useApplyWorkflowAction } from "../hooks/useApplyWorkflowAction";
 import { useCreateDelegation, useDocumentDelegation, useRevokeDelegation } from "../hooks/useDelegation";
 import { RenewalDelegationModal } from "./RenewalDelegationModal";
+import ApprovalCommentModal from "./ApprovalCommentModal";
  
 type RenewalSheetProps = {
   open: boolean;
@@ -83,6 +84,10 @@ export default function RenewalSheet({
   const [rentChangePercentState, setRentChangePercentState] = useState("0");
   const [localModified, setLocalModified] = useState<string>("");
   const [isDelegateModalOpen, setIsDelegateModalOpen] = useState(false);
+const [isApprovalModalOpen, setIsApprovalModalOpen] = useState(false);
+  const [pendingApprovalAction, setPendingApprovalAction] = useState<"approve" | "submit" | "reject">("approve");
+  const [approvalTitle, setApprovalTitle] = useState("Approval Action");
+  const [approvalDescription, setApprovalDescription] = useState("Please provide justification or notes.");
  
   const queryClient = useQueryClient();
   const updateDoc = useUpdateDoc();
@@ -406,34 +411,17 @@ useEffect(() => {
   const handleWorkflowConfirm = handleSubmit(async (data) => {
     if (!propertyId) return;
     if (!validateBeforeWorkflow()) return;
- 
-   try {
+
+    try {
       const { latestDoc } = await saveWorkflowProgress(data);
- 
-      await new Promise<void>((resolve, reject) => {
-        applyAction(
-          { renewal_id: propertyId, action: "approve", expected_state: latestDoc.workflow_state },
-          {
-            onSuccess: async () => {
-              await queryClient.invalidateQueries({ queryKey: ["RenewalList"] });
-              await queryClient.invalidateQueries({ queryKey: ["PendingRenewals"] });
-              await refetchRenewal();
-              await refetchProperty();
-              setContractFiles([]);
-              onOpenChange(false);
-              resolve();
-            },
-            onError: (error: unknown) => reject(error),
-          }
-        );
-      });
-    }catch (error: unknown) {
+      handleOpenApprovalModal("approve");
+    } catch (error: unknown) {
       const message = getErrorMessage(error, "Failed to save renewal progress");
- 
+
       if (message.includes("updated by another user")) {
         await refetchRenewal();
       }
- 
+
       toast.error(message);
     }
   });
@@ -522,6 +510,42 @@ useEffect(() => {
           queryClient.invalidateQueries({ queryKey: ["RenewalList"] });
           queryClient.invalidateQueries({ queryKey: ["PendingRenewals"] });
           toast.success("Delegation created successfully");
+        },
+      }
+    );
+  };
+
+  const handleOpenApprovalModal = (action: "approve" | "submit" | "reject", title?: string, description?: string) => {
+    if (!propertyId) return;
+    setPendingApprovalAction(action);
+    setApprovalTitle(title || "Approval Action");
+    setApprovalDescription(description || "Please provide justification or notes.");
+    setIsApprovalModalOpen(true);
+  };
+
+  const handleApprovalSubmit = (action: string, comment: string) => {
+    if (!propertyId) return;
+
+    applyAction(
+      {
+        renewal_id: propertyId,
+        action,
+        comment,
+        expected_state: renewalDoc?.workflow_state,
+      },
+      {
+        onSuccess: async () => {
+          await queryClient.invalidateQueries({ queryKey: ["RenewalList"] });
+          await queryClient.invalidateQueries({ queryKey: ["PendingRenewals"] });
+          await refetchRenewal();
+          setIsApprovalModalOpen(false);
+          toast.success(`${action.charAt(0).toUpperCase() + action.slice(1)}d successfully`);
+          if (["approve", "submit"].includes(action)) {
+            onOpenChange(false);
+          }
+        },
+        onError: (error: unknown) => {
+          toast.error(error instanceof Error ? error.message : "Action failed");
         },
       }
     );
@@ -1034,19 +1058,7 @@ const renderDelegationBadge = () => {
                   <Button
                     className="w-full bg-primary text-white"
                     type="button"
-                    onClick={() => {
-                      if (!propertyId) return;
-                      applyAction(
-                       { renewal_id: propertyId, action: "submit", expected_state: renewalDoc?.workflow_state },
-                        {
-                          onSuccess: () => {
-                            refetchRenewal();
-                            queryClient.invalidateQueries({ queryKey: ["RenewalList"] });
-                            onOpenChange(false);
-                          },
-                        }
-                      );
-                    }}
+                    onClick={() => handleOpenApprovalModal("submit", "Submit Renewal", "Please provide justification for submitting this renewal for approval.")}
                   >
                    Submit for Approver
                   </Button>
@@ -1075,19 +1087,7 @@ const renderDelegationBadge = () => {
                   <Button
                     className="w-full bg-primary text-white"
                     type="button"
-                    onClick={() => {
-                      if (!propertyId) return;
-                      applyAction(
-                        { renewal_id: propertyId, action: "approve", expected_state: renewalDoc?.workflow_state },
-                        {
-                          onSuccess: () => {
-                            refetchRenewal();
-                            queryClient.invalidateQueries({ queryKey: ["RenewalList"] });
-                            onOpenChange(false);
-                          },
-                        }
-                      );
-                    }}
+                    onClick={() => handleOpenApprovalModal("approve", "Approve Renewal (Approver 1)", "Please provide your approval justification or notes for Approver 1.")}
                   >
                     Approve
                   </Button>
@@ -1116,19 +1116,7 @@ const renderDelegationBadge = () => {
                   <Button
                     className="w-full bg-primary text-white"
                     type="button"
-                    onClick={() => {
-                      if (!propertyId) return;
-                      applyAction(
-                        { renewal_id: propertyId, action: "approve", expected_state: renewalDoc?.workflow_state },
-                        {
-                          onSuccess: () => {
-                            refetchRenewal();
-                            queryClient.invalidateQueries({ queryKey: ["RenewalList"] });
-                            onOpenChange(false);
-                          },
-                        }
-                      );
-                    }}
+                    onClick={() => handleOpenApprovalModal("approve", "Approve Renewal (Approver 2)", "Please provide your approval justification or notes for Approver 2.")}
                   >
                     Approve
                   </Button>
@@ -1157,19 +1145,7 @@ const renderDelegationBadge = () => {
                   <Button
                     className="w-full bg-primary text-white"
                     type="button"
-                    onClick={() => {
-                      if (!propertyId) return;
-                      applyAction(
-                        { renewal_id: propertyId, action: "approve" ,expected_state: renewalDoc?.workflow_state },
-                        {
-                          onSuccess: () => {
-                            refetchRenewal();
-                            queryClient.invalidateQueries({ queryKey: ["RenewalList"] });
-                            onOpenChange(false);
-                          },
-                        }
-                      );
-                    }}
+                    onClick={() => handleOpenApprovalModal("approve", "Approve Renewal (CFO)", "Please provide your approval justification or notes as CFO.")}
                   >
                     Approve
                   </Button>
@@ -1198,19 +1174,7 @@ const renderDelegationBadge = () => {
                   <Button
                     className="w-full bg-primary text-white"
                     type="button"
-                    onClick={() => {
-                      if (!propertyId) return;
-                      applyAction(
-                        { renewal_id: propertyId, action: "approve" ,expected_state: renewalDoc?.workflow_state },
-                        {
-                          onSuccess: () => {
-                            refetchRenewal();
-                            queryClient.invalidateQueries({ queryKey: ["RenewalList"] });
-                            onOpenChange(false);
-                          },
-                        }
-                      );
-                    }}
+                    onClick={() => handleOpenApprovalModal("approve", "Approve Renewal (MD)", "Please provide your approval justification or notes as MD.")}
                   >
                     Approve
                   </Button>
@@ -1349,6 +1313,15 @@ const renderDelegationBadge = () => {
         title={`Send Back ${renewalDoc?.name || ""}`}
       />
  
+      <ApprovalCommentModal
+        open={isApprovalModalOpen}
+        onOpenChange={setIsApprovalModalOpen}
+        onApprove={handleApprovalSubmit}
+        renewalId={propertyId || ""}
+        title={approvalTitle}
+        action={pendingApprovalAction}
+        description={approvalDescription}
+      />
       <RenewalDelegationModal
         open={isDelegateModalOpen}
         onOpenChange={setIsDelegateModalOpen}
@@ -1361,3 +1334,4 @@ const renderDelegationBadge = () => {
     </Sheet>
   );
 }
+
