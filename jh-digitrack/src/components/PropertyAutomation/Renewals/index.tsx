@@ -177,15 +177,14 @@ function Renewals() {
     )}-${d.getFullYear()}`;
   };
 
-  const roles = roleBasedAccess?.roles || [];
-  const isLicensingTeam = roles.includes("JH Licensing Team");
-  const isJHPropertyDepartment = roles.includes("JH Property Department");
+  const isLicensingTeam = !!roleBasedAccess?.is_licensing;
+  const isJHPropertyDepartment = !!roleBasedAccess?.has_property_dept_role;
   const isCfo = roleBasedAccess?.is_cfo;
   const isMD = roleBasedAccess?.is_md;
   const isApprover1 = roleBasedAccess?.is_approver_1;
   const isApprover2 = roleBasedAccess?.is_approver_2;
   const isGLTeam = roleBasedAccess?.has_gl_team_role;
-
+  
   return (
     <div className="w-full space-y-4">
       <FilterButtons
