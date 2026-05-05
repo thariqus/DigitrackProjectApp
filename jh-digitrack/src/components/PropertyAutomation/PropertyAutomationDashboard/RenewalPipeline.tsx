@@ -1,106 +1,122 @@
-
+import { useNavigate } from "react-router";
+import { useRenewalPipelineCounts } from "../hooks/useProperty";
 
 function RenewalPipeline() {
+  const navigate = useNavigate();
+  const { data: counts, isLoading } = useRenewalPipelineCounts();
 
   const pipelineStages = [
     {
       label: "Draft",
       status: "Draft",
-      count: 5,
+      apiKey: "draft",
       color: "bg-sky-100 text-sky-800 border-sky-200",
     },
     {
       label: "Pending Division Head",
       status: "Pending Approver 1",
-      count: 10,
+      apiKey: "pending_approver_1",
       color: "bg-amber-100 text-amber-800 border-amber-200",
     },
     {
       label: "Pending GM Approval",
       status: "Pending Approver 2",
-      count: 8,
+      apiKey: "pending_approver_2",
       color: "bg-sky-100 text-sky-800 border-sky-200",
     },
     {
       label: "Pending CFO Approval",
       status: "Pending CFO",
-      count: 12,
+      apiKey: "pending_cfo",
       color: "bg-amber-100 text-amber-800 border-amber-200",
     },
     {
       label: "Pending MD Approval",
       status: "Pending MD",
-      count: 4,
+      apiKey: "pending_md",
       color: "bg-amber-100 text-amber-800 border-amber-200",
     },
-
     {
       label: "Pending Cheque Details",
       status: "Pending Cheque Details",
-      count: 6,
+      apiKey: "pending_cheque_details",
       color: "bg-indigo-100 text-indigo-800 border-indigo-200",
     },
     {
       label: "Pending PO",
       status: "Pending Property PO",
-      count: 7,
+      apiKey: "pending_property_po",
       color: "bg-purple-100 text-purple-800 border-purple-200",
     },
     {
       label: "Pending MIRO",
       status: "Pending MIRO",
-      count: 3,
+      apiKey: "pending_miro",
       color: "bg-purple-100 text-purple-800 border-purple-200",
     },
     {
       label: "Completed",
       status: "Completed",
-      count: 20,
+      apiKey: "completed",
       color: "bg-green-100 text-green-800 border-green-200",
     },
     {
-      label: "Withdraw",
+      label: "Withdrawn",
       status: "Withdrawn",
-      count: 2,
+      apiKey: "withdrawn",
       color: "bg-red-100 text-red-800 border-red-200",
     },
   ];
 
-  return (
+  const getCount = (apiKey: string): number => {
+    if (isLoading || !counts) return 0;
+    return counts[apiKey as keyof typeof counts] || 0;
+  };
 
+  const handleStageClick = (status: string, count: number) => {
+    // Only navigate if there are renewals in this stage
+    if (count > 0) {
+      navigate(`/jh-digitrack/property/renewals?workflow_states=${encodeURIComponent(JSON.stringify([status]))}`);
+    }
+  };
+
+  const displayCount = (apiKey: string) => {
+    if (isLoading) return "...";
+    return getCount(apiKey);
+  };
+
+  return (
     <div>
-            <h2 className="text-lg font-bold text-primary py-4">Renewal Pipeline</h2>
-          <div className="flex items-center gap-2 py-2">
-          {pipelineStages.map((stage, index) => (
+      <h2 className="text-lg font-bold text-primary py-4">Renewal Pipeline</h2>
+      <div className="flex items-center gap-2 py-2 overflow-x-auto">
+        {pipelineStages.map((stage, index) => {
+          const stageCount = getCount(stage.apiKey);
+          return (
             <div key={stage.status} className="flex items-center">
-              
               {/* Card */}
               <div
-                // onClick={() =>
-                //   navigate(`/property/renewals?status=${stage.status}`)
-                // }
-                className={`min-w-[100px] h-30 cursor-pointer rounded-2xl border p-4 shadow-sm hover:shadow-md transition ${
-                  stage.count === 0 ? "opacity-40" : stage.color
+                onClick={() => handleStageClick(stage.status, stageCount)}
+                className={`min-w-[100px] h-24 rounded-2xl border p-4 shadow-sm transition ${
+                  stageCount === 0
+                    ? "opacity-40 cursor-not-allowed"
+                    : `cursor-pointer hover:shadow-md ${stage.color}`
                 }`}
               >
                 <div className="flex flex-col items-center text-center">
-                  <span className="text-lg font-bold">{stage.count}</span>
-                  <span className="text-xs font-semibold">
-                    {stage.label}
-                  </span>
+                  <span className="text-lg font-bold">{displayCount(stage.apiKey)}</span>
+                  <span className="text-xs font-semibold">{stage.label}</span>
                 </div>
               </div>
 
               {/* Arrow */}
               {index !== pipelineStages.length - 1 && (
-                <div className=" text-gray-400 text-xl">→</div>
+                <div className="text-gray-400 text-xl mx-1">→</div>
               )}
             </div>
-          ))}
-        </div>
-
+          );
+        })}
+      </div>
     </div>
-        
   );
 }
 
