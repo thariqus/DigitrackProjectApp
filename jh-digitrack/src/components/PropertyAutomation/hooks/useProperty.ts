@@ -26,6 +26,13 @@ export const usePropertyDashboardCounts = () =>
     staleTime: 5 * 60 * 1000,
   });
 
+export const useRenewalPipelineCounts = () =>
+  useQuery({
+    queryKey: ["RenewalPipelineCounts"],
+    queryFn: () => propertyApi.getRenewalPipelineCounts(),
+    staleTime: 5 * 60 * 1000,
+  });
+
 export const usePendingRenewals = (enabled: boolean) =>
   useQuery({
     queryKey: ["PendingRenewals"],
