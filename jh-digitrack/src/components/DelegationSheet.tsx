@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
@@ -40,6 +40,18 @@ const DelegationSheet: React.FC = () => {
   const currentUserId = currentUser?.email;
   const [isSetupOpen, setIsSetupOpen] = useState(false);
   console.log("currentUserId", currentUserId);
+
+  useEffect(() => {
+  if (open) {
+    document.body.style.pointerEvents = "auto";
+  } else {
+    document.body.style.pointerEvents = "";
+  }
+
+  return () => {
+    document.body.style.pointerEvents = "";
+  };
+}, [open]);
 
   const normalize = (val?: string) => val?.trim().toLowerCase();
 
