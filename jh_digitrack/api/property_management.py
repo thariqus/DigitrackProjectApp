@@ -24,7 +24,7 @@ SENDBACK_TRANSITIONS = {
 }
  
 STATE_ROLE_MAP = {
-    "Draft": {"licensing", "module_admin", "Administrator"},
+    "Draft": {"licensing", "property_dept", "module_admin", "Administrator"},
     "Pending Approver 1": {"approver_1", "module_admin", "Administrator"},
     "Pending Approver 2": {"approver_2", "module_admin", "Administrator"},
     "Pending Cheque Details": {"property_dept", "module_admin", "Administrator"},
@@ -37,7 +37,7 @@ STATE_ROLE_MAP = {
 WORKFLOW_TRANSITIONS = {
     "submit": {
         "Draft": {
-            "roles": {"licensing", "module_admin", "Administrator"},
+            "roles": {"licensing", "property_dept", "module_admin", "Administrator"},
             "next_state": "Pending Approver 1",
         },
     },
@@ -1385,6 +1385,8 @@ def apply_workflow_action(
             frappe.throw(_("Action {0} is not allowed when workflow state is {1}").format(action, current_state))
         if role not in transition["roles"]:
             frappe.throw(_("Role {0} is not allowed to {1} a renewal in state {2}").format(role, action, current_state))
+        if not comment:
+            frappe.throw(_("Comment is required"))
         next_state = transition["next_state"]
         if current_state == "Pending Approver 1" and action == "approve":
             approver_2 = frappe.db.get_value("JH Property Master", renewal.property, "approver_2") if renewal.property else None

@@ -39,10 +39,10 @@
   "landlord_security_deposit",
   "utilities_section",
   "electricity_accounts",
-  "electricity_connection_numbers",
+  "electricity_connections",
   "electricity_water_security_deposit",
   "column_break_vhrp",
-  "landline_numbers",
+  "landline_connections",
   "internet_connection",
   "compliance_section",
   "cdc_expiry",
@@ -203,11 +203,6 @@
    "label": "Electricity Accounts"
   },
   {
-   "fieldname": "electricity_connection_numbers",
-   "fieldtype": "Small Text",
-   "label": "Electricity Connection Numbers"
-  },
-  {
    "fieldname": "electricity_water_security_deposit",
    "fieldtype": "Currency",
    "label": "Electricity & Water Security Deposit"
@@ -215,11 +210,6 @@
   {
    "fieldname": "column_break_vhrp",
    "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "landline_numbers",
-   "fieldtype": "Data",
-   "label": "Landline Numbers"
   },
   {
    "fieldname": "internet_connection",
@@ -286,12 +276,24 @@
    "hidden": 1,
    "label": "Last Renewal Reminder",
    "read_only": 1
+  },
+  {
+   "fieldname": "electricity_connections",
+   "fieldtype": "Table",
+   "label": "Electricity Connections",
+   "options": "JH Property Electricity Connection"
+  },
+  {
+   "fieldname": "landline_connections",
+   "fieldtype": "Table",
+   "label": "Landline Connections",
+   "options": "JH Property Landline"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-04-24 10:59:08.185623",
+ "modified": "2026-05-05 14:12:49.518442",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Property Master",
