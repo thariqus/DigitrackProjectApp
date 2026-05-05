@@ -77,15 +77,20 @@ export function RenewalDelegationModal({
     [usersData, currentUserId, delegateSearch]
   );
 
+// Handle outside click to close delegate dropdown
   useEffect(() => {
+    if (!openDelegateField) return;
+
     const handlePointerDown = (event: MouseEvent) => {
-      if (!openDelegateField) return;
       if (delegateFieldRef.current && !delegateFieldRef.current.contains(event.target as Node)) {
         setOpenDelegateField(false);
       }
     };
+
     document.addEventListener("mousedown", handlePointerDown);
-    return () => document.removeEventListener("mousedown", handlePointerDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+    };
   }, [openDelegateField]);
 
   useEffect(() => {
