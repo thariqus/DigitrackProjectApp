@@ -267,20 +267,21 @@ const renewalsData = renewalsListData?.renewals ?? [];
     }
   }, [open, isCreate, doc, resetSheetState]);
  
+// Handle outside click to close approver dropdown
   useEffect(() => {
-    if (!open) return;
- 
+    if (!open || !openApproverField) return;
+
     const handlePointerDown = (event: MouseEvent) => {
-      if (!openApproverField) return;
- 
       const activeContainer = approverFieldRefs.current[openApproverField];
       if (activeContainer && !activeContainer.contains(event.target as Node)) {
         setOpenApproverField(null);
       }
     };
- 
+
     document.addEventListener("mousedown", handlePointerDown);
-    return () => document.removeEventListener("mousedown", handlePointerDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+    };
   }, [open, openApproverField]);
  
   useEffect(() => {
