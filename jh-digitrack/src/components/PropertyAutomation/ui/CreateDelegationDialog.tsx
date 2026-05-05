@@ -129,17 +129,21 @@ export function CreateDelegationDialog({
     [usersData, currentUserId, delegateSearch]
   );
 
+// Handle outside click to close delegate dropdown
   useEffect(() => {
-    const handlePointerDown = (event: MouseEvent) => {
-      if (!openDelegateField) return;
+    if (!openDelegateField) return;
 
+    const handlePointerDown = (event: MouseEvent) => {
       if (delegateFieldRef.current && !delegateFieldRef.current.contains(event.target as Node)) {
+        event.preventDefault();
         setOpenDelegateField(false);
       }
     };
 
-    document.addEventListener("mousedown", handlePointerDown);
-    return () => document.removeEventListener("mousedown", handlePointerDown);
+    document.addEventListener("mousedown", handlePointerDown, true);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown, true);
+    };
   }, [openDelegateField]);
 
   useEffect(() => {
