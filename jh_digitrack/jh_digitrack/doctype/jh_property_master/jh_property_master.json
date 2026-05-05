@@ -37,6 +37,8 @@
   "current_rent",
   "renewal_date",
   "landlord_security_deposit",
+  "security_deposit_cheque_details_section",
+  "security_deposit_cheques",
   "utilities_section",
   "electricity_accounts",
   "electricity_connections",
@@ -288,12 +290,23 @@
    "fieldtype": "Table",
    "label": "Landline Connections",
    "options": "JH Property Landline"
+  },
+  {
+   "fieldname": "security_deposit_cheque_details_section",
+   "fieldtype": "Section Break",
+   "label": "Security Deposit Cheque Details"
+  },
+  {
+   "fieldname": "security_deposit_cheques",
+   "fieldtype": "Table",
+   "label": "Security Deposit Cheques",
+   "options": "JH Property Cheque Detail"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-05-05 14:12:49.518442",
+ "modified": "2026-05-05 15:04:53.867312",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Property Master",
