@@ -135,12 +135,22 @@ function Properties() {
   };
 
   const getRenewalStatus = (date?: string): string => {
-    if (!date) return "Unknown";
-    const days = Math.floor((new Date(date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-    if (days < 0) return "Expired";
-    if (days <= 90) return "Expiring Soon";
-    return "Active";
-  };
+  if (!date) return "Unknown";
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const renewalDate = new Date(date);
+  renewalDate.setHours(0, 0, 0, 0);
+
+  const days = Math.floor(
+    (renewalDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+  );
+
+  if (days < 0) return "Expired";
+  if (days <= 90) return "Expiring Soon";
+  return "Active";
+};
 
   const formatDate = (date?: string) => {
     if (!date) return "";
