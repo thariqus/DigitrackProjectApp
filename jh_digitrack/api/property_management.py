@@ -351,8 +351,7 @@ def get_property_list(
         "makani_number", "po_box_number", "po_box_renewal_date",
         "landlord", "real_estate", "current_rent", "renewal_date",
         "landlord_security_deposit", "tenancy_period",
-        "electricity_accounts", "electricity_connection_numbers",
-        "electricity_water_security_deposit", "landline_numbers",
+        "electricity_accounts", "electricity_water_security_deposit",
         "internet_connection", "cdc_expiry", "hassantuk_expiry",
     ]
  
