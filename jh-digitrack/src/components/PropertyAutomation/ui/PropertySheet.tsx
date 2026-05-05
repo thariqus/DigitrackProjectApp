@@ -1,4 +1,5 @@
 
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -21,7 +22,8 @@ import MultiValueInput from "./MultiValueInput";
 import StartRenewalModal from "./StartRenewalModal";
 import { useDocs, useSaveDoc, useUpdateDoc } from "@/hooks/doc";
 import { usePropertyDoc, useRenewalList } from "../hooks/useProperty";
-import { PropertyMaster } from "@/types/JHDigitrack/JHPropertyAutomation";
+import { PropertyMaster, JHPropertyElectricityConnection, JHPropertyLandline } from "@/types/JHDigitrack/JHPropertyAutomation";
+import { X } from "lucide-react";
 import { queryClient } from "@/utils/query-client";
 import RenewalTimeline from "./RenewalTimeline";
  
@@ -78,13 +80,30 @@ const propertySchema = z.object({
   current_rent: requiredNumberField,
   renewal_date: z.string().min(1, "Required field"),
   landlord_security_deposit: z.coerce.number().optional(),
-  tenancy_period: z.string().nullable().optional(),
+  tenancy_period: z.string().optional().refine((val) => {
+    if (!val) return true;
+    const match = val.match(/^(\d+)\s+(Months?|Weeks?|Years?)$/i);
+    return !!match && parseInt(match[1], 10) > 0;
+  }, {
+    message: "Must be number followed by Months, Weeks, or Years (e.g. '12 Months')"
+  }),
   lease_start_date: z.string().nullable().optional(),
  
   electricity_accounts: z.coerce.number().optional(),
+  electricity_connections: z.array(z.object({
+    connection_number: z.string().min(1, "Connection Number required"),
+    meter_id: z.string().optional(),
+    account_number: z.string().optional(),
+    connection_type: z.enum(["Electricity", "Water", "Dual"]).optional(),
+  })).optional(),
   electricity_connection_numbers: z.string().nullable().optional(),
   electricity_water_security_deposit: z.coerce.number().optional(),
-  landline_numbers: z.string().nullable().optional(),
+  landline_connections: z.array(z.object({
+    landline_number: z.string().min(1, "Landline Number required"),
+    provider: z.string().optional(),
+    line_type: z.enum(["Fixed", "Fax"]).optional(),
+  })).optional(),
+  landline_accounts: z.coerce.number().optional(),
   internet_connection: z.string().nullable().optional(),
  
   cdc_expiry: z.string().optional(),
@@ -93,9 +112,12 @@ const propertySchema = z.object({
   approver_2: z.string().nullable().optional(),
 });
 
-type PropertyFormValues = z.infer<typeof propertySchema>;
+type PropertyFormValues = z.infer<typeof propertySchema> & {
+  electricity_connections: JHPropertyElectricityConnection[];
+  landline_connections: JHPropertyLandline[];
+};
 
-const getEmptyPropertyFormValues = (): PropertyFormValues => ({
+  const getEmptyPropertyFormValues = (): PropertyFormValues => ({
   property_name: "",
   type_of_property: "",
   business_used: "",
@@ -120,9 +142,11 @@ const getEmptyPropertyFormValues = (): PropertyFormValues => ({
   tenancy_period: "",
   lease_start_date: "",
   electricity_accounts: undefined,
+  electricity_connections: [],
   electricity_connection_numbers: "",
   electricity_water_security_deposit: undefined,
-  landline_numbers: "",
+  landline_connections: [],
+  landline_accounts: undefined,
   internet_connection: "",
   cdc_expiry: "",
   hassantuk_expiry: "",
@@ -151,6 +175,8 @@ export default function PropertySheet({
   const [approver1Search, setApprover1Search] = useState("");
   const [approver2Search, setApprover2Search] = useState("");
   const [openApproverField, setOpenApproverField] = useState<"approver_1" | "approver_2" | null>(null);
+  const [connections, setConnections] = useState<JHPropertyElectricityConnection[]>([]);
+  const [landlineConnections, setLandlineConnections] = useState<JHPropertyLandline[]>([]);
   const lastAutoFilledDivisionRef = useRef<string | null>(null);
   const approverFieldRefs = useRef<Partial<Record<"approver_1" | "approver_2", HTMLDivElement | null>>>({});
   const navigate = useNavigate();
@@ -167,7 +193,7 @@ export default function PropertySheet({
   const isCreate = mode === "create";
   const formId = "property-form";
  
-  const { data: propertyData } = usePropertyDoc(propertyId);
+  const { data: propertyData, isFetching: isPropertyFetching } = usePropertyDoc(propertyId);
   const { data: renewalsListData,refetch: refetchRenewals } = useRenewalList(
   {
     property: propertyId || undefined,
@@ -227,12 +253,14 @@ const renewalsData = renewalsListData?.renewals ?? [];
  
   const selectedDivision = selectedDivisionData?.[0];
 
-  const resetSheetState = useCallback((values: PropertyFormValues = getEmptyPropertyFormValues()) => {
+const resetSheetState = useCallback((values: PropertyFormValues = getEmptyPropertyFormValues()) => {
     setFiles([]);
     setApprover1Search("");
     setApprover2Search("");
     setOpenApproverField(null);
     reset(values);
+    setConnections(values.electricity_connections || []);
+    setLandlineConnections(values.landline_connections || []);
   }, [reset]);
 
   const handleSheetOpenChange = (nextOpen: boolean) => {
@@ -255,9 +283,13 @@ const renewalsData = renewalsListData?.renewals ?? [];
 
     if (doc) {
       lastAutoFilledDivisionRef.current = doc.division_used ?? null;
+      setConnections(doc.electricity_connections || []);
+      setLandlineConnections(doc.landline_connections || []);
       resetSheetState({
         ...getEmptyPropertyFormValues(),
         ...doc,
+        electricity_connections: doc.electricity_connections || [],
+        landline_connections: doc.landline_connections || [],
         renewal_date: doc.renewal_date?.split("T")[0],
         lease_start_date: doc.lease_start_date?.split("T")[0],
         po_box_renewal_date: doc.po_box_renewal_date?.split("T")[0],
@@ -333,7 +365,24 @@ const renewalsData = renewalsListData?.renewals ?? [];
     return data.message.file_url as string;
   };
  
-  const onSubmit = async (data: z.infer<typeof propertySchema>) => {
+  const onSubmit = async (data: PropertyFormValues) => {
+    const formData = {
+      ...data,
+      electricity_connections: connections.map((conn, index) => ({
+        doctype: "JH Property Electricity Connection",
+        ...conn,
+        idx: index + 1,
+      })),
+      landline_connections: landlineConnections.map((conn, index) => ({
+        doctype: "JH Property Landline",
+        ...conn,
+        idx: index + 1,
+      })),
+      landline_accounts: landlineConnections.length || 0,
+      electricity_accounts: connections.length || 0,
+    } as any;
+
+    console.log("Property save payload:", JSON.stringify(formData, null, 2));
 
     if (isCreate && data.renewal_date && new Date(data.renewal_date) <= new Date()) {
       toast.error("Renewal Date must be a future date");
@@ -375,6 +424,8 @@ const renewalsData = renewalsListData?.renewals ?? [];
       await queryClient.invalidateQueries({ queryKey: ["PropertyList"], exact: false });
       await queryClient.invalidateQueries({ queryKey: ["PropertyDashboardCounts"] });
       await queryClient.invalidateQueries({ queryKey: ["PropertyDoc", propertyId] });
+      // Force refetch for immediate UI update
+      await queryClient.refetchQueries({ queryKey: ["PropertyDoc", propertyId] });
       await queryClient.invalidateQueries({ queryKey: ["RenewalList"], exact: false });
  
       handleSheetOpenChange(false);
@@ -618,6 +669,393 @@ const renewalsData = renewalsListData?.renewals ?? [];
       </div>
     );
   };
+
+
+  const renderLandlineConnections = (
+  isViewMode: boolean,
+  connectionsData?: JHPropertyLandline[]
+) => {
+  const data = isViewMode ? (connectionsData || []) : landlineConnections;
+  const isLoading = isViewMode && isPropertyFetching;
+
+  return (
+    <div className="flex flex-col gap-1">
+      <Label className="text-sm text-gray-600">Landline Connections</Label>
+
+      {isLoading ? (
+        <div className="flex items-center justify-center p-8">
+          <Skeleton className="h-32 w-full" />
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {data.length === 0 ? (
+            <p className="text-sm text-muted-foreground p-3 border-2 border-dashed rounded-lg text-center">
+              {isViewMode ? "No connections" : "Click + Add Landline to start"}
+            </p>
+          ) : (
+            data.map((conn, index) => (
+              <div
+                key={conn.name || index}
+                className="flex gap-2 items-end bg-muted p-3 rounded-lg"
+              >
+                <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-2">
+                  <div className="flex flex-col gap-1">
+                    <Label className="text-xs">Landline Number <span className="text-red-500">*</span></Label>
+                    {isViewMode ? (
+                      <span className="text-sm font-medium">
+                        {conn.landline_number || "-"}
+                      </span>
+                    ) : (
+                      <Input
+                        value={conn.landline_number || ""}
+                        onChange={(e) => {
+                          const newConns = [...landlineConnections];
+                          newConns[index].landline_number = e.target.value;
+                          setLandlineConnections(newConns);
+                          setValue("landline_accounts", newConns.length);
+                        }}
+                        className="text-sm"
+                      />
+                    )}
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <Label className="text-xs">Provider</Label>
+                    {isViewMode ? (
+                      <span className="text-sm">{conn.provider || "-"}</span>
+                    ) : (
+                      <Input
+                        value={conn.provider || ""}
+                        onChange={(e) => {
+                          const newConns = [...landlineConnections];
+                          newConns[index].provider = e.target.value;
+                          setLandlineConnections(newConns);
+                        }}
+                        className="text-sm"
+                      />
+                    )}
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <Label className="text-xs">Line Type</Label>
+                    {isViewMode ? (
+                      <span className="text-sm font-medium">
+                        {conn.line_type || "-"}
+                      </span>
+                    ) : (
+                      <Select
+                        value={conn.line_type || ""}
+                        onValueChange={(value) => {
+                          const newConns = [...landlineConnections];
+                          newConns[index].line_type = value;
+                          setLandlineConnections(newConns);
+                        }}
+                      >
+                        <SelectTrigger className="text-sm h-9">
+                          <SelectValue placeholder="Select type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Fixed">Fixed</SelectItem>
+                          <SelectItem value="Fax">Fax</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+                </div>
+
+                {!isViewMode && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 p-0 -mr-2"
+                    onClick={() => {
+                      const newConns = landlineConnections.filter((_, i) => i !== index);
+                      setLandlineConnections(newConns);
+                      setValue("landline_accounts", newConns.length);
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            ))
+          )}
+
+          {!isViewMode && (
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full border-2 border-dashed h-10 text-sm"
+              onClick={() => {
+                const newConns = [...landlineConnections, { landline_number: "" }];
+                setLandlineConnections(newConns);
+                setValue("landline_accounts", newConns.length);
+              }}
+            >
+              + Add Landline
+            </Button>
+          )}
+        </div>
+      )}
+
+      {errors.landline_accounts && (
+        <span className="text-red-500 text-xs">
+          {errors.landline_accounts.message}
+        </span>
+      )}
+    </div>
+  );
+};
+
+  const renderElectricityConnections = (
+  isViewMode: boolean,
+  connectionsData?: JHPropertyElectricityConnection[]
+) => {
+  const data = isViewMode ? (connectionsData || []) : connections;
+  const isLoading = isViewMode && isPropertyFetching;
+
+  return (
+    <div className="flex flex-col gap-1">
+      <Label className="text-sm text-gray-600">Electricity Connections</Label>
+
+      {isLoading ? (
+        <div className="flex items-center justify-center p-8">
+          <Skeleton className="h-32 w-full" />
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {data.length === 0 ? (
+            <p className="text-sm text-muted-foreground p-3 border-2 border-dashed rounded-lg text-center">
+              {isViewMode ? "No connections" : "Click + Add Connection to start"}
+            </p>
+          ) : (
+            data.map((conn, index) => (
+              <div
+                key={conn.name || index}
+                className="flex gap-2 items-end bg-muted p-3 rounded-lg"
+              >
+                <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-2">
+                  <div className="flex flex-col gap-1">
+                    <Label className="text-xs">Connection Number</Label>
+                    {isViewMode ? (
+                      <span className="text-sm font-medium">
+                        {conn.connection_number || "-"}
+                      </span>
+                    ) : (
+                      <Input
+                        value={conn.connection_number || ""}
+                        onChange={(e) => {
+                          const newConns = [...connections];
+                          newConns[index].connection_number = e.target.value;
+                          setConnections(newConns);
+                          setValue("electricity_accounts", newConns.length);
+                        }}
+                        className="text-sm"
+                      />
+                    )}
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <Label className="text-xs">Meter ID</Label>
+                    {isViewMode ? (
+                      <span className="text-sm">{conn.meter_id || "-"}</span>
+                    ) : (
+                      <Input
+                        value={conn.meter_id || ""}
+                        onChange={(e) => {
+                          const newConns = [...connections];
+                          newConns[index].meter_id = e.target.value;
+                          setConnections(newConns);
+                        }}
+                        className="text-sm"
+                      />
+                    )}
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <Label className="text-xs">Account Number</Label>
+                    {isViewMode ? (
+                      <span className="text-sm">
+                        {conn.account_number || "-"}
+                      </span>
+                    ) : (
+                      <Input
+                        value={conn.account_number || ""}
+                        onChange={(e) => {
+                          const newConns = [...connections];
+                          newConns[index].account_number = e.target.value;
+                          setConnections(newConns);
+                        }}
+                        className="text-sm"
+                      />
+                    )}
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <Label className="text-xs">Type</Label>
+                    {isViewMode ? (
+                      <span className="text-sm font-medium">
+                        {conn.connection_type || "-"}
+                      </span>
+                    ) : (
+                      <Select
+                        value={conn.connection_type || ""}
+                        onValueChange={(value) => {
+                          const newConns = [...connections];
+                          newConns[index].connection_type = value as any;
+                          setConnections(newConns);
+                        }}
+                      >
+                        <SelectTrigger className="text-sm h-9">
+                          <SelectValue placeholder="Select type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Electricity">
+                            Electricity
+                          </SelectItem>
+                          <SelectItem value="Water">Water</SelectItem>
+                          <SelectItem value="Dual">Dual</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+                </div>
+
+                {!isViewMode && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 p-0 -mr-2"
+                    onClick={() => {
+                      const newConns = connections.filter((_, i) => i !== index);
+                      setConnections(newConns);
+                      setValue("electricity_accounts", newConns.length);
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            ))
+          )}
+
+          {!isViewMode && (
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full border-2 border-dashed h-10 text-sm"
+              onClick={() => {
+                const newConns = [...connections, { connection_number: "" }];
+                setConnections(newConns);
+                setValue("electricity_accounts", newConns.length);
+              }}
+            >
+              + Add Connection
+            </Button>
+          )}
+        </div>
+      )}
+
+      {errors.electricity_accounts && (
+        <span className="text-red-500 text-xs">
+          {errors.electricity_accounts.message}
+        </span>
+      )}
+    </div>
+  );
+};
+
+  const renderTenancyPeriodField = (
+    label: string,
+    name: keyof z.infer<typeof propertySchema>,
+    value?: string | null
+  ) => {
+    const [tenancyValue, tenancyUnit] = useMemo(() => {
+      if (!value) return [undefined, "Months"] as [number | undefined, string];
+      const match = value.match(/^(\d+)\s*(Months?|Weeks?|Years?)$/i);
+      return match 
+        ? [parseInt(match[1], 10), match[2] || "Months"] 
+        : [undefined, "Months"];
+    }, [value]);
+
+    return (
+      <div className="flex flex-col gap-1">
+        {!isView && (
+          <Label className="text-sm text-gray-600">
+            {label}
+          </Label>
+        )}
+
+        {isView ? (
+          <div className="flex items-start gap-2 py-1 text-sm">
+            <span className="font-medium text-gray-600">{label}:</span>
+            <span>{value || "-"}</span>
+          </div>
+        ) : (
+          <Controller
+            key={name as string} // Force remount on value change
+            name={name}
+            control={control}
+            render={({ field }) => {
+              const [numVal, unitVal] = useMemo(() => {
+                if (!field.value) return ["" as string, "Months" as string];
+                const match = field.value.match(/^(\d+)\s*(Months?|Weeks?|Years?)$/i);
+                return match 
+                  ? [match[1], match[2] || "Months"] 
+                  : ["", "Months"];
+              }, [field.value]);
+
+              const handleValueChange = (newNum: string) => {
+                const num = parseInt(newNum, 10);
+                const combined = num > 0 ? `${num} ${unitVal}` : "";
+                field.onChange(combined);
+              };
+
+              const handleUnitChange = (newUnit: string) => {
+                const num = parseInt(numVal, 10);
+                const combined = num > 0 ? `${num} ${newUnit}` : "";
+                field.onChange(combined);
+              };
+
+              return (
+                <div className="flex gap-2">
+                  <Input
+                    type="number"
+                    min={1}
+                    value={numVal}
+                    onChange={(e) => handleValueChange(e.target.value)}
+                    placeholder="0"
+                    className={cn(
+                      "flex-1",
+                      errors[name] && "border-red-500"
+                    )}
+                  />
+                  <Select value={unitVal} onValueChange={handleUnitChange}>
+                    <SelectTrigger className="w-[120px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Months">Months</SelectItem>
+                      <SelectItem value="Weeks">Weeks</SelectItem>
+                      <SelectItem value="Years">Years</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              );
+            }}
+          />
+        )}
+
+        {errors[name] && (
+          <span className="text-red-500 text-xs">{errors[name]?.message as string}</span>
+        )}
+      </div>
+    );
+  };
+
+  
  
   const propertyTypeOptions =["Shop", "Villa", "Flat", "Other"];
  
@@ -804,8 +1242,8 @@ const renewalsData = renewalsListData?.renewals ?? [];
                 "landlord_security_deposit",
                 doc?.landlord_security_deposit
               )}
-              {renderField("Tenancy Period", "tenancy_period", doc?.tenancy_period)}
- 
+              {renderTenancyPeriodField("Tenancy Period", "tenancy_period", doc?.tenancy_period)}
+
               {isView ? (
                 <div className="flex items-center gap-2 py-1 text-sm">
                   <span className="font-medium text-gray-600">Lease start date:</span>
@@ -826,14 +1264,11 @@ const renewalsData = renewalsListData?.renewals ?? [];
                 "electricity_water_security_deposit",
                 doc?.electricity_water_security_deposit
               )}
-              {renderField("Landline Numbers", "landline_numbers", doc?.landline_numbers)}
+              {renderField("Landline Accounts", "landline_accounts", doc?.landline_accounts)}
               {renderField("Internet Connection", "internet_connection", doc?.internet_connection)}
-              {renderMultiValueField(
-                "Connection No",
-                "electricity_connection_numbers",
-                doc?.electricity_connection_numbers
-              )}
             </div>
+            {renderLandlineConnections(isView, doc?.landline_connections)}
+            {renderElectricityConnections(isView, doc?.electricity_connections)}
  
             <Separator />
  

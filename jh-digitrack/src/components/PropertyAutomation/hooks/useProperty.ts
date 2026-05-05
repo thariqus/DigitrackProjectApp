@@ -52,6 +52,7 @@ export const usePropertyDoc = (name?: string) =>
     queryKey: ["PropertyDoc", name],
     queryFn: () => propertyApi.getPropertyDoc(name!),
     enabled: !!name,
+    staleTime: 1000, // Reduced for immediate fresh data after save
   });
 
 export const useRenewalList = (params: QueryParams, enabled = true) =>

@@ -1,3 +1,10 @@
+export interface JHPropertyLandline {
+  name?: string;
+  landline_number: string;
+  provider?: string;
+  line_type?: "Fixed" | "Fax";
+}
+
 export interface PropertyMaster {
   name: string;
   property_name: string;
@@ -35,14 +42,29 @@ export interface PropertyMaster {
   lease_start_date:string;
 
   electricity_accounts: number;
+  electricity_connections?: JHPropertyElectricityConnection[];
   electricity_connection_numbers: string;
   electricity_water_security_deposit: number;
 
-  landline_numbers: string;
+  landline_connections?: JHPropertyLandline[];
+  landline_accounts?: number;
+  landline_numbers?: string; // legacy
   internet_connection: string;
 
   cdc_expiry: string;
   hassantuk_expiry: string;
+
+  documents?: {
+    attachment?: string;
+  }[];
+}
+
+export interface JHPropertyElectricityConnection {
+  name?: string;
+  connection_number: string;
+  meter_id?: string;
+  account_number?: string;
+  connection_type?: "Electricity" | "Water" | "Dual";
 
   documents?: {
     attachment?: string;
