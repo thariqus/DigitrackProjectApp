@@ -169,15 +169,15 @@ export const propertyApi = {
       throw new Error(getApiErrorMessage(errorData));
     }
   },
-  getRenewalAuditTrail: async (renewalId: string) => {
-  const res = await fetch(
-    `${API_BASE}.get_renewal_audit_trail?renewal_id=${encodeURIComponent(renewalId)}`,
-    { credentials: "include" }
-  );
 
-  const data = await res.json();
-  return data.message?.audit_trail ?? [];
-},
+  getRenewalAuditTrail: async (renewalId: string) => {
+    const res = await fetch(
+      `${API_BASE}.get_renewal_audit_trail?renewal_id=${encodeURIComponent(renewalId)}`,
+      { credentials: "include" }
+    );
+    const data = await res.json();
+    return data.message?.audit_trail ?? [];
+  },
 
   getRenewalRole: async (renewalId: string) => {
     const res = await fetch(
@@ -194,6 +194,23 @@ export const propertyApi = {
         }
       | undefined;
   },
+
+  getRenewalPipelineCounts: async () => {
+    const res = await fetch(`${API_BASE}.get_renewal_pipeline_counts`, {
+      credentials: "include",
+    });
+    const data = await res.json();
+    return data.message as {
+      draft: number;
+      pending_approver_1: number;
+      pending_approver_2: number;
+      pending_cfo: number;
+      pending_md: number;
+      pending_cheque_details: number;
+      pending_property_po: number;
+      pending_miro: number;
+      completed: number;
+      withdrawn: number;
+    };
+  },
 };
-
-
