@@ -1,4 +1,5 @@
- import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import RenewalTimeline from "./RenewalTimeline";
 import WithdrawCommentModal from "./WithdrawCommentModal";
 import SendBackModal from "./SendBackModal";
@@ -19,7 +20,7 @@ import { useUpdateDoc, useDocs } from "@/hooks/doc";
 import { useCurrentUser } from "@/hooks/auth";
 import { useEffect, useState } from "react";
 import { PropertyMaster, RentalRenewal } from "@/types/JHDigitrack/JHPropertyAutomation";
-import { usePropertyDoc, useRenewalDoc, useRenewalRole } from "../hooks/useProperty";
+import { usePropertyDoc, useRenewalDoc, useRenewalRole, useBankAccounts } from "../hooks/useProperty";
 import { propertyApi, type RenewalProgressPayload } from "../api/property";
 import { useApplyWorkflowAction } from "../hooks/useApplyWorkflowAction";
 import { useCreateDelegation, useDocumentDelegation, useRevokeDelegation } from "../hooks/useDelegation";
@@ -150,6 +151,7 @@ const [isApprovalModalOpen, setIsApprovalModalOpen] = useState(false);
     renewalDoc?.property
   );
   const property = propertyData?.doc as PropertyMaster | undefined;
+  const { data: bankAccounts = [] } = useBankAccounts();
   const hasExternalModification = Boolean(
     localModified && renewalDoc?.modified && localModified !== renewalDoc.modified
   );
@@ -411,17 +413,17 @@ useEffect(() => {
   const handleWorkflowConfirm = handleSubmit(async (data) => {
     if (!propertyId) return;
     if (!validateBeforeWorkflow()) return;
-
+ 
     try {
       const { latestDoc } = await saveWorkflowProgress(data);
       handleOpenApprovalModal("approve");
     } catch (error: unknown) {
       const message = getErrorMessage(error, "Failed to save renewal progress");
-
+ 
       if (message.includes("updated by another user")) {
         await refetchRenewal();
       }
-
+ 
       toast.error(message);
     }
   });
@@ -514,7 +516,7 @@ useEffect(() => {
       }
     );
   };
-
+ 
   const handleOpenApprovalModal = (action: "approve" | "submit" | "reject", title?: string, description?: string) => {
     if (!propertyId) return;
     setPendingApprovalAction(action);
@@ -522,10 +524,10 @@ useEffect(() => {
     setApprovalDescription(description || "Please provide justification or notes.");
     setIsApprovalModalOpen(true);
   };
-
+ 
   const handleApprovalSubmit = (action: string, comment: string) => {
     if (!propertyId) return;
-
+ 
     applyAction(
       {
         renewal_id: propertyId,
@@ -550,7 +552,7 @@ useEffect(() => {
       }
     );
   };
-
+ 
   const renderDelegateBadge = () => {
   if (!isActingAsDelegate) return null;
   return (
@@ -559,10 +561,10 @@ useEffect(() => {
     </Badge>
   );
 };
-
+ 
 const renderDelegationBadge = () => {
   if (isDelegationLoading || !activeDelegation) return null;
-
+ 
   return (
     <Badge variant="secondary" className="bg-amber-100 text-amber-800 hover:bg-amber-100">
       Delegation Active: {activeDelegation.delegate_name || activeDelegation.delegate}
@@ -574,10 +576,10 @@ const renderDelegationBadge = () => {
     if (!activeDelegation?.name) return;
     revokeDelegationMutation.mutate(activeDelegation.name);
   };
-
+ 
   const renderDelegationActionButton = () => {
     if (isActingAsDelegate) return null;
-
+ 
     if (activeDelegation) {
       return (
         <Button
@@ -590,7 +592,7 @@ const renderDelegationBadge = () => {
         </Button>
       );
     }
-
+ 
     return (
       <Button
         className="w-full bg-gray-100 text-gray-700 hover:bg-gray-200"
@@ -602,7 +604,7 @@ const renderDelegationBadge = () => {
       </Button>
     );
   };
-
+ 
   
  
   const onSubmit = async (data: RenewalFormValues) => {
@@ -844,7 +846,7 @@ const renderDelegationBadge = () => {
           </Button>
         </SheetHeader>
  
-        <ScrollArea className="h-[calc(100vh-100px)] pr-3">
+    <ScrollArea className="h-[calc(100vh-100px)] pr-3">
           <form id={formId} onSubmit={handleSubmit(onSubmit)} className="space-y-6 mt-4">
             <div>
               <h2 className="text-lg font-semibold mb-4">Property Details</h2>
@@ -975,7 +977,28 @@ const renderDelegationBadge = () => {
                 <h2 className="text-lg font-semibold">Cheque Details</h2>
                 <div className="space-y-4 pb-10">
                   <div className="border p-4 rounded-md space-y-2">
-                    {renderRenewalRoleField("Bank Name", "bank_name")}
+                    <div className="flex flex-col gap-1">
+                      <Label className="text-sm text-gray-600">Bank Name</Label>
+                      <Controller
+                        name="bank_name"
+                        control={control}
+                        render={({ field }) => (
+                          <Select value={field.value ?? ""} onValueChange={field.onChange}>
+                            <SelectTrigger className={errors.bank_name ? "border-red-500" : ""}>
+                              <SelectValue placeholder="Select bank..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {bankAccounts.map((name) => (
+                                <SelectItem key={name} value={name}>{name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      />
+                      {errors.bank_name && (
+                        <span className="text-red-500 text-xs">{errors.bank_name.message as string}</span>
+                      )}
+                    </div>
                     <div className="grid grid-cols-3 gap-2">
                       {renderRenewalRoleField("Cheque Number", "cheque_number")}
                       {renderRenewalRoleField("Amount", "cheque_amount", undefined, "number")}
@@ -1334,4 +1357,3 @@ const renderDelegationBadge = () => {
     </Sheet>
   );
 }
-

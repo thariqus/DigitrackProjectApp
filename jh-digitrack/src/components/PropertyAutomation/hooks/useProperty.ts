@@ -75,3 +75,12 @@ export const useRenewalRole = (renewalId?: string) =>
     queryFn: () => propertyApi.getRenewalRole(renewalId!),
     enabled: !!renewalId,
   });
+
+ export const useBankAccounts = () =>
+  useQuery({
+    queryKey: ["BankAccounts"],
+    queryFn: propertyApi.getBankAccounts,
+    staleTime: 10 * 60 * 1000,
+  });
+ 
+ 
