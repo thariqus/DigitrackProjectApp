@@ -1442,6 +1442,77 @@ def apply_workflow_action(
 
 
 @frappe.whitelist(methods=["GET"])
+def get_renewal_pipeline_counts():
+    ctx = _get_property_user_context()
+    user = ctx["user"]
+
+    has_full_access = (
+        ctx["is_admin"] or ctx["is_md"] or ctx["is_cfo"]
+        or ctx["has_property_dept"] or ctx["has_gl_team"] or ctx["is_licensing"]
+    )
+
+    STATES = [
+        ("draft", "Draft"),
+        ("pending_approver_1", "Pending Approver 1"),
+        ("pending_approver_2", "Pending Approver 2"),
+        ("pending_cfo", "Pending CFO"),
+        ("pending_md", "Pending MD"),
+        ("pending_cheque_details", "Pending Cheque Details"),
+        ("pending_property_po", "Pending Property PO"),
+        ("pending_miro", "Pending MIRO"),
+        ("completed", "Completed"),
+        ("withdrawn", "Withdrawn"),
+    ]
+
+    counts = {key: 0 for key, _ in STATES}
+
+    if has_full_access:
+        rows = frappe.get_all(
+            "JH Property Rental Renewal",
+            fields=["workflow_state"],
+            ignore_permissions=True,
+        )
+        state_map = {label: key for key, label in STATES}
+        for row in rows:
+            key = state_map.get(row["workflow_state"])
+            if key:
+                counts[key] += 1
+    else:
+        approver_props = _get_approver_properties(user)
+        adhoc_renewals = _get_visible_adhoc_renewals(user)
+        if not approver_props and not adhoc_renewals:
+            return counts
+
+        seen = set()
+        rows = []
+        if approver_props:
+            rows += frappe.get_all(
+                "JH Property Rental Renewal",
+                filters={"property": ["in", approver_props]},
+                fields=["name", "workflow_state"],
+                ignore_permissions=True,
+            )
+        if adhoc_renewals:
+            rows += frappe.get_all(
+                "JH Property Rental Renewal",
+                filters={"name": ["in", adhoc_renewals]},
+                fields=["name", "workflow_state"],
+                ignore_permissions=True,
+            )
+
+        state_map = {label: key for key, label in STATES}
+        for row in rows:
+            if row["name"] in seen:
+                continue
+            seen.add(row["name"])
+            key = state_map.get(row["workflow_state"])
+            if key:
+                counts[key] += 1
+
+    return counts
+
+
+@frappe.whitelist(methods=["GET"])
 def get_bank_accounts():
     accounts = frappe.get_all(
         "JH Bank Account",
