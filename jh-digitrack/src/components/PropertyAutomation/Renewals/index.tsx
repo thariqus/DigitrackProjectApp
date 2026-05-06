@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useLocation } from "react-router";
+import { useLocation, useSearchParams } from "react-router";
 import { Table, TableBody, TableFooter } from "@/components/ui/table";
 import { PropertyTableHeader } from "../ui/PropertyTableHeader";
 import FilterButtons from "../ui/FilterButtons";
@@ -15,6 +15,7 @@ import {
 
 function Renewals() {
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [renewalsPerPage, setRenewalsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const [mode, setMode] = useState<"view" | "edit" | "create">("create");
@@ -27,6 +28,30 @@ function Renewals() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   const { data: roleBasedAccess } = useUserAccess();
+
+  const attentionFilter = searchParams.get("attention_filter") || undefined;
+  const searchParamKey = searchParams.toString();
+
+  useEffect(() => {
+    const workflowStates = searchParams.get("workflow_states");
+    const pendingAction = searchParams.get("pending_my_action") === "1";
+
+    if (workflowStates) {
+      try {
+        const parsedStates = JSON.parse(workflowStates);
+        if (Array.isArray(parsedStates)) {
+          setSelectedWorkflowStage(parsedStates.filter((item) => typeof item === "string"));
+        }
+      } catch {
+        setSelectedWorkflowStage([]);
+      }
+    } else {
+      setSelectedWorkflowStage([]);
+    }
+
+    setPendingMyAction(pendingAction);
+    setCurrentPage(1);
+  }, [searchParamKey]);
 
   useEffect(() => {
     const openRenewal = location.state?.openRenewal as string | null;
@@ -49,6 +74,7 @@ function Renewals() {
       renewal_periods: selectedRenewalDateRange.length
         ? JSON.stringify(selectedRenewalDateRange)
         : undefined,
+      attention_filter: attentionFilter,
       limit: renewalsPerPage,
       page: currentPage,
     }),
@@ -56,6 +82,7 @@ function Renewals() {
       selectedWorkflowStage,
       selectedDivision,
       selectedRenewalDateRange,
+      attentionFilter,
       renewalsPerPage,
       currentPage,
     ]
@@ -228,6 +255,10 @@ function Renewals() {
           active: pendingMyAction,
           onToggle: () => {
             setPendingMyAction((prev) => !prev);
+            const newParams = new URLSearchParams(searchParams);
+            newParams.delete("pending_my_action");
+            newParams.delete("attention_filter");
+            setSearchParams(newParams, { replace: true });
             setCurrentPage(1);
           },
         }}
@@ -236,6 +267,7 @@ function Renewals() {
           setSelectedRenewalDateRange([]);
           setSelectedDivision([]);
           setPendingMyAction(false);
+          setSearchParams({}, { replace: true });
           setCurrentPage(1);
         }}
       />
