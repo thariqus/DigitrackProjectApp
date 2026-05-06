@@ -399,7 +399,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
       ];
  
       const payload = {
-        ...data,
+        ...formData,
         name: propertyId,
         renewal_date: formatDateForAPI(data.renewal_date),
         po_box_renewal_date: formatDateForAPI(data.po_box_renewal_date),
@@ -699,8 +699,8 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                 className="flex gap-2 items-end bg-muted p-3 rounded-lg"
               >
                 <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-2">
-                  <div className="flex flex-col gap-1">
-                    <Label className="text-xs">Landline Number <span className="text-red-500">*</span></Label>
+                  <div className={`${isView ? "flex items-center gap-1": "flex  flex-col gap-1"}`}>
+                    <Label className="text-xs">Landline Number: <span className="text-red-500">*</span></Label>
                     {isViewMode ? (
                       <span className="text-sm font-medium">
                         {conn.landline_number || "-"}
@@ -719,8 +719,8 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                     )}
                   </div>
 
-                  <div className="flex flex-col gap-1">
-                    <Label className="text-xs">Provider</Label>
+                  <div className={`${isView ? "flex items-center gap-1": "flex  flex-col gap-1"}`}>
+                    <Label className="text-xs">Provider:</Label>
                     {isViewMode ? (
                       <span className="text-sm">{conn.provider || "-"}</span>
                     ) : (
@@ -736,8 +736,8 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                     )}
                   </div>
 
-                  <div className="flex flex-col gap-1">
-                    <Label className="text-xs">Line Type</Label>
+                  <div className={`${isView ? "flex items-center gap-1": "flex  flex-col gap-1"}`}>
+                    <Label className="text-xs">Line Type:</Label>
                     {isViewMode ? (
                       <span className="text-sm font-medium">
                         {conn.line_type || "-"}
@@ -817,7 +817,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
 
   return (
     <div className="flex flex-col gap-1">
-      <Label className="text-sm text-gray-600">Electricity Connections</Label>
+      <Label className="text-sm text-gray-600">Electricity Connections:</Label>
 
       {isLoading ? (
         <div className="flex items-center justify-center p-8">
@@ -836,8 +836,8 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                 className="flex gap-2 items-end bg-muted p-3 rounded-lg"
               >
                 <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-2">
-                  <div className="flex flex-col gap-1">
-                    <Label className="text-xs">Connection Number</Label>
+                  <div className={`${isView ? "flex items-center gap-1": "flex  flex-col gap-1"}`}>
+                    <Label className="text-xs">Connection Number:</Label>
                     {isViewMode ? (
                       <span className="text-sm font-medium">
                         {conn.connection_number || "-"}
@@ -856,8 +856,8 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                     )}
                   </div>
 
-                  <div className="flex flex-col gap-1">
-                    <Label className="text-xs">Meter ID</Label>
+                  <div className={`${isView ? "flex items-center gap-1": "flex  flex-col gap-1"}`}>
+                    <Label className="text-xs">Meter ID:</Label>
                     {isViewMode ? (
                       <span className="text-sm">{conn.meter_id || "-"}</span>
                     ) : (
@@ -873,8 +873,8 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                     )}
                   </div>
 
-                  <div className="flex flex-col gap-1">
-                    <Label className="text-xs">Account Number</Label>
+                 <div className={`${isView ? "flex items-center gap-1": "flex  flex-col gap-1"}`}>
+                    <Label className="text-xs">Account Number:</Label>
                     {isViewMode ? (
                       <span className="text-sm">
                         {conn.account_number || "-"}
@@ -892,8 +892,8 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                     )}
                   </div>
 
-                  <div className="flex flex-col gap-1">
-                    <Label className="text-xs">Type</Label>
+                  <div className={`${isView ? "flex items-center gap-1": "flex  flex-col gap-1"}`}>
+                    <Label className="text-xs">Type:</Label>
                     {isViewMode ? (
                       <span className="text-sm font-medium">
                         {conn.connection_type || "-"}
@@ -1270,7 +1270,6 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
             {renderLandlineConnections(isView, doc?.landline_connections)}
             {renderElectricityConnections(isView, doc?.electricity_connections)}
  
-            <Separator />
  
             <h2 className="text-lg font-semibold">Compliance</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
