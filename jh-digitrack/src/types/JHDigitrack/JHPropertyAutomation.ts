@@ -37,6 +37,7 @@ export interface PropertyMaster {
   current_rent: number;
   renewal_date: string;
   landlord_security_deposit: number;
+  security_deposit_cheques?: ChequeDetail[];
 
   tenancy_period: string;
   lease_start_date:string;

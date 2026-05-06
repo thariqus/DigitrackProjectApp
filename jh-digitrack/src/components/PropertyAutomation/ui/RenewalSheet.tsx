@@ -63,6 +63,14 @@ const renewalSchema = z.object({
   cheque_date: z.string().optional(),
   payee: z.string().optional(),
   signatory: z.string().optional(),
+  cheque_details: z.array(z.object({
+    bank_name: z.string().optional(),
+    cheque_number: z.string().optional(),
+    cheque_amount: z.coerce.number().optional(),
+    cheque_date: z.string().optional(),
+    payee: z.string().optional(),
+    signatory: z.string().optional(),
+  })).optional(),
 }).partial();
  
 type RenewalFormValues = z.infer<typeof renewalSchema>;
@@ -85,6 +93,7 @@ export default function RenewalSheet({
   const [rentChangePercentState, setRentChangePercentState] = useState("0");
   const [localModified, setLocalModified] = useState<string>("");
   const [isDelegateModalOpen, setIsDelegateModalOpen] = useState(false);
+  const [chequeDetails, setChequeDetails] = useState<NonNullable<RentalRenewal["cheque_details"]>>([]);
 const [isApprovalModalOpen, setIsApprovalModalOpen] = useState(false);
   const [pendingApprovalAction, setPendingApprovalAction] = useState<"approve" | "submit" | "reject">("approve");
   const [approvalTitle, setApprovalTitle] = useState("Approval Action");
@@ -173,6 +182,7 @@ const [isApprovalModalOpen, setIsApprovalModalOpen] = useState(false);
   useEffect(() => {
     if (open) {
       setSupportingFiles([]);
+      setChequeDetails([]);
     }
   }, [open]);
  
@@ -180,7 +190,8 @@ const [isApprovalModalOpen, setIsApprovalModalOpen] = useState(false);
     if (!open || !renewalDoc) return;
  
     setLocalModified(renewalDoc.modified || "");
- 
+    setChequeDetails(renewalDoc.cheque_details || []);
+
     reset({
       division: renewalDoc.division || "",
       proposed_rent: Number(renewalDoc.proposed_rent || 0),
@@ -198,6 +209,7 @@ const [isApprovalModalOpen, setIsApprovalModalOpen] = useState(false);
       cheque_date: renewalDoc.cheque_details?.[0]?.cheque_date || "",
       payee: renewalDoc.cheque_details?.[0]?.payee || "",
       signatory: renewalDoc.cheque_details?.[0]?.signatory || "",
+      cheque_details: renewalDoc.cheque_details || [],
     });
   }, [open, renewalDoc, reset]);
  
@@ -252,15 +264,25 @@ useEffect(() => {
     (isJHPropertyDepartment || effectiveIsPropertyDept) &&
     renewalDoc?.workflow_state === "Pending Cheque Details"
   ) {
-    if (!values.bank_name || !values.cheque_number || !values.cheque_date || !values.payee ||  !values.signatory||  !values.cheque_amount) {
+    const validCheques = chequeDetails.filter((cheque) =>
+      cheque.bank_name &&
+      cheque.cheque_number &&
+      cheque.cheque_date &&
+      cheque.payee &&
+      cheque.signatory &&
+      Number(cheque.cheque_amount || 0) > 0
+    );
+
+    if (validCheques.length === 0) {
       toast.error("Please fill all cheque details before confirming");
       return false;
     }
- 
-    if (Number(values.cheque_amount) <= 0) {
-      toast.error("Cheque amount must be greater than 0");
+
+    if (validCheques.length !== chequeDetails.length) {
+      toast.error("Please complete every cheque row before confirming");
       return false;
     }
+ 
   }
  
   // Property Dept → PO
@@ -270,6 +292,10 @@ useEffect(() => {
   ) {
     if (!values.po_number) {
       toast.error("PO Number is required before confirming");
+      return false;
+    }
+    if (values.po_number.length !== 10) {
+      toast.error("Enter valid PO Number");
       return false;
     }
     const hasContractDoc = contractFiles.length > 0 || !!renewalDoc?.renewed_contract_document;
@@ -375,12 +401,23 @@ useEffect(() => {
     };
  
     if (currentState === "Pending Cheque Details") {
-      payload.bank_name = data.bank_name || "";
-      payload.cheque_number = data.cheque_number || "";
-      payload.cheque_amount = Number(data.cheque_amount || 0);
-      payload.cheque_date = data.cheque_date || "";
-      payload.payee = data.payee || "";
-      payload.signatory = data.signatory || "";
+     payload.cheque_details = chequeDetails
+  .filter((cheque) =>
+    cheque.bank_name &&
+    cheque.cheque_number &&
+    cheque.cheque_date &&
+    cheque.payee &&
+    cheque.signatory &&
+    Number(cheque.cheque_amount || 0) > 0
+  )
+  .map((cheque) => ({
+    bank_name: cheque.bank_name,
+    cheque_number: cheque.cheque_number,
+    cheque_amount: Number(cheque.cheque_amount),
+    cheque_date: cheque.cheque_date,
+    payee: cheque.payee,
+    signatory: cheque.signatory,
+  }));
     }
  
     if (currentState === "Pending Property PO") {
@@ -658,20 +695,12 @@ const renderDelegationBadge = () => {
  
       const rentPercent = Number(rentChangePercentState) || 0;
  
-      const formChequeData = {
+      const updatedChequeDetails = chequeDetails.map((cheque, index) => ({
         doctype: "JH Property Cheque Detail",
-        bank_name: data.bank_name || "",
-        cheque_number: data.cheque_number || "",
-        cheque_amount: Number(data.cheque_amount || 0),
-        cheque_date: data.cheque_date || "",
-        payee: data.payee || "",
-        signatory: data.signatory || "",
-      };
- 
-      const updatedChequeDetails = [...(latestDoc.cheque_details || [])];
-      if (formChequeData.cheque_amount > 0) {
-        updatedChequeDetails[0] = formChequeData;
-      }
+        ...cheque,
+        cheque_amount: Number(cheque.cheque_amount || 0),
+        idx: index + 1,
+      }));
  
       const payload = {
         doctype: "JH Property Rental Renewal",
@@ -976,40 +1005,75 @@ const renderDelegationBadge = () => {
                 <Separator />
                 <h2 className="text-lg font-semibold">Cheque Details</h2>
                 <div className="space-y-4 pb-10">
-                  <div className="border p-4 rounded-md space-y-2">
-                    <div className="flex flex-col gap-1">
-                      <Label className="text-sm text-gray-600">Bank Name</Label>
-                      <Controller
-                        name="bank_name"
-                        control={control}
-                        render={({ field }) => (
-                          <Select value={field.value ?? ""} onValueChange={field.onChange}>
-                            <SelectTrigger className={errors.bank_name ? "border-red-500" : ""}>
-                              <SelectValue placeholder="Select bank..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {bankAccounts.map((name) => (
-                                <SelectItem key={name} value={name}>{name}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        )}
-                      />
-                      {errors.bank_name && (
-                        <span className="text-red-500 text-xs">{errors.bank_name.message as string}</span>
-                      )}
-                    </div>
-                    <div className="grid grid-cols-3 gap-2">
-                      {renderRenewalRoleField("Cheque Number", "cheque_number")}
-                      {renderRenewalRoleField("Amount", "cheque_amount", undefined, "number")}
-                       {renderRenewalRoleField("Cheque Date", "cheque_date", undefined, "date")}
-                    </div>
-                   
-                    <div className="grid grid-cols-2 gap-2">
-                      {renderRenewalRoleField("Payee", "payee")}
-                      {renderRenewalRoleField("Signatory", "signatory")}
-                    </div>
-                  </div>
+                  {chequeDetails.length === 0 ? (
+                    <p className="text-sm text-muted-foreground p-3 border-2 border-dashed rounded-lg text-center">
+                      Click + Add Cheque to start
+                    </p>
+                  ) : (
+                    chequeDetails.map((cheque, index) => (
+                      <div className="flex gap-2 items-end bg-muted p-3 rounded-lg">
+                        <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-2">
+                          <div className="flex flex-col gap-1">
+                            <Label className="text-xs">Bank Name</Label>
+                            <Select
+                              value={cheque.bank_name || ""}
+                              onValueChange={(value) => {
+                                const next = [...chequeDetails];
+                                next[index].bank_name = value;
+                                setChequeDetails(next);
+                              }}
+                            >
+                              <SelectTrigger className="text-sm h-9">
+                                <SelectValue placeholder="Select bank..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {bankAccounts.map((name) => (
+                                  <SelectItem key={name} value={name}>{name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          {(["cheque_number", "cheque_amount", "cheque_date", "payee", "signatory"] as const).map((fieldName) => (
+                            <div key={fieldName} className="flex flex-col gap-1">
+                              <Label className="text-xs">
+                                {fieldName === "cheque_number" ? "Cheque Number" : fieldName === "cheque_amount" ? "Amount" : fieldName === "cheque_date" ? "Cheque Date" : fieldName === "payee" ? "Payee" : "Signatory"}
+                              </Label>
+                              <Input
+                                type={fieldName === "cheque_amount" ? "number" : fieldName === "cheque_date" ? "date" : "text"}
+                                value={cheque[fieldName] || ""}
+                                onChange={(e) => {
+                                  const next = [...chequeDetails];
+                                  next[index] = {
+                                    ...next[index],
+                                    [fieldName]: fieldName === "cheque_amount" ? Number(e.target.value || 0) : e.target.value,
+                                  };
+                                  setChequeDetails(next);
+                                }}
+                                className="text-sm"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 p-0 -mr-2"
+                          onClick={() => setChequeDetails(chequeDetails.filter((_, i) => i !== index))}
+                        >
+                          <XIcon className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))
+                  )}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full border-2 border-dashed h-10 text-sm"
+                    onClick={() => setChequeDetails([...chequeDetails, { bank_name: "", cheque_number: "", cheque_amount: 0, cheque_date: "", payee: "", signatory: "" }])}
+                  >
+                    + Add Cheque
+                  </Button>
                 </div>
               </>
             )}

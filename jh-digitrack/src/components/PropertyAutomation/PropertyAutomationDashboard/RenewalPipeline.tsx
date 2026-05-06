@@ -96,7 +96,7 @@ function RenewalPipeline() {
               {/* Card */}
               <div
                 onClick={() => handleStageClick(stage.status, stageCount)}
-                className={`min-w-[100px] h-24 rounded-2xl border p-4 shadow-sm transition ${
+                className={`min-w-[80px] h-28 rounded-2xl border p-4 shadow-sm transition ${
                   stageCount === 0
                     ? "opacity-40 cursor-not-allowed"
                     : `cursor-pointer hover:shadow-md ${stage.color}`
