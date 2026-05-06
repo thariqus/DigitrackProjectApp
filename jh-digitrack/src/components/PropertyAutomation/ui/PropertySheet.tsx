@@ -22,10 +22,11 @@ import MultiValueInput from "./MultiValueInput";
 import StartRenewalModal from "./StartRenewalModal";
 import { useDocs, useSaveDoc, useUpdateDoc } from "@/hooks/doc";
 import { usePropertyDoc, useRenewalList } from "../hooks/useProperty";
-import { PropertyMaster, JHPropertyElectricityConnection, JHPropertyLandline } from "@/types/JHDigitrack/JHPropertyAutomation";
+import { PropertyMaster, JHPropertyElectricityConnection, JHPropertyLandline, ChequeDetail } from "@/types/JHDigitrack/JHPropertyAutomation";
 import { X } from "lucide-react";
 import { queryClient } from "@/utils/query-client";
 import RenewalTimeline from "./RenewalTimeline";
+import { useBankAccounts } from "../hooks/useProperty";
  
 type PropertySheetProps = {
   open: boolean;
@@ -80,6 +81,14 @@ const propertySchema = z.object({
   current_rent: requiredNumberField,
   renewal_date: z.string().min(1, "Required field"),
   landlord_security_deposit: z.coerce.number().optional(),
+  security_deposit_cheques: z.array(z.object({
+    bank_name: z.string().optional(),
+    cheque_number: z.string().optional(),
+    cheque_amount: z.coerce.number().optional(),
+    cheque_date: z.string().optional(),
+    payee: z.string().optional(),
+    signatory: z.string().optional(),
+  })).optional(),
   tenancy_period: z.string().optional().refine((val) => {
     if (!val) return true;
     const match = val.match(/^(\d+)\s+(Months?|Weeks?|Years?)$/i);
@@ -115,6 +124,7 @@ const propertySchema = z.object({
 type PropertyFormValues = z.infer<typeof propertySchema> & {
   electricity_connections: JHPropertyElectricityConnection[];
   landline_connections: JHPropertyLandline[];
+  security_deposit_cheques: ChequeDetail[];
 };
 
   const getEmptyPropertyFormValues = (): PropertyFormValues => ({
@@ -139,6 +149,7 @@ type PropertyFormValues = z.infer<typeof propertySchema> & {
   current_rent: undefined,
   renewal_date: "",
   landlord_security_deposit: undefined,
+  security_deposit_cheques: [],
   tenancy_period: "",
   lease_start_date: "",
   electricity_accounts: undefined,
@@ -177,6 +188,7 @@ export default function PropertySheet({
   const [openApproverField, setOpenApproverField] = useState<"approver_1" | "approver_2" | null>(null);
   const [connections, setConnections] = useState<JHPropertyElectricityConnection[]>([]);
   const [landlineConnections, setLandlineConnections] = useState<JHPropertyLandline[]>([]);
+  const [securityDepositCheques, setSecurityDepositCheques] = useState<ChequeDetail[]>([]);
   const lastAutoFilledDivisionRef = useRef<string | null>(null);
   const approverFieldRefs = useRef<Partial<Record<"approver_1" | "approver_2", HTMLDivElement | null>>>({});
   const navigate = useNavigate();
@@ -203,6 +215,7 @@ export default function PropertySheet({
   !!propertyId
 );
 const renewalsData = renewalsListData?.renewals ?? [];
+  const { data: bankAccounts = [] } = useBankAccounts();
  
   const doc = propertyData?.doc as PropertyMaster | undefined;
  
@@ -261,6 +274,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
     reset(values);
     setConnections(values.electricity_connections || []);
     setLandlineConnections(values.landline_connections || []);
+    setSecurityDepositCheques(values.security_deposit_cheques || []);
   }, [reset]);
 
   const handleSheetOpenChange = (nextOpen: boolean) => {
@@ -285,11 +299,13 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
       lastAutoFilledDivisionRef.current = doc.division_used ?? null;
       setConnections(doc.electricity_connections || []);
       setLandlineConnections(doc.landline_connections || []);
+      setSecurityDepositCheques(doc.security_deposit_cheques || []);
       resetSheetState({
         ...getEmptyPropertyFormValues(),
         ...doc,
         electricity_connections: doc.electricity_connections || [],
         landline_connections: doc.landline_connections || [],
+        security_deposit_cheques: doc.security_deposit_cheques || [],
         renewal_date: doc.renewal_date?.split("T")[0],
         lease_start_date: doc.lease_start_date?.split("T")[0],
         po_box_renewal_date: doc.po_box_renewal_date?.split("T")[0],
@@ -376,6 +392,12 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
       landline_connections: landlineConnections.map((conn, index) => ({
         doctype: "JH Property Landline",
         ...conn,
+        idx: index + 1,
+      })),
+      security_deposit_cheques: securityDepositCheques.map((cheque, index) => ({
+        doctype: "JH Property Cheque Detail",
+        ...cheque,
+        cheque_amount: Number(cheque.cheque_amount || 0),
         idx: index + 1,
       })),
       landline_accounts: landlineConnections.length || 0,
@@ -804,6 +826,119 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
           {errors.landline_accounts.message}
         </span>
       )}
+    </div>
+  );
+};
+
+  const renderChequeDetails = (
+  isViewMode: boolean,
+  chequesData?: ChequeDetail[]
+) => {
+  const data = isViewMode ? (chequesData || []) : securityDepositCheques;
+
+  return (
+    <div className="flex flex-col gap-1 md:col-span-4">
+      <Label className="text-sm text-gray-600">Security Deposit Cheques:</Label>
+
+      <div className="space-y-2">
+        {data.length === 0 ? (
+          <p className="text-sm text-muted-foreground p-3 border-2 border-dashed rounded-lg text-center">
+            {isViewMode ? "No cheques" : "Click + Add Cheque to start"}
+          </p>
+        ) : (
+          data.map((cheque, index) => (
+            <div
+              key={`${cheque.cheque_number || "cheque"}-${index}`}
+              className="flex gap-2 items-end bg-muted p-3 rounded-lg"
+            >
+              <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-2">
+                <div className={`${isViewMode ? "flex items-center gap-1" : "flex flex-col gap-1"}`}>
+                  <Label className="text-xs">Bank Name:</Label>
+                  {isViewMode ? (
+                    <span className="text-sm font-medium">{cheque.bank_name || "-"}</span>
+                  ) : (
+                    <Select
+                      value={cheque.bank_name || ""}
+                      onValueChange={(value) => {
+                        const newCheques = [...securityDepositCheques];
+                        newCheques[index].bank_name = value;
+                        setSecurityDepositCheques(newCheques);
+                        setValue("security_deposit_cheques", newCheques);
+                      }}
+                    >
+                      <SelectTrigger className="text-sm h-9">
+                        <SelectValue placeholder="Select bank" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {bankAccounts.map((name) => (
+                          <SelectItem key={name} value={name}>{name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+
+                {(["cheque_number", "cheque_amount", "cheque_date", "payee", "signatory"] as const).map((fieldName) => (
+                  <div key={fieldName} className={`${isViewMode ? "flex items-center gap-1" : "flex flex-col gap-1"}`}>
+                    <Label className="text-xs">
+                      {fieldName === "cheque_number" ? "Cheque Number:" : fieldName === "cheque_amount" ? "Amount:" : fieldName === "cheque_date" ? "Cheque Date:" : fieldName === "payee" ? "Payee:" : "Signatory:"}
+                    </Label>
+                    {isViewMode ? (
+                      <span className="text-sm">{fieldName === "cheque_date" ? formatDate(cheque.cheque_date) : cheque[fieldName] || "-"}</span>
+                    ) : (
+                      <Input
+                        type={fieldName === "cheque_amount" ? "number" : fieldName === "cheque_date" ? "date" : "text"}
+                        value={cheque[fieldName] || ""}
+                        onChange={(e) => {
+                          const newCheques = [...securityDepositCheques];
+                          newCheques[index] = {
+                            ...newCheques[index],
+                            [fieldName]: fieldName === "cheque_amount" ? Number(e.target.value || 0) : e.target.value,
+                          };
+                          setSecurityDepositCheques(newCheques);
+                          setValue("security_deposit_cheques", newCheques);
+                        }}
+                        className="text-sm"
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {!isViewMode && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 p-0 -mr-2"
+                  onClick={() => {
+                    const newCheques = securityDepositCheques.filter((_, i) => i !== index);
+                    setSecurityDepositCheques(newCheques);
+                    setValue("security_deposit_cheques", newCheques);
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          ))
+        )}
+
+        {!isViewMode && (
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full border-2 border-dashed h-10 text-sm"
+            onClick={() => {
+              const newCheques = [...securityDepositCheques, { bank_name: "", cheque_number: "", cheque_amount: 0, cheque_date: "", payee: "", signatory: "" }];
+              setSecurityDepositCheques(newCheques);
+              setValue("security_deposit_cheques", newCheques);
+            }}
+          >
+            + Add Cheque
+          </Button>
+        )}
+      </div>
     </div>
   );
 };
@@ -1237,11 +1372,6 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                 renderField("Renewal Date", "renewal_date", doc?.renewal_date, "date")
               )}
  
-              {renderField(
-                "Landlord Security Deposit",
-                "landlord_security_deposit",
-                doc?.landlord_security_deposit
-              )}
               {renderTenancyPeriodField("Tenancy Period", "tenancy_period", doc?.tenancy_period)}
 
               {isView ? (
@@ -1252,6 +1382,18 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
               ) : (
                 renderField("Lease start date", "lease_start_date", doc?.lease_start_date, "date")
               )}
+            </div>
+
+            <Separator />
+
+            <h2 className="text-lg font-semibold">Security Deposit</h2>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+              {renderField(
+                "Deposit Amount",
+                "landlord_security_deposit",
+                doc?.landlord_security_deposit
+              )}
+              {renderChequeDetails(isView, doc?.security_deposit_cheques)}
             </div>
  
             <Separator />
