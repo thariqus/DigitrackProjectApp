@@ -331,9 +331,9 @@ def get_property_list(
         if renewal_filter == "30":
             filters["renewal_date"] = ["between", [today_str, add_days(today_str, 30)]]
         elif renewal_filter == "60":
-            filters["renewal_date"] = ["between", [today_str, add_days(today_str, 60)]]
+            filters["renewal_date"] = ["between", [add_days(today_str, 31), add_days(today_str, 60)]]
         elif renewal_filter == "90":
-            filters["renewal_date"] = ["between", [today_str, add_days(today_str, 90)]]
+            filters["renewal_date"] = ["between", [add_days(today_str, 61), add_days(today_str, 90)]]
         elif renewal_filter == "overdue":
             filters["renewal_date"] = ["<", today_str]
     elif expiring_soon:
@@ -394,44 +394,27 @@ def get_property_dashboard_counts():
 
     today_str = today()
 
-    # Properties with an in-progress renewal are excluded from upcoming/overdue
-    # buckets — they don't need a new renewal started.
-    properties_with_active_renewal = frappe.get_all(
-        "JH Property Rental Renewal",
-        filters={"workflow_state": ["not in", ["Completed", "Withdrawn"]]},
-        pluck="property",
-        ignore_permissions=True,
-    )
-
     def _count(extra_filters=None):
         filters = {**base_filters}
         if extra_filters:
             filters.update(extra_filters)
         return frappe.db.count("JH Property Master", filters=filters, cache=False)
 
-    def _count_without_active(extra_filters=None):
-        filters = {**base_filters}
-        if extra_filters:
-            filters.update(extra_filters)
-        if properties_with_active_renewal:
-            filters["name"] = ["not in", properties_with_active_renewal]
-        return frappe.db.count("JH Property Master", filters=filters, cache=False)
-
     total_properties = _count()
 
-    renewals_30_days = _count_without_active({
+    renewals_30_days = _count({
         "renewal_date": ["between", [today_str, add_days(today_str, 30)]]
     })
 
-    renewals_60_days = _count_without_active({
-        "renewal_date": ["between", [today_str, add_days(today_str, 60)]]
+    renewals_60_days = _count({
+        "renewal_date": ["between", [add_days(today_str, 31), add_days(today_str, 60)]]
     })
 
-    renewals_90_days = _count_without_active({
-        "renewal_date": ["between", [today_str, add_days(today_str, 90)]]
+    renewals_90_days = _count({
+        "renewal_date": ["between", [add_days(today_str, 61), add_days(today_str, 90)]]
     })
 
-    overdue = _count_without_active({
+    overdue = _count({
         "renewal_date": ["<", today_str]
     })
  
