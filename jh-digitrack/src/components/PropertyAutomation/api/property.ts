@@ -5,12 +5,7 @@ const API_BASE = "/api/method/jh_digitrack.api.property_management";
 export type RenewalProgressPayload = {
   renewal_id: string;
   cheque_details?: ChequeDetailPayload[];
-  bank_name?: string;
-  cheque_number?: string;
-  cheque_amount?: number;
-  cheque_date?: string;
-  payee?: string;
-  signatory?: string;
+
   po_number?: string;
   miro_number?: string;
   renewed_contract_document?: string;
@@ -114,6 +109,14 @@ export const propertyApi = {
       renewals_60_days: number;
       renewals_90_days: number;
       overdue: number;
+      attention?: {
+        overdue_no_renewal: number;
+        stalled_renewals: number;
+        pending_my_action: number;
+        hassantuk_expiring_soon: number;
+        cdc_expiring_soon: number;
+        po_box_expiring_soon: number;
+      };
     };
   },
 
@@ -232,4 +235,3 @@ export const propertyApi = {
     return (data.message as { bank_accounts: string[] }).bank_accounts ?? [];
   },
 };
-
