@@ -11,7 +11,15 @@ export type AlertItem = {
 
 type NavigateFn = (path: string) => void;
 
-export function UrgentAlerts({ alerts = [], navigate }: { alerts?: AlertItem[]; navigate: NavigateFn }) {
+export function UrgentAlerts({
+  alerts = [],
+  navigate,
+  isLoading = false,
+}: {
+  alerts?: AlertItem[];
+  navigate: NavigateFn;
+  isLoading?: boolean;
+}) {
   // Sort by severity
   const severityOrder = { critical: 1, high: 2, medium: 3 };
   const sortedAlerts = [...alerts].sort(
@@ -19,6 +27,17 @@ export function UrgentAlerts({ alerts = [], navigate }: { alerts?: AlertItem[]; 
   );
 
   // Empty state
+  if (isLoading) {
+    return (
+      <div className="pb-10">
+        <h2 className="text-lg font-bold text-primary py-4">Requires attention</h2>
+        <div className="rounded-xl border border-gray-200 p-4 text-sm text-gray-500">
+          Loading attention items...
+        </div>
+      </div>
+    );
+  }
+
   if (!sortedAlerts.length) {
     return (
 
@@ -45,13 +64,14 @@ export function UrgentAlerts({ alerts = [], navigate }: { alerts?: AlertItem[]; 
       {sortedAlerts.map((alert, index) => (
         <div
           key={index}
+          onClick={() => navigate(alert.link)}
           className={`flex items-center justify-between rounded-xl p-2 shadow-sm ${
             alert.severity === "critical"
               ? "border-l-4 border-red-500 "
               : alert.severity === "high"
               ? "border-l-4 border-orange-500 "
               : "border-l-4 border-amber-500 "
-          }`}
+          } cursor-pointer transition hover:bg-gray-50`}
         >
           {/* Left */}
           <div className="flex items-center gap-3">
@@ -82,7 +102,10 @@ export function UrgentAlerts({ alerts = [], navigate }: { alerts?: AlertItem[]; 
             </span>
 
             <button
-              // onClick={() => navigate(alert.link)}
+              onClick={(event) => {
+                event.stopPropagation();
+                navigate(alert.link);
+              }}
               className="text-sm font-semibold text-blue-600 hover:underline"
             >
               {alert.cta} →
