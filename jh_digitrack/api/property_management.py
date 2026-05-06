@@ -1229,7 +1229,6 @@ def _validate_stage_fields(renewal):
     if state == "Pending Cheque Details":
         if not renewal.cheque_details:
             frappe.throw(_("At least one cheque detail row is required."))
-        row = renewal.cheque_details[0]
         required = {
             "bank_name": _("Bank Name"),
             "cheque_number": _("Cheque Number"),
@@ -1237,11 +1236,12 @@ def _validate_stage_fields(renewal):
             "payee": _("Payee"),
             "signatory": _("Signatory"),
         }
-        missing = [label for field, label in required.items() if not row.get(field)]
-        if missing:
-            frappe.throw(_("Missing required cheque fields: {0}").format(", ".join(missing)))
-        if not flt(row.get("cheque_amount")):
-            frappe.throw(_("Cheque Amount must be greater than zero."))
+        for i, row in enumerate(renewal.cheque_details, start=1):
+            missing = [label for field, label in required.items() if not row.get(field)]
+            if missing:
+                frappe.throw(_("Cheque row {0}: missing {1}").format(i, ", ".join(missing)))
+            if not flt(row.get("cheque_amount")):
+                frappe.throw(_("Cheque row {0}: Amount must be greater than zero.").format(i))
 
     elif state == "Pending Property PO":
         if not renewal.po_number:
@@ -1257,12 +1257,7 @@ def _validate_stage_fields(renewal):
 @frappe.whitelist(methods=["POST"])
 def save_renewal_progress(
     renewal_id: str,
-    bank_name: str = None,
-    cheque_number: str = None,
-    cheque_amount=None,
-    cheque_date: str = None,
-    payee: str = None,
-    signatory: str = None,
+    cheque_details=None,
     po_number: str = None,
     miro_number: str = None,
     renewed_contract_document: str = None,
@@ -1291,18 +1286,22 @@ def save_renewal_progress(
     renewal.flags.ignore_validate_update_after_submit = True
  
     if current_state == "Pending Cheque Details":
+        import json as _json
+        rows = cheque_details
+        if isinstance(rows, str):
+            rows = _json.loads(rows)
+        if not rows:
+            frappe.throw(_("At least one cheque detail row is required."))
         renewal.set("cheque_details", [])
-        renewal.append(
-            "cheque_details",
-            {
-                "bank_name": bank_name or "",
-                "cheque_number": cheque_number or "",
-                "cheque_amount": flt(cheque_amount),
-                "cheque_date": cheque_date or "",
-                "payee": payee or "",
-                "signatory": signatory or "",
-            },
-        )
+        for row in rows:
+            renewal.append("cheque_details", {
+                "bank_name": row.get("bank_name") or "",
+                "cheque_number": row.get("cheque_number") or "",
+                "cheque_amount": flt(row.get("cheque_amount")),
+                "cheque_date": row.get("cheque_date") or "",
+                "payee": row.get("payee") or "",
+                "signatory": row.get("signatory") or "",
+            })
  
     if current_state == "Pending Property PO":
         renewal.po_number = po_number or ""
