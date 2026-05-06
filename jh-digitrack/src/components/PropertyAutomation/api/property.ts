@@ -4,6 +4,7 @@ const API_BASE = "/api/method/jh_digitrack.api.property_management";
 
 export type RenewalProgressPayload = {
   renewal_id: string;
+  cheque_details?: ChequeDetailPayload[];
   bank_name?: string;
   cheque_number?: string;
   cheque_amount?: number;
@@ -13,6 +14,15 @@ export type RenewalProgressPayload = {
   po_number?: string;
   miro_number?: string;
   renewed_contract_document?: string;
+};
+
+export type ChequeDetailPayload = {
+  bank_name?: string;
+  cheque_number?: string;
+  cheque_amount?: number;
+  cheque_date?: string;
+  payee?: string;
+  signatory?: string;
 };
 
 const buildQueryString = (
@@ -222,5 +232,4 @@ export const propertyApi = {
     return (data.message as { bank_accounts: string[] }).bank_accounts ?? [];
   },
 };
-
 
