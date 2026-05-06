@@ -213,4 +213,14 @@ export const propertyApi = {
       withdrawn: number;
     };
   },
+
+    getBankAccounts: async (): Promise<string[]> => {
+    const res = await fetch(`${API_BASE}.get_bank_accounts`, {
+      credentials: "include",
+    });
+    const data = await res.json();
+    return (data.message as { bank_accounts: string[] }).bank_accounts ?? [];
+  },
 };
+
+
