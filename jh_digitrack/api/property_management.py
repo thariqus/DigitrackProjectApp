@@ -1439,4 +1439,16 @@ def apply_workflow_action(
         "previous_state": current_state,
         "workflow_state": renewal.workflow_state,
     }
+
+
+@frappe.whitelist(methods=["GET"])
+def get_bank_accounts():
+    accounts = frappe.get_all(
+        "JH Bank Account",
+        filters={"is_active": 1},
+        fields=["bank_name"],
+        order_by="bank_name asc",
+        ignore_permissions=True,
+    )
+    return {"bank_accounts": [a.bank_name for a in accounts]}
  
