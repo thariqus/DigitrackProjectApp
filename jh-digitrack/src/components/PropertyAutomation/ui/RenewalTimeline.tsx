@@ -1,6 +1,5 @@
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChevronDown, MessageSquare, User, Send } from "lucide-react";
+import { ChevronDown, MessageSquare, User } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useJhUser, useCurrentJhUser } from "@/hooks/auth";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -28,8 +27,7 @@ export default function RenewalTimeline({
 }: RenewalTimelineProps) {
 
   const [isOpen, setIsOpen] = useState(defaultOpen);
-  const [comment, setComment] = useState("");
-  const { data: currentJhUser } = useCurrentJhUser();
+
   const { data: auditTrail = [], isLoading } = useRenewalAuditTrail(renewalId);
 
   // Sort latest first
@@ -104,10 +102,9 @@ export default function RenewalTimeline({
           {log.comments && log.comments.trim() && (
             <div className="flex items-start gap-2 mt-1">
               <MessageSquare className="h-3 w-3 text-gray-400 mt-0.5" />
-              <p
-                className="text-sm text-gray-700"
-                dangerouslySetInnerHTML={{ __html: log.comments }}
-              />
+              <p className="text-sm text-gray-700">
+                {String(log.comments)}
+              </p>
             </div>
           )}
         </div>
