@@ -39,6 +39,7 @@ function Properties() {
   console.log(permissionData,"permission")
 
   const renewalFilter = searchParams.get("renewal_filter") || undefined;
+  const attentionFilter = searchParams.get("attention_filter") || undefined;
 
   const listParams = useMemo(
     () => ({
@@ -48,6 +49,7 @@ function Properties() {
       division: selectedDivision.length === 1 ? selectedDivision[0] : undefined,
       expiring_soon: expiringSoon || undefined,
       renewal_filter: renewalFilter,
+      attention_filter: attentionFilter,
       limit: propertiesPerPage,
       page: currentPage,
     }),
@@ -58,6 +60,7 @@ function Properties() {
       selectedDivision,
       expiringSoon,
       renewalFilter,
+      attentionFilter,
       propertiesPerPage,
       currentPage,
     ]
@@ -228,12 +231,13 @@ function Properties() {
             if (!expiringSoon) {
               const newParams = new URLSearchParams(searchParams);
               newParams.delete("renewal_filter");
+              newParams.delete("attention_filter");
               setSearchParams(newParams, { replace: true });
             }
             setCurrentPage(1);
           },
         }}
-        extraActive={!!renewalFilter}
+        extraActive={!!renewalFilter || !!attentionFilter}
         onClear={() => {
           setSelectedEmirate([]);
           setSelectedType([]);
@@ -242,6 +246,7 @@ function Properties() {
           setCurrentPage(1);
           const newParams = new URLSearchParams(searchParams);
           newParams.delete("renewal_filter");
+          newParams.delete("attention_filter");
           setSearchParams(newParams, { replace: true });
         }}
       />
@@ -255,6 +260,33 @@ function Properties() {
               onClick={() => {
                 const newParams = new URLSearchParams(searchParams);
                 newParams.delete("renewal_filter");
+                setSearchParams(newParams, { replace: true });
+              }}
+              className="ml-1 rounded-full hover:bg-muted"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </Badge>
+        </div>
+      )}
+
+      {attentionFilter && (
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">Filtered by:</span>
+          <Badge variant="secondary" className="gap-1">
+            {attentionFilter === "overdue_no_renewal"
+              ? "Overdue with no renewal"
+              : attentionFilter === "hassantuk_expiring_soon"
+              ? "Hassantuk expiring soon"
+              : attentionFilter === "cdc_expiring_soon"
+              ? "CDC expiring soon"
+              : attentionFilter === "po_box_expiring_soon"
+              ? "PO Box renewal soon"
+              : "Requires attention"}
+            <button
+              onClick={() => {
+                const newParams = new URLSearchParams(searchParams);
+                newParams.delete("attention_filter");
                 setSearchParams(newParams, { replace: true });
               }}
               className="ml-1 rounded-full hover:bg-muted"
