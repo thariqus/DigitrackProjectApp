@@ -2,11 +2,8 @@ import frappe
 
 @frappe.whitelist(allow_guest=True, methods=["GET"])
 def search_scrapitem(search):
-    if not search:
-        return {"message": []}
-
-    search_like = f"%{search}%"
-
+    search_like = f"%{search}%" if search else "%"
+ 
     employees = frappe.db.sql("""
         SELECT 
             item_name,
