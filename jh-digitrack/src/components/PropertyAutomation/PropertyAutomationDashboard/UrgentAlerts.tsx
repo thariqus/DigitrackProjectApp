@@ -43,14 +43,14 @@ export function UrgentAlerts({
 
       <div className="pb-10">
          <div className="flex flec-col gap-1 items-center">
-            <h2 className="text-lg font-bold text-primary">Renewal Pipeline</h2>
+            <h2 className="text-lg font-bold text-primary">Required Attention</h2>
           </div>
-          <div className="flex items-center gap-3 rounded-xl border border-green-200 bg-green-50 p-4">
-        <CheckCircle className="text-green-600" />
-        <span className="text-green-800 font-medium">
-          All caught up — no urgent items
-        </span>
-      </div>
+          <div className="flex items-center gap-3 rounded-xl border border-green-200 bg-green-50 p-4 mt-4">
+            <CheckCircle className="text-green-600 text-xs" />
+            <span className="text-green-800 font-medium text-sm">
+              All caught up — no urgent items
+            </span>
+         </div>
       </div>
       
     );
