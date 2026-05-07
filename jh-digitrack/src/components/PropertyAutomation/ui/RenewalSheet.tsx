@@ -550,7 +550,6 @@ useEffect(() => {
           refetchRenewal();
           queryClient.invalidateQueries({ queryKey: ["RenewalList"] });
           queryClient.invalidateQueries({ queryKey: ["PendingRenewals"] });
-          toast.success("Delegation created successfully");
         },
       }
     );
@@ -1030,7 +1029,7 @@ const renderDelegationBadge = () => {
                               </SelectTrigger>
                               <SelectContent>
                                 {bankAccounts.map((name) => (
-                                  <SelectItem key={name} value={name}>{name}</SelectItem>
+                                  <SelectItem className="cursor-pointer" key={name} value={name}>{name}</SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
@@ -1085,12 +1084,12 @@ const renderDelegationBadge = () => {
                 <Separator />
                 <h2 className="text-lg font-semibold">PO Details</h2>
  
-                <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-4 items-start gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-4 items-start gap-2">
                   {renderRenewalRoleField("PO Number", "po_number", renewalDoc?.po_number || "")}
                 </div>
  
                 <div className="pb-10">
-                  <h3 className="text-md font-semibold mb-2">Renewed Contract Document</h3>
+                  <h3 className="text-sm text-gray-600 mb-2 font-semibold">Renewed Contract Document</h3>
                   {renewalDoc?.renewed_contract_document ? (
                     <div className="flex items-center gap-2 px-3 py-1 bg-gray-100 rounded">
                       <span className="text-sm">
@@ -1106,7 +1105,7 @@ const renderDelegationBadge = () => {
                       </a>
                     </div>
                   ) : (
-                    <p>No document</p>
+                    <p className="text-sm">No document</p>
                   )}
                   <FileAttachment files={contractFiles} setFiles={setContractFiles} />
                 </div>
