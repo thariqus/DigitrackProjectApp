@@ -848,7 +848,6 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
         ) : (
           data.map((cheque, index) => (
             <div
-              key={`${cheque.cheque_number || "cheque"}-${index}`}
               className="flex gap-2 items-end bg-muted p-3 rounded-lg"
             >
               <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-2">
@@ -871,7 +870,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                       </SelectTrigger>
                       <SelectContent>
                         {bankAccounts.map((name) => (
-                          <SelectItem key={name} value={name}>{name}</SelectItem>
+                          <SelectItem key={name} className="cursor-pointer" value={name}>{name}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -1228,6 +1227,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                     propertyId={propertyId || ""}
                     propertyName={doc?.property_name || ""}
                     currentRent={doc?.current_rent}
+                    renewalFrom={doc?.renewal_date?.split("T")[0]}
                     mode="new"
                     onCreated={async () => {
                       await refetchRenewals();
@@ -1335,9 +1335,9 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
               {renderApproverField("Approver 2", "approver_2", doc?.approver_2)}
               {renderField("Booked Under", "booked_under", doc?.booked_under)}
               {renderField("Profit Center", "profit_center", doc?.profit_center)}
-              {renderField("No. of Units", "number_of_units", doc?.number_of_units)}
-              {renderField("No. of Premises", "number_of_premises", doc?.number_of_premises)}
-              {renderMultiValueField("Premise No", "premise_number", doc?.premise_number)}
+              {renderField("Number of Units", "number_of_units", doc?.number_of_units)}
+              {renderField("Number of Premises", "number_of_premises", doc?.number_of_premises)}
+              {renderMultiValueField("Premise Number", "premise_number", doc?.premise_number)}
               {renderField("Staff Allocated", "staff_allocated", doc?.staff_allocated)}
             </div>
  
@@ -1414,7 +1414,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
  
  
             <h2 className="text-lg font-semibold">Compliance</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 w-110 md:grid-cols-2 gap-4">
               {isView ? (
                 <div className="flex items-center gap-2 py-1 text-sm">
                   <span className="font-medium text-gray-600">CDC Expiry:</span>
