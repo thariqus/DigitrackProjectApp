@@ -71,8 +71,8 @@ export default function StartRenewalModal({
     mode: "onBlur",
     defaultValues: {
       proposed_rent: isNewMode ? '' : (currentRent?.toString() || ''),
-      renewal_from: '',
-      renewal_to: '',
+      renewal_from: renewalFrom || '',
+      renewal_to: renewalTo || '',
     },
   });
 
@@ -107,12 +107,12 @@ export default function StartRenewalModal({
     if (open) {
       form.reset({
         proposed_rent: isNewMode ? '' : (currentRent?.toString() || ''),
-        renewal_from: '',
-        renewal_to: '',
+        renewal_from: renewalFrom || '',
+        renewal_to: renewalTo || '',
       });
       setRentChangePercentState("0");
     }
-  }, [open, isNewMode, currentRent, form]);
+  }, [open, isNewMode, currentRent, form, renewalFrom, renewalTo]);
 
   // Watch proposed_rent and trigger debounced calculation
   // const proposedRentValue = form.watch("proposed_rent");
