@@ -26,6 +26,8 @@ import { useApplyWorkflowAction } from "../hooks/useApplyWorkflowAction";
 import { useCreateDelegation, useDocumentDelegation, useRevokeDelegation } from "../hooks/useDelegation";
 import { RenewalDelegationModal } from "./RenewalDelegationModal";
 import ApprovalCommentModal from "./ApprovalCommentModal";
+import RenewalApprovalFooter from "./RenewalApprovalFooter";
+
  
 type RenewalSheetProps = {
   open: boolean;
@@ -1150,123 +1152,42 @@ const renderDelegationBadge = () => {
                    Submit for Approver
                   </Button>
                 </div>
-            ) : (canApproveWorkflow && renewalDoc?.workflow_state === "Pending Approver 1" && isView) ? (
-              <div className="flex gap-3 w-full">
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    type="button"
-                    disabled={!canWithdrawWorkflow}
-                    title="Closes the renewal process entirely. If needed, initiators can duplicate or create a new process for that property."
-                    onClick={() => propertyId && handleOpenWithdrawModal(propertyId)}
-                  >
-                    Withdraw
-                  </Button>
-                  <Button
-                    className="w-full bg-rose-200 hover:bg-rose-100 text-gray-400"
-                    type="button"
-                    disabled={!canSendBackWorkflow}
-                    onClick={() => propertyId && handleOpenSendBackModal(propertyId)}
-                  >
-                    Send Back
-                  </Button>
-                  {renderDelegationActionButton()}
-                  <Button
-                    className="w-full bg-primary text-white"
-                    type="button"
-                    onClick={() => handleOpenApprovalModal("approve", "Approve Renewal (Approver 1)", "Please provide your approval justification or notes for Approver 1.")}
-                  >
-                    Approve
-                  </Button>
-                </div>
-            ) : (canApproveWorkflow && renewalDoc?.workflow_state === "Pending Approver 2" && isView) ? (
-              <div className="flex gap-3 w-full">
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    type="button"
-                    disabled={!canWithdrawWorkflow}
-                    title="Closes the renewal process entirely. If needed, initiators can duplicate or create a new process for that property."
-                    onClick={() => propertyId && handleOpenWithdrawModal(propertyId)}
-                  >
-                    Withdraw
-                  </Button>
-                  <Button
-                    className="w-full bg-rose-200 hover:bg-rose-100 text-gray-400"
-                    type="button"
-                    disabled={!canSendBackWorkflow}
-                    onClick={() => propertyId && handleOpenSendBackModal(propertyId)}
-                  >
-                    Send Back
-                  </Button>
-                  {renderDelegationActionButton()}
-                  <Button
-                    className="w-full bg-primary text-white"
-                    type="button"
-                    onClick={() => handleOpenApprovalModal("approve", "Approve Renewal (Approver 2)", "Please provide your approval justification or notes for Approver 2.")}
-                  >
-                    Approve
-                  </Button>
-                </div>
-            ) : (canApproveWorkflow && renewalDoc?.workflow_state === "Pending CFO" && isView) ? (
-              <div className="flex gap-3 w-full">
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    type="button"
-                    disabled={!canWithdrawWorkflow}
-                    title="Closes the renewal process entirely. If needed, initiators can duplicate or create a new process for that property."
-                    onClick={() => propertyId && handleOpenWithdrawModal(propertyId)}
-                  >
-                    Withdraw
-                  </Button>
-                  <Button
-                    className="w-full bg-rose-200 hover:bg-rose-100 text-gray-400"
-                    type="button"
-                    disabled={!canSendBackWorkflow}
-                    onClick={() => propertyId && handleOpenSendBackModal(propertyId)}
-                  >
-                    Send Back
-                  </Button>
-                  {renderDelegationActionButton()}
-                  <Button
-                    className="w-full bg-primary text-white"
-                    type="button"
-                    onClick={() => handleOpenApprovalModal("approve", "Approve Renewal (CFO)", "Please provide your approval justification or notes as CFO.")}
-                  >
-                    Approve
-                  </Button>
-                </div>
-            ) : (canApproveWorkflow && renewalDoc?.workflow_state === "Pending MD" && isView) ? (
-              <div className="flex gap-3 w-full">
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    type="button"
-                    disabled={!canWithdrawWorkflow}
-                    title="Closes the renewal process entirely. If needed, initiators can duplicate or create a new process for that property."
-                    onClick={() => propertyId && handleOpenWithdrawModal(propertyId)}
-                  >
-                    Withdraw
-                  </Button>
-                  <Button
-                    className="w-full bg-rose-200 hover:bg-rose-100 text-gray-400"
-                    type="button"
-                    disabled={!canSendBackWorkflow}
-                    onClick={() => propertyId && handleOpenSendBackModal(propertyId)}
-                  >
-                    Send Back
-                  </Button>
-                  {renderDelegationActionButton()}
-                  <Button
-                    className="w-full bg-primary text-white"
-                    type="button"
-                    onClick={() => handleOpenApprovalModal("approve", "Approve Renewal (MD)", "Please provide your approval justification or notes as MD.")}
-                  >
-                    Approve
-                  </Button>
-                </div>
-            ) : (canApproveWorkflow && renewalDoc?.workflow_state === "Pending Cheque Details" && isView) ? (
+            ) : (canApproveWorkflow &&
+  [
+    "Pending Approver 1",
+    "Pending Approver 2",
+    "Pending CFO",
+    "Pending MD",
+  ].includes(renewalDoc?.workflow_state || "") &&
+  isView) ? (
+  <RenewalApprovalFooter
+    disabledWithdraw={!canWithdrawWorkflow}
+    disabledSendBack={!canSendBackWorkflow}
+    renderDelegationActionButton={renderDelegationActionButton}
+    onWithdraw={() => propertyId && handleOpenWithdrawModal(propertyId)}
+    onSendBack={() => propertyId && handleOpenSendBackModal(propertyId)}
+    approveButton={{
+      title: `Approve Renewal (${renewalDoc?.workflow_state?.replace(
+        "Pending ",
+        ""
+      )})`,
+      description: `Please provide your approval justification or notes for ${
+        renewalDoc?.workflow_state?.replace("Pending ", "")
+      }.`,
+      onApprove: () =>
+        handleOpenApprovalModal(
+          "approve",
+          `Approve Renewal (${renewalDoc?.workflow_state?.replace(
+            "Pending ",
+            ""
+          )})`,
+          `Please provide your approval justification or notes for ${
+            renewalDoc?.workflow_state?.replace("Pending ", "")
+          }.`
+        ),
+    }}
+  />
+) : (canApproveWorkflow && renewalDoc?.workflow_state === "Pending Cheque Details" && isView) ? (
               <div className="flex gap-3 w-full">
                   <Button variant="outline" className="w-full" type="button" onClick={() => onOpenChange(false)}>
                     Close
