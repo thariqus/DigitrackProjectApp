@@ -12,7 +12,18 @@ ROLE_PRIORITY = [
     "gl_team",
     "licensing",
 ]
- 
+
+ACTIVE_RENEWAL_STATES = [
+    "Draft",
+    "Pending Approver 1",
+    "Pending Approver 2",
+    "Pending CFO",
+    "Pending MD",
+    "Pending Cheque Details",
+    "Pending Property PO",
+    "Pending MIRO",
+]
+
 SENDBACK_TRANSITIONS = {
     "Pending Approver 1": {"Draft"},
     "Pending Approver 2": {"Pending Approver 1", "Draft"},
@@ -291,6 +302,7 @@ def get_property_list(
     division=None,
     expiring_soon=None,
     renewal_filter=None,
+    attention_filter=None,
     limit=10,
     page=1,
 ):
@@ -336,6 +348,23 @@ def get_property_list(
             filters["renewal_date"] = ["between", [add_days(today_str, 61), add_days(today_str, 90)]]
         elif renewal_filter == "overdue":
             filters["renewal_date"] = ["<", today_str]
+    elif attention_filter:
+        if attention_filter == "overdue_no_renewal":
+            properties_with_any_renewal = frappe.get_all(
+                "JH Property Rental Renewal",
+                filters={"workflow_state": ["in", ACTIVE_RENEWAL_STATES + ["Withdrawn"]]},
+                pluck="property",
+                ignore_permissions=True,
+            )
+            filters["renewal_date"] = ["<", today_str]
+            if properties_with_any_renewal:
+                filters["name"] = ["not in", list(set(properties_with_any_renewal))]
+        elif attention_filter == "hassantuk_expiring_soon":
+            filters["hassantuk_expiry"] = ["between", [today_str, add_days(today_str, 30)]]
+        elif attention_filter == "cdc_expiring_soon":
+            filters["cdc_expiry"] = ["between", [today_str, add_days(today_str, 30)]]
+        elif attention_filter == "po_box_expiring_soon":
+            filters["po_box_renewal_date"] = ["between", [today_str, add_days(today_str, 30)]]
     elif expiring_soon:
         filters["renewal_date"] = ["between", [today_str, add_days(today_str, 90)]]
  
@@ -417,6 +446,44 @@ def get_property_dashboard_counts():
     overdue = _count({
         "renewal_date": ["<", today_str]
     })
+
+    properties_with_any_renewal = frappe.get_all(
+        "JH Property Rental Renewal",
+        filters={"workflow_state": ["in", ACTIVE_RENEWAL_STATES + ["Withdrawn"]]},
+        pluck="property",
+        ignore_permissions=True,
+    )
+    overdue_no_renewal_filters = {"renewal_date": ["<", today_str]}
+    if properties_with_any_renewal:
+        overdue_no_renewal_filters["name"] = ["not in", list(set(properties_with_any_renewal))]
+ 
+    stalled_renewals = frappe.db.count(
+        "JH Property Rental Renewal",
+        filters={
+            "workflow_state": ["in", ACTIVE_RENEWAL_STATES],
+            "modified": ["<=", add_days(today_str, -7)],
+        },
+        cache=False,
+    )
+ 
+    pending_payload = get_my_pending_renewals()
+    pending_my_action = len(pending_payload.get("renewals") or [])
+ 
+    attention = {
+        "overdue_no_renewal": _count(overdue_no_renewal_filters),
+        "stalled_renewals": stalled_renewals,
+        "pending_my_action": pending_my_action,
+        "hassantuk_expiring_soon": _count({
+            "hassantuk_expiry": ["between", [today_str, add_days(today_str, 30)]]
+        }),
+        "cdc_expiring_soon": _count({
+            "cdc_expiry": ["between", [today_str, add_days(today_str, 30)]]
+        }),
+        "po_box_expiring_soon": _count({
+            "po_box_renewal_date": ["between", [today_str, add_days(today_str, 30)]]
+        }),
+    }
+ 
  
     return {
         "total_properties": total_properties,
@@ -424,6 +491,7 @@ def get_property_dashboard_counts():
         "renewals_60_days": renewals_60_days,
         "renewals_90_days": renewals_90_days,
         "overdue": overdue,
+        "attention": attention,
     }
  
  
@@ -433,6 +501,7 @@ def get_renewal_list(
     divisions=None,
     search=None,
     property=None,
+    attention_filter=None,
     limit=10,
     page=1,
 ):
@@ -476,6 +545,12 @@ def get_renewal_list(
  
     if property:
         filters["property"] = property
+
+    if attention_filter == "stalled_7_days":
+        from frappe.utils import add_days, today
+ 
+        filters["workflow_state"] = ["in", ACTIVE_RENEWAL_STATES]
+        filters["modified"] = ["<=", add_days(today(), -7)]
  
     limit = cint(limit)
     page = cint(page)
@@ -484,7 +559,7 @@ def get_renewal_list(
     RENEWAL_FIELDS = [
         "name", "property", "current_rent", "proposed_rent",
         "rent_change_percent", "renewal_from", "renewal_to",
-        "division", "workflow_state", "modified",
+        "division", "workflow_state", "modified", "step_entered_on",                                                                                                                                                                                                                                                                                                                                                                                                                                                                            
     ]
  
     # Standing approver access is property-scoped. Ad-Hoc delegation is document-scoped.
