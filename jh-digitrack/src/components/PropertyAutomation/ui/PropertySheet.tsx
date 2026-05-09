@@ -702,7 +702,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
 
   return (
     <div className="flex flex-col gap-1">
-      <Label className="text-sm text-gray-600">Landline Connections</Label>
+      <Label className="text-sm text-gray-600">Landline Connections:</Label>
 
       {isLoading ? (
         <div className="flex items-center justify-center p-8">
@@ -710,12 +710,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
         </div>
       ) : (
         <div className="space-y-2">
-          {data.length === 0 ? (
-            <p className="text-sm text-muted-foreground p-3 border-2 border-dashed rounded-lg text-center">
-              {isViewMode ? "No connections" : "Click + Add Landline to start"}
-            </p>
-          ) : (
-            data.map((conn, index) => (
+          {data.map((conn, index) => (
               <div
                 key={conn.name || index}
                 className="flex gap-2 items-end bg-muted p-3 rounded-lg"
@@ -802,13 +797,13 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                 )}
               </div>
             ))
-          )}
+          }
 
           {!isViewMode && (
             <Button
               type="button"
               variant="outline"
-              className="w-full border-2 border-dashed h-10 text-sm"
+              className="w-full text-gray-500 border-2 border-dashed h-10 text-sm mt-1"
               onClick={() => {
                 const newConns = [...landlineConnections, { landline_number: "" }];
                 setLandlineConnections(newConns);
@@ -841,12 +836,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
       <Label className="text-sm text-gray-600">Security Deposit Cheques:</Label>
 
       <div className="space-y-2">
-        {data.length === 0 ? (
-          <p className="text-sm text-muted-foreground p-3 border-2 border-dashed rounded-lg text-center">
-            {isViewMode ? "No cheques" : "Click + Add Cheque to start"}
-          </p>
-        ) : (
-          data.map((cheque, index) => (
+        {data.map((cheque, index) => (
             <div
               className="flex gap-2 items-end bg-muted p-3 rounded-lg"
             >
@@ -921,13 +911,13 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
               )}
             </div>
           ))
-        )}
+        }
 
         {!isViewMode && (
           <Button
             type="button"
             variant="outline"
-            className="w-full border-2 border-dashed h-10 text-sm"
+            className="w-full border-2 text-gray-500 border-dashed h-10 text-sm mt-1"
             onClick={() => {
               const newCheques = [...securityDepositCheques, { bank_name: "", cheque_number: "", cheque_amount: 0, cheque_date: "", payee: "", signatory: "" }];
               setSecurityDepositCheques(newCheques);
@@ -959,12 +949,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
         </div>
       ) : (
         <div className="space-y-2">
-          {data.length === 0 ? (
-            <p className="text-sm text-muted-foreground p-3 border-2 border-dashed rounded-lg text-center">
-              {isViewMode ? "No connections" : "Click + Add Connection to start"}
-            </p>
-          ) : (
-            data.map((conn, index) => (
+          {data.map((conn, index) => (
               <div
                 key={conn.name || index}
                 className="flex gap-2 items-end bg-muted p-3 rounded-lg"
@@ -1073,20 +1058,20 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                 )}
               </div>
             ))
-          )}
+          }
 
           {!isViewMode && (
             <Button
               type="button"
               variant="outline"
-              className="w-full border-2 border-dashed h-10 text-sm"
+              className="w-full border-2 text-gray-500 border-dashed h-10 text-sm mt-1"
               onClick={() => {
                 const newConns = [...connections, { connection_number: "" }];
                 setConnections(newConns);
                 setValue("electricity_accounts", newConns.length);
               }}
             >
-              + Add Connection
+              + Add Electricity Connection
             </Button>
           )}
         </div>
