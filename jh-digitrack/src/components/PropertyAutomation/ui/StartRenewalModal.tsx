@@ -76,31 +76,6 @@ export default function StartRenewalModal({
     },
   });
 
-  // Debounced API call for rent calculation
-  // const debouncedCalculateRent = useCallback(
-  //   debounce(async (currentRent: number, proposedRentStr: string) => {
-  //     const proposedRent = parseFloat(proposedRentStr);
-  //     if (isNaN(proposedRent) || currentRent <= 0) {
-  //       setRentChangePercentState("0");
-  //       return;
-  //     }
-  //     try {
-  //       const params = new URLSearchParams({
-  //         current_rent: currentRent.toString(),
-  //         proposed_rent: proposedRent.toString()
-  //       });
-  //       const res = await fetch(`/api/method/jh_digitrack.api.property_management.calculate_rent_change?${params}`, {
-  //         credentials: "include",
-  //       });
-  //       const data = await res.json();
-  //       setRentChangePercentState((data.message?.rent_change_percent || 0).toString());
-  //     } catch (error) {
-  //       console.error("Rent calc error:", error);
-  //       setRentChangePercentState("0");
-  //     }
-  //   }, 500),
-  //   []
-  // );
 
   // Reset form and state when modal opens
   useEffect(() => {
@@ -113,14 +88,6 @@ export default function StartRenewalModal({
       setRentChangePercentState("0");
     }
   }, [open, isNewMode, currentRent, form, renewalFrom, renewalTo]);
-
-  // Watch proposed_rent and trigger debounced calculation
-  // const proposedRentValue = form.watch("proposed_rent");
-  // useEffect(() => {
-  //   if (currentRent && proposedRentValue) {
-  //     debouncedCalculateRent(currentRent, proposedRentValue);
-  //   }
-  // }, [proposedRentValue, currentRent, debouncedCalculateRent]);
 
   const onSubmit = async (data: FormData) => {
     try {
@@ -167,88 +134,86 @@ export default function StartRenewalModal({
         </DialogHeader>
 
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-2">
             <Label>Property Name</Label>
             <Input value={propertyName} readOnly className="bg-muted" />
           </div>
 
-          <div>
-            <Label>Current Rent</Label>
-            <Input
-              type="number"
-              value={currentRent || 0}
-              readOnly
-              className="bg-muted"
-            />
-
-          </div>
-
-          <div>
-            <Label>Proposed Rent <span className="text-red-500">*</span></Label>
-            <Controller
-              name="proposed_rent"
-              control={form.control}
-              render={({ field }) => (
+          <div className="flex gap-2 items-center">
+              <div className="flex flex-col gap-2">
+                <Label>Current Rent</Label>
                 <Input
-                  {...field}
                   type="number"
-                  step="0.01"
-                  min="0.01"
-                  placeholder="Enter proposed rent"
+                  value={currentRent || 0}
+                  readOnly
+                  className="bg-muted "
                 />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label>Proposed Rent <span className="text-red-500">*</span></Label>
+                <Controller
+                  name="proposed_rent"
+                  control={form.control}
+                  render={({ field }) => (
+                    <Input
+                      {...field}
+                      type="number"
+                      step="0.01"
+                      min="0.01"
+                    />
+                  )}
+                />
+                {form.formState.errors.proposed_rent && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {form.formState.errors.proposed_rent.message}
+                  </p>
+                )}
+              </div>
+          </div>
+          
+
+          <div className="flex gap-2 items-center w-full">
+            <div className="flex flex-col gap-2 w-full">
+              <Label>Renewal From  <span className="text-red-500">*</span></Label>
+              <Controller
+                name="renewal_from"
+                control={form.control}
+                render={({ field }) => (
+                  <Input
+                    {...field}
+                    type="date"
+                    min={format(new Date(), "yyyy-MM-dd")}
+                  />
+                )}
+              />
+              {form.formState.errors.renewal_from && (
+                <p className="text-red-500 text-xs mt-1">
+                  {form.formState.errors.renewal_from.message}
+                </p>
               )}
-            />
-            {/* <div className="flex items-center gap-2 mt-1 text-sm">
-              <Label className="text-gray-600 whitespace-nowrap">Rent Change %:</Label>
-              <Input value={rentChangePercentState + "%"} readOnly className="bg-gray-100 w-24" />
-            </div> */}
-            {form.formState.errors.proposed_rent && (
-              <p className="text-red-500 text-xs mt-1">
-                {form.formState.errors.proposed_rent.message}
-              </p>
-            )}
+            </div>
+
+            <div className="flex flex-col gap-2 w-full">
+              <Label>Renewal To <span className="text-red-500">*</span></Label>
+              <Controller
+                name="renewal_to"
+                control={form.control}
+                render={({ field }) => (
+                  <Input
+                    {...field}
+                    type="date"
+                  />
+                )}
+              />
+              {form.formState.errors.renewal_to && (
+                <p className="text-red-500 text-xs mt-1">
+                  {form.formState.errors.renewal_to.message}
+                </p>
+              )}
+            </div>
           </div>
 
-          <div>
-            <Label>Renewal From  <span className="text-red-500">*</span></Label>
-            <Controller
-              name="renewal_from"
-              control={form.control}
-              render={({ field }) => (
-                <Input
-                  {...field}
-                  type="date"
-                  min={format(new Date(), "yyyy-MM-dd")}
-                />
-              )}
-            />
-            {form.formState.errors.renewal_from && (
-              <p className="text-red-500 text-xs mt-1">
-                {form.formState.errors.renewal_from.message}
-              </p>
-            )}
-          </div>
-
-          <div>
-            <Label>Renewal To <span className="text-red-500">*</span></Label>
-            <Controller
-              name="renewal_to"
-              control={form.control}
-              render={({ field }) => (
-                <Input
-                  {...field}
-                  type="date"
-                />
-              )}
-            />
-            {form.formState.errors.renewal_to && (
-              <p className="text-red-500 text-xs mt-1">
-                {form.formState.errors.renewal_to.message}
-              </p>
-            )}
-          </div>
-
-          <DialogFooter className="gap-2">
+          <DialogFooter className="gap-2 mt-10">
             <Button
               type="button"
               variant="outline"
