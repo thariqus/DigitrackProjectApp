@@ -8,16 +8,28 @@ function RenewalTableRow({ renewals , index, onClick,isLoading,onEdit,renewalCol
 
 
    const renewalPeriod = (() => {
-        if (!renewals.renewal_from || !renewals.renewal_to) return "";
+  if (!renewals.renewal_to) return "-";
 
-        const from = new Date(renewals.renewal_from);
-        const to = new Date(renewals.renewal_to);
+  const today = new Date();
+  const expiryDate = new Date(renewals.renewal_from);
 
-        const diffTime = to.getTime() - from.getTime();
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  // Remove time portion for accurate day calculation
+  today.setHours(0, 0, 0, 0);
+  expiryDate.setHours(0, 0, 0, 0);
 
-        return `${diffDays} days`;
-   })();
+  const diffTime = expiryDate.getTime() - today.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays > 0) {
+    return `${diffDays} days left`;
+  }
+
+  if (diffDays === 0) {
+    return "Expires today";
+  }
+
+  return `Expired ${Math.abs(diffDays)} days ago`;
+})();
 
   if(isLoading){
     return (
