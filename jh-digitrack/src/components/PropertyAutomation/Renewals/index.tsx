@@ -71,9 +71,9 @@ function Renewals() {
         ? JSON.stringify(selectedWorkflowStage)
         : undefined,
       divisions: selectedDivision.length ? JSON.stringify(selectedDivision) : undefined,
-      renewal_periods: selectedRenewalDateRange.length
-        ? JSON.stringify(selectedRenewalDateRange)
-        : undefined,
+      renewal_period: selectedRenewalDateRange.length
+  ? selectedRenewalDateRange[0]
+  : undefined,
       attention_filter: attentionFilter,
       limit: renewalsPerPage,
       page: currentPage,

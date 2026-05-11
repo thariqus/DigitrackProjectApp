@@ -6,8 +6,8 @@ import { usePropertyDashboardCounts } from "../hooks/useProperty";
 
 function PropertyAutomationDashboard() {
 
-    const navigate = useNavigate();
-    const { data: counts, isLoading } = usePropertyDashboardCounts();
+  const navigate = useNavigate();
+  const { data: counts, isLoading } = usePropertyDashboardCounts();
 
   const attention = counts?.attention;
 
