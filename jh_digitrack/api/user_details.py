@@ -1598,6 +1598,82 @@ def _append_jrc_name_column_from_email(headers, rows):
 def run_post_hrms_sync():
     try:
 
+        # ================================================================
+        # PRE-STEP 1 : Clear Existing Inactive Employee Records
+        # ----------------------------------------------------------------
+        # Removes old records from staging table before inserting
+        # the latest inactive employee list from HRMS.
+        # ================================================================
+        frappe.db.sql("""
+            DELETE FROM `tabHRMS Inactive Employees`
+        """)
+        frappe.log_error(
+            title="PRE-STEP 1: Clear Inactive Employees",
+            message="Deleted all records from tabHRMS Inactive Employees"
+        )
+        # ================================================================
+        # PRE-STEP 2 : Insert Latest Inactive Employees from HRMS
+        # ----------------------------------------------------------------
+        # Fetch all employees marked as 'Inactive' from HRMS
+        # and insert them into the staging table.
+        # ================================================================
+        frappe.db.sql("""
+            INSERT INTO `tabHRMS Inactive Employees` (
+                name,
+                emp_id,
+                email_id,
+                emp_name
+            )
+            SELECT
+                HR.employee_code,
+                HR.employee_code,
+                HR.mail_id,
+                HR.company_name
+            FROM `tabHRMS Users` HR
+            WHERE HR.active = 'Inactive'
+              AND IFNULL(HR.employee_code, '') <> ''
+        """)
+        frappe.log_error(
+            title="PRE-STEP 2: Insert Inactive Employees",
+            message="Inserted inactive employees from tabHRMS Users (active='Inactive') into tabHRMS Inactive Employees"
+        )
+        # ================================================================
+        # PRE-STEP 3 : Remove Email Access from JH User Master
+        # ----------------------------------------------------------------
+        # Clears email IDs for employees marked as inactive.
+        # ================================================================
+        frappe.db.sql("""
+            UPDATE `tabJH User Master` JHUSER
+            INNER JOIN `tabHRMS Inactive Employees` HRMS_INACTIVE
+                ON JHUSER.employee_code = HRMS_INACTIVE.emp_id
+            SET JHUSER.email = ''
+        """)
+        frappe.log_error(
+            title="PRE-STEP 3: Clear Email from JH User Master",
+            message="Set email='' in tabJH User Master for employees matched in tabHRMS Inactive Employees"
+        )
+        # ================================================================
+        # PRE-STEP 4 : Disable PMS Access for Inactive Employees
+        # ----------------------------------------------------------------
+        # Clears employee email and removes all PMS access flags.
+        # ================================================================
+        frappe.db.sql("""
+            UPDATE `tabPMS Employees` PMSUSER
+            INNER JOIN `tabHRMS Inactive Employees` HRMS_INACTIVE
+                ON PMSUSER.employee_code = HRMS_INACTIVE.emp_id
+            SET
+                PMSUSER.employee_email = '',
+                PMSUSER.pms_master     = 0,
+                PMSUSER.pms_admin      = 0,
+                PMSUSER.pms_manager    = 0,
+                PMSUSER.pms_employee   = 0,
+                PMSUSER.self_assessment  = 0,
+                PMSUSER.edit_settings    = 0
+        """)
+        frappe.log_error(
+            title="PRE-STEP 4: Disable PMS Access for Inactive Employees",
+            message="Cleared employee_email and reset all PMS access flags (pms_master, pms_admin, pms_manager, pms_employee, self_assessment, edit_settings) in tabPMS Employees for inactive employees"
+        )
         # 1. Delete inactive employees
         frappe.db.sql("""
             DELETE FROM `tabHRMS Users`
@@ -1621,6 +1697,10 @@ def run_post_hrms_sync():
             )
         """)
 
+        frappe.log_error(
+            title="STEP 1-2: Delete Inactive & Clear Non-Official Emails",
+            message="Deleted inactive employees from tabHRMS Users; cleared mail_id for employees without official domain emails (@jaleel, @crosswell, @orbex, @mfbfoods, @albazil)"
+        )
         # 2a. Set mail_id = '' only when: a) the employee is not a reporting manager, and b) the same mail_id already exists
         frappe.db.sql("""
             UPDATE `tabHRMS Users`
@@ -1664,6 +1744,10 @@ def run_post_hrms_sync():
             );
         """)
 
+        frappe.log_error(
+            title="STEP 2a-2b: Deduplicate Email IDs",
+            message="Cleared duplicate mail_id values from tabHRMS Users — kept only reporting managers; then cleared any remaining duplicates system-wide"
+        )
         # 3. Update JH User Master
         frappe.db.sql("""
             UPDATE `tabJH User Master` JH
@@ -1713,6 +1797,10 @@ def run_post_hrms_sync():
               AND IFNULL(HR.employee_code, '') <> ''       
         """)
 
+        frappe.log_error(
+            title="STEP 3-4: Sync & Insert JH User Master",
+            message="Updated tabJH User Master from tabHRMS Users (email, location, designation, department, name, etc.); inserted new employees missing from JH User Master"
+        )
         # 5. Update PMS Employees
         frappe.db.sql("""
             UPDATE `tabPMS Employees` PMS
@@ -1765,6 +1853,10 @@ def run_post_hrms_sync():
               AND IFNULL(HR.employee_code, '') <> ''
         """)
 
+        frappe.log_error(
+            title="STEP 5-6: Sync & Insert PMS Employees",
+            message="Updated tabPMS Employees from tabHRMS Users (name, email, band, manager, cost center, etc.); inserted new employees missing from PMS Employees"
+        )
         frappe.db.sql("UPDATE `tabPMS Employees` SET pms_employee = 0")
         frappe.db.sql("""
             UPDATE `tabPMS Employees`
@@ -1790,7 +1882,11 @@ def run_post_hrms_sync():
             SET pms_master = 1
             WHERE pms_master + pms_admin + pms_manager >= 1
         """)
-        
+
+        frappe.log_error(
+            title="STEP 7-9: Set PMS Roles (Employee / Manager / Master)",
+            message="Reset and reassigned pms_employee (by grade: EL_, FL_, GL_, OFRL), pms_manager (by reporting relationship), and pms_master (anyone with manager/admin role) in tabPMS Employees"
+        )
 
         # ---------------------------------------------------------------------
         # 10. Create Manager Hierarchy in PMS Manager List (Frappe way)
@@ -1833,6 +1929,10 @@ def run_post_hrms_sync():
             ORDER BY reporting_manager_id, level
         """, as_dict=True)
 
+        frappe.log_error(
+            title="STEP 10: Build Manager Hierarchy",
+            message="Built recursive manager hierarchy from tabPMS Employees using CTE; ready to insert into PMS Manager List"
+        )
         # 3. Create fresh parent doc
         parent_doc = frappe.get_doc({
             "doctype": "PMS Manager List",
@@ -1896,6 +1996,32 @@ def run_post_hrms_sync():
                 "level": row["level"]
             })
 
+        frappe.log_error(
+            title="STEP 11: Save Manager Hierarchy to PMS Manager List",
+            message="Appended valid manager-subordinate rows to PMS Manager List after applying rules (manager exists in JH User Master, has PMS subordinates)"
+        )
+        # ================================================================
+        # PRE-STEP 4 : Disable PMS Access for Inactive Employees
+        # ----------------------------------------------------------------
+        # Clears employee email and removes all PMS access flags.
+        # ================================================================
+        frappe.db.sql("""
+            UPDATE `tabPMS Employees` PMSUSER
+            INNER JOIN `tabHRMS Inactive Employees` HRMS_INACTIVE
+                ON PMSUSER.employee_code = HRMS_INACTIVE.emp_id
+            SET
+                PMSUSER.employee_email = '',
+                PMSUSER.pms_master     = 0,
+                PMSUSER.pms_admin      = 0,
+                PMSUSER.pms_manager    = 0,
+                PMSUSER.pms_employee   = 0,
+                PMSUSER.self_assessment  = 0,
+                PMSUSER.edit_settings    = 0
+        """)
+        frappe.log_error(
+            title="POST-SYNC PRE-STEP 4: Re-disable PMS Access for Inactive Employees",
+            message="Re-cleared employee_email and all PMS access flags for inactive employees after full sync — ensures no inactive employee regained access during insert steps"
+        )
         # 5. Save once
         parent_doc.save(ignore_permissions=True)
 

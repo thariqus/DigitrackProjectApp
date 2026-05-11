@@ -103,7 +103,7 @@ export function MainNav() {
           <button
             onClick={() => {
               window.location.href =
-                "https://digitrack.jaleelholdings.com/employee-search";
+                "https://digitrack.jaleelholdings.com/employee_search";
             }}
             className="flex items-center gap-2 text-gray-600 hover:text-primary"
           >
