@@ -2,6 +2,7 @@ import frappe
 
 @frappe.whitelist(allow_guest=True, methods=["GET"])
 def search_scrapitem(search):
+    search = search.strip()if search else""# Strip whitespace
     search_like = f"%{search}%" if search else "%"
  
     employees = frappe.db.sql("""
