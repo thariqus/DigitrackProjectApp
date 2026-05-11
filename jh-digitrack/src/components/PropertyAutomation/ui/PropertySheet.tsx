@@ -1335,7 +1335,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
               {renderField("Country", "country", doc?.country)}
               {renderField("Makani Number", "makani_number", doc?.makani_number)}
               {renderField("PO Box", "po_box_number", doc?.po_box_number)}
-              {renderField("PO Box Renewal", "po_box_renewal_date", doc?.po_box_renewal_date, "date")}
+              {renderField("PO Box Renewal", "po_box_renewal_date", formatDate(doc?.po_box_renewal_date), "date")}
             </div>
  
             <Separator />
