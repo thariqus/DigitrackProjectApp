@@ -1,10 +1,10 @@
 import { TableRow, TableCell } from "@/components/ui/table";
-import { Pencil } from "lucide-react";
+import { Pencil, Download } from "lucide-react";
 import { useOutletContext } from "react-router";
 import StatusBadge from "./StatusBadge";
 
 
-function RenewalTableRow({ renewals , index, onClick,isLoading,onEdit,renewalColorHighlight,formatDate,isLicensingTeam  }: any) {
+function RenewalTableRow({ renewals , index, onClick,isLoading,onEdit,renewalColorHighlight,formatDate,isLicensingTeam,onDownload  }: any) {
 
 
    const renewalPeriod = (() => {
@@ -56,22 +56,34 @@ function RenewalTableRow({ renewals , index, onClick,isLoading,onEdit,renewalCol
       <TableCell><StatusBadge status={renewals.workflow_state} /></TableCell>
       <TableCell>{renewals.modified}</TableCell>
 
-      {isLicensingTeam  && 
-        <TableCell>
-          
-             <div
-                className="flex justify-center items-center cursor-pointer"
-                onClick={(e) => {
-                  e.stopPropagation(); //  prevent row click
-                  onEdit(renewals.name);
-                }}
-                title="Edit Renewal"
-              >
-                <Pencil size={13} />
+      <TableCell>
+        <div className="flex justify-center items-center gap-2">
+          {renewals.workflow_state === "Completed" && (
+            <div
+              className="cursor-pointer text-primary hover:text-green-800"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDownload(renewals.name);
+              }}
+              title="Download PDF"
+            >
+              <Download size={17} />
             </div>
-       
+          )}
+          {isLicensingTeam && (
+            <div
+              className="cursor-pointer"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit(renewals.name);
+              }}
+              title="Edit Renewal"
+            >
+              <Pencil size={13} />
+            </div>
+          )}
+        </div>
       </TableCell>
-}
       
   
     </TableRow>
