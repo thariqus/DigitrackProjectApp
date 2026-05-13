@@ -195,6 +195,13 @@ function Renewals() {
     setIsSheetOpen(true);
   };
 
+  const handleDownload = (name: string) => {
+    window.open(
+      `/api/method/frappe.utils.print_format.download_pdf?doctype=JH Property Rental Renewal&name=${encodeURIComponent(name)}&format=Standard&no_letterhead=0`,
+      "_blank"
+    );
+  };
+
   const formatDate = (date?: string) => {
     if (!date) return "";
     const d = new Date(date);
@@ -274,7 +281,7 @@ function Renewals() {
 
       <div className="rounded-md border">
         <Table className="w-full table-fixed">
-          <PropertyTableHeader tableHeadings={tableHeadings} canHaveAccess={isLicensingTeam} />
+          <PropertyTableHeader tableHeadings={tableHeadings} canHaveAccess={true} />
 
           <TableBody>
             {renewals.map((item, index) => (
@@ -285,6 +292,7 @@ function Renewals() {
                 isLoading={isLoading}
                 onClick={() => handleRowClick(item.name)}
                 onEdit={handleEditClick}
+                onDownload={handleDownload}
                 formatDate={formatDate}
                 renewalColorHighlight={undefined}
                 isLicensingTeam={isLicensingTeam}
