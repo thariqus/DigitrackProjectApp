@@ -633,7 +633,7 @@ const renderDelegationBadge = () => {
  
     return (
       <Button
-        className="w-full bg-gray-100 text-gray-700 hover:bg-gray-200"
+        className="w-full bg-gray-200 text-gray-700 hover:bg-gray-300"
         type="button"
         disabled={isDelegationLoading}
         onClick={() => setIsDelegateModalOpen(true)}
