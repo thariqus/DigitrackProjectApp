@@ -99,14 +99,48 @@ export default function RenewalTimeline({
           )}
 
           {/* Comment */}
-          {log.comments && log.comments.trim() && (
-            <div className="flex items-start gap-2 mt-1">
-              <MessageSquare className="h-3 w-3 text-gray-400 mt-0.5" />
-              <p className="text-sm text-gray-700">
-                {String(log.comments)}
-              </p>
-            </div>
-          )}
+          {/* Comment */}
+{log.comments && log.comments.trim() && (() => {
+
+  const commentText = String(log.comments);
+
+  const lines = commentText
+    .split("\n")
+    .filter(Boolean);
+
+  const delegationLine =
+    lines[0]?.includes("on behalf of")
+      ? lines[0]
+      : null;
+
+  const actualComment =
+    delegationLine
+      ? lines.slice(1).join("\n")
+      : commentText;
+
+  return (
+    <div className="mt-1 space-y-1">
+
+      {/* Delegation text */}
+      {delegationLine && (
+        <div className="text-sm text-gray-700">
+          {delegationLine}
+        </div>
+      )}
+
+      {/* Actual comment */}
+      {actualComment?.trim() && (
+        <div className="flex items-start gap-2">
+          <MessageSquare className="h-3 w-3 text-gray-400 mt-0.5" />
+
+          <p className="text-sm text-gray-700 whitespace-pre-wrap">
+            {actualComment}
+          </p>
+        </div>
+        )}
+      </div>
+    );
+    })()}
         </div>
       </div>
     );
