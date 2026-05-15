@@ -32,11 +32,13 @@ function PropertyTableRow({ property, index, onClick,isLoading,onEdit,renewalCol
       <TableCell>{property.emirate}</TableCell>
       <TableCell>{property.current_rent}</TableCell>
       {/* Renewal urgency */}
-      <TableCell className={renewalColorHighlight(property.renewal_date)}>
+      <TableCell className={`${renewalColorHighlight(property.renewal_date)} text-center`}>
         {formatDate(property.renewal_date)}
       </TableCell>
-      <TableCell>
-        <StatusBadge status={getRenewalStatus(property.renewal_date)} />
+      <TableCell className="text-center">
+        <div className="flex justify-center">
+          <StatusBadge status={getRenewalStatus(property.renewal_date)} />
+        </div>
       </TableCell>
 
       {canCreateOrEditProperty && (

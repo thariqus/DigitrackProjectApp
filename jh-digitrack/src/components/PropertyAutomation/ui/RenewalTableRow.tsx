@@ -53,7 +53,11 @@ function RenewalTableRow({ renewals , index, onClick,isLoading,onEdit,renewalCol
       <TableCell>{renewals.proposed_rent}</TableCell>
       <TableCell>{renewals.rent_change_percent != null ? `${Number(renewals.rent_change_percent).toFixed(2)}%` : "-"}</TableCell>
       <TableCell>{renewalPeriod}</TableCell>
-      <TableCell><StatusBadge status={renewals.workflow_state} /></TableCell>
+      <TableCell className="text-center">
+          <div className="flex justify-center">
+            <StatusBadge status={renewals.workflow_state} />
+          </div>
+      </TableCell>
       <TableCell>{renewals.modified}</TableCell>
 
       <TableCell>
