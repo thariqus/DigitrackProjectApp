@@ -1024,35 +1024,107 @@ def _get_effective_roles(user, renewal=None):
 @frappe.whitelist(methods=["GET"])
 def whoami(renewal_id: str = None, is_new: bool = False):
     user = frappe.session.user
+
     if user == "Administrator":
         return {"role": "Administrator"}
- 
+
     is_new = bool(cint(is_new))
- 
+
+    # ---------------------------------------------------------
+    # NEW DOCUMENT
+    # ---------------------------------------------------------
     if is_new:
         matches, behalf_map = _get_effective_roles(user)
+
         for role in ROLE_PRIORITY:
             if role in matches:
-                return {"role": role, "on_behalf_of": behalf_map.get(role)}
+                return {
+                    "role": role,
+                    "on_behalf_of": behalf_map.get(role),
+                }
+
         frappe.throw(_("You are not allowed to access property renewal workflow."))
- 
+
+    # ---------------------------------------------------------
+    # EXISTING RENEWAL
+    # ---------------------------------------------------------
     if not renewal_id:
         frappe.throw(_("renewal_id is required when is_new is false"))
- 
+
     frappe.flags.ignore_permissions = True
     try:
-        renewal = frappe.get_doc("JH Property Rental Renewal", renewal_id)
+        renewal = frappe.get_doc(
+            "JH Property Rental Renewal",
+            renewal_id
+        )
     finally:
         frappe.flags.ignore_permissions = False
- 
+
     matches, behalf_map = _get_effective_roles(user, renewal)
- 
-    for role in ROLE_PRIORITY:
+
+    current_state = renewal.workflow_state or "Draft"
+
+    # ---------------------------------------------------------
+    # STATE-BASED ROLE PRIORITY
+    # ---------------------------------------------------------
+    state_role_priority = {
+        "Draft": [
+            "licensing",
+            "property_dept",
+            "module_admin",
+        ],
+
+        "Pending Approver 1": [
+            "approver_1",
+            "module_admin",
+        ],
+
+        "Pending Approver 2": [
+            "approver_2",
+            "module_admin",
+        ],
+
+        "Pending CFO": [
+            "cfo",
+            "module_admin",
+        ],
+
+        "Pending MD": [
+            "md",
+            "module_admin",
+        ],
+
+        "Pending Cheque Details": [
+            "property_dept",
+            "module_admin",
+        ],
+
+        "Pending Property PO": [
+            "property_dept",
+            "module_admin",
+        ],
+
+        "Pending MIRO": [
+            "gl_team",
+            "module_admin",
+        ],
+    }
+
+    priority_roles = state_role_priority.get(
+        current_state,
+        ROLE_PRIORITY
+    )
+
+    for role in priority_roles:
         if role in matches:
-            return {"role": role, "on_behalf_of": behalf_map.get(role)}
- 
-    frappe.throw(_("You are not allowed to access property renewal workflow."))
- 
+            return {
+                "role": role,
+                "on_behalf_of": behalf_map.get(role),
+            }
+
+    frappe.throw(
+        _("You are not allowed to access property renewal workflow.")
+    )
  
 def get_user_workflow_roles(renewal):
     roles, _ = _get_effective_roles(frappe.session.user, renewal)

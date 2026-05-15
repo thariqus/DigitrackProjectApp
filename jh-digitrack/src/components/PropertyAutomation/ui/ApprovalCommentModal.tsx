@@ -57,7 +57,7 @@ export default function ApprovalCommentModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{title || `${actionLabel} Renewal`}</DialogTitle>
           <DialogDescription>
@@ -65,7 +65,7 @@ export default function ApprovalCommentModal({
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="space-y-2">
+          <div className="space-y-2 overflow-x-hidden">
             <Label htmlFor="comment">Comment <span className="text-destructive">*</span></Label>
             <Controller
               name="comment"
@@ -76,7 +76,7 @@ export default function ApprovalCommentModal({
                   placeholder={`Enter your ${action} comment and justification...`}
                   rows={6}
                   {...field}
-                  className={errors.comment ? "border-destructive" : ""}
+                  className={errors.comment ? "border-destructive" : "h-50"}
                 />
               )}
             />
