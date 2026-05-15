@@ -62,6 +62,19 @@ function RenewalTableRow({ renewals , index, onClick,isLoading,onEdit,renewalCol
 
       <TableCell>
         <div className="flex justify-center items-center gap-2">
+          {isLicensingTeam && (
+            <div
+              className="cursor-pointer"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit(renewals.name);
+              }}
+              title="Edit Renewal"
+            >
+              <Pencil size={14} />
+            </div>
+          )}
+
           {renewals.workflow_state === "Completed" && (
             <div
               className="cursor-pointer text-primary hover:text-green-800"
@@ -74,18 +87,7 @@ function RenewalTableRow({ renewals , index, onClick,isLoading,onEdit,renewalCol
               <Download size={17} />
             </div>
           )}
-          {isLicensingTeam && (
-            <div
-              className="cursor-pointer"
-              onClick={(e) => {
-                e.stopPropagation();
-                onEdit(renewals.name);
-              }}
-              title="Edit Renewal"
-            >
-              <Pencil size={13} />
-            </div>
-          )}
+          
         </div>
       </TableCell>
       
