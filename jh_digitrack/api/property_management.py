@@ -1641,6 +1641,9 @@ def apply_workflow_action(
     if action == "sendback":
         if target_state not in SENDBACK_TRANSITIONS.get(current_state, set()):
             frappe.throw(_("Invalid target state {0} for sendback from {1}").format(target_state, current_state))
+        sendback_transition = WORKFLOW_TRANSITIONS["sendback"].get(current_state)
+        if not sendback_transition or role not in sendback_transition["roles"]:
+            frappe.throw(_("Role {0} is not allowed to send back from state {1}").format(role, current_state))
         next_state = target_state
         if not comment:
             frappe.throw(_("Comment is required for sendback"))
