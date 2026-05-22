@@ -300,6 +300,7 @@ def get_property_list(
     emirate=None,
     type_of_property=None,
     division=None,
+    business=None,
     expiring_soon=None,
     renewal_filter=None,
     attention_filter=None,
@@ -335,6 +336,8 @@ def get_property_list(
         filters["type_of_property"] = type_of_property
     if division:
         filters["division_used"] = division
+    if business:
+        filters["business_used"] = business 
  
     from frappe.utils import add_days, today
     today_str = today()
@@ -348,6 +351,8 @@ def get_property_list(
             filters["renewal_date"] = ["between", [add_days(today_str, 61), add_days(today_str, 90)]]
         elif renewal_filter == "overdue":
             filters["renewal_date"] = ["<", today_str]
+        elif renewal_filter == "active":
+            filters["renewal_date"] = [">", add_days(today_str, 90)]
     elif attention_filter:
         if attention_filter == "overdue_no_renewal":
             properties_with_any_renewal = frappe.get_all(
@@ -373,7 +378,7 @@ def get_property_list(
     start = (page - 1) * limit
  
     fields = [
-        "name", "property_name", "type_of_property", "division_used",
+        "name", "property_name", "type_of_property", "division_used","business_used",
         "approver_1", "approver_2", "booked_under", "profit_center",
         "number_of_units", "number_of_premises", "premise_number",
         "staff_allocated", "location", "emirate", "country",
@@ -488,15 +493,61 @@ def get_property_dashboard_counts():
         }),
     }
  
- 
+    active_properties = _count({
+        "renewal_date": [">", add_days(today_str, 90)]
+    })
+
     return {
         "total_properties": total_properties,
+        "active_properties": active_properties,
         "renewals_30_days": renewals_30_days,
         "renewals_60_days": renewals_60_days,
         "renewals_90_days": renewals_90_days,
         "overdue": overdue,
         "attention": attention,
     }
+def _attach_approver_names(records):
+    """Attach approver_1_name and approver_2_name (full names) to each renewal record."""
+    if not records:
+        return records
+ 
+    property_names = list({r.get("property") for r in records if r.get("property")})
+    if not property_names:
+        return records
+ 
+    prop_approvers = frappe.get_all(
+        "JH Property Master",
+        filters={"name": ["in", property_names]},
+        fields=["name", "approver_1", "approver_2"],
+        ignore_permissions=True,
+    )
+    prop_map = {p["name"]: p for p in prop_approvers}
+ 
+    user_emails = set()
+    for p in prop_approvers:
+        if p.get("approver_1"):
+            user_emails.add(p["approver_1"])
+        if p.get("approver_2"):
+            user_emails.add(p["approver_2"])
+ 
+    user_fullnames = {}
+    if user_emails:
+        users = frappe.get_all(
+            "User",
+            filters={"name": ["in", list(user_emails)]},
+            fields=["name", "full_name"],
+            ignore_permissions=True,
+        )
+        user_fullnames = {u["name"]: u["full_name"] for u in users}
+ 
+    for record in records:
+        prop = prop_map.get(record.get("property"), {})
+        a1 = prop.get("approver_1")
+        a2 = prop.get("approver_2")
+        record["approver_1_name"] = user_fullnames.get(a1, a1) if a1 else None
+        record["approver_2_name"] = user_fullnames.get(a2, a2) if a2 else None
+ 
+    return records
  
  
 @frappe.whitelist(methods=["GET"])
@@ -664,13 +715,13 @@ def get_renewal_list(
                     if r["name"] not in seen:
                         seen.add(r["name"])
                         results.append(r)
- 
+            results.sort(key=lambda x: x.get("modified") or "", reverse=True)
             total = len(results)
  
             records = results[start : start + limit]
  
             return {
-                "renewals": records,
+                "renewals": _attach_approver_names(records),
                 "total": total,
             }
  
@@ -689,7 +740,7 @@ def get_renewal_list(
         fields=RENEWAL_FIELDS,
         limit=limit,
         start=start,
-        order_by="modified asc",
+        order_by="modified desc",
         ignore_permissions=True,
     )
  
@@ -700,7 +751,7 @@ def get_renewal_list(
     )
  
     return {
-        "renewals": records,
+        "renewals": _attach_approver_names(records),
         "total": total,
     }
  
@@ -1322,7 +1373,7 @@ def get_my_pending_renewals():
                 ignore_permissions=True,
             )
  
-            return {"renewals": renewals}
+            return {"renewals": _attach_approver_names(renewals)}
  
         seen = set()
         results = []
@@ -1470,7 +1521,7 @@ def get_my_pending_renewals():
                     seen.add(row["name"])
                     results.append(row)
  
-        return {"renewals": results}
+        return {"renewals": _attach_approver_names(results)}
  
     except Exception:
         frappe.log_error(
