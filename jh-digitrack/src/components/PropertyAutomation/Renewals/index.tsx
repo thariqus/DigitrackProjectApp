@@ -103,10 +103,10 @@ function Renewals() {
     "Division",
     "Current Rent",
     "Proposed Rent",
-    "Rent Change %",
+    "Rent Change%",
     "Renewal Period",
     "Workflow Stage",
-    "Last Updated",
+    "Updated On",
   ];
 
   const workflowOptions = useMemo(
@@ -164,6 +164,10 @@ function Renewals() {
         return false;
       });
     }
+
+    rows = [...rows].sort(
+      (a, b) => new Date(b.modified ?? 0).getTime() - new Date(a.modified ?? 0).getTime()
+    );
 
     const start = (currentPage - 1) * renewalsPerPage;
     return rows.slice(start, start + renewalsPerPage);
