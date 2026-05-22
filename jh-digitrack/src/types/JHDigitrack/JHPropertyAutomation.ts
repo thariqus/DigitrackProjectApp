@@ -113,6 +113,10 @@ export interface RentalRenewal {
   number_of_units?: number;
   tenancy_period?: string;
 
+  // Approver names (resolved from JH Property Master)
+  approver_1_name?: string | null;
+  approver_2_name?: string | null;
+
   // Workflow
   workflow_state?:
     | "Draft"
