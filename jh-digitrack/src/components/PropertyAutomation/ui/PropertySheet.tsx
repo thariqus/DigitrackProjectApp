@@ -22,7 +22,7 @@ import MultiValueInput from "./MultiValueInput";
 import StartRenewalModal from "./StartRenewalModal";
 import { useDocs, useSaveDoc, useUpdateDoc } from "@/hooks/doc";
 import { usePropertyDoc, useRenewalList } from "../hooks/useProperty";
-import { PropertyMaster, JHPropertyElectricityConnection, JHPropertyLandline, ChequeDetail } from "@/types/JHDigitrack/JHPropertyAutomation";
+import { PropertyMaster, JHPropertyElectricityConnection, JHPropertyLandline, ChequeDetail, RentalRenewal } from "@/types/JHDigitrack/JHPropertyAutomation";
 import { X } from "lucide-react";
 import { queryClient } from "@/utils/query-client";
 import RenewalTimeline from "./RenewalTimeline";
@@ -220,8 +220,8 @@ const renewalsData = renewalsListData?.renewals ?? [];
   const doc = propertyData?.doc as PropertyMaster | undefined;
  
   const hasExistingRenewals = renewalsData.length > 0;
-  const activeRenewal = renewalsData.length
-    ? [...renewalsData].sort(
+  const activeRenewal = hasExistingRenewals
+    ? (renewalsData as RentalRenewal[]).slice().sort(
         (a, b) => new Date(b.modified).getTime() - new Date(a.modified).getTime()
       )[0]?.name
     : null;
@@ -256,6 +256,9 @@ const renewalsData = renewalsListData?.renewals ?? [];
     control,
     name: "division_used",
   });
+
+  const numberOfPremisesWatch = useWatch({ control, name: "number_of_premises" });
+  const premiseNumberWatch = useWatch({ control, name: "premise_number" });
  
   const { data: selectedDivisionData } = useDocs({
     doctype: "JH Division Master",
@@ -400,8 +403,8 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
         cheque_amount: Number(cheque.cheque_amount || 0),
         idx: index + 1,
       })),
-      landline_accounts: landlineConnections.length || 0,
-      electricity_accounts: connections.length || 0,
+      landline_accounts: data.landline_accounts !== undefined ? data.landline_accounts : landlineConnections.length,
+      electricity_accounts: data.electricity_accounts !== undefined ? data.electricity_accounts : connections.length,
     } as any;
 
     console.log("Property save payload:", JSON.stringify(formData, null, 2));
@@ -409,6 +412,16 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
     if (isCreate && data.renewal_date && new Date(data.renewal_date) <= new Date()) {
       toast.error("Renewal Date must be a future date");
       return;
+    }
+
+    if (data.number_of_premises && data.number_of_premises > 0) {
+      const premiseItems = getMultiValueItems(data.premise_number);
+      if (premiseItems.length !== data.number_of_premises) {
+        toast.warning(
+          `Please add exactly ${data.number_of_premises} premise number(s). Currently ${premiseItems.length} added.`
+        );
+        return;
+      }
     }
     
     try {
@@ -481,7 +494,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
         {isView ? (
           <div className="flex items-start gap-2 py-1 text-sm">
             <span className="font-medium text-gray-600">{label}:</span>
-            <span>{value || "-"}</span>
+            <span>{value !== undefined && value !== null && value !== "" ? value : "-"}</span>
           </div>
         ) : (
           <Controller
@@ -684,6 +697,18 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
             )}
           />
         )}
+
+        {name === "premise_number" && !isView && Number(numberOfPremisesWatch) > 0 && (() => {
+          const currentCount = getMultiValueItems(premiseNumberWatch).length;
+          const required = Number(numberOfPremisesWatch);
+          const isMatch = currentCount === required;
+          return (
+            <span className={`text-xs ${isMatch ? "text-green-600" : "text-amber-600"}`}>
+              {currentCount} / {required} premise number{required !== 1 ? "s" : ""} added
+              {!isMatch && ` — ${required - currentCount > 0 ? `add ${required - currentCount} more` : `remove ${currentCount - required} extra`}`}
+            </span>
+          );
+        })()}
 
         {errors[name] && (
           <span className="text-red-500 text-xs">{errors[name]?.message as string}</span>
@@ -1177,6 +1202,15 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
   
  
   const propertyTypeOptions =["Shop", "Villa", "Flat", "Other"];
+  const emirateOptions = [
+    "Abu Dhabi",
+    "Dubai",
+    "Sharjah",
+    "Ajman",
+    "Umm Al Quwain",
+    "Ras Al Khaimah",
+    "Fujairah",
+  ];
  
   return (
     <Sheet open={open} onOpenChange={handleSheetOpenChange}>
@@ -1331,7 +1365,28 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
             <h2 className="text-lg font-semibold">Location</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {renderField("Location", "location", doc?.location)}
-              {renderField("Emirate", "emirate", doc?.emirate)}
+              <div className="flex flex-col gap-1">
+                {!isView && <Label className="text-sm text-gray-600">Emirate</Label>}
+                {isView ? (
+                  <div className="flex items-center gap-2 py-1 text-sm">
+                    <span className="font-medium text-gray-600">Emirate:</span>
+                    <span>{doc?.emirate || "-"}</span>
+                  </div>
+                ) : (
+                  <Controller
+                    name="emirate"
+                    control={control}
+                    render={({ field }) => (
+                      <select {...field} value={field.value ?? ""} className="border rounded px-2 py-2 text-sm">
+                        <option value="">Select Emirate</option>
+                        {emirateOptions.map((opt) => (
+                          <option key={opt} value={opt}>{opt}</option>
+                        ))}
+                      </select>
+                    )}
+                  />
+                )}
+              </div>
               {renderField("Country", "country", doc?.country)}
               {renderField("Makani Number", "makani_number", doc?.makani_number)}
               {renderField("PO Box", "po_box_number", doc?.po_box_number)}
@@ -1341,7 +1396,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
             <Separator />
  
             <h2 className="text-lg font-semibold">Landlord</h2>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {renderField("Landlord", "landlord", doc?.landlord)}
               {renderField("Real Estate", "real_estate", doc?.real_estate)}
               {renderField("Current Rent", "current_rent", doc?.current_rent)}
@@ -1472,11 +1527,28 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
               </>
             )}
  
-             {hasPermisssionToViewRenewalHistory && propertyId && mode === "view" && (
+            {hasPermisssionToViewRenewalHistory && propertyId && mode === "view" && (
               <>
-                    <RenewalTimeline renewalId={activeRenewal} defaultOpen={true} title="Renewal history"/>
-              </> 
-              )}
+                <Separator />
+                {/* <h2 className="text-lg font-semibold">Renewal History</h2> */}
+                
+                  <div className="pb-20">
+                    {(renewalsData as RentalRenewal[])
+                      .slice()
+                      .sort((a, b) => new Date(b.modified).getTime() - new Date(a.modified).getTime())
+                      .map((renewal, index) => (
+                        <RenewalTimeline
+                          key={renewal.name}
+                          renewalId={renewal.name}
+                          defaultOpen={index === 0}
+                          title={`Renewal History`}
+                        />
+                      ))
+                    }
+                  </div>
+              
+              </>
+            )}
           </form>
         </ScrollArea>
  
