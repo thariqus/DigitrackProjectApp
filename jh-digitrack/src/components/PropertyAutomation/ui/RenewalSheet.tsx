@@ -50,9 +50,9 @@ type RenewalSheetProps = {
  
 const renewalSchema = z.object({
   division: z.string().optional(),
-  proposed_rent: z.coerce.number().min(0).optional(),
-  renewal_from: z.string().optional(),
-  renewal_to: z.string().optional(),
+  proposed_rent: z.coerce.number().min(1, "Proposed rent is required"),
+  renewal_from: z.string().min(1, "Renewal from date is required"),
+  renewal_to: z.string().min(1, "Renewal to date is required"),
   additional_charges: z.coerce.number().min(0).optional(),
   payment_schedule: z.string().optional(),
   new_security_deposit: z.coerce.number().min(0).optional(),
@@ -73,7 +73,7 @@ const renewalSchema = z.object({
     payee: z.string().optional(),
     signatory: z.string().optional(),
   })).optional(),
-}).partial();
+});
  
 type RenewalFormValues = z.infer<typeof renewalSchema>;
  
@@ -758,7 +758,7 @@ const renderDelegationBadge = () => {
       toast.error(message);
     }
   };
- 
+
   const getFileName = (url: string) => url.split("/").pop() || "";
  
   const renderReadonlyField = (
@@ -778,7 +778,8 @@ const renderDelegationBadge = () => {
     label: string,
     name: keyof z.infer<typeof renewalSchema>,
     value?: string,
-    type = "text"
+    type = "text",
+    required = false
   ) => {
     return (
       <div>
@@ -789,7 +790,10 @@ const renderDelegationBadge = () => {
           </div>
         ) : (
           <div className="flex flex-col gap-1">
-            <Label className="text-sm text-gray-600">{label}</Label>
+            <Label className="text-sm text-gray-600">
+              {label}
+              {required && <span className="text-red-500 ml-0.5">*</span>}
+            </Label>
             <Controller
               name={name}
               control={control}
@@ -821,7 +825,10 @@ const renderDelegationBadge = () => {
   ) => {
     return (
       <div className="flex flex-col gap-1">
-        <Label className="text-sm text-gray-600">{label}</Label>
+        <Label className="text-sm text-gray-600">
+          {label}
+          <span className="text-red-500 ml-0.5">*</span>
+        </Label>
         <Controller
           name={name}
           control={control}
@@ -911,7 +918,8 @@ const renderDelegationBadge = () => {
                 "Proposed Rent",
                 "proposed_rent",
                 String(renewalDoc?.proposed_rent ?? ""),
-                "number"
+                "number",
+                true
               )}
               {renderRenewalField(
                 "Additional Charges",
@@ -929,8 +937,8 @@ const renderDelegationBadge = () => {
                 )}
               </div>
  
-              {renderRenewalField("Renewal From", "renewal_from", renewalDoc?.renewal_from, "date")}
-              {renderRenewalField("Renewal To", "renewal_to", renewalDoc?.renewal_to, "date")}
+              {renderRenewalField("Renewal From", "renewal_from", renewalDoc?.renewal_from, "date", true)}
+              {renderRenewalField("Renewal To", "renewal_to", renewalDoc?.renewal_to, "date", true)}
               {renderRenewalField("Payment Schedule", "payment_schedule", renewalDoc?.payment_schedule || "")}
               {renderRenewalField(
                 "New Security Deposit",
