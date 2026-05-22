@@ -55,13 +55,29 @@ function RenewalTableRow({ renewals , index, onClick,isLoading,onEdit,renewalCol
       <TableCell>{renewalPeriod}</TableCell>
       <TableCell className="text-center">
           <div className="flex justify-center">
-            <StatusBadge status={renewals.workflow_state} />
+            <StatusBadge
+              status={renewals.workflow_state}
+              approverName={
+                renewals.workflow_state === "Pending Approver 1"
+                  ? renewals.approver_1_name
+                  : renewals.workflow_state === "Pending Approver 2"
+                  ? renewals.approver_2_name
+                  : undefined
+              }
+            />
           </div>
       </TableCell>
-      <TableCell>{renewals.modified}</TableCell>
+      <TableCell>
+        {renewals.modified ? (() => {
+          const d = new Date(renewals.modified);
+          const date = `${String(d.getDate()).padStart(2, "0")}-${String(d.getMonth() + 1).padStart(2, "0")}-${d.getFullYear()}`;
+          const time = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
+          return <span className="flex flex-col text-xs"><span>{date}</span><span className="text-gray-500">{time}</span></span>;
+        })() : "-"}
+      </TableCell>
 
       <TableCell>
-        <div className="flex justify-center items-center gap-2">
+        <div className="flex justify-center items-center gap-1">
           {isLicensingTeam && (
             <div
               className="cursor-pointer"
