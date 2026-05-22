@@ -8,7 +8,7 @@ export const PropertyTableHeader = ({ tableHeadings,canHaveAccess }: { tableHead
       <TableRow>
 
         {/* Index */}
-        <TableHead className="w-[45px]">#</TableHead>
+        <TableHead className="w-[43px]">#</TableHead>
 
         {
           tableHeadings.map((heading,index) => (
@@ -17,7 +17,7 @@ export const PropertyTableHeader = ({ tableHeadings,canHaveAccess }: { tableHead
                 key={index}
                 className={`
                   cursor-pointer
-                  ${heading === "Workflow Stage" ? "w-[180px] text-center" : ""}
+                  ${heading === "Workflow Stage" ? "w-[185px] text-center" : ""}
                   ${heading === "Renewal Date" || heading === "Renewal Status" ? "text-center" : ""}
                 `}
               >
@@ -29,7 +29,7 @@ export const PropertyTableHeader = ({ tableHeadings,canHaveAccess }: { tableHead
         {/* Actions */}
 
         {canHaveAccess  && (
-          <TableHead className="w-[60px] text-center">Actions</TableHead>
+          <TableHead className="w-[58px] text-center">Actions</TableHead>
         )}
       </TableRow>
     </TableHeader>
