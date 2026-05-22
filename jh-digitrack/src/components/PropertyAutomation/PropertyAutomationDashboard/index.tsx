@@ -92,17 +92,26 @@ function PropertyAutomationDashboard() {
         <div className="flex flex-col gap-0 pb-6">
             <h2 className="text-lg font-bold text-primary">Property Management</h2>
             <p className="text-gray-400 text-sm">Your portfolio at a glance</p>
-          </div>
+        </div>
         <div className="grid grid-cols-1 gap-2">
           {/* row1 */}
-             <div className="grid grid-cols-5 gap-5 items-center">
-                <div 
+             <div className="grid grid-cols-6 gap-2 items-center">
+                <div
                   onClick={() => handleNavigateToProperties()}
                   className="relative cursor-pointer bg-rose-100/60 backdrop-blur border border-rose-200 rounded-2xl shadow-sm p-6 hover:shadow-md transition"
                 >
                     <div className="flex flex-col gap-1 text-gray-500 text-center">
                             <span className="font-bold text-lg">{displayCount(counts?.total_properties)}</span>
-                            <span className={`font-semibold`}>Total Props</span>
+                            <span className={`font-semibold`}>Total Properties</span>
+                    </div>
+                </div>
+                <div
+                  onClick={() => handleNavigateToProperties("active")}
+                  className="relative cursor-pointer bg-green-100 text-green-800 backdrop-blur border border-green-200 rounded-2xl shadow-sm p-6 hover:shadow-md transition"
+                >
+                    <div className="flex flex-col gap-1 text-center">
+                            <span className="font-bold text-lg">{displayCount(counts?.active_properties)}</span>
+                            <span className="font-semibold">Active properties</span>
                     </div>
                 </div>
                  <div 
