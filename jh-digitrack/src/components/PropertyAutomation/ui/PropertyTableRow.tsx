@@ -25,7 +25,7 @@ function PropertyTableRow({ property, index, onClick,isLoading,onEdit,renewalCol
 
   return (
     <TableRow className="cursor-pointer" onClick={onClick}>
-      <TableCell className="w-[50px]">{index + 1}</TableCell>
+      <TableCell className="">{index + 1}</TableCell>
       <TableCell>{property.property_name}</TableCell>
       <TableCell>{property.type_of_property}</TableCell>
       <TableCell>{property.division_used} </TableCell>
