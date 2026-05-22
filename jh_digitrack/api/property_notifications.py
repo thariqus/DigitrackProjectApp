@@ -172,16 +172,14 @@ def _process_workflow_tat(settings):
         step_start = getdate(renewal.step_entered_on)
         days_in_step = date_diff(today_date, step_start)
 
-        remind_on = config.tat_days - config.remind_days_before
-        escalate_on = config.tat_days + config.escalate_days_after
-
         # Use >= so a catch-up run after scheduler downtime still fires the
         # most severe notification that applies. Priority: escalation > deadline > reminder.
-        if days_in_step >= escalate_on:
+        # Skip tiers where the config value is 0 or None (field left empty = tier not wanted).
+        if config.escalate_days_after and days_in_step >= (config.tat_days + config.escalate_days_after):
             notification_type = "escalation"
         elif days_in_step >= config.tat_days:
             notification_type = "deadline"
-        elif days_in_step >= remind_on:
+        elif config.remind_days_before and days_in_step >= (config.tat_days - config.remind_days_before):
             notification_type = "reminder"
         else:
             continue
@@ -198,7 +196,7 @@ def _process_workflow_tat(settings):
         if notification_type in ("reminder", "deadline"):
             sent = _send_tat_notification(renewal, assignee, notification_type, config)
         else:
-            sent = _send_tat_escalation(renewal, assignee, config)
+            sent = _send_tat_escalation(renewal, assignee, config, days_in_step)
 
         if sent:
             frappe.db.set_value(
@@ -293,7 +291,7 @@ def _send_tat_notification(renewal, assignee, notification_type, config):
         return False
 
 
-def _send_tat_escalation(renewal, assignee, config):
+def _send_tat_escalation(renewal, assignee, config, days_in_step):
     escalation_recipient = _get_escalation_recipient(renewal)
     if not escalation_recipient:
         return False
@@ -307,6 +305,7 @@ def _send_tat_escalation(renewal, assignee, config):
             "renewal": renewal,
             "config": config,
             "assignee_display": assignee_display,
+            "days_overdue": days_in_step - config.tat_days,
         },
     )
 
