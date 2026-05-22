@@ -299,6 +299,7 @@ useEffect(() => {
   //   (g) => !g.score || g.score.trim() === "" || !g.remark || g.remark.trim() === ""
   // );
   const missingFields = goals.filter((g) => {
+    console.log("UOM",g.uom)
     if (g.uom === "Text") {
       return !g.achieved || !g.remark?.trim();
     }
@@ -372,17 +373,17 @@ useEffect(() => {
 
     if (!employee || !year) return;
 
-  const missingFields = goals.filter(
-    (g) => !g.score || g.score.trim() === "" || !g.remark || g.remark.trim() === ""
-  );
+  // const missingFields = goals.filter(
+  //   (g) => !g.score || g.score.trim() === "" || !g.remark || g.remark.trim() === ""
+  // );
 
-  if (missingFields.length > 0) {
-    setMessage({
-      text: "Please fill all required fields before submitting.",
-      type: "error",
-    });
-    return;
-  }
+  // if (missingFields.length > 0) {
+  //   setMessage({
+  //     text: "Please fill all required fields before submitting.",
+  //     type: "error",
+  //   });
+  //   return;
+  // }
   const userConfirmed = window.confirm(
     "Are you sure you want to submit the goals? Once submitted, you cannot edit."
   );
