@@ -25,8 +25,7 @@ export default function RenewalApprovalFooter({
   return (
     <div className="flex gap-3 w-full">
       <Button
-        variant="outline"
-        className="w-full"
+        className="w-full bg-rose-200 hover:bg-rose-100 text-gray-500"
         type="button"
         disabled={disabledWithdraw}
         title="Closes the renewal process entirely. If needed, initiators can duplicate or create a new process for that property."
@@ -36,7 +35,7 @@ export default function RenewalApprovalFooter({
       </Button>
 
       <Button
-        className="w-full bg-rose-200 hover:bg-rose-100 text-gray-400"
+        className="w-full bg-rose-200 hover:bg-rose-100 text-gray-500"
         type="button"
         disabled={disabledSendBack}
         title="Closes the renewal process entirely. If needed, initiators can duplicate or create a new process for that property."
