@@ -105,6 +105,7 @@ export const propertyApi = {
     const data = await res.json();
     return data.message as {
       total_properties: number;
+      active_properties: number;
       renewals_30_days: number;
       renewals_60_days: number;
       renewals_90_days: number;
