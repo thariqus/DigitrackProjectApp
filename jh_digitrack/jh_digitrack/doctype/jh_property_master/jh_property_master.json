@@ -45,6 +45,7 @@
   "electricity_water_security_deposit",
   "column_break_vhrp",
   "landline_connections",
+  "landline_accounts",
   "internet_connection",
   "compliance_section",
   "cdc_expiry",
@@ -301,12 +302,17 @@
    "fieldtype": "Table",
    "label": "Security Deposit Cheques",
    "options": "JH Property Cheque Detail"
+  },
+  {
+   "fieldname": "landline_accounts",
+   "fieldtype": "Int",
+   "label": "Landline Accounts"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-05-05 15:04:53.867312",
+ "modified": "2026-05-22 12:36:17.618070",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Property Master",
