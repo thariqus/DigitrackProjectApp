@@ -32,6 +32,7 @@ function Properties() {
   const [selectedEmirate, setSelectedEmirate] = useState<string[]>([]);
   const [selectedType, setSelectedType] = useState<string[]>([]);
   const [selectedDivision, setSelectedDivision] = useState<string[]>([]);
+  const [selectedBusiness, setSelectedBusiness] = useState<string[]>([]);
   const [expiringSoon, setExpiringSoon] = useState(false);
   const [selectedProperty, setSelectedProperty] = useState<string | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
@@ -47,6 +48,7 @@ function Properties() {
       emirate: selectedEmirate.length === 1 ? selectedEmirate[0] : undefined,
       type_of_property: selectedType.length === 1 ? selectedType[0] : undefined,
       division: selectedDivision.length === 1 ? selectedDivision[0] : undefined,
+      business: selectedBusiness.length === 1 ? selectedBusiness[0] : undefined,
       expiring_soon: expiringSoon || undefined,
       renewal_filter: renewalFilter,
       attention_filter: attentionFilter,
@@ -58,6 +60,7 @@ function Properties() {
       selectedEmirate,
       selectedType,
       selectedDivision,
+      selectedBusiness,
       expiringSoon,
       renewalFilter,
       attentionFilter,
@@ -108,6 +111,11 @@ function Properties() {
 
   const divisionOptions = useMemo(
     () => Array.from(new Set(allProperties.map((p) => p.division_used).filter(Boolean))),
+    [allProperties]
+  );
+
+  const businessOptions = useMemo(
+    () => Array.from(new Set(allProperties.map((p) => p.business_used).filter(Boolean))) as string[],
     [allProperties]
   );
 
@@ -222,6 +230,17 @@ function Properties() {
               setCurrentPage(1);
             },
           },
+          {
+            label: "Business",
+            options: businessOptions,
+            selected: selectedBusiness,
+            onChange: (value: string) => {
+              setSelectedBusiness((prev) =>
+                prev.includes(value) ? prev.filter((i) => i !== value) : [...prev, value]
+              );
+              setCurrentPage(1);
+            },
+          },
         ]}
         quickFilter={{
           label: "Expiring Soon",
@@ -242,6 +261,7 @@ function Properties() {
           setSelectedEmirate([]);
           setSelectedType([]);
           setSelectedDivision([]);
+          setSelectedBusiness([]);
           setExpiringSoon(false);
           setCurrentPage(1);
           const newParams = new URLSearchParams(searchParams);
