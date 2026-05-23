@@ -1,7 +1,6 @@
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChevronDown, MessageSquare, User, Send } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { ChevronDown, MessageSquare, User } from "lucide-react";
+import { formatDistanceToNow, format } from "date-fns";
 import { useJhUser, useCurrentJhUser } from "@/hooks/auth";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -28,8 +27,7 @@ export default function RenewalTimeline({
 }: RenewalTimelineProps) {
 
   const [isOpen, setIsOpen] = useState(defaultOpen);
-  const [comment, setComment] = useState("");
-  const { data: currentJhUser } = useCurrentJhUser();
+
   const { data: auditTrail = [], isLoading } = useRenewalAuditTrail(renewalId);
 
   // Sort latest first
@@ -60,7 +58,7 @@ export default function RenewalTimeline({
     const { data: user } = useJhUser(log.user);
 
     return (
-      <div className="relative pl-6 pb-6">
+      <div className="relative pl-6 pb-3">
         {/* Dot */}
         <div className="absolute left-0 top-2 w-2 h-2 bg-red-400 rounded-full"></div>
 
@@ -77,13 +75,20 @@ export default function RenewalTimeline({
               </Badge> */}
             </div>
 
-            <span className="text-xs text-gray-500">
-              {log.action_time
-                ? formatDistanceToNow(new Date(log.action_time), {
-                    addSuffix: true,
-                  })
-                : "—"}
-            </span>
+            <div className="flex flex-col items-end">
+              <span className="text-sm text-gray-600">
+                {log.action_time
+                  ? formatDistanceToNow(new Date(log.action_time), {
+                      addSuffix: true,
+                    })
+                  : "—"}
+              </span>
+              {log.action_time && (
+                <span className="text-sm text-gray-600">
+                  {format(new Date(log.action_time), "dd MMM yyyy, hh:mm a")}
+                </span>
+              )}
+            </div>
           </div>
 
           {/* Action */}
@@ -101,15 +106,47 @@ export default function RenewalTimeline({
           )}
 
           {/* Comment */}
-          {log.comments && log.comments.trim() && (
-            <div className="flex items-start gap-2 mt-1">
-              <MessageSquare className="h-3 w-3 text-gray-400 mt-0.5" />
-              <p
-                className="text-sm text-gray-700"
-                dangerouslySetInnerHTML={{ __html: log.comments }}
-              />
-            </div>
-          )}
+{log.comments && log.comments.trim() && (() => {
+
+  const commentText = String(log.comments);
+
+  const lines = commentText
+    .split("\n")
+    .filter(Boolean);
+
+  const delegationLine =
+    lines[0]?.includes("on behalf of")
+      ? lines[0]
+      : null;
+
+  const actualComment =
+    delegationLine
+      ? lines.slice(1).join("\n")
+      : commentText;
+
+  return (
+    <div className="mt-1 space-y-1">
+
+      {/* Delegation text */}
+      {delegationLine && (
+        <div className="text-sm text-gray-700">
+          {delegationLine}
+        </div>
+      )}
+
+      {/* Actual comment */}
+      {actualComment?.trim() && (
+        <div className="flex items-start gap-2">
+          <MessageSquare className="h-3 w-3 text-gray-400 mt-0.5" />
+
+          <p className="text-sm text-gray-700 whitespace-pre-wrap">
+            {actualComment}
+          </p>
+        </div>
+        )}
+      </div>
+    );
+    })()}
         </div>
       </div>
     );
@@ -130,7 +167,7 @@ export default function RenewalTimeline({
     <Collapsible
       open={isOpen}
       onOpenChange={setIsOpen}
-      className="w-full mt-6 pt-4 border-t pb-20"
+      className="w-full mt-4 pt-4 border-t"
     >
       {/* Header */}
       <CollapsibleTrigger asChild>

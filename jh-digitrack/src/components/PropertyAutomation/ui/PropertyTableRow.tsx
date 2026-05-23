@@ -25,18 +25,20 @@ function PropertyTableRow({ property, index, onClick,isLoading,onEdit,renewalCol
 
   return (
     <TableRow className="cursor-pointer" onClick={onClick}>
-      <TableCell className="w-[50px]">{index + 1}</TableCell>
+      <TableCell className="">{index + 1}</TableCell>
       <TableCell>{property.property_name}</TableCell>
       <TableCell>{property.type_of_property}</TableCell>
       <TableCell>{property.division_used} </TableCell>
       <TableCell>{property.emirate}</TableCell>
       <TableCell>{property.current_rent}</TableCell>
       {/* Renewal urgency */}
-      <TableCell className={renewalColorHighlight(property.renewal_date)}>
+      <TableCell className={`${renewalColorHighlight(property.renewal_date)} text-center`}>
         {formatDate(property.renewal_date)}
       </TableCell>
-      <TableCell>
-        <StatusBadge status={getRenewalStatus(property.renewal_date)} />
+      <TableCell className="text-center">
+        <div className="flex justify-center">
+          <StatusBadge status={getRenewalStatus(property.renewal_date)} />
+        </div>
       </TableCell>
 
       {canCreateOrEditProperty && (

@@ -77,15 +77,20 @@ export function RenewalDelegationModal({
     [usersData, currentUserId, delegateSearch]
   );
 
+// Handle outside click to close delegate dropdown
   useEffect(() => {
+    if (!openDelegateField) return;
+
     const handlePointerDown = (event: MouseEvent) => {
-      if (!openDelegateField) return;
       if (delegateFieldRef.current && !delegateFieldRef.current.contains(event.target as Node)) {
         setOpenDelegateField(false);
       }
     };
+
     document.addEventListener("mousedown", handlePointerDown);
-    return () => document.removeEventListener("mousedown", handlePointerDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+    };
   }, [openDelegateField]);
 
   useEffect(() => {
@@ -210,7 +215,7 @@ export function RenewalDelegationModal({
             )}
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-2 overflow-x-hidden">
             <Label htmlFor="comment">Comment</Label>
             <Controller
               name="comment"
@@ -218,7 +223,7 @@ export function RenewalDelegationModal({
               render={({ field }) => (
                 <textarea
                   {...field}
-                  rows={3}
+                  rows={6}
                   className={cn(
                     "w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
                     errors.comment ? "border-destructive focus-visible:ring-destructive" : ""

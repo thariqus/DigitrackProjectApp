@@ -3,9 +3,10 @@ import { cn } from "@/lib/utils";
 
 interface StatusBadgeProps {
   status?: string;
+  approverName?: string | null;
 }
 
-export const StatusBadge = ({ status }: StatusBadgeProps) => {
+export const StatusBadge = ({ status, approverName }: StatusBadgeProps) => {
   const getStatusBadgeStyles = (status: string | undefined) => {
     switch (status?.toLowerCase()) {
       case "pending approver 1":
@@ -41,10 +42,17 @@ export const StatusBadge = ({ status }: StatusBadgeProps) => {
 
   return (
     <Badge
-      className={cn(getStatusBadgeStyles(status), "rounded-full h-8 min-w-8")}
+      className={cn(
+        getStatusBadgeStyles(status),
+        "rounded-full min-w-8",
+        approverName ? "h-auto flex flex-col items-center py-1 px-3 gap-0.5" : "h-8"
+      )}
       variant="outline"
     >
-      {status || "Unknown"}
+      <span className="leading-none">{status || "Unknown"}</span>
+      {approverName && (
+        <span className="text-xs font-normal opacity-70 leading-tight">({approverName})</span>
+      )}
     </Badge>
   );
 };

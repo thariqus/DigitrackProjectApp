@@ -1,3 +1,10 @@
+export interface JHPropertyLandline {
+  name?: string;
+  landline_number: string;
+  provider?: string;
+  line_type?: "Fixed" | "Fax";
+}
+
 export interface PropertyMaster {
   name: string;
   property_name: string;
@@ -30,19 +37,35 @@ export interface PropertyMaster {
   current_rent: number;
   renewal_date: string;
   landlord_security_deposit: number;
+  security_deposit_cheques?: ChequeDetail[];
 
   tenancy_period: string;
   lease_start_date:string;
 
   electricity_accounts: number;
+  electricity_connections?: JHPropertyElectricityConnection[];
   electricity_connection_numbers: string;
   electricity_water_security_deposit: number;
 
-  landline_numbers: string;
+  landline_connections?: JHPropertyLandline[];
+  landline_accounts?: number;
+  landline_numbers?: string; // legacy
   internet_connection: string;
 
   cdc_expiry: string;
   hassantuk_expiry: string;
+
+  documents?: {
+    attachment?: string;
+  }[];
+}
+
+export interface JHPropertyElectricityConnection {
+  name?: string;
+  connection_number: string;
+  meter_id?: string;
+  account_number?: string;
+  connection_type?: "Electricity" | "Water" | "Dual";
 
   documents?: {
     attachment?: string;
@@ -89,6 +112,10 @@ export interface RentalRenewal {
   property_type?: string;
   number_of_units?: number;
   tenancy_period?: string;
+
+  // Approver names (resolved from JH Property Master)
+  approver_1_name?: string | null;
+  approver_2_name?: string | null;
 
   // Workflow
   workflow_state?:

@@ -206,10 +206,17 @@ export function MainNav() {
               )}
 
               <DropdownMenuItem
-                onClick={() => setOpen(true)}
-              >
-                <span>Manage Delegation</span>
-              </DropdownMenuItem>
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    requestAnimationFrame(() => {
+                      setOpen(true);
+                    });
+                  }}
+                >
+                  <span>Manage Delegation</span>
+                </DropdownMenuItem>
 
               <DropdownMenuItem
                 className="w-full"

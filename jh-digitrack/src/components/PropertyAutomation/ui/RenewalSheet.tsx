@@ -1,4 +1,5 @@
- import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import RenewalTimeline from "./RenewalTimeline";
 import WithdrawCommentModal from "./WithdrawCommentModal";
 import SendBackModal from "./SendBackModal";
@@ -19,11 +20,14 @@ import { useUpdateDoc, useDocs } from "@/hooks/doc";
 import { useCurrentUser } from "@/hooks/auth";
 import { useEffect, useState } from "react";
 import { PropertyMaster, RentalRenewal } from "@/types/JHDigitrack/JHPropertyAutomation";
-import { usePropertyDoc, useRenewalDoc, useRenewalRole } from "../hooks/useProperty";
+import { usePropertyDoc, useRenewalDoc, useRenewalRole, useBankAccounts } from "../hooks/useProperty";
 import { propertyApi, type RenewalProgressPayload } from "../api/property";
 import { useApplyWorkflowAction } from "../hooks/useApplyWorkflowAction";
 import { useCreateDelegation, useDocumentDelegation, useRevokeDelegation } from "../hooks/useDelegation";
 import { RenewalDelegationModal } from "./RenewalDelegationModal";
+import ApprovalCommentModal from "./ApprovalCommentModal";
+import RenewalApprovalFooter from "./RenewalApprovalFooter";
+
  
 type RenewalSheetProps = {
   open: boolean;
@@ -46,9 +50,9 @@ type RenewalSheetProps = {
  
 const renewalSchema = z.object({
   division: z.string().optional(),
-  proposed_rent: z.coerce.number().min(0).optional(),
-  renewal_from: z.string().optional(),
-  renewal_to: z.string().optional(),
+  proposed_rent: z.coerce.number().min(1, "Proposed rent is required"),
+  renewal_from: z.string().min(1, "Renewal from date is required"),
+  renewal_to: z.string().min(1, "Renewal to date is required"),
   additional_charges: z.coerce.number().min(0).optional(),
   payment_schedule: z.string().optional(),
   new_security_deposit: z.coerce.number().min(0).optional(),
@@ -61,7 +65,15 @@ const renewalSchema = z.object({
   cheque_date: z.string().optional(),
   payee: z.string().optional(),
   signatory: z.string().optional(),
-}).partial();
+  cheque_details: z.array(z.object({
+    bank_name: z.string().optional(),
+    cheque_number: z.string().optional(),
+    cheque_amount: z.coerce.number().optional(),
+    cheque_date: z.string().optional(),
+    payee: z.string().optional(),
+    signatory: z.string().optional(),
+  })).optional(),
+});
  
 type RenewalFormValues = z.infer<typeof renewalSchema>;
  
@@ -83,6 +95,11 @@ export default function RenewalSheet({
   const [rentChangePercentState, setRentChangePercentState] = useState("0");
   const [localModified, setLocalModified] = useState<string>("");
   const [isDelegateModalOpen, setIsDelegateModalOpen] = useState(false);
+  const [chequeDetails, setChequeDetails] = useState<NonNullable<RentalRenewal["cheque_details"]>>([]);
+const [isApprovalModalOpen, setIsApprovalModalOpen] = useState(false);
+  const [pendingApprovalAction, setPendingApprovalAction] = useState<"approve" | "submit" | "reject">("approve");
+  const [approvalTitle, setApprovalTitle] = useState("Approval Action");
+  const [approvalDescription, setApprovalDescription] = useState("Please provide justification or notes.");
  
   const queryClient = useQueryClient();
   const updateDoc = useUpdateDoc();
@@ -145,6 +162,7 @@ export default function RenewalSheet({
     renewalDoc?.property
   );
   const property = propertyData?.doc as PropertyMaster | undefined;
+  const { data: bankAccounts = [] } = useBankAccounts();
   const hasExternalModification = Boolean(
     localModified && renewalDoc?.modified && localModified !== renewalDoc.modified
   );
@@ -166,6 +184,7 @@ export default function RenewalSheet({
   useEffect(() => {
     if (open) {
       setSupportingFiles([]);
+      setChequeDetails([]);
     }
   }, [open]);
  
@@ -173,7 +192,8 @@ export default function RenewalSheet({
     if (!open || !renewalDoc) return;
  
     setLocalModified(renewalDoc.modified || "");
- 
+    setChequeDetails(renewalDoc.cheque_details || []);
+
     reset({
       division: renewalDoc.division || "",
       proposed_rent: Number(renewalDoc.proposed_rent || 0),
@@ -191,6 +211,7 @@ export default function RenewalSheet({
       cheque_date: renewalDoc.cheque_details?.[0]?.cheque_date || "",
       payee: renewalDoc.cheque_details?.[0]?.payee || "",
       signatory: renewalDoc.cheque_details?.[0]?.signatory || "",
+      cheque_details: renewalDoc.cheque_details || [],
     });
   }, [open, renewalDoc, reset]);
  
@@ -245,15 +266,25 @@ useEffect(() => {
     (isJHPropertyDepartment || effectiveIsPropertyDept) &&
     renewalDoc?.workflow_state === "Pending Cheque Details"
   ) {
-    if (!values.bank_name || !values.cheque_number || !values.cheque_date || !values.payee ||  !values.signatory||  !values.cheque_amount) {
+    const validCheques = chequeDetails.filter((cheque) =>
+      cheque.bank_name &&
+      cheque.cheque_number &&
+      cheque.cheque_date &&
+      cheque.payee &&
+      cheque.signatory &&
+      Number(cheque.cheque_amount || 0) > 0
+    );
+
+    if (validCheques.length === 0) {
       toast.error("Please fill all cheque details before confirming");
       return false;
     }
- 
-    if (Number(values.cheque_amount) <= 0) {
-      toast.error("Cheque amount must be greater than 0");
+
+    if (validCheques.length !== chequeDetails.length) {
+      toast.error("Please complete every cheque row before confirming");
       return false;
     }
+ 
   }
  
   // Property Dept → PO
@@ -263,6 +294,10 @@ useEffect(() => {
   ) {
     if (!values.po_number) {
       toast.error("PO Number is required before confirming");
+      return false;
+    }
+    if (values.po_number.length !== 10) {
+      toast.error("Enter valid PO Number");
       return false;
     }
     const hasContractDoc = contractFiles.length > 0 || !!renewalDoc?.renewed_contract_document;
@@ -368,12 +403,23 @@ useEffect(() => {
     };
  
     if (currentState === "Pending Cheque Details") {
-      payload.bank_name = data.bank_name || "";
-      payload.cheque_number = data.cheque_number || "";
-      payload.cheque_amount = Number(data.cheque_amount || 0);
-      payload.cheque_date = data.cheque_date || "";
-      payload.payee = data.payee || "";
-      payload.signatory = data.signatory || "";
+     payload.cheque_details = chequeDetails
+  .filter((cheque) =>
+    cheque.bank_name &&
+    cheque.cheque_number &&
+    cheque.cheque_date &&
+    cheque.payee &&
+    cheque.signatory &&
+    Number(cheque.cheque_amount || 0) > 0
+  )
+  .map((cheque) => ({
+    bank_name: cheque.bank_name,
+    cheque_number: cheque.cheque_number,
+    cheque_amount: Number(cheque.cheque_amount),
+    cheque_date: cheque.cheque_date,
+    payee: cheque.payee,
+    signatory: cheque.signatory,
+  }));
     }
  
     if (currentState === "Pending Property PO") {
@@ -407,27 +453,10 @@ useEffect(() => {
     if (!propertyId) return;
     if (!validateBeforeWorkflow()) return;
  
-   try {
+    try {
       const { latestDoc } = await saveWorkflowProgress(data);
- 
-      await new Promise<void>((resolve, reject) => {
-        applyAction(
-          { renewal_id: propertyId, action: "approve", expected_state: latestDoc.workflow_state },
-          {
-            onSuccess: async () => {
-              await queryClient.invalidateQueries({ queryKey: ["RenewalList"] });
-              await queryClient.invalidateQueries({ queryKey: ["PendingRenewals"] });
-              await refetchRenewal();
-              await refetchProperty();
-              setContractFiles([]);
-              onOpenChange(false);
-              resolve();
-            },
-            onError: (error: unknown) => reject(error),
-          }
-        );
-      });
-    }catch (error: unknown) {
+      handleOpenApprovalModal("approve");
+    } catch (error: unknown) {
       const message = getErrorMessage(error, "Failed to save renewal progress");
  
       if (message.includes("updated by another user")) {
@@ -521,12 +550,47 @@ useEffect(() => {
           refetchRenewal();
           queryClient.invalidateQueries({ queryKey: ["RenewalList"] });
           queryClient.invalidateQueries({ queryKey: ["PendingRenewals"] });
-          toast.success("Delegation created successfully");
         },
       }
     );
   };
-
+ 
+  const handleOpenApprovalModal = (action: "approve" | "submit" | "reject", title?: string, description?: string) => {
+    if (!propertyId) return;
+    setPendingApprovalAction(action);
+    setApprovalTitle(title || "Approval Action");
+    setApprovalDescription(description || "Please provide justification or notes.");
+    setIsApprovalModalOpen(true);
+  };
+ 
+  const handleApprovalSubmit = (action: string, comment: string) => {
+    if (!propertyId) return;
+ 
+    applyAction(
+      {
+        renewal_id: propertyId,
+        action,
+        comment,
+        expected_state: renewalDoc?.workflow_state,
+      },
+      {
+        onSuccess: async () => {
+          await queryClient.invalidateQueries({ queryKey: ["RenewalList"] });
+          await queryClient.invalidateQueries({ queryKey: ["PendingRenewals"] });
+          await refetchRenewal();
+          setIsApprovalModalOpen(false);
+          toast.success(`${action.charAt(0).toUpperCase() + action.slice(1)}d successfully`);
+          if (["approve", "submit"].includes(action)) {
+            onOpenChange(false);
+          }
+        },
+        onError: (error: unknown) => {
+          toast.error(error instanceof Error ? error.message : "Action failed");
+        },
+      }
+    );
+  };
+ 
   const renderDelegateBadge = () => {
   if (!isActingAsDelegate) return null;
   return (
@@ -535,10 +599,10 @@ useEffect(() => {
     </Badge>
   );
 };
-
+ 
 const renderDelegationBadge = () => {
   if (isDelegationLoading || !activeDelegation) return null;
-
+ 
   return (
     <Badge variant="secondary" className="bg-amber-100 text-amber-800 hover:bg-amber-100">
       Delegation Active: {activeDelegation.delegate_name || activeDelegation.delegate}
@@ -550,10 +614,10 @@ const renderDelegationBadge = () => {
     if (!activeDelegation?.name) return;
     revokeDelegationMutation.mutate(activeDelegation.name);
   };
-
+ 
   const renderDelegationActionButton = () => {
     if (isActingAsDelegate) return null;
-
+ 
     if (activeDelegation) {
       return (
         <Button
@@ -566,10 +630,10 @@ const renderDelegationBadge = () => {
         </Button>
       );
     }
-
+ 
     return (
       <Button
-        className="w-full bg-gray-100 text-gray-700 hover:bg-gray-200"
+        className="w-full bg-gray-200 text-gray-700 hover:bg-gray-300"
         type="button"
         disabled={isDelegationLoading}
         onClick={() => setIsDelegateModalOpen(true)}
@@ -578,7 +642,7 @@ const renderDelegationBadge = () => {
       </Button>
     );
   };
-
+ 
   
  
   const onSubmit = async (data: RenewalFormValues) => {
@@ -632,20 +696,12 @@ const renderDelegationBadge = () => {
  
       const rentPercent = Number(rentChangePercentState) || 0;
  
-      const formChequeData = {
+      const updatedChequeDetails = chequeDetails.map((cheque, index) => ({
         doctype: "JH Property Cheque Detail",
-        bank_name: data.bank_name || "",
-        cheque_number: data.cheque_number || "",
-        cheque_amount: Number(data.cheque_amount || 0),
-        cheque_date: data.cheque_date || "",
-        payee: data.payee || "",
-        signatory: data.signatory || "",
-      };
- 
-      const updatedChequeDetails = [...(latestDoc.cheque_details || [])];
-      if (formChequeData.cheque_amount > 0) {
-        updatedChequeDetails[0] = formChequeData;
-      }
+        ...cheque,
+        cheque_amount: Number(cheque.cheque_amount || 0),
+        idx: index + 1,
+      }));
  
       const payload = {
         doctype: "JH Property Rental Renewal",
@@ -702,7 +758,7 @@ const renderDelegationBadge = () => {
       toast.error(message);
     }
   };
- 
+
   const getFileName = (url: string) => url.split("/").pop() || "";
  
   const renderReadonlyField = (
@@ -722,7 +778,8 @@ const renderDelegationBadge = () => {
     label: string,
     name: keyof z.infer<typeof renewalSchema>,
     value?: string,
-    type = "text"
+    type = "text",
+    required = false
   ) => {
     return (
       <div>
@@ -733,7 +790,10 @@ const renderDelegationBadge = () => {
           </div>
         ) : (
           <div className="flex flex-col gap-1">
-            <Label className="text-sm text-gray-600">{label}</Label>
+            <Label className="text-sm text-gray-600">
+              {label}
+              {required && <span className="text-red-500 ml-0.5">*</span>}
+            </Label>
             <Controller
               name={name}
               control={control}
@@ -765,7 +825,10 @@ const renderDelegationBadge = () => {
   ) => {
     return (
       <div className="flex flex-col gap-1">
-        <Label className="text-sm text-gray-600">{label}</Label>
+        <Label className="text-sm text-gray-600">
+          {label}
+          <span className="text-red-500 ml-0.5">*</span>
+        </Label>
         <Controller
           name={name}
           control={control}
@@ -820,7 +883,7 @@ const renderDelegationBadge = () => {
           </Button>
         </SheetHeader>
  
-        <ScrollArea className="h-[calc(100vh-100px)] pr-3">
+    <ScrollArea className="h-[calc(100vh-100px)] pr-3">
           <form id={formId} onSubmit={handleSubmit(onSubmit)} className="space-y-6 mt-4">
             <div>
               <h2 className="text-lg font-semibold mb-4">Property Details</h2>
@@ -855,7 +918,8 @@ const renderDelegationBadge = () => {
                 "Proposed Rent",
                 "proposed_rent",
                 String(renewalDoc?.proposed_rent ?? ""),
-                "number"
+                "number",
+                true
               )}
               {renderRenewalField(
                 "Additional Charges",
@@ -873,8 +937,8 @@ const renderDelegationBadge = () => {
                 )}
               </div>
  
-              {renderRenewalField("Renewal From", "renewal_from", renewalDoc?.renewal_from, "date")}
-              {renderRenewalField("Renewal To", "renewal_to", renewalDoc?.renewal_to, "date")}
+              {renderRenewalField("Renewal From", "renewal_from", renewalDoc?.renewal_from, "date", true)}
+              {renderRenewalField("Renewal To", "renewal_to", renewalDoc?.renewal_to, "date", true)}
               {renderRenewalField("Payment Schedule", "payment_schedule", renewalDoc?.payment_schedule || "")}
               {renderRenewalField(
                 "New Security Deposit",
@@ -950,19 +1014,75 @@ const renderDelegationBadge = () => {
                 <Separator />
                 <h2 className="text-lg font-semibold">Cheque Details</h2>
                 <div className="space-y-4 pb-10">
-                  <div className="border p-4 rounded-md space-y-2">
-                    {renderRenewalRoleField("Bank Name", "bank_name")}
-                    <div className="grid grid-cols-3 gap-2">
-                      {renderRenewalRoleField("Cheque Number", "cheque_number")}
-                      {renderRenewalRoleField("Amount", "cheque_amount", undefined, "number")}
-                       {renderRenewalRoleField("Cheque Date", "cheque_date", undefined, "date")}
-                    </div>
-                   
-                    <div className="grid grid-cols-2 gap-2">
-                      {renderRenewalRoleField("Payee", "payee")}
-                      {renderRenewalRoleField("Signatory", "signatory")}
-                    </div>
-                  </div>
+                  {chequeDetails.length === 0 ? (
+                    <p className="text-sm text-muted-foreground p-3 border-2 border-dashed rounded-lg text-center">
+                      Click + Add Cheque to start
+                    </p>
+                  ) : (
+                    chequeDetails.map((cheque, index) => (
+                      <div className="flex gap-2 items-end bg-muted p-3 rounded-lg">
+                        <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-2">
+                          <div className="flex flex-col gap-1">
+                            <Label className="text-xs">Bank Name</Label>
+                            <Select
+                              value={cheque.bank_name || ""}
+                              onValueChange={(value) => {
+                                const next = [...chequeDetails];
+                                next[index].bank_name = value;
+                                setChequeDetails(next);
+                              }}
+                            >
+                              <SelectTrigger className="text-sm h-9">
+                                <SelectValue placeholder="Select bank..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {bankAccounts.map((name) => (
+                                  <SelectItem className="cursor-pointer" key={name} value={name}>{name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          {(["cheque_number", "cheque_amount", "cheque_date", "payee", "signatory"] as const).map((fieldName) => (
+                            <div key={fieldName} className="flex flex-col gap-1">
+                              <Label className="text-xs">
+                                {fieldName === "cheque_number" ? "Cheque Number" : fieldName === "cheque_amount" ? "Amount" : fieldName === "cheque_date" ? "Cheque Date" : fieldName === "payee" ? "Payee" : "Signatory"}
+                              </Label>
+                              <Input
+                                type={fieldName === "cheque_amount" ? "number" : fieldName === "cheque_date" ? "date" : "text"}
+                                value={cheque[fieldName] || ""}
+                                onChange={(e) => {
+                                  const next = [...chequeDetails];
+                                  next[index] = {
+                                    ...next[index],
+                                    [fieldName]: fieldName === "cheque_amount" ? Number(e.target.value || 0) : e.target.value,
+                                  };
+                                  setChequeDetails(next);
+                                }}
+                                className="text-sm"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 p-0 -mr-2"
+                          onClick={() => setChequeDetails(chequeDetails.filter((_, i) => i !== index))}
+                        >
+                          <XIcon className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))
+                  )}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full border-2 border-dashed h-10 text-sm"
+                    onClick={() => setChequeDetails([...chequeDetails, { bank_name: "", cheque_number: "", cheque_amount: 0, cheque_date: "", payee: "", signatory: "" }])}
+                  >
+                    + Add Cheque
+                  </Button>
                 </div>
               </>
             )}
@@ -972,12 +1092,12 @@ const renderDelegationBadge = () => {
                 <Separator />
                 <h2 className="text-lg font-semibold">PO Details</h2>
  
-                <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-4 items-start gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-4 items-start gap-2">
                   {renderRenewalRoleField("PO Number", "po_number", renewalDoc?.po_number || "")}
                 </div>
  
                 <div className="pb-10">
-                  <h3 className="text-md font-semibold mb-2">Renewed Contract Document</h3>
+                  <h3 className="text-sm text-gray-600 mb-2 font-semibold">Renewed Contract Document</h3>
                   {renewalDoc?.renewed_contract_document ? (
                     <div className="flex items-center gap-2 px-3 py-1 bg-gray-100 rounded">
                       <span className="text-sm">
@@ -993,7 +1113,7 @@ const renderDelegationBadge = () => {
                       </a>
                     </div>
                   ) : (
-                    <p>No document</p>
+                    <p className="text-sm">No document</p>
                   )}
                   <FileAttachment files={contractFiles} setFiles={setContractFiles} />
                 </div>
@@ -1034,188 +1154,47 @@ const renderDelegationBadge = () => {
                   <Button
                     className="w-full bg-primary text-white"
                     type="button"
-                    onClick={() => {
-                      if (!propertyId) return;
-                      applyAction(
-                       { renewal_id: propertyId, action: "submit", expected_state: renewalDoc?.workflow_state },
-                        {
-                          onSuccess: () => {
-                            refetchRenewal();
-                            queryClient.invalidateQueries({ queryKey: ["RenewalList"] });
-                            onOpenChange(false);
-                          },
-                        }
-                      );
-                    }}
+                    onClick={() => handleOpenApprovalModal("submit", "Submit Renewal", "Please provide justification for submitting this renewal for approval.")}
                   >
                    Submit for Approver
                   </Button>
                 </div>
-            ) : (canApproveWorkflow && renewalDoc?.workflow_state === "Pending Approver 1" && isView) ? (
-              <div className="flex gap-3 w-full">
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    type="button"
-                    disabled={!canWithdrawWorkflow}
-                    title="Closes the renewal process entirely. If needed, initiators can duplicate or create a new process for that property."
-                    onClick={() => propertyId && handleOpenWithdrawModal(propertyId)}
-                  >
-                    Withdraw
-                  </Button>
-                  <Button
-                    className="w-full bg-rose-200 hover:bg-rose-100 text-gray-400"
-                    type="button"
-                    disabled={!canSendBackWorkflow}
-                    onClick={() => propertyId && handleOpenSendBackModal(propertyId)}
-                  >
-                    Send Back
-                  </Button>
-                  {renderDelegationActionButton()}
-                  <Button
-                    className="w-full bg-primary text-white"
-                    type="button"
-                    onClick={() => {
-                      if (!propertyId) return;
-                      applyAction(
-                        { renewal_id: propertyId, action: "approve", expected_state: renewalDoc?.workflow_state },
-                        {
-                          onSuccess: () => {
-                            refetchRenewal();
-                            queryClient.invalidateQueries({ queryKey: ["RenewalList"] });
-                            onOpenChange(false);
-                          },
-                        }
-                      );
-                    }}
-                  >
-                    Approve
-                  </Button>
-                </div>
-            ) : (canApproveWorkflow && renewalDoc?.workflow_state === "Pending Approver 2" && isView) ? (
-              <div className="flex gap-3 w-full">
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    type="button"
-                    disabled={!canWithdrawWorkflow}
-                    title="Closes the renewal process entirely. If needed, initiators can duplicate or create a new process for that property."
-                    onClick={() => propertyId && handleOpenWithdrawModal(propertyId)}
-                  >
-                    Withdraw
-                  </Button>
-                  <Button
-                    className="w-full bg-rose-200 hover:bg-rose-100 text-gray-400"
-                    type="button"
-                    disabled={!canSendBackWorkflow}
-                    onClick={() => propertyId && handleOpenSendBackModal(propertyId)}
-                  >
-                    Send Back
-                  </Button>
-                  {renderDelegationActionButton()}
-                  <Button
-                    className="w-full bg-primary text-white"
-                    type="button"
-                    onClick={() => {
-                      if (!propertyId) return;
-                      applyAction(
-                        { renewal_id: propertyId, action: "approve", expected_state: renewalDoc?.workflow_state },
-                        {
-                          onSuccess: () => {
-                            refetchRenewal();
-                            queryClient.invalidateQueries({ queryKey: ["RenewalList"] });
-                            onOpenChange(false);
-                          },
-                        }
-                      );
-                    }}
-                  >
-                    Approve
-                  </Button>
-                </div>
-            ) : (canApproveWorkflow && renewalDoc?.workflow_state === "Pending CFO" && isView) ? (
-              <div className="flex gap-3 w-full">
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    type="button"
-                    disabled={!canWithdrawWorkflow}
-                    title="Closes the renewal process entirely. If needed, initiators can duplicate or create a new process for that property."
-                    onClick={() => propertyId && handleOpenWithdrawModal(propertyId)}
-                  >
-                    Withdraw
-                  </Button>
-                  <Button
-                    className="w-full bg-rose-200 hover:bg-rose-100 text-gray-400"
-                    type="button"
-                    disabled={!canSendBackWorkflow}
-                    onClick={() => propertyId && handleOpenSendBackModal(propertyId)}
-                  >
-                    Send Back
-                  </Button>
-                  {renderDelegationActionButton()}
-                  <Button
-                    className="w-full bg-primary text-white"
-                    type="button"
-                    onClick={() => {
-                      if (!propertyId) return;
-                      applyAction(
-                        { renewal_id: propertyId, action: "approve" ,expected_state: renewalDoc?.workflow_state },
-                        {
-                          onSuccess: () => {
-                            refetchRenewal();
-                            queryClient.invalidateQueries({ queryKey: ["RenewalList"] });
-                            onOpenChange(false);
-                          },
-                        }
-                      );
-                    }}
-                  >
-                    Approve
-                  </Button>
-                </div>
-            ) : (canApproveWorkflow && renewalDoc?.workflow_state === "Pending MD" && isView) ? (
-              <div className="flex gap-3 w-full">
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    type="button"
-                    disabled={!canWithdrawWorkflow}
-                    title="Closes the renewal process entirely. If needed, initiators can duplicate or create a new process for that property."
-                    onClick={() => propertyId && handleOpenWithdrawModal(propertyId)}
-                  >
-                    Withdraw
-                  </Button>
-                  <Button
-                    className="w-full bg-rose-200 hover:bg-rose-100 text-gray-400"
-                    type="button"
-                    disabled={!canSendBackWorkflow}
-                    onClick={() => propertyId && handleOpenSendBackModal(propertyId)}
-                  >
-                    Send Back
-                  </Button>
-                  {renderDelegationActionButton()}
-                  <Button
-                    className="w-full bg-primary text-white"
-                    type="button"
-                    onClick={() => {
-                      if (!propertyId) return;
-                      applyAction(
-                        { renewal_id: propertyId, action: "approve" ,expected_state: renewalDoc?.workflow_state },
-                        {
-                          onSuccess: () => {
-                            refetchRenewal();
-                            queryClient.invalidateQueries({ queryKey: ["RenewalList"] });
-                            onOpenChange(false);
-                          },
-                        }
-                      );
-                    }}
-                  >
-                    Approve
-                  </Button>
-                </div>
-            ) : (canApproveWorkflow && renewalDoc?.workflow_state === "Pending Cheque Details" && isView) ? (
+            ) : (canApproveWorkflow &&
+  [
+    "Pending Approver 1",
+    "Pending Approver 2",
+    "Pending CFO",
+    "Pending MD",
+  ].includes(renewalDoc?.workflow_state || "") &&
+  isView) ? (
+  <RenewalApprovalFooter
+    disabledWithdraw={!canWithdrawWorkflow}
+    disabledSendBack={!canSendBackWorkflow}
+    renderDelegationActionButton={renderDelegationActionButton}
+    onWithdraw={() => propertyId && handleOpenWithdrawModal(propertyId)}
+    onSendBack={() => propertyId && handleOpenSendBackModal(propertyId)}
+    approveButton={{
+      title: `Approve Renewal (${renewalDoc?.workflow_state?.replace(
+        "Pending ",
+        ""
+      )})`,
+      description: `Please provide your approval justification or notes for ${
+        renewalDoc?.workflow_state?.replace("Pending ", "")
+      }.`,
+      onApprove: () =>
+        handleOpenApprovalModal(
+          "approve",
+          `Approve Renewal (${renewalDoc?.workflow_state?.replace(
+            "Pending ",
+            ""
+          )})`,
+          `Please provide your approval justification or notes for ${
+            renewalDoc?.workflow_state?.replace("Pending ", "")
+          }.`
+        ),
+    }}
+  />
+) : (canApproveWorkflow && renewalDoc?.workflow_state === "Pending Cheque Details" && isView) ? (
               <div className="flex gap-3 w-full">
                   <Button variant="outline" className="w-full" type="button" onClick={() => onOpenChange(false)}>
                     Close
@@ -1349,6 +1328,15 @@ const renderDelegationBadge = () => {
         title={`Send Back ${renewalDoc?.name || ""}`}
       />
  
+      <ApprovalCommentModal
+        open={isApprovalModalOpen}
+        onOpenChange={setIsApprovalModalOpen}
+        onApprove={handleApprovalSubmit}
+        renewalId={propertyId || ""}
+        title={approvalTitle}
+        action={pendingApprovalAction}
+        description={approvalDescription}
+      />
       <RenewalDelegationModal
         open={isDelegateModalOpen}
         onOpenChange={setIsDelegateModalOpen}

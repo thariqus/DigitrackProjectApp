@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useLocation } from "react-router";
+import { useLocation, useSearchParams } from "react-router";
 import { Table, TableBody, TableFooter } from "@/components/ui/table";
 import { PropertyTableHeader } from "../ui/PropertyTableHeader";
 import FilterButtons from "../ui/FilterButtons";
@@ -15,6 +15,7 @@ import {
 
 function Renewals() {
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [renewalsPerPage, setRenewalsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const [mode, setMode] = useState<"view" | "edit" | "create">("create");
@@ -27,6 +28,30 @@ function Renewals() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   const { data: roleBasedAccess } = useUserAccess();
+
+  const attentionFilter = searchParams.get("attention_filter") || undefined;
+  const searchParamKey = searchParams.toString();
+
+  useEffect(() => {
+    const workflowStates = searchParams.get("workflow_states");
+    const pendingAction = searchParams.get("pending_my_action") === "1";
+
+    if (workflowStates) {
+      try {
+        const parsedStates = JSON.parse(workflowStates);
+        if (Array.isArray(parsedStates)) {
+          setSelectedWorkflowStage(parsedStates.filter((item) => typeof item === "string"));
+        }
+      } catch {
+        setSelectedWorkflowStage([]);
+      }
+    } else {
+      setSelectedWorkflowStage([]);
+    }
+
+    setPendingMyAction(pendingAction);
+    setCurrentPage(1);
+  }, [searchParamKey]);
 
   useEffect(() => {
     const openRenewal = location.state?.openRenewal as string | null;
@@ -46,9 +71,10 @@ function Renewals() {
         ? JSON.stringify(selectedWorkflowStage)
         : undefined,
       divisions: selectedDivision.length ? JSON.stringify(selectedDivision) : undefined,
-      renewal_periods: selectedRenewalDateRange.length
-        ? JSON.stringify(selectedRenewalDateRange)
-        : undefined,
+      renewal_period: selectedRenewalDateRange.length
+  ? selectedRenewalDateRange[0]
+  : undefined,
+      attention_filter: attentionFilter,
       limit: renewalsPerPage,
       page: currentPage,
     }),
@@ -56,6 +82,7 @@ function Renewals() {
       selectedWorkflowStage,
       selectedDivision,
       selectedRenewalDateRange,
+      attentionFilter,
       renewalsPerPage,
       currentPage,
     ]
@@ -76,10 +103,10 @@ function Renewals() {
     "Division",
     "Current Rent",
     "Proposed Rent",
-    "Rent Change %",
+    "Rent Change%",
     "Renewal Period",
     "Workflow Stage",
-    "Last Updated",
+    "Updated On",
   ];
 
   const workflowOptions = useMemo(
@@ -138,6 +165,10 @@ function Renewals() {
       });
     }
 
+    rows = [...rows].sort(
+      (a, b) => new Date(b.modified ?? 0).getTime() - new Date(a.modified ?? 0).getTime()
+    );
+
     const start = (currentPage - 1) * renewalsPerPage;
     return rows.slice(start, start + renewalsPerPage);
   }, [
@@ -168,6 +199,13 @@ function Renewals() {
     setIsSheetOpen(true);
   };
 
+  const handleDownload = (name: string) => {
+    window.open(
+      `/api/method/frappe.utils.print_format.download_pdf?doctype=JH Property Rental Renewal&name=${encodeURIComponent(name)}&format=Standard&no_letterhead=0`,
+      "_blank"
+    );
+  };
+
   const formatDate = (date?: string) => {
     if (!date) return "";
     const d = new Date(date);
@@ -177,15 +215,14 @@ function Renewals() {
     )}-${d.getFullYear()}`;
   };
 
-  const roles = roleBasedAccess?.roles || [];
-  const isLicensingTeam = roles.includes("JH Licensing Team");
-  const isJHPropertyDepartment = roles.includes("JH Property Department");
+  const isLicensingTeam = !!roleBasedAccess?.is_licensing;
+  const isJHPropertyDepartment = !!roleBasedAccess?.has_property_dept_role;
   const isCfo = roleBasedAccess?.is_cfo;
   const isMD = roleBasedAccess?.is_md;
   const isApprover1 = roleBasedAccess?.is_approver_1;
   const isApprover2 = roleBasedAccess?.is_approver_2;
   const isGLTeam = roleBasedAccess?.has_gl_team_role;
-
+  
   return (
     <div className="w-full space-y-4">
       <FilterButtons
@@ -229,6 +266,10 @@ function Renewals() {
           active: pendingMyAction,
           onToggle: () => {
             setPendingMyAction((prev) => !prev);
+            const newParams = new URLSearchParams(searchParams);
+            newParams.delete("pending_my_action");
+            newParams.delete("attention_filter");
+            setSearchParams(newParams, { replace: true });
             setCurrentPage(1);
           },
         }}
@@ -237,13 +278,14 @@ function Renewals() {
           setSelectedRenewalDateRange([]);
           setSelectedDivision([]);
           setPendingMyAction(false);
+          setSearchParams({}, { replace: true });
           setCurrentPage(1);
         }}
       />
 
       <div className="rounded-md border">
         <Table className="w-full table-fixed">
-          <PropertyTableHeader tableHeadings={tableHeadings} canHaveAccess={isLicensingTeam} />
+          <PropertyTableHeader tableHeadings={tableHeadings} canHaveAccess={true} />
 
           <TableBody>
             {renewals.map((item, index) => (
@@ -254,6 +296,7 @@ function Renewals() {
                 isLoading={isLoading}
                 onClick={() => handleRowClick(item.name)}
                 onEdit={handleEditClick}
+                onDownload={handleDownload}
                 formatDate={formatDate}
                 renewalColorHighlight={undefined}
                 isLicensingTeam={isLicensingTeam}

@@ -21,4 +21,3 @@ class JHPropertyMaster(Document):
 
 	def validate(self):
 		self.premise_number = sanitize_multivalue_field(self.premise_number)
-		self.electricity_connection_numbers = sanitize_multivalue_field(self.electricity_connection_numbers)

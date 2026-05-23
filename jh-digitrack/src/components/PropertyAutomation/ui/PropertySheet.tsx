@@ -1,4 +1,5 @@
 
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -21,9 +22,11 @@ import MultiValueInput from "./MultiValueInput";
 import StartRenewalModal from "./StartRenewalModal";
 import { useDocs, useSaveDoc, useUpdateDoc } from "@/hooks/doc";
 import { usePropertyDoc, useRenewalList } from "../hooks/useProperty";
-import { PropertyMaster } from "@/types/JHDigitrack/JHPropertyAutomation";
+import { PropertyMaster, JHPropertyElectricityConnection, JHPropertyLandline, ChequeDetail, RentalRenewal } from "@/types/JHDigitrack/JHPropertyAutomation";
+import { X } from "lucide-react";
 import { queryClient } from "@/utils/query-client";
 import RenewalTimeline from "./RenewalTimeline";
+import { useBankAccounts } from "../hooks/useProperty";
  
 type PropertySheetProps = {
   open: boolean;
@@ -78,13 +81,38 @@ const propertySchema = z.object({
   current_rent: requiredNumberField,
   renewal_date: z.string().min(1, "Required field"),
   landlord_security_deposit: z.coerce.number().optional(),
-  tenancy_period: z.string().nullable().optional(),
+  security_deposit_cheques: z.array(z.object({
+    bank_name: z.string().optional(),
+    cheque_number: z.string().optional(),
+    cheque_amount: z.coerce.number().optional(),
+    cheque_date: z.string().optional(),
+    payee: z.string().optional(),
+    signatory: z.string().optional(),
+  })).optional(),
+  tenancy_period: z.string().optional().refine((val) => {
+    if (!val) return true;
+    const match = val.match(/^(\d+)\s+(Months?|Weeks?|Years?)$/i);
+    return !!match && parseInt(match[1], 10) > 0;
+  }, {
+    message: "Must be number followed by Months, Weeks, or Years (e.g. '12 Months')"
+  }),
   lease_start_date: z.string().nullable().optional(),
  
   electricity_accounts: z.coerce.number().optional(),
+  electricity_connections: z.array(z.object({
+    connection_number: z.string().min(1, "Connection Number required"),
+    meter_id: z.string().optional(),
+    account_number: z.string().optional(),
+    connection_type: z.enum(["Electricity", "Water", "Dual"]).optional(),
+  })).optional(),
   electricity_connection_numbers: z.string().nullable().optional(),
   electricity_water_security_deposit: z.coerce.number().optional(),
-  landline_numbers: z.string().nullable().optional(),
+  landline_connections: z.array(z.object({
+    landline_number: z.string().min(1, "Landline Number required"),
+    provider: z.string().optional(),
+    line_type: z.enum(["Fixed", "Fax"]).optional(),
+  })).optional(),
+  landline_accounts: z.coerce.number().optional(),
   internet_connection: z.string().nullable().optional(),
  
   cdc_expiry: z.string().optional(),
@@ -93,9 +121,13 @@ const propertySchema = z.object({
   approver_2: z.string().nullable().optional(),
 });
 
-type PropertyFormValues = z.infer<typeof propertySchema>;
+type PropertyFormValues = z.infer<typeof propertySchema> & {
+  electricity_connections: JHPropertyElectricityConnection[];
+  landline_connections: JHPropertyLandline[];
+  security_deposit_cheques: ChequeDetail[];
+};
 
-const getEmptyPropertyFormValues = (): PropertyFormValues => ({
+  const getEmptyPropertyFormValues = (): PropertyFormValues => ({
   property_name: "",
   type_of_property: "",
   business_used: "",
@@ -117,12 +149,15 @@ const getEmptyPropertyFormValues = (): PropertyFormValues => ({
   current_rent: undefined,
   renewal_date: "",
   landlord_security_deposit: undefined,
+  security_deposit_cheques: [],
   tenancy_period: "",
   lease_start_date: "",
   electricity_accounts: undefined,
+  electricity_connections: [],
   electricity_connection_numbers: "",
   electricity_water_security_deposit: undefined,
-  landline_numbers: "",
+  landline_connections: [],
+  landline_accounts: undefined,
   internet_connection: "",
   cdc_expiry: "",
   hassantuk_expiry: "",
@@ -151,6 +186,9 @@ export default function PropertySheet({
   const [approver1Search, setApprover1Search] = useState("");
   const [approver2Search, setApprover2Search] = useState("");
   const [openApproverField, setOpenApproverField] = useState<"approver_1" | "approver_2" | null>(null);
+  const [connections, setConnections] = useState<JHPropertyElectricityConnection[]>([]);
+  const [landlineConnections, setLandlineConnections] = useState<JHPropertyLandline[]>([]);
+  const [securityDepositCheques, setSecurityDepositCheques] = useState<ChequeDetail[]>([]);
   const lastAutoFilledDivisionRef = useRef<string | null>(null);
   const approverFieldRefs = useRef<Partial<Record<"approver_1" | "approver_2", HTMLDivElement | null>>>({});
   const navigate = useNavigate();
@@ -167,7 +205,7 @@ export default function PropertySheet({
   const isCreate = mode === "create";
   const formId = "property-form";
  
-  const { data: propertyData } = usePropertyDoc(propertyId);
+  const { data: propertyData, isFetching: isPropertyFetching } = usePropertyDoc(propertyId);
   const { data: renewalsListData,refetch: refetchRenewals } = useRenewalList(
   {
     property: propertyId || undefined,
@@ -177,12 +215,13 @@ export default function PropertySheet({
   !!propertyId
 );
 const renewalsData = renewalsListData?.renewals ?? [];
+  const { data: bankAccounts = [] } = useBankAccounts();
  
   const doc = propertyData?.doc as PropertyMaster | undefined;
  
   const hasExistingRenewals = renewalsData.length > 0;
-  const activeRenewal = renewalsData.length
-    ? [...renewalsData].sort(
+  const activeRenewal = hasExistingRenewals
+    ? (renewalsData as RentalRenewal[]).slice().sort(
         (a, b) => new Date(b.modified).getTime() - new Date(a.modified).getTime()
       )[0]?.name
     : null;
@@ -217,6 +256,9 @@ const renewalsData = renewalsListData?.renewals ?? [];
     control,
     name: "division_used",
   });
+
+  const numberOfPremisesWatch = useWatch({ control, name: "number_of_premises" });
+  const premiseNumberWatch = useWatch({ control, name: "premise_number" });
  
   const { data: selectedDivisionData } = useDocs({
     doctype: "JH Division Master",
@@ -227,12 +269,15 @@ const renewalsData = renewalsListData?.renewals ?? [];
  
   const selectedDivision = selectedDivisionData?.[0];
 
-  const resetSheetState = useCallback((values: PropertyFormValues = getEmptyPropertyFormValues()) => {
+const resetSheetState = useCallback((values: PropertyFormValues = getEmptyPropertyFormValues()) => {
     setFiles([]);
     setApprover1Search("");
     setApprover2Search("");
     setOpenApproverField(null);
     reset(values);
+    setConnections(values.electricity_connections || []);
+    setLandlineConnections(values.landline_connections || []);
+    setSecurityDepositCheques(values.security_deposit_cheques || []);
   }, [reset]);
 
   const handleSheetOpenChange = (nextOpen: boolean) => {
@@ -255,9 +300,15 @@ const renewalsData = renewalsListData?.renewals ?? [];
 
     if (doc) {
       lastAutoFilledDivisionRef.current = doc.division_used ?? null;
+      setConnections(doc.electricity_connections || []);
+      setLandlineConnections(doc.landline_connections || []);
+      setSecurityDepositCheques(doc.security_deposit_cheques || []);
       resetSheetState({
         ...getEmptyPropertyFormValues(),
         ...doc,
+        electricity_connections: doc.electricity_connections || [],
+        landline_connections: doc.landline_connections || [],
+        security_deposit_cheques: doc.security_deposit_cheques || [],
         renewal_date: doc.renewal_date?.split("T")[0],
         lease_start_date: doc.lease_start_date?.split("T")[0],
         po_box_renewal_date: doc.po_box_renewal_date?.split("T")[0],
@@ -267,20 +318,21 @@ const renewalsData = renewalsListData?.renewals ?? [];
     }
   }, [open, isCreate, doc, resetSheetState]);
  
+// Handle outside click to close approver dropdown
   useEffect(() => {
-    if (!open) return;
- 
+    if (!open || !openApproverField) return;
+
     const handlePointerDown = (event: MouseEvent) => {
-      if (!openApproverField) return;
- 
       const activeContainer = approverFieldRefs.current[openApproverField];
       if (activeContainer && !activeContainer.contains(event.target as Node)) {
         setOpenApproverField(null);
       }
     };
- 
+
     document.addEventListener("mousedown", handlePointerDown);
-    return () => document.removeEventListener("mousedown", handlePointerDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+    };
   }, [open, openApproverField]);
  
   useEffect(() => {
@@ -332,11 +384,44 @@ const renewalsData = renewalsListData?.renewals ?? [];
     return data.message.file_url as string;
   };
  
-  const onSubmit = async (data: z.infer<typeof propertySchema>) => {
+  const onSubmit = async (data: PropertyFormValues) => {
+    const formData = {
+      ...data,
+      electricity_connections: connections.map((conn, index) => ({
+        doctype: "JH Property Electricity Connection",
+        ...conn,
+        idx: index + 1,
+      })),
+      landline_connections: landlineConnections.map((conn, index) => ({
+        doctype: "JH Property Landline",
+        ...conn,
+        idx: index + 1,
+      })),
+      security_deposit_cheques: securityDepositCheques.map((cheque, index) => ({
+        doctype: "JH Property Cheque Detail",
+        ...cheque,
+        cheque_amount: Number(cheque.cheque_amount || 0),
+        idx: index + 1,
+      })),
+      landline_accounts: data.landline_accounts !== undefined ? data.landline_accounts : landlineConnections.length,
+      electricity_accounts: data.electricity_accounts !== undefined ? data.electricity_accounts : connections.length,
+    } as any;
+
+    console.log("Property save payload:", JSON.stringify(formData, null, 2));
 
     if (isCreate && data.renewal_date && new Date(data.renewal_date) <= new Date()) {
       toast.error("Renewal Date must be a future date");
       return;
+    }
+
+    if (data.number_of_premises && data.number_of_premises > 0) {
+      const premiseItems = getMultiValueItems(data.premise_number);
+      if (premiseItems.length !== data.number_of_premises) {
+        toast.warning(
+          `Please add exactly ${data.number_of_premises} premise number(s). Currently ${premiseItems.length} added.`
+        );
+        return;
+      }
     }
     
     try {
@@ -349,7 +434,7 @@ const renewalsData = renewalsListData?.renewals ?? [];
       ];
  
       const payload = {
-        ...data,
+        ...formData,
         name: propertyId,
         renewal_date: formatDateForAPI(data.renewal_date),
         po_box_renewal_date: formatDateForAPI(data.po_box_renewal_date),
@@ -374,6 +459,8 @@ const renewalsData = renewalsListData?.renewals ?? [];
       await queryClient.invalidateQueries({ queryKey: ["PropertyList"], exact: false });
       await queryClient.invalidateQueries({ queryKey: ["PropertyDashboardCounts"] });
       await queryClient.invalidateQueries({ queryKey: ["PropertyDoc", propertyId] });
+      // Force refetch for immediate UI update
+      await queryClient.refetchQueries({ queryKey: ["PropertyDoc", propertyId] });
       await queryClient.invalidateQueries({ queryKey: ["RenewalList"], exact: false });
  
       handleSheetOpenChange(false);
@@ -407,7 +494,7 @@ const renewalsData = renewalsListData?.renewals ?? [];
         {isView ? (
           <div className="flex items-start gap-2 py-1 text-sm">
             <span className="font-medium text-gray-600">{label}:</span>
-            <span>{value || "-"}</span>
+            <span>{value !== undefined && value !== null && value !== "" ? value : "-"}</span>
           </div>
         ) : (
           <Controller
@@ -611,14 +698,519 @@ const renewalsData = renewalsListData?.renewals ?? [];
           />
         )}
 
+        {name === "premise_number" && !isView && Number(numberOfPremisesWatch) > 0 && (() => {
+          const currentCount = getMultiValueItems(premiseNumberWatch).length;
+          const required = Number(numberOfPremisesWatch);
+          const isMatch = currentCount === required;
+          return (
+            <span className={`text-xs ${isMatch ? "text-green-600" : "text-amber-600"}`}>
+              {currentCount} / {required} premise number{required !== 1 ? "s" : ""} added
+              {!isMatch && ` — ${required - currentCount > 0 ? `add ${required - currentCount} more` : `remove ${currentCount - required} extra`}`}
+            </span>
+          );
+        })()}
+
         {errors[name] && (
           <span className="text-red-500 text-xs">{errors[name]?.message as string}</span>
         )}
       </div>
     );
   };
+
+
+  const renderLandlineConnections = (
+  isViewMode: boolean,
+  connectionsData?: JHPropertyLandline[]
+) => {
+  const data = isViewMode ? (connectionsData || []) : landlineConnections;
+  const isLoading = isViewMode && isPropertyFetching;
+
+  return (
+    <div className="flex flex-col gap-1">
+      <Label className="text-sm text-gray-600">Landline Connections:</Label>
+
+      {isLoading ? (
+        <div className="flex items-center justify-center p-8">
+          <Skeleton className="h-32 w-full" />
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {data.map((conn, index) => (
+              <div
+                key={conn.name || index}
+                className="flex gap-2 items-end bg-muted p-3 rounded-lg"
+              >
+                <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-2">
+                  <div className={`${isView ? "flex items-center gap-1": "flex  flex-col gap-1"}`}>
+                    <Label className="text-xs">Landline Number: <span className="text-red-500">*</span></Label>
+                    {isViewMode ? (
+                      <span className="text-sm font-medium">
+                        {conn.landline_number || "-"}
+                      </span>
+                    ) : (
+                      <Input
+                        value={conn.landline_number || ""}
+                        onChange={(e) => {
+                          const newConns = [...landlineConnections];
+                          newConns[index].landline_number = e.target.value;
+                          setLandlineConnections(newConns);
+                          setValue("landline_accounts", newConns.length);
+                        }}
+                        className="text-sm"
+                      />
+                    )}
+                  </div>
+
+                  <div className={`${isView ? "flex items-center gap-1": "flex  flex-col gap-1"}`}>
+                    <Label className="text-xs">Provider:</Label>
+                    {isViewMode ? (
+                      <span className="text-sm">{conn.provider || "-"}</span>
+                    ) : (
+                      <Input
+                        value={conn.provider || ""}
+                        onChange={(e) => {
+                          const newConns = [...landlineConnections];
+                          newConns[index].provider = e.target.value;
+                          setLandlineConnections(newConns);
+                        }}
+                        className="text-sm"
+                      />
+                    )}
+                  </div>
+
+                  <div className={`${isView ? "flex items-center gap-1": "flex  flex-col gap-1"}`}>
+                    <Label className="text-xs">Line Type:</Label>
+                    {isViewMode ? (
+                      <span className="text-sm font-medium">
+                        {conn.line_type || "-"}
+                      </span>
+                    ) : (
+                      <Select
+                        value={conn.line_type || ""}
+                        onValueChange={(value) => {
+                          const newConns = [...landlineConnections];
+                          newConns[index].line_type = value;
+                          setLandlineConnections(newConns);
+                        }}
+                      >
+                        <SelectTrigger className="text-sm h-9">
+                          <SelectValue placeholder="Select type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Fixed">Fixed</SelectItem>
+                          <SelectItem value="Fax">Fax</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+                </div>
+
+                {!isViewMode && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 p-0 -mr-2"
+                    onClick={() => {
+                      const newConns = landlineConnections.filter((_, i) => i !== index);
+                      setLandlineConnections(newConns);
+                      setValue("landline_accounts", newConns.length);
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            ))
+          }
+
+          {!isViewMode && (
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full text-gray-500 border-2 border-dashed h-10 text-sm mt-1"
+              onClick={() => {
+                const newConns = [...landlineConnections, { landline_number: "" }];
+                setLandlineConnections(newConns);
+                setValue("landline_accounts", newConns.length);
+              }}
+            >
+              + Add Landline
+            </Button>
+          )}
+        </div>
+      )}
+
+      {errors.landline_accounts && (
+        <span className="text-red-500 text-xs">
+          {errors.landline_accounts.message}
+        </span>
+      )}
+    </div>
+  );
+};
+
+  const renderChequeDetails = (
+  isViewMode: boolean,
+  chequesData?: ChequeDetail[]
+) => {
+  const data = isViewMode ? (chequesData || []) : securityDepositCheques;
+
+  return (
+    <div className="flex flex-col gap-1 md:col-span-4">
+      <Label className="text-sm text-gray-600">Security Deposit Cheques:</Label>
+
+      <div className="space-y-2">
+        {data.map((cheque, index) => (
+            <div
+              className="flex gap-2 items-end bg-muted p-3 rounded-lg"
+            >
+              <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-2">
+                <div className={`${isViewMode ? "flex items-center gap-1" : "flex flex-col gap-1"}`}>
+                  <Label className="text-xs">Bank Name:</Label>
+                  {isViewMode ? (
+                    <span className="text-sm font-medium">{cheque.bank_name || "-"}</span>
+                  ) : (
+                    <Select
+                      value={cheque.bank_name || ""}
+                      onValueChange={(value) => {
+                        const newCheques = [...securityDepositCheques];
+                        newCheques[index].bank_name = value;
+                        setSecurityDepositCheques(newCheques);
+                        setValue("security_deposit_cheques", newCheques);
+                      }}
+                    >
+                      <SelectTrigger className="text-sm h-9">
+                        <SelectValue placeholder="Select bank" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {bankAccounts.map((name) => (
+                          <SelectItem key={name} className="cursor-pointer" value={name}>{name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+
+                {(["cheque_number", "cheque_amount", "cheque_date", "payee", "signatory"] as const).map((fieldName) => (
+                  <div key={fieldName} className={`${isViewMode ? "flex items-center gap-1" : "flex flex-col gap-1"}`}>
+                    <Label className="text-xs">
+                      {fieldName === "cheque_number" ? "Cheque Number:" : fieldName === "cheque_amount" ? "Amount:" : fieldName === "cheque_date" ? "Cheque Date:" : fieldName === "payee" ? "Payee:" : "Signatory:"}
+                    </Label>
+                    {isViewMode ? (
+                      <span className="text-sm">{fieldName === "cheque_date" ? formatDate(cheque.cheque_date) : cheque[fieldName] || "-"}</span>
+                    ) : (
+                      <Input
+                        type={fieldName === "cheque_amount" ? "number" : fieldName === "cheque_date" ? "date" : "text"}
+                        value={cheque[fieldName] || ""}
+                        onChange={(e) => {
+                          const newCheques = [...securityDepositCheques];
+                          newCheques[index] = {
+                            ...newCheques[index],
+                            [fieldName]: fieldName === "cheque_amount" ? Number(e.target.value || 0) : e.target.value,
+                          };
+                          setSecurityDepositCheques(newCheques);
+                          setValue("security_deposit_cheques", newCheques);
+                        }}
+                        className="text-sm"
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {!isViewMode && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 p-0 -mr-2"
+                  onClick={() => {
+                    const newCheques = securityDepositCheques.filter((_, i) => i !== index);
+                    setSecurityDepositCheques(newCheques);
+                    setValue("security_deposit_cheques", newCheques);
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          ))
+        }
+
+        {!isViewMode && (
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full border-2 text-gray-500 border-dashed h-10 text-sm mt-1"
+            onClick={() => {
+              const newCheques = [...securityDepositCheques, { bank_name: "", cheque_number: "", cheque_amount: 0, cheque_date: "", payee: "", signatory: "" }];
+              setSecurityDepositCheques(newCheques);
+              setValue("security_deposit_cheques", newCheques);
+            }}
+          >
+            + Add Cheque
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+};
+
+  const renderElectricityConnections = (
+  isViewMode: boolean,
+  connectionsData?: JHPropertyElectricityConnection[]
+) => {
+  const data = isViewMode ? (connectionsData || []) : connections;
+  const isLoading = isViewMode && isPropertyFetching;
+
+  return (
+    <div className="flex flex-col gap-1">
+      <Label className="text-sm text-gray-600">Electricity Connections:</Label>
+
+      {isLoading ? (
+        <div className="flex items-center justify-center p-8">
+          <Skeleton className="h-32 w-full" />
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {data.map((conn, index) => (
+              <div
+                key={conn.name || index}
+                className="flex gap-2 items-end bg-muted p-3 rounded-lg"
+              >
+                <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-2">
+                  <div className={`${isView ? "flex items-center gap-1": "flex  flex-col gap-1"}`}>
+                    <Label className="text-xs">Connection Number:</Label>
+                    {isViewMode ? (
+                      <span className="text-sm font-medium">
+                        {conn.connection_number || "-"}
+                      </span>
+                    ) : (
+                      <Input
+                        value={conn.connection_number || ""}
+                        onChange={(e) => {
+                          const newConns = [...connections];
+                          newConns[index].connection_number = e.target.value;
+                          setConnections(newConns);
+                          setValue("electricity_accounts", newConns.length);
+                        }}
+                        className="text-sm"
+                      />
+                    )}
+                  </div>
+
+                  <div className={`${isView ? "flex items-center gap-1": "flex  flex-col gap-1"}`}>
+                    <Label className="text-xs">Meter ID:</Label>
+                    {isViewMode ? (
+                      <span className="text-sm">{conn.meter_id || "-"}</span>
+                    ) : (
+                      <Input
+                        value={conn.meter_id || ""}
+                        onChange={(e) => {
+                          const newConns = [...connections];
+                          newConns[index].meter_id = e.target.value;
+                          setConnections(newConns);
+                        }}
+                        className="text-sm"
+                      />
+                    )}
+                  </div>
+
+                 <div className={`${isView ? "flex items-center gap-1": "flex  flex-col gap-1"}`}>
+                    <Label className="text-xs">Account Number:</Label>
+                    {isViewMode ? (
+                      <span className="text-sm">
+                        {conn.account_number || "-"}
+                      </span>
+                    ) : (
+                      <Input
+                        value={conn.account_number || ""}
+                        onChange={(e) => {
+                          const newConns = [...connections];
+                          newConns[index].account_number = e.target.value;
+                          setConnections(newConns);
+                        }}
+                        className="text-sm"
+                      />
+                    )}
+                  </div>
+
+                  <div className={`${isView ? "flex items-center gap-1": "flex  flex-col gap-1"}`}>
+                    <Label className="text-xs">Type:</Label>
+                    {isViewMode ? (
+                      <span className="text-sm font-medium">
+                        {conn.connection_type || "-"}
+                      </span>
+                    ) : (
+                      <Select
+                        value={conn.connection_type || ""}
+                        onValueChange={(value) => {
+                          const newConns = [...connections];
+                          newConns[index].connection_type = value as any;
+                          setConnections(newConns);
+                        }}
+                      >
+                        <SelectTrigger className="text-sm h-9">
+                          <SelectValue placeholder="Select type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Electricity">
+                            Electricity
+                          </SelectItem>
+                          <SelectItem value="Water">Water</SelectItem>
+                          <SelectItem value="Dual">Dual</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+                </div>
+
+                {!isViewMode && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 p-0 -mr-2"
+                    onClick={() => {
+                      const newConns = connections.filter((_, i) => i !== index);
+                      setConnections(newConns);
+                      setValue("electricity_accounts", newConns.length);
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            ))
+          }
+
+          {!isViewMode && (
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full border-2 text-gray-500 border-dashed h-10 text-sm mt-1"
+              onClick={() => {
+                const newConns = [...connections, { connection_number: "" }];
+                setConnections(newConns);
+                setValue("electricity_accounts", newConns.length);
+              }}
+            >
+              + Add Electricity Connection
+            </Button>
+          )}
+        </div>
+      )}
+
+      {errors.electricity_accounts && (
+        <span className="text-red-500 text-xs">
+          {errors.electricity_accounts.message}
+        </span>
+      )}
+    </div>
+  );
+};
+
+  const renderTenancyPeriodField = (
+    label: string,
+    name: keyof z.infer<typeof propertySchema>,
+    value?: string | null
+  ) => {
+    const [tenancyValue, tenancyUnit] = useMemo(() => {
+      if (!value) return [undefined, "Months"] as [number | undefined, string];
+      const match = value.match(/^(\d+)\s*(Months?|Weeks?|Years?)$/i);
+      return match 
+        ? [parseInt(match[1], 10), match[2] || "Months"] 
+        : [undefined, "Months"];
+    }, [value]);
+
+    return (
+      <div className="flex flex-col gap-1">
+        {!isView && (
+          <Label className="text-sm text-gray-600">
+            {label}
+          </Label>
+        )}
+
+        {isView ? (
+          <div className="flex items-start gap-2 py-1 text-sm">
+            <span className="font-medium text-gray-600">{label}:</span>
+            <span>{value || "-"}</span>
+          </div>
+        ) : (
+          <Controller
+            key={name as string} // Force remount on value change
+            name={name}
+            control={control}
+            render={({ field }) => {
+              const [numVal, unitVal] = useMemo(() => {
+                if (!field.value) return ["" as string, "Months" as string];
+                const match = field.value.match(/^(\d+)\s*(Months?|Weeks?|Years?)$/i);
+                return match 
+                  ? [match[1], match[2] || "Months"] 
+                  : ["", "Months"];
+              }, [field.value]);
+
+              const handleValueChange = (newNum: string) => {
+                const num = parseInt(newNum, 10);
+                const combined = num > 0 ? `${num} ${unitVal}` : "";
+                field.onChange(combined);
+              };
+
+              const handleUnitChange = (newUnit: string) => {
+                const num = parseInt(numVal, 10);
+                const combined = num > 0 ? `${num} ${newUnit}` : "";
+                field.onChange(combined);
+              };
+
+              return (
+                <div className="flex gap-2">
+                  <Input
+                    type="number"
+                    min={1}
+                    value={numVal}
+                    onChange={(e) => handleValueChange(e.target.value)}
+                    placeholder="0"
+                    className={cn(
+                      "flex-1",
+                      errors[name] && "border-red-500"
+                    )}
+                  />
+                  <Select value={unitVal} onValueChange={handleUnitChange}>
+                    <SelectTrigger className="w-[120px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Months">Months</SelectItem>
+                      <SelectItem value="Weeks">Weeks</SelectItem>
+                      <SelectItem value="Years">Years</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              );
+            }}
+          />
+        )}
+
+        {errors[name] && (
+          <span className="text-red-500 text-xs">{errors[name]?.message as string}</span>
+        )}
+      </div>
+    );
+  };
+
+  
  
   const propertyTypeOptions =["Shop", "Villa", "Flat", "Other"];
+  const emirateOptions = [
+    "Abu Dhabi",
+    "Dubai",
+    "Sharjah",
+    "Ajman",
+    "Umm Al Quwain",
+    "Ras Al Khaimah",
+    "Fujairah",
+  ];
  
   return (
     <Sheet open={open} onOpenChange={handleSheetOpenChange}>
@@ -654,6 +1246,7 @@ const renewalsData = renewalsListData?.renewals ?? [];
                     propertyId={propertyId || ""}
                     propertyName={doc?.property_name || ""}
                     currentRent={doc?.current_rent}
+                    renewalFrom={doc?.renewal_date?.split("T")[0]}
                     mode="new"
                     onCreated={async () => {
                       await refetchRenewals();
@@ -761,9 +1354,9 @@ const renewalsData = renewalsListData?.renewals ?? [];
               {renderApproverField("Approver 2", "approver_2", doc?.approver_2)}
               {renderField("Booked Under", "booked_under", doc?.booked_under)}
               {renderField("Profit Center", "profit_center", doc?.profit_center)}
-              {renderField("No. of Units", "number_of_units", doc?.number_of_units)}
-              {renderField("No. of Premises", "number_of_premises", doc?.number_of_premises)}
-              {renderMultiValueField("Premise No", "premise_number", doc?.premise_number)}
+              {renderField("Number of Units", "number_of_units", doc?.number_of_units)}
+              {renderField("Number of Premises", "number_of_premises", doc?.number_of_premises)}
+              {renderMultiValueField("Premise Number", "premise_number", doc?.premise_number)}
               {renderField("Staff Allocated", "staff_allocated", doc?.staff_allocated)}
             </div>
  
@@ -772,17 +1365,38 @@ const renewalsData = renewalsListData?.renewals ?? [];
             <h2 className="text-lg font-semibold">Location</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {renderField("Location", "location", doc?.location)}
-              {renderField("Emirate", "emirate", doc?.emirate)}
+              <div className="flex flex-col gap-1">
+                {!isView && <Label className="text-sm text-gray-600">Emirate</Label>}
+                {isView ? (
+                  <div className="flex items-center gap-2 py-1 text-sm">
+                    <span className="font-medium text-gray-600">Emirate:</span>
+                    <span>{doc?.emirate || "-"}</span>
+                  </div>
+                ) : (
+                  <Controller
+                    name="emirate"
+                    control={control}
+                    render={({ field }) => (
+                      <select {...field} value={field.value ?? ""} className="border rounded px-2 py-2 text-sm">
+                        <option value="">Select Emirate</option>
+                        {emirateOptions.map((opt) => (
+                          <option key={opt} value={opt}>{opt}</option>
+                        ))}
+                      </select>
+                    )}
+                  />
+                )}
+              </div>
               {renderField("Country", "country", doc?.country)}
               {renderField("Makani Number", "makani_number", doc?.makani_number)}
               {renderField("PO Box", "po_box_number", doc?.po_box_number)}
-              {renderField("PO Box Renewal", "po_box_renewal_date", doc?.po_box_renewal_date, "date")}
+              {renderField("PO Box Renewal", "po_box_renewal_date", formatDate(doc?.po_box_renewal_date), "date")}
             </div>
  
             <Separator />
  
             <h2 className="text-lg font-semibold">Landlord</h2>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {renderField("Landlord", "landlord", doc?.landlord)}
               {renderField("Real Estate", "real_estate", doc?.real_estate)}
               {renderField("Current Rent", "current_rent", doc?.current_rent)}
@@ -798,13 +1412,8 @@ const renewalsData = renewalsListData?.renewals ?? [];
                 renderField("Renewal Date", "renewal_date", doc?.renewal_date, "date")
               )}
  
-              {renderField(
-                "Landlord Security Deposit",
-                "landlord_security_deposit",
-                doc?.landlord_security_deposit
-              )}
-              {renderField("Tenancy Period", "tenancy_period", doc?.tenancy_period)}
- 
+              {renderTenancyPeriodField("Tenancy Period", "tenancy_period", doc?.tenancy_period)}
+
               {isView ? (
                 <div className="flex items-center gap-2 py-1 text-sm">
                   <span className="font-medium text-gray-600">Lease start date:</span>
@@ -813,6 +1422,18 @@ const renewalsData = renewalsListData?.renewals ?? [];
               ) : (
                 renderField("Lease start date", "lease_start_date", doc?.lease_start_date, "date")
               )}
+            </div>
+
+            <Separator />
+
+            <h2 className="text-lg font-semibold">Security Deposit</h2>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+              {renderField(
+                "Deposit Amount",
+                "landlord_security_deposit",
+                doc?.landlord_security_deposit
+              )}
+              {renderChequeDetails(isView, doc?.security_deposit_cheques)}
             </div>
  
             <Separator />
@@ -825,19 +1446,15 @@ const renewalsData = renewalsListData?.renewals ?? [];
                 "electricity_water_security_deposit",
                 doc?.electricity_water_security_deposit
               )}
-              {renderField("Landline Numbers", "landline_numbers", doc?.landline_numbers)}
+              {renderField("Landline Accounts", "landline_accounts", doc?.landline_accounts)}
               {renderField("Internet Connection", "internet_connection", doc?.internet_connection)}
-              {renderMultiValueField(
-                "Connection No",
-                "electricity_connection_numbers",
-                doc?.electricity_connection_numbers
-              )}
             </div>
+            {renderLandlineConnections(isView, doc?.landline_connections)}
+            {renderElectricityConnections(isView, doc?.electricity_connections)}
  
-            <Separator />
  
             <h2 className="text-lg font-semibold">Compliance</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 w-110 md:grid-cols-2 gap-4">
               {isView ? (
                 <div className="flex items-center gap-2 py-1 text-sm">
                   <span className="font-medium text-gray-600">CDC Expiry:</span>
@@ -910,11 +1527,28 @@ const renewalsData = renewalsListData?.renewals ?? [];
               </>
             )}
  
-             {hasPermisssionToViewRenewalHistory && propertyId && mode === "view" && (
+            {hasPermisssionToViewRenewalHistory && propertyId && mode === "view" && (
               <>
-                    <RenewalTimeline renewalId={activeRenewal} defaultOpen={true} title="Renewal history"/>
-              </> 
-              )}
+                <Separator />
+                {/* <h2 className="text-lg font-semibold">Renewal History</h2> */}
+                
+                  <div className="pb-20">
+                    {(renewalsData as RentalRenewal[])
+                      .slice()
+                      .sort((a, b) => new Date(b.modified).getTime() - new Date(a.modified).getTime())
+                      .map((renewal, index) => (
+                        <RenewalTimeline
+                          key={renewal.name}
+                          renewalId={renewal.name}
+                          defaultOpen={index === 0}
+                          title={`Renewal History`}
+                        />
+                      ))
+                    }
+                  </div>
+              
+              </>
+            )}
           </form>
         </ScrollArea>
  

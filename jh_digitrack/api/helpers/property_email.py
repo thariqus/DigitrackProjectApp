@@ -94,9 +94,10 @@ def generate_property_notification_email(type, context):
         renewal = context["renewal"]
         config = context["config"]
         assignee_display = context.get("assignee_display", "—")
+        days_overdue = context.get("days_overdue", 0)
         header = (
             f"Renewal <strong>{renewal.name}</strong> has exceeded its TAT deadline "
-            f"by <strong>{config.escalate_days_after} day(s)</strong> and requires your attention."
+            f"by <strong>{days_overdue} day(s)</strong> and requires your attention."
         )
         rows = [
             ("Renewal", renewal.name),
@@ -104,7 +105,7 @@ def generate_property_notification_email(type, context):
             ("Stalled At", renewal.workflow_state),
             ("Assigned To", assignee_display),
             ("TAT Allowed", f"{config.tat_days} day(s)"),
-            ("Days Overdue", str(config.escalate_days_after)),
+            ("Days Overdue", str(days_overdue)),
         ]
 
     return Template(TEMPLATE_STR).render(header=header, rows=rows, url=url)

@@ -59,7 +59,7 @@ export default function WithdrawCommentModal({
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="space-y-2">
+          <div className="space-y-2 overflow-x-hidden">
             <Label htmlFor="comment">Reason <span className="text-destructive">*</span></Label>
             <Controller
               name="comment"
@@ -68,9 +68,9 @@ export default function WithdrawCommentModal({
                 <Textarea
                   id="comment"
                   placeholder="Enter the reason for withdrawal..."
-                  rows={7}
+                  rows={6}
                   {...field}
-                  className={errors.comment ? "border-destructive h-50" : "h-50"}
+                  className={errors.comment ? "border-destructive h-50" : "h-50 overflow-x-hidden"}
                 />
               )}
             />

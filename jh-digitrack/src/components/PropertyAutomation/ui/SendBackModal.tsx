@@ -89,7 +89,7 @@ export default function SendBackModal({
               <p className="text-sm text-destructive">{errors.target_state.message}</p>
             )}
           </div>
-          <div className="space-y-2">
+          <div className="space-y-2 overflow-x-hidden">
             <Label htmlFor="comment">Reason <span className="text-destructive">*</span></Label>
             <Controller
               name="comment"
@@ -98,9 +98,9 @@ export default function SendBackModal({
                 <Textarea
                   id="comment"
                   placeholder="Enter reason for sending back..."
-                  rows={5}
+                  rows={6}
                   {...field}
-                  className={errors.comment ? "border-destructive" : ""}
+                  className={errors.comment ? "border-destructive" :"" }
                 />
               )}
             />

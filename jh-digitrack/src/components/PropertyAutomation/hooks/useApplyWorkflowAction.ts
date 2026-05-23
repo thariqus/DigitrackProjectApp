@@ -89,7 +89,6 @@ export const useApplyWorkflowAction = () => {
       queryClient.invalidateQueries({ queryKey: ['property-nav-access'] });
       queryClient.invalidateQueries({ queryKey: ['PropertyList'] });
       queryClient.invalidateQueries({ queryKey: ['PropertyDashboardCounts'] });
-      toast.success('Workflow action applied successfully');
     },
     onError: (error: unknown) => {
       const message = error instanceof Error ? error.message : 'Something went wrong';

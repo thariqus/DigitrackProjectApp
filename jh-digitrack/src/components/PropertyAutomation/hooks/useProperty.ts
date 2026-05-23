@@ -26,6 +26,13 @@ export const usePropertyDashboardCounts = () =>
     staleTime: 5 * 60 * 1000,
   });
 
+export const useRenewalPipelineCounts = () =>
+  useQuery({
+    queryKey: ["RenewalPipelineCounts"],
+    queryFn: () => propertyApi.getRenewalPipelineCounts(),
+    staleTime: 5 * 60 * 1000,
+  });
+
 export const usePendingRenewals = (enabled: boolean) =>
   useQuery({
     queryKey: ["PendingRenewals"],
@@ -45,6 +52,7 @@ export const usePropertyDoc = (name?: string) =>
     queryKey: ["PropertyDoc", name],
     queryFn: () => propertyApi.getPropertyDoc(name!),
     enabled: !!name,
+    staleTime: 1000, // Reduced for immediate fresh data after save
   });
 
 export const useRenewalList = (params: QueryParams, enabled = true) =>
@@ -67,3 +75,12 @@ export const useRenewalRole = (renewalId?: string) =>
     queryFn: () => propertyApi.getRenewalRole(renewalId!),
     enabled: !!renewalId,
   });
+
+ export const useBankAccounts = () =>
+  useQuery({
+    queryKey: ["BankAccounts"],
+    queryFn: propertyApi.getBankAccounts,
+    staleTime: 10 * 60 * 1000,
+  });
+ 
+ 

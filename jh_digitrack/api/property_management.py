@@ -13,6 +13,17 @@ ROLE_PRIORITY = [
     "licensing",
 ]
  
+ACTIVE_RENEWAL_STATES = [
+    "Draft",
+    "Pending Approver 1",
+    "Pending Approver 2",
+    "Pending CFO",
+    "Pending MD",
+    "Pending Cheque Details",
+    "Pending Property PO",
+    "Pending MIRO",
+]
+ 
 SENDBACK_TRANSITIONS = {
     "Pending Approver 1": {"Draft"},
     "Pending Approver 2": {"Pending Approver 1", "Draft"},
@@ -24,7 +35,7 @@ SENDBACK_TRANSITIONS = {
 }
  
 STATE_ROLE_MAP = {
-    "Draft": {"licensing", "module_admin", "Administrator"},
+    "Draft": {"licensing", "property_dept", "module_admin", "Administrator"},
     "Pending Approver 1": {"approver_1", "module_admin", "Administrator"},
     "Pending Approver 2": {"approver_2", "module_admin", "Administrator"},
     "Pending Cheque Details": {"property_dept", "module_admin", "Administrator"},
@@ -37,7 +48,7 @@ STATE_ROLE_MAP = {
 WORKFLOW_TRANSITIONS = {
     "submit": {
         "Draft": {
-            "roles": {"licensing", "module_admin", "Administrator"},
+            "roles": {"licensing", "property_dept", "module_admin", "Administrator"},
             "next_state": "Pending Approver 1",
         },
     },
@@ -155,20 +166,20 @@ def _get_active_delegators(user, delegation_types=None):
     filters = {"delegate": user, "status": "Active"}
     if delegation_types:
         filters["delegation_type"] = ["in", list(delegation_types)]
-
+ 
     return frappe.get_all(
         "JH Delegation",
         filters=filters,
         pluck="delegator",
         ignore_permissions=True,
     )
-
-
+ 
+ 
 def _get_standing_delegators(user):
     """Returns delegators whose Temporary/Permanent delegation grants standing authority."""
     return _get_active_delegators(user, {"Temporary", "Permanent"})
-
-
+ 
+ 
 def _get_adhoc_delegated_renewals(user, statuses=None):
     """Returns renewal names delegated to `user` via Ad-Hoc delegation."""
     if statuses is None:
@@ -185,14 +196,14 @@ def _get_adhoc_delegated_renewals(user, statuses=None):
         ignore_permissions=True,
     )
     return [name for name in renewal_names if name]
-
-
+ 
+ 
 def _get_adhoc_delegated_properties(user, statuses=None):
     """Returns property names linked to renewals delegated to `user` via Ad-Hoc."""
     delegated_renewals = _get_adhoc_delegated_renewals(user, statuses=statuses)
     if not delegated_renewals:
         return []
-
+ 
     properties = frappe.get_all(
         "JH Property Rental Renewal",
         filters={
@@ -202,23 +213,23 @@ def _get_adhoc_delegated_properties(user, statuses=None):
         ignore_permissions=True,
     )
     return [property_name for property_name in properties if property_name]
-
-
+ 
+ 
 def _get_visible_adhoc_renewals(user):
     """Returns renewal names delegated to `user` via Ad-Hoc (Active or Expired)."""
     return _get_adhoc_delegated_renewals(user, statuses=["Active", "Expired"])
-
-
+ 
+ 
 def _get_visible_adhoc_properties(user):
     """Returns property names linked to renewals delegated to `user` via Ad-Hoc (Active or Expired)."""
     return _get_adhoc_delegated_properties(user, statuses=["Active", "Expired"])
-
-
+ 
+ 
 def _has_adhoc_delegated_property(user, property_name):
     """Returns True if `user` has an Ad-Hoc renewal delegation (Active or Expired) for this property."""
     return property_name in _get_visible_adhoc_properties(user)
-
-
+ 
+ 
 def _get_approver_properties(user):
     """Returns property names where user or a standing delegator is approver_1 or approver_2."""
     props = set(frappe.get_all(
@@ -235,8 +246,8 @@ def _get_approver_properties(user):
             ignore_permissions=True,
         ))
     return list(props)
-
-
+ 
+ 
 def _get_property_user_context():
     """
     Returns a dict of booleans describing the current user's property access level.
@@ -248,7 +259,7 @@ def _get_property_user_context():
     user_roles = set(frappe.get_roles(user))
     settings = frappe.get_single("JH Digitrack Settings")
     is_administrator = user == "Administrator"
-
+ 
     ctx = {
         "user": user,
         "is_admin": is_administrator or "JH Digitrack Admin" in user_roles,
@@ -258,12 +269,12 @@ def _get_property_user_context():
         "has_gl_team": is_administrator or "JH GL Team" in user_roles,
         "is_licensing": is_administrator or "JH Licensing Team" in user_roles,
     }
-
+ 
     has_direct_access = (
         ctx["is_admin"] or ctx["is_md"] or ctx["is_cfo"]
         or ctx["has_property_dept"] or ctx["has_gl_team"] or ctx["is_licensing"]
     )
-
+ 
     if not has_direct_access and not is_administrator:
         for delegator in _get_standing_delegators(user):
             delegator_roles = set(frappe.get_roles(delegator))
@@ -279,7 +290,7 @@ def _get_property_user_context():
                 ctx["has_gl_team"] = True
             if "JH Licensing Team" in delegator_roles:
                 ctx["is_licensing"] = True
-
+ 
     return ctx
  
  
@@ -289,8 +300,10 @@ def get_property_list(
     emirate=None,
     type_of_property=None,
     division=None,
+    business=None,
     expiring_soon=None,
     renewal_filter=None,
+    attention_filter=None,
     limit=10,
     page=1,
 ):
@@ -312,9 +325,9 @@ def get_property_list(
         has_adhoc_delegation = bool(_get_visible_adhoc_properties(user))
         if not approver_props and not has_adhoc_delegation:
             frappe.throw(_("Not permitted"), frappe.PermissionError)
-
+ 
     filters = {}
-
+ 
     if search:
         filters["property_name"] = ["like", f"%{search}%"]
     if emirate:
@@ -323,6 +336,8 @@ def get_property_list(
         filters["type_of_property"] = type_of_property
     if division:
         filters["division_used"] = division
+    if business:
+        filters["business_used"] = business 
  
     from frappe.utils import add_days, today
     today_str = today()
@@ -331,11 +346,30 @@ def get_property_list(
         if renewal_filter == "30":
             filters["renewal_date"] = ["between", [today_str, add_days(today_str, 30)]]
         elif renewal_filter == "60":
-            filters["renewal_date"] = ["between", [today_str, add_days(today_str, 60)]]
+            filters["renewal_date"] = ["between", [add_days(today_str, 31), add_days(today_str, 60)]]
         elif renewal_filter == "90":
-            filters["renewal_date"] = ["between", [today_str, add_days(today_str, 90)]]
+            filters["renewal_date"] = ["between", [add_days(today_str, 61), add_days(today_str, 90)]]
         elif renewal_filter == "overdue":
             filters["renewal_date"] = ["<", today_str]
+        elif renewal_filter == "active":
+            filters["renewal_date"] = [">", add_days(today_str, 90)]
+    elif attention_filter:
+        if attention_filter == "overdue_no_renewal":
+            properties_with_any_renewal = frappe.get_all(
+                "JH Property Rental Renewal",
+                filters={"workflow_state": ["in", ACTIVE_RENEWAL_STATES + ["Withdrawn"]]},
+                pluck="property",
+                ignore_permissions=True,
+            )
+            filters["renewal_date"] = ["<", today_str]
+            if properties_with_any_renewal:
+                filters["name"] = ["not in", list(set(properties_with_any_renewal))]
+        elif attention_filter == "hassantuk_expiring_soon":
+            filters["hassantuk_expiry"] = ["between", [today_str, add_days(today_str, 30)]]
+        elif attention_filter == "cdc_expiring_soon":
+            filters["cdc_expiry"] = ["between", [today_str, add_days(today_str, 30)]]
+        elif attention_filter == "po_box_expiring_soon":
+            filters["po_box_renewal_date"] = ["between", [today_str, add_days(today_str, 30)]]
     elif expiring_soon:
         filters["renewal_date"] = ["between", [today_str, add_days(today_str, 90)]]
  
@@ -344,15 +378,14 @@ def get_property_list(
     start = (page - 1) * limit
  
     fields = [
-        "name", "property_name", "type_of_property", "division_used",
+        "name", "property_name", "type_of_property", "division_used","business_used",
         "approver_1", "approver_2", "booked_under", "profit_center",
         "number_of_units", "number_of_premises", "premise_number",
         "staff_allocated", "location", "emirate", "country",
         "makani_number", "po_box_number", "po_box_renewal_date",
         "landlord", "real_estate", "current_rent", "renewal_date",
         "landlord_security_deposit", "tenancy_period",
-        "electricity_accounts", "electricity_connection_numbers",
-        "electricity_water_security_deposit", "landline_numbers",
+        "electricity_accounts", "electricity_water_security_deposit",
         "internet_connection", "cdc_expiry", "hassantuk_expiry",
     ]
  
@@ -392,57 +425,129 @@ def get_property_dashboard_counts():
         has_adhoc_delegation = bool(_get_visible_adhoc_renewals(user))
         if not approver_props and not has_adhoc_delegation:
             frappe.throw(_("Not permitted"), frappe.PermissionError)
-
+ 
     today_str = today()
-
-    # Properties with an in-progress renewal are excluded from upcoming/overdue
-    # buckets — they don't need a new renewal started.
-    properties_with_active_renewal = frappe.get_all(
-        "JH Property Rental Renewal",
-        filters={"workflow_state": ["not in", ["Completed", "Withdrawn"]]},
-        pluck="property",
-        ignore_permissions=True,
-    )
-
+ 
     def _count(extra_filters=None):
         filters = {**base_filters}
         if extra_filters:
             filters.update(extra_filters)
         return frappe.db.count("JH Property Master", filters=filters, cache=False)
-
-    def _count_without_active(extra_filters=None):
-        filters = {**base_filters}
-        if extra_filters:
-            filters.update(extra_filters)
-        if properties_with_active_renewal:
-            filters["name"] = ["not in", properties_with_active_renewal]
-        return frappe.db.count("JH Property Master", filters=filters, cache=False)
-
+ 
     total_properties = _count()
-
-    renewals_30_days = _count_without_active({
+ 
+    renewals_30_days = _count({
         "renewal_date": ["between", [today_str, add_days(today_str, 30)]]
     })
-
-    renewals_60_days = _count_without_active({
-        "renewal_date": ["between", [today_str, add_days(today_str, 60)]]
+ 
+    renewals_60_days = _count({
+        "renewal_date": ["between", [add_days(today_str, 31), add_days(today_str, 60)]]
     })
-
-    renewals_90_days = _count_without_active({
-        "renewal_date": ["between", [today_str, add_days(today_str, 90)]]
+ 
+    renewals_90_days = _count({
+        "renewal_date": ["between", [add_days(today_str, 61), add_days(today_str, 90)]]
     })
-
-    overdue = _count_without_active({
+ 
+    overdue = _count({
         "renewal_date": ["<", today_str]
     })
  
+    properties_with_any_renewal = frappe.get_all(
+        "JH Property Rental Renewal",
+        filters={"workflow_state": ["in", ACTIVE_RENEWAL_STATES + ["Withdrawn"]]},
+        pluck="property",
+        ignore_permissions=True,
+    )
+    overdue_no_renewal_filters = {"renewal_date": ["<", today_str]}
+    if properties_with_any_renewal:
+        overdue_no_renewal_filters["name"] = ["not in", list(set(properties_with_any_renewal))]
+ 
+    stalled_renewals = frappe.db.count(
+        "JH Property Rental Renewal",
+        filters={
+            "workflow_state": ["in", ACTIVE_RENEWAL_STATES],
+            "modified": ["<=", add_days(today_str, -7)],
+        },
+        cache=False,
+    )
+ 
+    try:
+        pending_payload = get_my_pending_renewals()
+        pending_my_action = len(pending_payload.get("renewals") or [])
+    except Exception:
+        pending_my_action = 0
+ 
+ 
+    attention = {
+        "overdue_no_renewal": _count(overdue_no_renewal_filters),
+        "stalled_renewals": stalled_renewals,
+        "pending_my_action": pending_my_action,
+        "hassantuk_expiring_soon": _count({
+            "hassantuk_expiry": ["between", [today_str, add_days(today_str, 30)]]
+        }),
+        "cdc_expiring_soon": _count({
+            "cdc_expiry": ["between", [today_str, add_days(today_str, 30)]]
+        }),
+        "po_box_expiring_soon": _count({
+            "po_box_renewal_date": ["between", [today_str, add_days(today_str, 30)]]
+        }),
+    }
+ 
+    active_properties = _count({
+        "renewal_date": [">", add_days(today_str, 90)]
+    })
+
     return {
         "total_properties": total_properties,
+        "active_properties": active_properties,
         "renewals_30_days": renewals_30_days,
         "renewals_60_days": renewals_60_days,
         "renewals_90_days": renewals_90_days,
         "overdue": overdue,
+        "attention": attention,
     }
+def _attach_approver_names(records):
+    """Attach approver_1_name and approver_2_name (full names) to each renewal record."""
+    if not records:
+        return records
+ 
+    property_names = list({r.get("property") for r in records if r.get("property")})
+    if not property_names:
+        return records
+ 
+    prop_approvers = frappe.get_all(
+        "JH Property Master",
+        filters={"name": ["in", property_names]},
+        fields=["name", "approver_1", "approver_2"],
+        ignore_permissions=True,
+    )
+    prop_map = {p["name"]: p for p in prop_approvers}
+ 
+    user_emails = set()
+    for p in prop_approvers:
+        if p.get("approver_1"):
+            user_emails.add(p["approver_1"])
+        if p.get("approver_2"):
+            user_emails.add(p["approver_2"])
+ 
+    user_fullnames = {}
+    if user_emails:
+        users = frappe.get_all(
+            "User",
+            filters={"name": ["in", list(user_emails)]},
+            fields=["name", "full_name"],
+            ignore_permissions=True,
+        )
+        user_fullnames = {u["name"]: u["full_name"] for u in users}
+ 
+    for record in records:
+        prop = prop_map.get(record.get("property"), {})
+        a1 = prop.get("approver_1")
+        a2 = prop.get("approver_2")
+        record["approver_1_name"] = user_fullnames.get(a1, a1) if a1 else None
+        record["approver_2_name"] = user_fullnames.get(a2, a2) if a2 else None
+ 
+    return records
  
  
 @frappe.whitelist(methods=["GET"])
@@ -451,6 +556,8 @@ def get_renewal_list(
     divisions=None,
     search=None,
     property=None,
+    attention_filter=None,
+    renewal_period=None,
     limit=10,
     page=1,
 ):
@@ -459,57 +566,139 @@ def get_renewal_list(
     Row-level access mirrors property_renewal_query but runs regardless of DocType
     permissions so MD/CFO (identified via settings) receive full visibility.
     """
+ 
     import json as _json
+ 
+    from frappe.utils import (
+        add_days,
+        add_months,
+        cint,
+        getdate,
+        today,
+    )
  
     ctx = _get_property_user_context()
     user = ctx["user"]
  
     has_full_access = (
-        ctx["is_admin"] or ctx["is_md"] or ctx["is_cfo"]
-        or ctx["has_property_dept"] or ctx["has_gl_team"] or ctx["is_licensing"]
+        ctx["is_admin"]
+        or ctx["is_md"]
+        or ctx["is_cfo"]
+        or ctx["has_property_dept"]
+        or ctx["has_gl_team"]
+        or ctx["is_licensing"]
     )
  
     approver_props = []
     adhoc_renewals = []
+ 
     if not has_full_access:
         approver_props = _get_approver_properties(user)
         adhoc_renewals = _get_visible_adhoc_renewals(user)
+ 
         if not approver_props and not adhoc_renewals:
             frappe.throw(_("Not permitted"), frappe.PermissionError)
  
     filters = {}
  
+    # WORKFLOW STATE FILTER
     if workflow_states:
-        states = _json.loads(workflow_states) if isinstance(workflow_states, str) else workflow_states
+        states = (
+            _json.loads(workflow_states)
+            if isinstance(workflow_states, str)
+            else workflow_states
+        )
+ 
         if states:
             filters["workflow_state"] = ["in", states]
  
+    # DIVISION FILTER
     if divisions:
-        divs = _json.loads(divisions) if isinstance(divisions, str) else divisions
+        divs = (
+            _json.loads(divisions)
+            if isinstance(divisions, str)
+            else divisions
+        )
+ 
         if divs:
             filters["division"] = ["in", divs]
  
+    # SEARCH FILTER
     if search:
         filters["property"] = ["like", f"%{search}%"]
  
+    # PROPERTY FILTER
     if property:
         filters["property"] = property
  
+    # ATTENTION FILTER
+    if attention_filter == "stalled_7_days":
+        filters["workflow_state"] = ["in", ACTIVE_RENEWAL_STATES]
+        filters["modified"] = ["<=", add_days(today(), -7)]
+ 
+    # RENEWAL PERIOD FILTER
+    if renewal_period:
+        current_date = getdate(today())
+ 
+        # THIS MONTH
+        if renewal_period == "This Month":
+            start_date = current_date.replace(day=1)
+ 
+            next_month = add_months(start_date, 1)
+            end_date = add_days(next_month, -1)
+ 
+            filters["renewal_from"] = [
+                "between",
+                [start_date, end_date],
+            ]
+ 
+        # NEXT 3 MONTHS
+        elif renewal_period == "Next 3 Months":
+            end_date = add_months(current_date, 3)
+ 
+            filters["renewal_from"] = [
+                "between",
+                [current_date, end_date],
+            ]
+ 
+        # THIS YEAR
+        elif renewal_period == "This Year":
+            start_date = current_date.replace(month=1, day=1)
+ 
+            end_date = current_date.replace(month=12, day=31)
+ 
+            filters["renewal_from"] = [
+                "between",
+                [start_date, end_date],
+            ]
+ 
     limit = cint(limit)
     page = cint(page)
+ 
     start = (page - 1) * limit
  
     RENEWAL_FIELDS = [
-        "name", "property", "current_rent", "proposed_rent",
-        "rent_change_percent", "renewal_from", "renewal_to",
-        "division", "workflow_state", "modified",
+        "name",
+        "property",
+        "current_rent",
+        "proposed_rent",
+        "rent_change_percent",
+        "renewal_from",
+        "renewal_to",
+        "division",
+        "workflow_state",
+        "modified",
+        "step_entered_on",
     ]
  
-    # Standing approver access is property-scoped. Ad-Hoc delegation is document-scoped.
+    # PROPERTY-LEVEL ACCESS CONTROL
     if not has_full_access:
+ 
+        # BOTH PROPERTY + ADHOC ACCESS
         if approver_props and adhoc_renewals:
             seen = set()
             results = []
+ 
             for extra_filter in [
                 {**filters, "property": ["in", approver_props]},
                 {**filters, "name": ["in", adhoc_renewals]},
@@ -521,31 +710,50 @@ def get_renewal_list(
                     order_by="modified desc",
                     ignore_permissions=True,
                 )
+ 
                 for r in rows:
                     if r["name"] not in seen:
                         seen.add(r["name"])
                         results.append(r)
+            results.sort(key=lambda x: x.get("modified") or "", reverse=True)
             total = len(results)
-            records = results[start: start + limit]
-            return {"renewals": records, "total": total}
+ 
+            records = results[start : start + limit]
+ 
+            return {
+                "renewals": _attach_approver_names(records),
+                "total": total,
+            }
+ 
+        # ONLY ADHOC ACCESS
         elif adhoc_renewals:
             filters["name"] = ["in", adhoc_renewals]
+ 
+        # ONLY PROPERTY ACCESS
         elif approver_props:
             filters["property"] = ["in", approver_props]
  
+    # FETCH RECORDS
     records = frappe.get_all(
         "JH Property Rental Renewal",
         filters=filters,
         fields=RENEWAL_FIELDS,
         limit=limit,
         start=start,
-        order_by="modified asc",
+        order_by="modified desc",
         ignore_permissions=True,
     )
-    total = frappe.db.count("JH Property Rental Renewal", filters=filters, cache=False)
  
-    return {"renewals": records, "total": total}
+    total = frappe.db.count(
+        "JH Property Rental Renewal",
+        filters=filters,
+        cache=False,
+    )
  
+    return {
+        "renewals": _attach_approver_names(records),
+        "total": total,
+    }
  
 @frappe.whitelist(methods=["GET"])
 def get_property_doc(name: str):
@@ -659,23 +867,23 @@ def has_property_automation_role():
             ):
                 has_access = True
                 break
-
+ 
     if not has_access and _get_visible_adhoc_renewals(user):
         has_access = True
-
+ 
     return {"has_access": has_access}
-
-
+ 
+ 
 @frappe.whitelist(methods=["GET"])
 def has_property_automation_nav_access():
     user = frappe.session.user
-
+ 
     if user == "Administrator":
         return {"has_access": True}
-
+ 
     user_roles = set(frappe.get_roles(user))
     settings = frappe.get_single("JH Digitrack Settings")
-
+ 
     has_access = (
         "JH Digitrack Admin" in user_roles
         or "JH Property Department" in user_roles
@@ -686,7 +894,7 @@ def has_property_automation_nav_access():
         or frappe.db.count("JH Property Master", filters={"approver_1": user}) > 0
         or frappe.db.count("JH Property Master", filters={"approver_2": user}) > 0
     )
-
+ 
     if not has_access:
         for delegator in _get_standing_delegators(user):
             delegator_roles = set(frappe.get_roles(delegator))
@@ -702,13 +910,13 @@ def has_property_automation_nav_access():
             ):
                 has_access = True
                 break
-
+ 
     if not has_access and _get_visible_adhoc_renewals(user):
         has_access = True
-
+ 
     return {"has_access": has_access}
-
-
+ 
+ 
 @frappe.whitelist(methods=["GET"])
 def get_logged_in_property_user():
     user = frappe.session.user
@@ -727,7 +935,32 @@ def get_logged_in_property_user():
     is_approver = is_approver_1 or is_approver_2
     has_adhoc_delegation = bool(_get_adhoc_delegated_renewals(user))
     has_visible_adhoc_renewal = bool(_get_visible_adhoc_renewals(user))
-
+ 
+    # Extend flags via standing (Temporary/Permanent) delegation
+    has_standing_delegation = False
+    if not is_administrator:
+        for delegator in _get_standing_delegators(user):
+            has_standing_delegation = True
+            delegator_roles = set(frappe.get_roles(delegator))
+            if not is_module_admin and "JH Digitrack Admin" in delegator_roles:
+                is_module_admin = True
+            if not is_cfo and delegator == settings.cfo_user:
+                is_cfo = True
+            if not is_md and delegator == settings.md_user:
+                is_md = True
+            if not has_property_dept_role and "JH Property Department" in delegator_roles:
+                has_property_dept_role = True
+            if not has_gl_team_role and "JH GL Team" in delegator_roles:
+                has_gl_team_role = True
+            if not is_licensing and "JH Licensing Team" in delegator_roles:
+                is_licensing = True
+            if not is_approver_1 and frappe.db.count("JH Property Master", filters={"approver_1": delegator}):
+                is_approver_1 = True
+                is_approver = True
+            if not is_approver_2 and frappe.db.count("JH Property Master", filters={"approver_2": delegator}):
+                is_approver_2 = True
+                is_approver = True
+ 
     return {
         "user": user,
         "has_property_access": (
@@ -739,6 +972,7 @@ def get_logged_in_property_user():
             or is_md
             or is_approver
             or has_adhoc_delegation
+            or has_standing_delegation
         ),
         "has_property_dept_role": has_property_dept_role,
         "has_gl_team_role": has_gl_team_role,
@@ -750,6 +984,7 @@ def get_logged_in_property_user():
         "is_approver_1": is_approver_1,
         "is_approver_2": is_approver_2,
         "has_adhoc_delegation": has_adhoc_delegation,
+        "has_standing_delegation": has_standing_delegation,
         "has_visible_adhoc_renewal": has_visible_adhoc_renewal,
         "roles": sorted(user_roles),
     }
@@ -786,7 +1021,7 @@ def _get_effective_roles(user, renewal=None):
         if frappe_role in user_roles:
             matches.add(workflow_role)
             return
-
+ 
         for delegator in _get_active_delegators(user):
             if frappe_role not in set(frappe.get_roles(delegator)):
                 continue
@@ -794,7 +1029,7 @@ def _get_effective_roles(user, renewal=None):
                 matches.add(workflow_role)
                 behalf_map[workflow_role] = delegator
                 return
-
+ 
     # Frappe role-based workflow roles with delegation support
     add_frappe_role_match("JH Digitrack Admin", "module_admin")
     add_frappe_role_match("JH Property Department", "property_dept")
@@ -840,35 +1075,107 @@ def _get_effective_roles(user, renewal=None):
 @frappe.whitelist(methods=["GET"])
 def whoami(renewal_id: str = None, is_new: bool = False):
     user = frappe.session.user
+
     if user == "Administrator":
         return {"role": "Administrator"}
- 
+
     is_new = bool(cint(is_new))
- 
+
+    # ---------------------------------------------------------
+    # NEW DOCUMENT
+    # ---------------------------------------------------------
     if is_new:
         matches, behalf_map = _get_effective_roles(user)
+
         for role in ROLE_PRIORITY:
             if role in matches:
-                return {"role": role, "on_behalf_of": behalf_map.get(role)}
+                return {
+                    "role": role,
+                    "on_behalf_of": behalf_map.get(role),
+                }
+
         frappe.throw(_("You are not allowed to access property renewal workflow."))
- 
+
+    # ---------------------------------------------------------
+    # EXISTING RENEWAL
+    # ---------------------------------------------------------
     if not renewal_id:
         frappe.throw(_("renewal_id is required when is_new is false"))
- 
+
     frappe.flags.ignore_permissions = True
     try:
-        renewal = frappe.get_doc("JH Property Rental Renewal", renewal_id)
+        renewal = frappe.get_doc(
+            "JH Property Rental Renewal",
+            renewal_id
+        )
     finally:
         frappe.flags.ignore_permissions = False
- 
+
     matches, behalf_map = _get_effective_roles(user, renewal)
- 
-    for role in ROLE_PRIORITY:
+
+    current_state = renewal.workflow_state or "Draft"
+
+    # ---------------------------------------------------------
+    # STATE-BASED ROLE PRIORITY
+    # ---------------------------------------------------------
+    state_role_priority = {
+        "Draft": [
+            "licensing",
+            "property_dept",
+            "module_admin",
+        ],
+
+        "Pending Approver 1": [
+            "approver_1",
+            "module_admin",
+        ],
+
+        "Pending Approver 2": [
+            "approver_2",
+            "module_admin",
+        ],
+
+        "Pending CFO": [
+            "cfo",
+            "module_admin",
+        ],
+
+        "Pending MD": [
+            "md",
+            "module_admin",
+        ],
+
+        "Pending Cheque Details": [
+            "property_dept",
+            "module_admin",
+        ],
+
+        "Pending Property PO": [
+            "property_dept",
+            "module_admin",
+        ],
+
+        "Pending MIRO": [
+            "gl_team",
+            "module_admin",
+        ],
+    }
+
+    priority_roles = state_role_priority.get(
+        current_state,
+        ROLE_PRIORITY
+    )
+
+    for role in priority_roles:
         if role in matches:
-            return {"role": role, "on_behalf_of": behalf_map.get(role)}
- 
-    frappe.throw(_("You are not allowed to access property renewal workflow."))
- 
+            return {
+                "role": role,
+                "on_behalf_of": behalf_map.get(role),
+            }
+
+    frappe.throw(
+        _("You are not allowed to access property renewal workflow.")
+    )
  
 def get_user_workflow_roles(renewal):
     roles, _ = _get_effective_roles(frappe.session.user, renewal)
@@ -921,7 +1228,7 @@ def get_renewal_role(renewal_id: str):
     """
     if not renewal_id:
         frappe.throw(_("renewal_id is required"))
-
+ 
     try:
         result = whoami(renewal_id=renewal_id, is_new=False)
     except frappe.PermissionError:
@@ -933,7 +1240,7 @@ def get_renewal_role(renewal_id: str):
                 "sendback_options": [],
             }
         raise
-
+ 
     frappe.flags.ignore_permissions = True
     try:
         renewal = frappe.get_doc("JH Property Rental Renewal", renewal_id)
@@ -1012,178 +1319,217 @@ def get_division_gm(division: str = None, property: str = None, renewal_id: str 
  
 @frappe.whitelist(methods=["GET"])
 def get_my_pending_renewals():
+    """Return renewal records where the logged-in user is the next actor,
+    including delegation-aware renewals.
     """
-    Returns the actual renewal records where the logged-in user is the next actor.
-    Uses ignore_permissions=True because approvers have no DocType-level read role —
-    actor filtering is enforced here instead.
-    """
+ 
     user = frappe.session.user
-    user_roles = set(frappe.get_roles(user))
  
-    cfo_user = frappe.db.get_single_value("JH Digitrack Settings", "cfo_user")
-    md_user = frappe.db.get_single_value("JH Digitrack Settings", "md_user")
+    try:
+        user_roles = set(frappe.get_roles(user) or [])
  
-    is_admin = user == "Administrator" or "JH Digitrack Admin" in user_roles
- 
-    RENEWAL_FIELDS = [
-        "name", "property", "current_rent", "proposed_rent",
-        "rent_change_percent", "renewal_from", "renewal_to",
-        "division", "workflow_state", "modified",
-    ]
- 
-    # Admins see all active (non-terminal) renewals
-    if is_admin:
-        renewals = frappe.get_all(
-            "JH Property Rental Renewal",
-            filters={"workflow_state": ["not in", ["Completed", "Withdrawn"]]},
-            fields=RENEWAL_FIELDS,
-            ignore_permissions=True,
-        )
-        return {"renewals": renewals}
- 
-    # Build a set of (workflow_state, optional property restriction) clauses
-    # We'll collect results per segment and union them.
-    seen = set()
-    results = []
- 
-    def _fetch(filters):
-        rows = frappe.get_all(
-            "JH Property Rental Renewal",
-            filters=filters,
-            fields=RENEWAL_FIELDS,
-            order_by="modified desc",
-            ignore_permissions=True,
-        )
-        for r in rows:
-            if r["name"] not in seen:
-                seen.add(r["name"])
-                results.append(r)
- 
-    def _fetch_for_actor(actor, actor_roles):
-        if "JH Licensing Team" in actor_roles:
-            _fetch({"workflow_state": "Draft"})
-
-        if "JH Property Department" in actor_roles:
-            _fetch({"workflow_state": "Pending Cheque Details"})
-            _fetch({"workflow_state": "Pending Property PO"})
-
-        if "JH GL Team" in actor_roles:
-            _fetch({"workflow_state": "Pending MIRO"})
-
-        if actor == cfo_user:
-            _fetch({"workflow_state": "Pending CFO"})
-
-        if actor == md_user:
-            _fetch({"workflow_state": "Pending MD"})
-
-        a1_props = frappe.get_all(
-            "JH Property Master", filters={"approver_1": actor},
-            pluck="name", ignore_permissions=True,
-        )
-        if a1_props:
-            _fetch({"workflow_state": "Pending Approver 1", "property": ["in", a1_props]})
-
-        a2_props = frappe.get_all(
-            "JH Property Master", filters={"approver_2": actor},
-            pluck="name", ignore_permissions=True,
-        )
-        if a2_props:
-            _fetch({"workflow_state": "Pending Approver 2", "property": ["in", a2_props]})
-
-    _fetch_for_actor(user, user_roles)
-
-    for delegator in _get_standing_delegators(user):
-        _fetch_for_actor(delegator, set(frappe.get_roles(delegator)))
-
-    adhoc_renewals = _get_adhoc_delegated_renewals(user)
-    if adhoc_renewals:
-        adhoc_rows = frappe.get_all(
-            "JH Property Rental Renewal",
-            filters={
-                "name": ["in", adhoc_renewals],
-                "workflow_state": ["not in", ["Completed", "Withdrawn"]],
-            },
-            fields=RENEWAL_FIELDS,
-            order_by="modified desc",
-            ignore_permissions=True,
-        )
-        for r in adhoc_rows:
-            if r["name"] not in seen:
-                frappe.flags.ignore_permissions = True
-                try:
-                    renewal_doc = frappe.get_doc("JH Property Rental Renewal", r["name"])
-                finally:
-                    frappe.flags.ignore_permissions = False
-                if get_permitted_actions(renewal_doc):
-                    seen.add(r["name"])
-                    results.append(r)
-
-    return {"renewals": results}
- 
- 
-@frappe.whitelist(methods=["GET"])
-def get_my_pending_filters():
-    user = frappe.session.user
-    user_roles = set(frappe.get_roles(user))
- 
-    cfo_user = frappe.db.get_single_value("JH Digitrack Settings", "cfo_user")
-    md_user = frappe.db.get_single_value("JH Digitrack Settings", "md_user")
- 
-    # Admins see all active renewals
-    if user == "Administrator" or "JH Digitrack Admin" in user_roles:
-        return {
-            "filters": [
-                ["JH Property Rental Renewal", "workflow_state", "in", [
-                    "Draft", "Pending Approver 1", "Pending Approver 2",
-                    "Pending Cheque Details", "Pending CFO", "Pending MD",
-                    "Pending Property PO", "Pending MIRO",
-                ]]
-            ]
-        }
- 
-    pending_states = []
- 
-    if "JH Licensing Team" in user_roles:
-        pending_states.append("Draft")
-    if "JH Property Department" in user_roles:
-        pending_states.extend(["Pending Cheque Details", "Pending Property PO"])
-    if "JH GL Team" in user_roles:
-        pending_states.append("Pending MIRO")
-    if user == cfo_user:
-        pending_states.append("Pending CFO")
-    if user == md_user:
-        pending_states.append("Pending MD")
- 
-    # Per-property approver roles
-    approver_1_props = frappe.get_all(
-        "JH Property Master", filters={"approver_1": user}, pluck="name"
-    )
-    approver_2_props = frappe.get_all(
-        "JH Property Master", filters={"approver_2": user}, pluck="name"
-    )
-    approver_properties = list(set(approver_1_props + approver_2_props))
- 
-    if approver_1_props:
-        pending_states.append("Pending Approver 1")
-    if approver_2_props:
-        pending_states.append("Pending Approver 2")
- 
-    if not pending_states:
-        return {"filters": []}
- 
-    filters = [
-        ["JH Property Rental Renewal", "workflow_state", "in", list(set(pending_states))]
-    ]
- 
-    # If the user's only pending role is as a property-specific approver,
-    # also restrict by the properties they are assigned to.
-    only_approver_states = set(pending_states) <= {"Pending Approver 1", "Pending Approver 2"}
-    if only_approver_states and approver_properties:
-        filters.append(
-            ["JH Property Rental Renewal", "property", "in", approver_properties]
+        cfo_user = frappe.db.get_single_value(
+            "JH Digitrack Settings",
+            "cfo_user"
         )
  
-    return {"filters": filters}
+        md_user = frappe.db.get_single_value(
+            "JH Digitrack Settings",
+            "md_user"
+        )
+ 
+        is_admin = (
+            user == "Administrator"
+            or "JH Digitrack Admin" in user_roles
+        )
+ 
+        RENEWAL_FIELDS = [
+            "name",
+            "property",
+            "current_rent",
+            "proposed_rent",
+            "rent_change_percent",
+            "renewal_from",
+            "renewal_to",
+            "division",
+            "workflow_state",
+            "modified",
+        ]
+ 
+        # ------------------------------------------------------------------
+        # Admin users
+        # ------------------------------------------------------------------
+        if is_admin:
+            renewals = frappe.get_all(
+                "JH Property Rental Renewal",
+                filters={
+                    "workflow_state": [
+                        "not in",
+                        ["Completed", "Withdrawn"]
+                    ]
+                },
+                fields=RENEWAL_FIELDS,
+                order_by="modified desc",
+                ignore_permissions=True,
+            )
+ 
+            return {"renewals": _attach_approver_names(renewals)}
+ 
+        seen = set()
+        results = []
+ 
+        # ------------------------------------------------------------------
+        # Helper to add rows safely
+        # ------------------------------------------------------------------
+        def _add_rows(filters):
+            rows = frappe.get_all(
+                "JH Property Rental Renewal",
+                filters=filters,
+                fields=RENEWAL_FIELDS,
+                order_by="modified desc",
+                ignore_permissions=True,
+            )
+ 
+            for row in rows:
+                if row.get("name") and row["name"] not in seen:
+                    seen.add(row["name"])
+                    results.append(row)
+ 
+        # ------------------------------------------------------------------
+        # Fetch renewals for an actor
+        # ------------------------------------------------------------------
+        def _fetch_for_actor(actor, actor_roles):
+ 
+            # Property Department / Licensing Team
+            if (
+                "JH Property Department" in actor_roles
+                or "JH Licensing Team" in actor_roles
+            ):
+ 
+                # Draft renewals
+                _add_rows({
+                    "workflow_state": "Draft"
+                })
+ 
+                # Pending cheque details
+                _add_rows({
+                    "workflow_state": "Pending Cheque Details"
+                })
+ 
+                # Pending property PO
+                _add_rows({
+                    "workflow_state": "Pending Property PO"
+                })
+            
+            # GL Team
+            if "JH GL Team" in actor_roles:
+                _add_rows({
+                    "workflow_state": "Pending MIRO"
+                })
+ 
+            # CFO
+            if actor == cfo_user:
+                _add_rows({
+                    "workflow_state": "Pending CFO"
+                })
+ 
+            # MD
+            if actor == md_user:
+                _add_rows({
+                    "workflow_state": "Pending MD"
+                })
+ 
+            # --------------------------------------------------------------
+            # Approver 1 properties
+            # --------------------------------------------------------------
+            approver_1_properties = frappe.get_all(
+                "JH Property Master",
+                filters={
+                    "approver_1": actor
+                },
+                pluck="name",
+                ignore_permissions=True,
+            )
+ 
+            if approver_1_properties:
+                _add_rows({
+                    "workflow_state": "Pending Approver 1",
+                    "property": ["in", approver_1_properties]
+                })
+ 
+            # --------------------------------------------------------------
+            # Approver 2 properties
+            # --------------------------------------------------------------
+            approver_2_properties = frappe.get_all(
+                "JH Property Master",
+                filters={
+                    "approver_2": actor
+                },
+                pluck="name",
+                ignore_permissions=True,
+            )
+ 
+            if approver_2_properties:
+                _add_rows({
+                    "workflow_state": "Pending Approver 2",
+                    "property": ["in", approver_2_properties]
+                })
+ 
+        # ------------------------------------------------------------------
+        # Current user renewals
+        # ------------------------------------------------------------------
+        _fetch_for_actor(user, user_roles)
+ 
+        # ------------------------------------------------------------------
+        # Standing delegation renewals
+        # ------------------------------------------------------------------
+        delegators = _get_standing_delegators(user) or []
+ 
+        for delegator in delegators:
+            delegator_roles = set(
+                frappe.get_roles(delegator) or []
+            )
+ 
+            _fetch_for_actor(
+                delegator,
+                delegator_roles
+            )
+ 
+        # ------------------------------------------------------------------
+        # Adhoc delegated renewals
+        # ------------------------------------------------------------------
+        adhoc_renewals = _get_adhoc_delegated_renewals(user)
+ 
+        if adhoc_renewals:
+ 
+            adhoc_rows = frappe.get_all(
+                "JH Property Rental Renewal",
+                filters={
+                    "name": ["in", adhoc_renewals],
+                    "workflow_state": [
+                        "not in",
+                        ["Completed", "Withdrawn"]
+                    ],
+                },
+                fields=RENEWAL_FIELDS,
+                order_by="modified desc",
+                ignore_permissions=True,
+            )
+ 
+            for row in adhoc_rows:
+                if row.get("name") and row["name"] not in seen:
+                    seen.add(row["name"])
+                    results.append(row)
+ 
+        return {"renewals": _attach_approver_names(results)}
+ 
+    except Exception:
+        frappe.log_error(
+            frappe.get_traceback(),
+            "get_my_pending_renewals Error"
+        )
+ 
+        return {"renewals": []}
  
  
 @frappe.whitelist(methods=["GET"])
@@ -1216,11 +1562,10 @@ def calculate_rent_change_percent(current_rent=None, proposed_rent=None):
  
 def _validate_stage_fields(renewal):
     state = renewal.workflow_state
-
+ 
     if state == "Pending Cheque Details":
         if not renewal.cheque_details:
             frappe.throw(_("At least one cheque detail row is required."))
-        row = renewal.cheque_details[0]
         required = {
             "bank_name": _("Bank Name"),
             "cheque_number": _("Cheque Number"),
@@ -1228,32 +1573,28 @@ def _validate_stage_fields(renewal):
             "payee": _("Payee"),
             "signatory": _("Signatory"),
         }
-        missing = [label for field, label in required.items() if not row.get(field)]
-        if missing:
-            frappe.throw(_("Missing required cheque fields: {0}").format(", ".join(missing)))
-        if not flt(row.get("cheque_amount")):
-            frappe.throw(_("Cheque Amount must be greater than zero."))
-
+        for i, row in enumerate(renewal.cheque_details, start=1):
+            missing = [label for field, label in required.items() if not row.get(field)]
+            if missing:
+                frappe.throw(_("Cheque row {0}: missing {1}").format(i, ", ".join(missing)))
+            if not flt(row.get("cheque_amount")):
+                frappe.throw(_("Cheque row {0}: Amount must be greater than zero.").format(i))
+ 
     elif state == "Pending Property PO":
         if not renewal.po_number:
             frappe.throw(_("PO Number is required."))
         if not renewal.renewed_contract_document:
             frappe.throw(_("Renewed Contract Document is required."))
-
+ 
     elif state == "Pending MIRO":
         if not renewal.miro_number:
             frappe.throw(_("MIRO Number is required."))
-
-
+ 
+ 
 @frappe.whitelist(methods=["POST"])
 def save_renewal_progress(
     renewal_id: str,
-    bank_name: str = None,
-    cheque_number: str = None,
-    cheque_amount=None,
-    cheque_date: str = None,
-    payee: str = None,
-    signatory: str = None,
+    cheque_details=None,
     po_number: str = None,
     miro_number: str = None,
     renewed_contract_document: str = None,
@@ -1282,18 +1623,22 @@ def save_renewal_progress(
     renewal.flags.ignore_validate_update_after_submit = True
  
     if current_state == "Pending Cheque Details":
+        import json as _json
+        rows = cheque_details
+        if isinstance(rows, str):
+            rows = _json.loads(rows)
+        if not rows:
+            frappe.throw(_("At least one cheque detail row is required."))
         renewal.set("cheque_details", [])
-        renewal.append(
-            "cheque_details",
-            {
-                "bank_name": bank_name or "",
-                "cheque_number": cheque_number or "",
-                "cheque_amount": flt(cheque_amount),
-                "cheque_date": cheque_date or "",
-                "payee": payee or "",
-                "signatory": signatory or "",
-            },
-        )
+        for row in rows:
+            renewal.append("cheque_details", {
+                "bank_name": row.get("bank_name") or "",
+                "cheque_number": row.get("cheque_number") or "",
+                "cheque_amount": flt(row.get("cheque_amount")),
+                "cheque_date": row.get("cheque_date") or "",
+                "payee": row.get("payee") or "",
+                "signatory": row.get("signatory") or "",
+            })
  
     if current_state == "Pending Property PO":
         renewal.po_number = po_number or ""
@@ -1302,7 +1647,7 @@ def save_renewal_progress(
  
     if current_state == "Pending MIRO":
         renewal.miro_number = miro_number or ""
-
+ 
     _validate_stage_fields(renewal)
     renewal.save(ignore_permissions=True)
  
@@ -1315,7 +1660,7 @@ def save_renewal_progress(
         "renewed_contract_document": renewal.renewed_contract_document
  
     }
-
+ 
 @frappe.whitelist(methods=["POST"])
 def apply_workflow_action(
     renewal_id: str,
@@ -1339,14 +1684,17 @@ def apply_workflow_action(
             _("This renewal has already moved from {0} to {1}. Please refresh before taking action.")
             .format(expected_state, current_state)
         )
-
+ 
     whoami_result = whoami(renewal_id=renewal_id, is_new=False)
     role = whoami_result.get("role")
     on_behalf_of = whoami_result.get("on_behalf_of")
-
+ 
     if action == "sendback":
         if target_state not in SENDBACK_TRANSITIONS.get(current_state, set()):
             frappe.throw(_("Invalid target state {0} for sendback from {1}").format(target_state, current_state))
+        sendback_transition = WORKFLOW_TRANSITIONS["sendback"].get(current_state)
+        if not sendback_transition or role not in sendback_transition["roles"]:
+            frappe.throw(_("Role {0} is not allowed to send back from state {1}").format(role, current_state))
         next_state = target_state
         if not comment:
             frappe.throw(_("Comment is required for sendback"))
@@ -1358,6 +1706,8 @@ def apply_workflow_action(
             frappe.throw(_("Action {0} is not allowed when workflow state is {1}").format(action, current_state))
         if role not in transition["roles"]:
             frappe.throw(_("Role {0} is not allowed to {1} a renewal in state {2}").format(role, action, current_state))
+        if not comment:
+            frappe.throw(_("Comment is required"))
         next_state = transition["next_state"]
         if current_state == "Pending Approver 1" and action == "approve":
             approver_2 = frappe.db.get_value("JH Property Master", renewal.property, "approver_2") if renewal.property else None
@@ -1374,14 +1724,14 @@ def apply_workflow_action(
                 notify_md(renewal)
         if action == "approve" and current_state in {"Pending Cheque Details", "Pending Property PO", "Pending MIRO"}:
             _validate_stage_fields(renewal)
-
+ 
     audit_comment = comment
     if on_behalf_of:
         delegate_name = frappe.db.get_value("User", frappe.session.user, "full_name") or frappe.session.user
         delegator_name = frappe.db.get_value("User", on_behalf_of, "full_name") or on_behalf_of
         delegation_note = f"{action.title()} by {delegate_name} on behalf of {delegator_name}"
         audit_comment = f"{delegation_note}\n{comment}".strip() if comment else delegation_note
-
+ 
     renewal.append(
         "audit_trail",
         {
@@ -1401,14 +1751,97 @@ def apply_workflow_action(
     renewal.last_tat_notification = None
     renewal.save(ignore_permissions=True)
     update_property_master_renewal_date(renewal)
-
+ 
     from jh_digitrack.api.helpers.delegation import expire_adhoc_delegations_for_document
     expire_adhoc_delegations_for_document(renewal)
-
+ 
     return {
         "name": renewal.name,
         "role": role,
         "previous_state": current_state,
         "workflow_state": renewal.workflow_state,
     }
+ 
+ 
+@frappe.whitelist(methods=["GET"])
+def get_renewal_pipeline_counts():
+    ctx = _get_property_user_context()
+    user = ctx["user"]
+ 
+    has_full_access = (
+        ctx["is_admin"] or ctx["is_md"] or ctx["is_cfo"]
+        or ctx["has_property_dept"] or ctx["has_gl_team"] or ctx["is_licensing"]
+    )
+ 
+    STATES = [
+        ("draft", "Draft"),
+        ("pending_approver_1", "Pending Approver 1"),
+        ("pending_approver_2", "Pending Approver 2"),
+        ("pending_cfo", "Pending CFO"),
+        ("pending_md", "Pending MD"),
+        ("pending_cheque_details", "Pending Cheque Details"),
+        ("pending_property_po", "Pending Property PO"),
+        ("pending_miro", "Pending MIRO"),
+        ("completed", "Completed"),
+        ("withdrawn", "Withdrawn"),
+    ]
+ 
+    counts = {key: 0 for key, _ in STATES}
+ 
+    if has_full_access:
+        rows = frappe.get_all(
+            "JH Property Rental Renewal",
+            fields=["workflow_state"],
+            ignore_permissions=True,
+        )
+        state_map = {label: key for key, label in STATES}
+        for row in rows:
+            key = state_map.get(row["workflow_state"])
+            if key:
+                counts[key] += 1
+    else:
+        approver_props = _get_approver_properties(user)
+        adhoc_renewals = _get_visible_adhoc_renewals(user)
+        if not approver_props and not adhoc_renewals:
+            return counts
+ 
+        seen = set()
+        rows = []
+        if approver_props:
+            rows += frappe.get_all(
+                "JH Property Rental Renewal",
+                filters={"property": ["in", approver_props]},
+                fields=["name", "workflow_state"],
+                ignore_permissions=True,
+            )
+        if adhoc_renewals:
+            rows += frappe.get_all(
+                "JH Property Rental Renewal",
+                filters={"name": ["in", adhoc_renewals]},
+                fields=["name", "workflow_state"],
+                ignore_permissions=True,
+            )
+ 
+        state_map = {label: key for key, label in STATES}
+        for row in rows:
+            if row["name"] in seen:
+                continue
+            seen.add(row["name"])
+            key = state_map.get(row["workflow_state"])
+            if key:
+                counts[key] += 1
+ 
+    return counts
+ 
+ 
+@frappe.whitelist(methods=["GET"])
+def get_bank_accounts():
+    accounts = frappe.get_all(
+        "JH Bank Account",
+        filters={"is_active": 1},
+        fields=["bank_name"],
+        order_by="bank_name asc",
+        ignore_permissions=True,
+    )
+    return {"bank_accounts": [a.bank_name for a in accounts]}
  

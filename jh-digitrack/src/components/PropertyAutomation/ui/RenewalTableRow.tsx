@@ -1,23 +1,35 @@
 import { TableRow, TableCell } from "@/components/ui/table";
-import { Pencil } from "lucide-react";
+import { Pencil, Download } from "lucide-react";
 import { useOutletContext } from "react-router";
 import StatusBadge from "./StatusBadge";
 
 
-function RenewalTableRow({ renewals , index, onClick,isLoading,onEdit,renewalColorHighlight,formatDate,isLicensingTeam  }: any) {
+function RenewalTableRow({ renewals , index, onClick,isLoading,onEdit,renewalColorHighlight,formatDate,isLicensingTeam,onDownload  }: any) {
 
 
    const renewalPeriod = (() => {
-        if (!renewals.renewal_from || !renewals.renewal_to) return "";
+  if (!renewals.renewal_to) return "-";
 
-        const from = new Date(renewals.renewal_from);
-        const to = new Date(renewals.renewal_to);
+  const today = new Date();
+  const expiryDate = new Date(renewals.renewal_from);
 
-        const diffTime = to.getTime() - from.getTime();
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  // Remove time portion for accurate day calculation
+  today.setHours(0, 0, 0, 0);
+  expiryDate.setHours(0, 0, 0, 0);
 
-        return `${diffDays} days`;
-   })();
+  const diffTime = expiryDate.getTime() - today.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays > 0) {
+    return `${diffDays} days left`;
+  }
+
+  if (diffDays === 0) {
+    return "Expires today";
+  }
+
+  return `Expired ${Math.abs(diffDays)} days ago`;
+})();
 
   if(isLoading){
     return (
@@ -41,25 +53,59 @@ function RenewalTableRow({ renewals , index, onClick,isLoading,onEdit,renewalCol
       <TableCell>{renewals.proposed_rent}</TableCell>
       <TableCell>{renewals.rent_change_percent != null ? `${Number(renewals.rent_change_percent).toFixed(2)}%` : "-"}</TableCell>
       <TableCell>{renewalPeriod}</TableCell>
-      <TableCell><StatusBadge status={renewals.workflow_state} /></TableCell>
-      <TableCell>{renewals.modified}</TableCell>
-
-      {isLicensingTeam  && 
-        <TableCell>
-          
-             <div
-                className="flex justify-center items-center cursor-pointer"
-                onClick={(e) => {
-                  e.stopPropagation(); //  prevent row click
-                  onEdit(renewals.name);
-                }}
-                title="Edit Renewal"
-              >
-                <Pencil size={13} />
-            </div>
-       
+      <TableCell className="text-center">
+          <div className="flex justify-center">
+            <StatusBadge
+              status={renewals.workflow_state}
+              approverName={
+                renewals.workflow_state === "Pending Approver 1"
+                  ? renewals.approver_1_name
+                  : renewals.workflow_state === "Pending Approver 2"
+                  ? renewals.approver_2_name
+                  : undefined
+              }
+            />
+          </div>
       </TableCell>
-}
+      <TableCell>
+        {renewals.modified ? (() => {
+          const d = new Date(renewals.modified);
+          const date = `${String(d.getDate()).padStart(2, "0")}-${String(d.getMonth() + 1).padStart(2, "0")}-${d.getFullYear()}`;
+          const time = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
+          return <span className="flex flex-col text-xs"><span>{date}</span><span className="text-gray-500">{time}</span></span>;
+        })() : "-"}
+      </TableCell>
+
+      <TableCell>
+        <div className="flex justify-center items-center gap-1">
+          {isLicensingTeam && (
+            <div
+              className="cursor-pointer"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit(renewals.name);
+              }}
+              title="Edit Renewal"
+            >
+              <Pencil size={14} />
+            </div>
+          )}
+
+          {renewals.workflow_state === "Completed" && (
+            <div
+              className="cursor-pointer text-primary hover:text-green-800"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDownload(renewals.name);
+              }}
+              title="Download PDF"
+            >
+              <Download size={17} />
+            </div>
+          )}
+          
+        </div>
+      </TableCell>
       
   
     </TableRow>
