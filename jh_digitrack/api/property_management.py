@@ -27,11 +27,11 @@ ACTIVE_RENEWAL_STATES = [
 SENDBACK_TRANSITIONS = {
     "Pending Approver 1": {"Draft"},
     "Pending Approver 2": {"Pending Approver 1", "Draft"},
-    "Pending CFO": {"Pending Approver 2", "Pending Approver 1", "Draft"},
-    "Pending MD": {"Pending CFO", "Pending Approver 2", "Pending Approver 1", "Draft"},
-    "Pending Cheque Details": {"Pending MD", "Pending CFO", "Pending Approver 2", "Pending Approver 1", "Draft"},
-    "Pending Property PO": {"Pending Cheque Details", "Pending MD", "Pending CFO", "Pending Approver 2", "Pending Approver 1", "Draft"},
-    "Pending MIRO": {"Pending Property PO", "Pending Cheque Details", "Pending MD", "Pending CFO", "Pending Approver 2", "Pending Approver 1", "Draft"},
+    "Pending Cheque Details": {"Pending Approver 2", "Pending Approver 1", "Draft"},
+    "Pending CFO": {"Pending Cheque Details", "Pending Approver 2", "Pending Approver 1", "Draft"},
+    "Pending MD": {"Pending CFO", "Pending Cheque Details", "Pending Approver 2", "Pending Approver 1", "Draft"},
+    "Pending Property PO": {"Pending MD", "Pending CFO", "Pending Cheque Details", "Pending Approver 2", "Pending Approver 1", "Draft"},
+    "Pending MIRO": {"Pending Property PO", "Pending MD", "Pending CFO", "Pending Cheque Details", "Pending Approver 2", "Pending Approver 1", "Draft"},
 }
  
 STATE_ROLE_MAP = {
@@ -61,21 +61,21 @@ WORKFLOW_TRANSITIONS = {
  
         "Pending Approver 2": {
             "roles": {"approver_2", "module_admin", "Administrator"},
-            "next_state": "Pending CFO",
-        },
- 
-        "Pending CFO": {
-            "roles": {"cfo", "module_admin", "Administrator"},
-            "next_state": None,  # handled dynamically: >5% → Pending MD, else → Pending Cheque Details
-        },
- 
-        "Pending MD": {
-            "roles": {"md", "module_admin", "Administrator"},
             "next_state": "Pending Cheque Details",
         },
- 
+
         "Pending Cheque Details": {
             "roles": {"property_dept", "module_admin", "Administrator"},
+            "next_state": "Pending CFO",
+        },
+
+        "Pending CFO": {
+            "roles": {"cfo", "module_admin", "Administrator"},
+            "next_state": None,  # handled dynamically: >5% → Pending MD, else → Pending Property PO
+        },
+
+        "Pending MD": {
+            "roles": {"md", "module_admin", "Administrator"},
             "next_state": "Pending Property PO",
         },
  
@@ -106,21 +106,21 @@ WORKFLOW_TRANSITIONS = {
             "roles": {"approver_2", "module_admin", "Administrator"},
             "next_state": "Pending Approver 1",
         },
+        "Pending Cheque Details": {
+            "roles": {"property_dept", "module_admin", "Administrator"},
+            "next_state": "Pending Approver 2",
+        },
         "Pending CFO": {
             "roles": {"cfo", "module_admin", "Administrator"},
-            "next_state": "Pending Approver 2",
+            "next_state": "Pending Cheque Details",
         },
         "Pending MD": {
             "roles": {"md", "module_admin", "Administrator"},
             "next_state": "Pending CFO",
         },
-        "Pending Cheque Details": {
-            "roles": {"property_dept", "module_admin", "Administrator"},
-            "next_state": "Pending CFO",
-        },
         "Pending Property PO": {
             "roles": {"property_dept", "module_admin", "Administrator"},
-            "next_state": "Pending Cheque Details",
+            "next_state": "Pending CFO",
         },
         "Pending MIRO": {
             "roles": {"gl_team", "module_admin", "Administrator"},
@@ -1231,14 +1231,39 @@ def get_renewal_role(renewal_id: str):
  
     try:
         result = whoami(renewal_id=renewal_id, is_new=False)
-    except frappe.PermissionError:
+    except (frappe.PermissionError, frappe.exceptions.ValidationError):
         user = frappe.session.user
+
         if renewal_id in _get_visible_adhoc_renewals(user):
             return {
                 "role": "adhoc_viewer",
                 "actions": [],
                 "sendback_options": [],
             }
+
+        # User has no active role for this state but may still have read access
+        # (e.g. CFO viewing a renewal that moved to Pending Property PO,
+        # or Approver 1 viewing a renewal past their stage).
+        ctx = _get_property_user_context()
+        has_any_access = (
+            ctx["is_admin"] or ctx["is_md"] or ctx["is_cfo"]
+            or ctx["has_property_dept"] or ctx["has_gl_team"] or ctx["is_licensing"]
+        )
+        if not has_any_access:
+            renewal_property = frappe.db.get_value(
+                "JH Property Rental Renewal", renewal_id, "property",
+                ignore_permissions=True,
+            )
+            if renewal_property and renewal_property in _get_approver_properties(user):
+                has_any_access = True
+
+        if has_any_access:
+            return {
+                "role": "viewer",
+                "actions": [],
+                "sendback_options": [],
+            }
+
         raise
  
     frappe.flags.ignore_permissions = True
@@ -1712,7 +1737,7 @@ def apply_workflow_action(
         if current_state == "Pending Approver 1" and action == "approve":
             approver_2 = frappe.db.get_value("JH Property Master", renewal.property, "approver_2") if renewal.property else None
             if not approver_2:
-                next_state = "Pending CFO"
+                next_state = "Pending Cheque Details"
         if current_state == "Pending CFO" and action == "approve":
             current_rent = flt(renewal.current_rent)
             proposed_rent = flt(renewal.proposed_rent)
@@ -1720,7 +1745,7 @@ def apply_workflow_action(
             if rent_change_percent > 5:
                 next_state = "Pending MD"
             else:
-                next_state = "Pending Cheque Details"
+                next_state = "Pending Property PO"
                 notify_md(renewal)
         if action == "approve" and current_state in {"Pending Cheque Details", "Pending Property PO", "Pending MIRO"}:
             _validate_stage_fields(renewal)
