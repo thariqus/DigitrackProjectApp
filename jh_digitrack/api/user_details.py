@@ -1597,6 +1597,131 @@ def _append_jrc_name_column_from_email(headers, rows):
 
 def run_post_hrms_sync():
     try:
+        # ================================================================
+        # DUMP STEP : Refresh HRMS Users Dump Table
+        # ----------------------------------------------------------------
+        # Wipe the dump table and repopulate it with the full current
+        # contents of HRMS Users so downstream consumers always see a
+        # clean, up-to-date snapshot from this sync run.
+        # ================================================================
+        frappe.db.sql("DELETE FROM `tabHRMS User Dump`")
+        frappe.db.sql("""
+            INSERT INTO `tabHRMS User Dump` (
+                name,
+                employee_code,
+                first_name,
+                middle_name,
+                last_name,
+                company_name,
+                date_of_joining,
+                mobile_no,
+                dob,
+                gender,
+                mail_id,
+                reporting_manager,
+                funcational_reporting_manager,
+                skip_level_reporting_manager,
+                ou_name,
+                department_name,
+                location_name,
+                designation_name,
+                grade_name,
+                region,
+                country,
+                city,
+                position,
+                cost_center,
+                pay_group,
+                employee_status,
+                vis_expiry_date,
+                ic_valid_till_date,
+                active,
+                effctive_from,
+                created_on,
+                created_by,
+                modified_on,
+                modified_by1,
+                desk_no,
+                company_sponsor,
+                visa_designation,
+                passport_number,
+                passport_expiry_date,
+                personal_code,
+                work_permit_number,
+                nationality,
+                eid_number,
+                entity_name,
+                coi_expiry_date,
+                coi_no,
+                vis_sponsor,
+                emp_salutation,
+                emp_confirmationdate,
+                emp_confirmation_due_on,
+                emp_notice_period,
+                cost_center_name,
+                employee_job_status
+            )
+            SELECT
+                employee_code,
+                employee_code,
+                first_name,
+                middle_name,
+                last_name,
+                company_name,
+                date_of_joining,
+                mobile_no,
+                dob,
+                gender,
+                mail_id,
+                reporting_manager,
+                funcational_reporting_manager,
+                skip_level_reporting_manager,
+                ou_name,
+                department_name,
+                location_name,
+                designation_name,
+                grade_name,
+                region,
+                country,
+                city,
+                position,
+                cost_center,
+                pay_group,
+                employee_status,
+                vis_expiry_date,
+                ic_valid_till_date,
+                active,
+                effctive_from,
+                created_on,
+                created_by,
+                modified_on,
+                modified_by1,
+                desk_no,
+                company_sponsor,
+                visa_designation,
+                passport_number,
+                passport_expiry_date,
+                personal_code,
+                work_permit_number,
+                nationality,
+                eid_number,
+                entity_name,
+                coi_expiry_date,
+                coi_no,
+                vis_sponsor,
+                emp_salutation,
+                emp_confirmationdate,
+                emp_confirmation_due_on,
+                emp_notice_period,
+                cost_center_name,
+                employee_job_status
+            FROM `tabHRMS Users`
+            WHERE IFNULL(employee_code, '') <> ''
+        """)
+        frappe.log_error(
+            title="DUMP STEP: Refresh HRMS Users Dump",
+            message="Cleared tabHRMS Users Dump and repopulated it from tabHRMS Users"
+        )
 
         # ================================================================
         # PRE-STEP 1 : Clear Existing Inactive Employee Records
