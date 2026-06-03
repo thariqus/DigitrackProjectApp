@@ -80,7 +80,9 @@ export const useApplyWorkflowAction = () => {
       queryClient.invalidateQueries({ queryKey: ['Docs'] });
       queryClient.invalidateQueries({ queryKey: ['DocInfo'] });
       queryClient.invalidateQueries({ queryKey: ['RenewalDoc'] });
-      queryClient.invalidateQueries({ queryKey: ['RenewalRole'] });
+      // Remove (not just invalidate) so canApproveWorkflow immediately drops to false
+      // while the fresh fetch runs — prevents wrong buttons showing during revalidation.
+      queryClient.removeQueries({ queryKey: ['RenewalRole'] });
       queryClient.invalidateQueries({ queryKey: ['RenewalList'] });
       queryClient.invalidateQueries({ queryKey: ['PendingRenewals'] });
       queryClient.invalidateQueries({ queryKey: ['Delegations'] });

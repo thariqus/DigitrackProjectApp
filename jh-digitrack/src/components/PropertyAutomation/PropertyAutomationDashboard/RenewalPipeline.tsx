@@ -25,6 +25,12 @@ function RenewalPipeline() {
       color: "bg-sky-100 text-sky-800 border-sky-200",
     },
     {
+      label: "Pending Cheque Details",
+      status: "Pending Cheque Details",
+      apiKey: "pending_cheque_details",
+      color: "bg-indigo-100 text-indigo-800 border-indigo-200",
+    },
+    {
       label: "Pending CFO Approval",
       status: "Pending CFO",
       apiKey: "pending_cfo",
@@ -35,12 +41,6 @@ function RenewalPipeline() {
       status: "Pending MD",
       apiKey: "pending_md",
       color: "bg-amber-100 text-amber-800 border-amber-200",
-    },
-    {
-      label: "Pending Cheque Details",
-      status: "Pending Cheque Details",
-      apiKey: "pending_cheque_details",
-      color: "bg-indigo-100 text-indigo-800 border-indigo-200",
     },
     {
       label: "Pending PO",
