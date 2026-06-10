@@ -44,6 +44,7 @@ async function add_workflow_action_buttons(frm) {
 
 	const response = await frappe.call({
 		method: "jh_digitrack.api.property_management.get_allowed_actions",
+		type: "GET",
 		args: {
 			renewal_id: frm.doc.name,
 		},
