@@ -10,6 +10,12 @@ from frappe.utils import flt
 class JHPropertyRentalRenewal(Document):
 
 	def validate(self):
+		for field in [
+			'remarks', 'po_number', 'miro_number', 'division', 'location',
+			'emirate', 'landlord', 'property_type', 'tenancy_period',
+		]:
+			if self.get(field):
+				self.set(field, frappe.utils.sanitize_html(self.get(field), always_sanitize=True))
 		self.validate_active_property_renewal()
 
 	def before_save(self):
