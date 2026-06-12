@@ -4,7 +4,7 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import flt
+from frappe.utils import flt, getdate, today
 
 
 class JHPropertyRentalRenewal(Document):
@@ -16,6 +16,8 @@ class JHPropertyRentalRenewal(Document):
 		]:
 			if self.get(field):
 				self.set(field, frappe.utils.sanitize_html(self.get(field), always_sanitize=True))
+		self.validate_dates()
+		self.validate_currency_fields()
 		self.validate_active_property_renewal()
 
 	def before_save(self):
@@ -35,6 +37,22 @@ class JHPropertyRentalRenewal(Document):
 			return
 
 		self.rent_change_percent = ((proposed_rent - current_rent) / current_rent) * 100
+
+	def validate_dates(self):
+		if self.renewal_from and getdate(self.renewal_from) < getdate(today()):
+			frappe.throw(_("Renewal From date cannot be in the past."))
+
+		if self.renewal_from and self.renewal_to:
+			if getdate(self.renewal_to) <= getdate(self.renewal_from):
+				frappe.throw(_("Renewal To date must be after Renewal From date."))
+
+	def validate_currency_fields(self):
+		if self.proposed_rent is not None and flt(self.proposed_rent) < 0:
+			frappe.throw(_("Proposed Rent cannot be negative."))
+
+		for row in self.get("cheque_details", []):
+			if row.cheque_amount is not None and flt(row.cheque_amount) < 0:
+				frappe.throw(_("Cheque Amount in row {0} cannot be negative.").format(row.idx))
 
 	def validate_active_property_renewal(self):
 		if not self.property:
