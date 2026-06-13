@@ -1,7 +1,7 @@
 import { TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 
-export const PropertyTableHeader = ({ tableHeadings,canHaveAccess }: { tableHeadings: string[],canHaveAccess ?: boolean })=> {
+export const PropertyTableHeader = ({ tableHeadings,canHaveAccess,canStartRenewal}: { tableHeadings: string[],canHaveAccess ?: boolean ,canStartRenewal: boolean})=> {
 
   return (
     <TableHeader>
@@ -28,7 +28,7 @@ export const PropertyTableHeader = ({ tableHeadings,canHaveAccess }: { tableHead
         }
         {/* Actions */}
 
-        {canHaveAccess  && (
+        {(canHaveAccess || canStartRenewal) && (
           <TableHead className="w-[58px] text-center">Actions</TableHead>
         )}
       </TableRow>
