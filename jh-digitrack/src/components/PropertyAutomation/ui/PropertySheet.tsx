@@ -1,4 +1,3 @@
-
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -11,7 +10,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
  
 import { Controller, useForm, useWatch } from "react-hook-form";
-import { useNavigate } from "react-router";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -21,7 +19,7 @@ import FileAttachment from "./FileAttachment";
 import MultiValueInput from "./MultiValueInput";
 import StartRenewalModal from "./StartRenewalModal";
 import { useDocs, useSaveDoc, useUpdateDoc } from "@/hooks/doc";
-import { usePropertyDoc, useRenewalList } from "../hooks/useProperty";
+import { usePropertyDoc, useRenewalList, useUserAccess } from "../hooks/useProperty";
 import { PropertyMaster, JHPropertyElectricityConnection, JHPropertyLandline, ChequeDetail, RentalRenewal } from "@/types/JHDigitrack/JHPropertyAutomation";
 import { X } from "lucide-react";
 import { queryClient } from "@/utils/query-client";
@@ -170,6 +168,23 @@ const getMultiValueItems = (value?: string | null) =>
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean);
+
+const calculateRenewalDate = (leaseStartDate: string, tenancyPeriod: string): string | null => {
+  if (!leaseStartDate || !tenancyPeriod) return null;
+  const match = tenancyPeriod.match(/^(\d+)\s*(Months?|Weeks?|Years?)$/i);
+  if (!match) return null;
+  const amount = parseInt(match[1], 10);
+  const unit = match[2].toLowerCase();
+  const date = new Date(leaseStartDate);
+  if (unit.startsWith("month")) {
+    date.setMonth(date.getMonth() + amount);
+  } else if (unit.startsWith("year")) {
+    date.setFullYear(date.getFullYear() + amount);
+  } else if (unit.startsWith("week")) {
+    date.setDate(date.getDate() + amount * 7);
+  }
+  return date.toISOString().split("T")[0];
+};
  
 export default function PropertySheet({
   open,
@@ -182,7 +197,6 @@ export default function PropertySheet({
 }: PropertySheetProps) {
  
   const [files, setFiles] = useState<File[]>([]);
-  const [isRenewalModalOpen, setIsRenewalModalOpen] = useState(false);
   const [approver1Search, setApprover1Search] = useState("");
   const [approver2Search, setApprover2Search] = useState("");
   const [openApproverField, setOpenApproverField] = useState<"approver_1" | "approver_2" | null>(null);
@@ -191,7 +205,8 @@ export default function PropertySheet({
   const [securityDepositCheques, setSecurityDepositCheques] = useState<ChequeDetail[]>([]);
   const lastAutoFilledDivisionRef = useRef<string | null>(null);
   const approverFieldRefs = useRef<Partial<Record<"approver_1" | "approver_2", HTMLDivElement | null>>>({});
-  const navigate = useNavigate();
+  const { data: roleBasedAccess } = useUserAccess();
+  const isLicensingTeam = !!roleBasedAccess?.is_licensing;
  
   const saveDoc = useSaveDoc();
   const updateDoc = useUpdateDoc();
@@ -206,7 +221,7 @@ export default function PropertySheet({
   const formId = "property-form";
  
   const { data: propertyData, isFetching: isPropertyFetching } = usePropertyDoc(propertyId);
-  const { data: renewalsListData,refetch: refetchRenewals } = useRenewalList(
+  const { data: renewalsListData, refetch: refetchRenewals } = useRenewalList(
   {
     property: propertyId || undefined,
     limit: 50,
@@ -220,11 +235,14 @@ const renewalsData = renewalsListData?.renewals ?? [];
   const doc = propertyData?.doc as PropertyMaster | undefined;
  
   const hasExistingRenewals = renewalsData.length > 0;
-  const activeRenewal = hasExistingRenewals
-    ? (renewalsData as RentalRenewal[]).slice().sort(
-        (a, b) => new Date(b.modified).getTime() - new Date(a.modified).getTime()
-      )[0]?.name
-    : null;
+  // const latestRenewal = hasExistingRenewals
+  //   ? (renewalsData as RentalRenewal[]).slice().sort(
+  //       (a, b) => new Date(b.modified).getTime() - new Date(a.modified).getTime()
+  //     )[0]
+  //   : null;
+  // const isRenewalInProgress =
+  //   !!latestRenewal &&
+  //   latestRenewal.workflow_state !== "Completed";
  
   const { data: divisionData } = useDocs({
     doctype: "JH Division Master",
@@ -259,6 +277,8 @@ const renewalsData = renewalsListData?.renewals ?? [];
 
   const numberOfPremisesWatch = useWatch({ control, name: "number_of_premises" });
   const premiseNumberWatch = useWatch({ control, name: "premise_number" });
+  const tenancyPeriodWatch = useWatch({ control, name: "tenancy_period" });
+  const leaseStartDateWatch = useWatch({ control, name: "lease_start_date" });
  
   const { data: selectedDivisionData } = useDocs({
     doctype: "JH Division Master",
@@ -354,6 +374,14 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
  
     lastAutoFilledDivisionRef.current = divisionWatch;
   }, [divisionWatch, open, selectedDivision, selectedDivisionData, setValue]);
+
+  useEffect(() => {
+    if (!isCreate || !tenancyPeriodWatch || !leaseStartDateWatch) return;
+    const renewalDate = calculateRenewalDate(leaseStartDateWatch, tenancyPeriodWatch);
+    if (renewalDate) {
+      setValue("renewal_date", renewalDate, { shouldValidate: true, shouldDirty: true });
+    }
+  }, [tenancyPeriodWatch, leaseStartDateWatch, isCreate, setValue]);
  
   const userOptions = useMemo(
     () =>
@@ -478,11 +506,12 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
     label: string,
     name: keyof z.infer<typeof propertySchema>,
     value?: string | number,
-    type = "text"
+    type = "text",
+    disabled = false
   ) => {
     const isRequired = requiredFields.includes(name as string);
 
- 
+
     return (
       <div className="flex flex-col gap-1">
         {!isView && (
@@ -490,7 +519,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
             {label} {isRequired && <span className="text-red-500">*</span>}
           </Label>
         )}
- 
+
         {isView ? (
           <div className="flex items-start gap-2 py-1 text-sm">
             <span className="font-medium text-gray-600">{label}:</span>
@@ -505,7 +534,8 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                 type={type}
                 {...field}
                 value={field.value ?? ""}
-                className={errors[name] ? "border-red-500" : ""}
+                disabled={disabled}
+                className={`${errors[name] ? "border-red-500" : ""} ${disabled ? "bg-muted cursor-not-allowed" : ""}`}
               />
             )}
           />
@@ -1220,46 +1250,6 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
             <SheetTitle>
               {isCreate ? "Create Property" : isEdit ? "Edit Property" : "Property Details"}
             </SheetTitle>
- 
-             <div className="">
-              {!isView && !isCreate && (
-                <>
-                  <Button
-                    className="bg-primary text-white rounded-full"
-                    type="button"
-                    onClick={() => {
-                      if (hasExistingRenewals && activeRenewal) {
-                        navigate("/jh-digitrack/property/renewals", {
-                          state: { openRenewal: activeRenewal },
-                        });
-                      } else {
-                        setIsRenewalModalOpen(true);
-                      }
-                    }}
-                  >
-                    {hasExistingRenewals ? "View Active Renewal" : "Start Renewal"}
-                  </Button>
- 
-                  <StartRenewalModal
-                    open={isRenewalModalOpen}
-                    onOpenChange={setIsRenewalModalOpen}
-                    propertyId={propertyId || ""}
-                    propertyName={doc?.property_name || ""}
-                    currentRent={doc?.current_rent}
-                    renewalFrom={doc?.renewal_date?.split("T")[0]}
-                    mode="new"
-                    onCreated={async () => {
-                      await refetchRenewals();
-                      await queryClient.invalidateQueries({
-                        queryKey: ["RenewalList"],
-                        exact: false,
-                      });
-                    }}
-                  />
-                </>
-              )}
-            </div>
- 
           </div>
  
           <Button variant="ghost" size="icon" onClick={() => handleSheetOpenChange(false)}>
@@ -1399,7 +1389,16 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {renderField("Landlord", "landlord", doc?.landlord)}
               {renderField("Real Estate", "real_estate", doc?.real_estate)}
-              {renderField("Current Rent", "current_rent", doc?.current_rent)}
+               {isView ? (
+                <div className="flex items-center gap-2 py-1 text-sm">
+                  <span className="font-medium text-gray-600">Lease start date:</span>
+                  <span>{formatDate(doc?.lease_start_date)}</span>
+                </div>
+              ) : (
+                renderField("Lease start date", "lease_start_date", doc?.lease_start_date, "date")
+              )}
+
+               {renderTenancyPeriodField("Tenancy Period", "tenancy_period", doc?.tenancy_period)}
  
               {isView ? (
                 <div className="flex items-center gap-2 py-1 text-sm">
@@ -1411,17 +1410,8 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
               ) : (
                 renderField("Renewal Date", "renewal_date", doc?.renewal_date, "date")
               )}
- 
-              {renderTenancyPeriodField("Tenancy Period", "tenancy_period", doc?.tenancy_period)}
 
-              {isView ? (
-                <div className="flex items-center gap-2 py-1 text-sm">
-                  <span className="font-medium text-gray-600">Lease start date:</span>
-                  <span>{formatDate(doc?.lease_start_date)}</span>
-                </div>
-              ) : (
-                renderField("Lease start date", "lease_start_date", doc?.lease_start_date, "date")
-              )}
+               {renderField("Current Rent", "current_rent", doc?.current_rent)}
             </div>
 
             <Separator />
@@ -1440,7 +1430,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
  
             <h2 className="text-lg font-semibold">Utilities</h2>
             <div className={`grid grid-cols-1 ${isView ? "md:grid-cols-3" : "md:grid-cols-4"} gap-3`}>
-              {renderField("Electricity Accounts", "electricity_accounts", doc?.electricity_accounts)}
+              {renderField("Electricity Accounts", "electricity_accounts", doc?.electricity_accounts, "text", true)}
               {renderField(
                 "Electricity / Water Security Deposit",
                 "electricity_water_security_deposit",
@@ -1553,8 +1543,10 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
         </ScrollArea>
  
         <SheetFooter className="absolute bottom-0 w-full bg-white px-5">
+
+           {!isView && (
           <div className="flex w-full gap-2">
-            {!isView && (
+           
               <>
                 <Button variant="outline" className="w-full" type="button" onClick={() => handleSheetOpenChange(false)}>
                   Cancel
@@ -1569,8 +1561,9 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                   {isSubmitting ? "Saving..." : isEdit ? "Update Property" : "Create Property"}
                 </Button>
               </>
-            )}
+            
           </div>
+        )}
         </SheetFooter>
       </SheetContent>
     </Sheet>
