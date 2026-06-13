@@ -1,15 +1,42 @@
 import { TableRow, TableCell } from "@/components/ui/table";
-import { Pencil } from "lucide-react";
+import { Pencil, RefreshCw } from "lucide-react";
 import { useOutletContext } from "react-router";
 import StatusBadge from "./StatusBadge";
+import { Button } from "@/components/ui/button";
+import StartRenewalModal from "./StartRenewalModal";
+import { useRenewalList } from "../hooks/useProperty";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 type ContextType = {
   propertyRole: any;
 };
 
-function PropertyTableRow({ property, index, onClick,isLoading,onEdit,renewalColorHighlight,getRenewalStatus,formatDate,canCreateOrEditProperty, }: any) {
+function PropertyTableRow({ property, index, onClick,isLoading,onEdit,renewalColorHighlight,getRenewalStatus,formatDate,canCreateOrEditProperty, canStartRenewal,onStartRenewal}: any) {
 
    const { propertyRole } = useOutletContext<ContextType>();
+   const { data: renewalsListData } = useRenewalList(
+  {
+    property: property.name,
+    limit: 50,
+    page: 1,
+  },
+  !!property.name
+);
+
+const renewalsData = renewalsListData?.renewals ?? [];
+
+const latestRenewal =
+  renewalsData.length > 0
+    ? [...renewalsData].sort(
+        (a, b) =>
+          new Date(b.modified).getTime() -
+          new Date(a.modified).getTime()
+      )[0]
+    : null;
+
+const isRenewalInProgress =
+  !!latestRenewal &&
+  latestRenewal.workflow_state !== "Completed";
 
   if(isLoading){
     return (
@@ -41,8 +68,9 @@ function PropertyTableRow({ property, index, onClick,isLoading,onEdit,renewalCol
         </div>
       </TableCell>
 
-      {canCreateOrEditProperty && (
+     
         <TableCell>
+        {canCreateOrEditProperty && (
         <div
         className="flex justify-center items-center cursor-pointer"
         onClick={(e) => {
@@ -52,10 +80,40 @@ function PropertyTableRow({ property, index, onClick,isLoading,onEdit,renewalCol
       >
         <Pencil size={13} />
       </div>
+        )}
+
+        {
+          canStartRenewal && (
+            <div>
+             <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    disabled={isRenewalInProgress}
+                    className="p-0 bg-[#972e26] hover:bg-[#972e26]/90"
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onStartRenewal(property);
+                    }}
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+
+                <TooltipContent>
+                  <p>Initiate Renewal</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+                    </div>
+
+                    
+                  )
+                }
+
+
       </TableCell>
-      )
-        
-      }
   
     </TableRow>
   );
