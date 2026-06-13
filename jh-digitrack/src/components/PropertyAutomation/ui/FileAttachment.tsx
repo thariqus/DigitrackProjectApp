@@ -1,9 +1,7 @@
 import { useState } from "react";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { File, X, Cloud } from "lucide-react";
-import { ScrollBar } from "@/components/ui/scroll-area";
-import { toast } from "sonner";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 
 interface FileAttachmentProps {
@@ -49,61 +47,62 @@ export default function FileAttachment({files, setFiles}: FileAttachmentProps) {
   };
 
   return (
-    <div className="space-y-2 mb-10">
+    <div className="space-y-2 mb-7">
 
       {/* File Preview Section */}
-      <div className="flex space-x-4 mt-2 max-w-2xl overflow-x-auto shadow-sm pb-2">
-        {files.length > 0 ? (
-          files.map((file, index) => {
-            const preview = URL.createObjectURL(file);
+      <ScrollArea className="w-full max-w-2xl shadow-sm pb-2">
+        <div className="flex space-x-4 mt-2">
+          {files.length > 0 ? (
+            files.map((file, index) => {
+              const preview = URL.createObjectURL(file);
 
-            return (
-              <div
-                key={index}
-                className="flex flex-col items-center gap-1 w-36"
-              >
-                {/* Preview */}
-                <div className="w-full h-24 border rounded-md overflow-hidden">
-                  {file.type.startsWith("image/") ? (
-                    <img
-                      src={preview}
-                      alt={file.name}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex items-center justify-center h-full">
-                      <File className="h-8 w-8 text-gray-500" />
-                    </div>
-                  )}
-                </div>
-
-                {/* Name + Delete */}
-                <div className="flex justify-between w-full items-center">
-                  <div
-                    className="text-sm text-gray-500 truncate px-1 w-full"
-                    title={file.name}
-                  >
-                    {file.name}
+              return (
+                <div
+                  key={index}
+                  className="flex flex-col items-center gap-1 w-36 shrink-0"
+                >
+                  {/* Preview */}
+                  <div className="w-full h-24 border rounded-md overflow-hidden">
+                    {file.type.startsWith("image/") ? (
+                      <img
+                        src={preview}
+                        alt={file.name}
+                        className="w-full h-full object-fit"
+                      />
+                    ) : (
+                      <div className="flex items-center justify-center h-full">
+                        <File className="h-8 w-8 text-gray-500" />
+                      </div>
+                    )}
                   </div>
 
-                  <Button
-                    type="button"
-                    variant="link"
-                    className="p-0 h-min"
-                    onClick={() => handleRemoveFile(index)}
-                  >
-                    <X className="h-4 w-4 text-red-500" />
-                  </Button>
-                </div>
-              </div>
-            );
-          })
-        ) : (
-          <p className="text-sm text-gray-400">No files selected</p>
-        )}
+                  {/* Name + Delete */}
+                  <div className="flex justify-between w-full items-center">
+                    <div
+                      className="text-xs text-gray-500 truncate px-1 w-full"
+                      title={file.name}
+                    >
+                      {file.name}
+                    </div>
 
+                    <Button
+                      type="button"
+                      variant="link"
+                      className="p-0 h-min"
+                      onClick={() => handleRemoveFile(index)}
+                    >
+                      <X className="h-4 w-4 text-red-500" />
+                    </Button>
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <p className="text-sm text-gray-400">No files selected</p>
+          )}
+        </div>
         <ScrollBar orientation="horizontal" />
-      </div>
+      </ScrollArea>
 
       {/* Drag & Drop Area */}
       <div
