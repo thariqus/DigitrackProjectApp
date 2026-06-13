@@ -6,19 +6,12 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
-  "bank_name",
+  "cheque_type",
   "cheque_date",
   "cheque_amount",
   "payee"
  ],
  "fields": [
-  {
-   "fieldname": "bank_name",
-   "fieldtype": "Select",
-   "in_list_view": 1,
-   "label": "Cheque Type",
-   "options": "PDC\nCDC\nJT Cheque\nCash"
-  },
   {
    "fieldname": "cheque_amount",
    "fieldtype": "Currency",
@@ -35,13 +28,20 @@
    "fieldname": "payee",
    "fieldtype": "Data",
    "label": "Payee"
+  },
+  {
+   "fieldname": "cheque_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Cheque Type",
+   "options": "PDC\nCDC\nJT Cheque\nCash"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-06-13 11:45:21.594674",
+ "modified": "2026-06-13 17:29:51.689934",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Property Cheque Detail",
