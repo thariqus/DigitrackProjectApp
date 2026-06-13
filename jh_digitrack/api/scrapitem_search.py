@@ -2,11 +2,9 @@ import frappe
 
 @frappe.whitelist(allow_guest=True, methods=["GET"])
 def search_scrapitem(search):
-    if not search:
-        return {"message": []}
-
-    search_like = f"%{search}%"
-
+    search = search.strip()if search else""# Strip whitespace
+    search_like = f"%{search}%" if search else "%"
+ 
     employees = frappe.db.sql("""
         SELECT 
             item_name,
@@ -93,7 +91,7 @@ def user_scrap_items(created_by=None, page=1, page_size=10, search_query=None):
 
 from frappe import _
 
-@frappe.whitelist(allow_guest=True, methods=["POST"])
+@frappe.whitelist(allow_guest=False, methods=["POST"])
 def create_scrap_item(
     title,
     date,
@@ -140,6 +138,7 @@ def create_scrap_item(
     scrap_item.image1 = image1
     scrap_item.image2 = image2
     scrap_item.image3 = image3
+    # scrap_item.owner = getattr(user_doc, "email", created_by)
     scrap_item.insert(ignore_permissions=True)
     frappe.db.commit()
 

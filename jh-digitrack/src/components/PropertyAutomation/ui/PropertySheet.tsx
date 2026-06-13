@@ -60,17 +60,20 @@ const propertySchema = z.object({
   type_of_property: z.string().nullable().optional(),
   business_used: z.string().nullable().optional(),
   division_used: z.string().nullable().optional(),
-  booked_under: z.string().nullable().optional(),
-  profit_center: z.string().nullable().optional(),
+  booked_under: z.coerce.number().optional(),
+  profit_center: z.coerce.number().optional(),
   number_of_units: z.coerce.number().optional(),
   number_of_premises: z.coerce.number().optional(),
   premise_number: z.string().nullable().optional(),
-  staff_allocated: z.string().nullable().optional(),
+  staff_allocated: z.coerce.number().optional(),
  
   location: z.string().nullable().optional(),
   emirate: z.string().nullable().optional(),
   country: z.string().default("UAE").optional(),
-  makani_number: z.string().nullable().optional(),
+  makani_number: z.string().nullable().optional().refine(
+    val => !val || /^\d{10}$/.test(val),
+    "Makani number must be exactly 10 digits"
+  ),
   po_box_number: z.string().nullable().optional(),
   po_box_renewal_date: z.string().nullable().optional(),
  
@@ -130,12 +133,12 @@ type PropertyFormValues = z.infer<typeof propertySchema> & {
   type_of_property: "",
   business_used: "",
   division_used: "",
-  booked_under: "",
-  profit_center: "",
+  booked_under: undefined,
+  profit_center: undefined,
   number_of_units: undefined,
   number_of_premises: undefined,
   premise_number: "",
-  staff_allocated: "",
+  staff_allocated: undefined,
   location: "",
   emirate: "",
   country: "UAE",
@@ -326,6 +329,9 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
       resetSheetState({
         ...getEmptyPropertyFormValues(),
         ...doc,
+        booked_under: doc.booked_under ? Number(doc.booked_under) : undefined,
+        profit_center: doc.profit_center ? Number(doc.profit_center) : undefined,
+        staff_allocated: doc.staff_allocated ? Number(doc.staff_allocated) : undefined,
         electricity_connections: doc.electricity_connections || [],
         landline_connections: doc.landline_connections || [],
         security_deposit_cheques: doc.security_deposit_cheques || [],
@@ -506,8 +512,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
     label: string,
     name: keyof z.infer<typeof propertySchema>,
     value?: string | number,
-    type = "text",
-    disabled = false
+    type = "text"
   ) => {
     const isRequired = requiredFields.includes(name as string);
 
@@ -534,8 +539,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                 type={type}
                 {...field}
                 value={field.value ?? ""}
-                disabled={disabled}
-                className={`${errors[name] ? "border-red-500" : ""} ${disabled ? "bg-muted cursor-not-allowed" : ""}`}
+                className={errors[name] ? "border-red-500" : ""}
               />
             )}
           />
@@ -1378,7 +1382,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                 )}
               </div>
               {renderField("Country", "country", doc?.country)}
-              {renderField("Makani Number", "makani_number", doc?.makani_number)}
+              {renderField("Makani Number", "makani_number", doc?.makani_number, "text", (val) => val.replace(/\s/g, ""))}
               {renderField("PO Box", "po_box_number", doc?.po_box_number)}
               {renderField("PO Box Renewal", "po_box_renewal_date", formatDate(doc?.po_box_renewal_date), "date")}
             </div>

@@ -22,7 +22,7 @@ const tableHeadings = [
   "Emirate",
   "Current Rent",
   "Renewal Date",
-  "Status",
+  "Property Status",
 ];
 
 function Properties() {
