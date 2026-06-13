@@ -12,6 +12,8 @@ import { PropertyMaster } from "@/types/JHDigitrack/JHPropertyAutomation";
 import { PaginationControls } from "../ui/PaginationControls";
 import SearchBar from "../ui/SearchBar";
 import { usePropertyList, useUserAccess } from "../hooks/useProperty";
+import StartRenewalModal from "../ui/StartRenewalModal";
+import { queryClient } from "@/utils/query-client";
 
 const tableHeadings = [
   "Property Name",
@@ -20,7 +22,7 @@ const tableHeadings = [
   "Emirate",
   "Current Rent",
   "Renewal Date",
-  "Renewal Status",
+  "Status",
 ];
 
 function Properties() {
@@ -37,6 +39,10 @@ function Properties() {
   const [selectedProperty, setSelectedProperty] = useState<string | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const { data: permissionData } = useUserAccess();
+  const [isRenewalModalOpen, setIsRenewalModalOpen] = useState(false);
+  const [selectedRenewalProperty, setSelectedRenewalProperty] =
+  useState<PropertyMaster | null>(null);
+  
   console.log(permissionData,"permission")
 
   const renewalFilter = searchParams.get("renewal_filter") || undefined;
@@ -137,6 +143,13 @@ function Properties() {
     setIsSheetOpen(true);
   };
 
+  const handleStartRenewal = (property: PropertyMaster) => {
+  setSelectedRenewalProperty(property);
+  setIsRenewalModalOpen(true);
+};
+
+  console.log(selectedProperty,"selectedproperty")
+
   const getUrgencyColor = (date?: string) => {
     if (!date) return "text-gray-500";
     const days = (new Date(date).getTime() - Date.now()) / (1000 * 60 * 60 * 24);
@@ -177,6 +190,9 @@ function Properties() {
   const roles = permissionData?.roles || [];
   const canCreateOrEditProperty =
     roles.includes("JH Property Department") || roles.includes("JH Digitrack Admin");
+
+  const canStartRenewal = 
+    roles.includes("JH Licensing Team");
 
   return (
     <div className="w-full space-y-4">
@@ -322,6 +338,7 @@ function Properties() {
           <PropertyTableHeader
             tableHeadings={tableHeadings}
             canHaveAccess={canCreateOrEditProperty}
+            canStartRenewal= {canStartRenewal}
           />
 
           <TableBody>
@@ -337,6 +354,8 @@ function Properties() {
                 getRenewalStatus={getRenewalStatus}
                 formatDate={formatDate}
                 canCreateOrEditProperty={canCreateOrEditProperty}
+                canStartRenewal ={canStartRenewal}
+                onStartRenewal={handleStartRenewal}
               />
             ))}
           </TableBody>
@@ -362,8 +381,31 @@ function Properties() {
         formatDate={formatDate}
         typeOptions={typeOptions}
         hasPermisssionToViewRenewalHistory ={hasPermisssionToViewRenewalHistory}
-        
       />
+
+      {isRenewalModalOpen && selectedRenewalProperty && (
+        <StartRenewalModal
+          open={isRenewalModalOpen}
+          onOpenChange={setIsRenewalModalOpen}
+          propertyId={selectedRenewalProperty.name}
+          propertyName={selectedRenewalProperty.property_name}
+          currentRent={selectedRenewalProperty.current_rent}
+          renewalFrom={selectedRenewalProperty.renewal_date}
+          tenancyPeriod={selectedRenewalProperty.tenancy_period}
+          mode="new"
+          onCreated={() => {
+            queryClient.invalidateQueries({
+              queryKey: ["RenewalList"],
+            });
+
+            queryClient.invalidateQueries({
+              queryKey: ["PropertyList"],
+            });
+          }}
+        />
+      )}
+
+            
     </div>
   );
 }
