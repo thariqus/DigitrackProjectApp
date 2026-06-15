@@ -1202,7 +1202,7 @@ def get_permitted_actions(renewal):
     return actions
  
  
-@frappe.whitelist(methods=["GET", "POST"])
+@frappe.whitelist(methods=["GET"])
 def get_allowed_actions(renewal_id: str):
     if not renewal_id:
         frappe.throw(_("renewal_id is required"))

@@ -5,6 +5,10 @@ frappe.ui.form.on("JH Property Rental Renewal", {
 	async refresh(frm) {
 		calculate_percent(frm);
 		await add_workflow_action_buttons(frm);
+		jh_attach_sanitizer(frm, [
+			'po_number', 'miro_number', 'division', 'location', 'emirate',
+			'landlord', 'property_type', 'tenancy_period', 'remarks'
+		]);
 	},
 	property(frm) {
 		// Wait until fetch_from fields (like current_rent) are populated.
@@ -40,6 +44,7 @@ async function add_workflow_action_buttons(frm) {
 
 	const response = await frappe.call({
 		method: "jh_digitrack.api.property_management.get_allowed_actions",
+		type: "GET",
 		args: {
 			renewal_id: frm.doc.name,
 		},
