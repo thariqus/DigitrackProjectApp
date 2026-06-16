@@ -8,6 +8,15 @@
 // });
 frappe.ui.form.on('JH Property Master', {
 
+    refresh(frm) {
+        jh_attach_sanitizer(frm, [
+            'property_name', 'booked_under', 'profit_center', 'premise_number',
+            'staff_allocated', 'location', 'emirate', 'country', 'makani_number',
+            'po_box_number', 'landlord', 'real_estate', 'tenancy_period',
+            'internet_connection'
+        ]);
+    },
+
     division_used: function(frm) {
         if (frm.doc.division_used) {
             frappe.db.get_doc('JH Division Master', frm.doc.division_used)

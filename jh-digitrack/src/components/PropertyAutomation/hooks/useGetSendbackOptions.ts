@@ -30,12 +30,10 @@ export const useGetSendbackOptions = (renewalId: string | null) => {
         return [];
       }
 
-      const res = await fetch(`/api/method/jh_digitrack.api.property_management.get_allowed_actions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ renewal_id: renewalId }),
-      });
+      const res = await fetch(
+        `/api/method/jh_digitrack.api.property_management.get_allowed_actions?renewal_id=${encodeURIComponent(renewalId)}`,
+        { credentials: 'include' }
+      );
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
