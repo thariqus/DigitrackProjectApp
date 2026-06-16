@@ -11,15 +11,15 @@
   "type_of_property",
   "business_used",
   "division_used",
-  "approver_1",
-  "approver_2",
-  "column_break_rpia",
   "booked_under",
   "profit_center",
+  "column_break_rpia",
   "number_of_units",
   "number_of_premises",
   "premise_number",
   "staff_allocated",
+  "section_break_518v",
+  "approver",
   "location_details_section",
   "location",
   "emirate",
@@ -252,19 +252,6 @@
    "options": "JH Business Master"
   },
   {
-   "fieldname": "approver_1",
-   "fieldtype": "Link",
-   "label": "Approver 1",
-   "options": "User",
-   "reqd": 1
-  },
-  {
-   "fieldname": "approver_2",
-   "fieldtype": "Link",
-   "label": "Approver 2",
-   "options": "User"
-  },
-  {
    "fieldname": "lease_start_date",
    "fieldtype": "Date",
    "label": "Lease start Date"
@@ -307,12 +294,22 @@
    "fieldname": "landline_accounts",
    "fieldtype": "Int",
    "label": "Landline Accounts"
+  },
+  {
+   "fieldname": "section_break_518v",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "approver",
+   "fieldtype": "Table",
+   "label": "Approver",
+   "options": "JH Property Approver"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-05-22 12:36:17.618070",
+ "modified": "2026-06-15 13:21:30.495904",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Property Master",

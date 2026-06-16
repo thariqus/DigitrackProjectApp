@@ -14,6 +14,8 @@
   "organization_roles_section",
   "cfo_user",
   "md_user",
+  "fc_user",
+  "admin_hod_user",
   "property_automation_tab",
   "property_automation_section",
   "enable_property_renewal_reminders",
@@ -109,12 +111,24 @@
    "fieldtype": "Table",
    "label": "Property Workflow TAT\t",
    "options": "JH Property Workflow TAT"
+  },
+  {
+   "fieldname": "fc_user",
+   "fieldtype": "Link",
+   "label": "FC",
+   "options": "User"
+  },
+  {
+   "fieldname": "admin_hod_user",
+   "fieldtype": "Link",
+   "label": "Admin HOD",
+   "options": "User"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-04-22 18:27:21.136544",
+ "modified": "2026-06-15 13:12:28.260724",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Digitrack Settings",
