@@ -13,8 +13,7 @@ export interface PropertyMaster {
   business_used?: string;
 
   division_used: string;
-  approver_1: string;
-  approver_2?: string;
+  approvers?: { order: number; approver: string }[];
   booked_under: string;
   profit_center: string;
 
@@ -113,18 +112,22 @@ export interface RentalRenewal {
   number_of_units?: number;
   tenancy_period?: string;
 
-  // Approver names (resolved from JH Property Master)
+  // Approver names (resolved from JH Property Master child table)
   approver_1_name?: string | null;
   approver_2_name?: string | null;
+  approver_3_name?: string | null;
 
   // Workflow
   workflow_state?:
     | "Draft"
     | "Pending Approver 1"
     | "Pending Approver 2"
+    | "Pending Approver 3"
+    | "Pending Cheque Details"
+    | "Pending Admin HOD"
+    | "Pending FC"
     | "Pending CFO"
     | "Pending MD"
-    | "Pending Cheque Details"
     | "Pending Property PO"
     | "Pending MIRO"
     | "Completed"
