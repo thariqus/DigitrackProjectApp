@@ -62,6 +62,8 @@ function RenewalTableRow({ renewals , index, onClick,isLoading,onEdit,renewalCol
                   ? renewals.approver_1_name
                   : renewals.workflow_state === "Pending Approver 2"
                   ? renewals.approver_2_name
+                  : renewals.workflow_state === "Pending Approver 3"
+                  ? renewals.approver_3_name
                   : undefined
               }
             />
