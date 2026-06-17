@@ -84,6 +84,7 @@ function Properties() {
       message?.is_licensing ||
       message?.is_approver_1 ||
       message?.is_approver_2 ||
+      message?.is_approver_3 ||
       message?.is_cfo ||
       message?.is_md ||
       message?.has_gl_team_role  
