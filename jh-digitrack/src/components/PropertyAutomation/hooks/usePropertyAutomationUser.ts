@@ -6,6 +6,7 @@ type LoggedInPropertyUser = {
   is_md?: boolean;
   is_approver_1?: boolean;
   is_approver_2?: boolean;
+  is_approver_3?: boolean;
   has_gl_team_role?: boolean;
 };
  
