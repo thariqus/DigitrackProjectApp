@@ -221,6 +221,7 @@ function Renewals() {
   const isMD = roleBasedAccess?.is_md;
   const isApprover1 = roleBasedAccess?.is_approver_1;
   const isApprover2 = roleBasedAccess?.is_approver_2;
+  const isApprover3 = roleBasedAccess?.is_approver_3;
   const isGLTeam = roleBasedAccess?.has_gl_team_role;
   
   return (
@@ -329,7 +330,7 @@ function Renewals() {
         isCfo={isCfo}
         isApprover1={isApprover1}
         isApprover2={isApprover2}
-        isApprover={!!(isApprover1 || isApprover2)}
+        isApprover={!!(isApprover1 || isApprover2 || isApprover3)}
         isGMTeam={false}
         isMD={isMD}
         isGLTeam={isGLTeam}
