@@ -4,7 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Check, ChevronsUpDown, XIcon } from "lucide-react";
+import { XIcon } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
@@ -17,7 +17,6 @@ import { toast } from "sonner";
  
 import FileAttachment from "./FileAttachment";
 import MultiValueInput from "./MultiValueInput";
-import StartRenewalModal from "./StartRenewalModal";
 import { useDocs, useSaveDoc, useUpdateDoc } from "@/hooks/doc";
 import { usePropertyDoc, useRenewalList, useUserAccess } from "../hooks/useProperty";
 import { PropertyMaster, JHPropertyElectricityConnection, JHPropertyLandline, ChequeDetail, RentalRenewal } from "@/types/JHDigitrack/JHPropertyAutomation";
@@ -33,7 +32,6 @@ type PropertySheetProps = {
   mode: "view" | "edit" | "create";
   formatDate: (date?: string) => string;
   renewalColorHighlight: (date?: string) => string;
-  typeOptions: string[];
   hasPermisssionToViewRenewalHistory:boolean;
 };
  
@@ -118,8 +116,6 @@ const propertySchema = z.object({
  
   cdc_expiry: z.string().optional(),
   hassantuk_expiry: z.string().optional(),
-  approver_1: z.string().min(1, "Required field"),
-  approver_2: z.string().nullable().optional(),
 });
 
 type PropertyFormValues = z.infer<typeof propertySchema> & {
@@ -162,8 +158,6 @@ type PropertyFormValues = z.infer<typeof propertySchema> & {
   internet_connection: "",
   cdc_expiry: "",
   hassantuk_expiry: "",
-  approver_1: "",
-  approver_2: "",
 });
 
 const getMultiValueItems = (value?: string | null) =>
@@ -200,24 +194,17 @@ export default function PropertySheet({
 }: PropertySheetProps) {
  
   const [files, setFiles] = useState<File[]>([]);
-  const [approver1Search, setApprover1Search] = useState("");
-  const [approver2Search, setApprover2Search] = useState("");
-  const [openApproverField, setOpenApproverField] = useState<"approver_1" | "approver_2" | null>(null);
+  const [approvers, setApprovers] = useState<{ order: number; approver: string }[]>([]);
   const [connections, setConnections] = useState<JHPropertyElectricityConnection[]>([]);
   const [landlineConnections, setLandlineConnections] = useState<JHPropertyLandline[]>([]);
   const [securityDepositCheques, setSecurityDepositCheques] = useState<ChequeDetail[]>([]);
   const lastAutoFilledDivisionRef = useRef<string | null>(null);
-  const approverFieldRefs = useRef<Partial<Record<"approver_1" | "approver_2", HTMLDivElement | null>>>({});
   const { data: roleBasedAccess } = useUserAccess();
   const isLicensingTeam = !!roleBasedAccess?.is_licensing;
  
   const saveDoc = useSaveDoc();
   const updateDoc = useUpdateDoc();
 
-  console.log(hasPermisssionToViewRenewalHistory,"hasPermisssionToViewRenewalHistory")
-  console.log(mode,"mode")
-  console.log(propertyId, "propertyId");
- 
   const isView = mode === "view";
   const isEdit = mode === "edit";
   const isCreate = mode === "create";
@@ -255,7 +242,7 @@ const renewalsData = renewalsListData?.renewals ?? [];
     doctype: "JH Business Master",
   });
  
-  const { data: usersData, isLoading: usersLoading, error: usersError } = useDocs<UserOption>({
+  const { data: usersData, isLoading: usersLoading } = useDocs<UserOption>({
     doctype: "User",
     limit: 200,
     fields: ["name", "full_name", "email"],
@@ -292,11 +279,9 @@ const renewalsData = renewalsListData?.renewals ?? [];
  
   const selectedDivision = selectedDivisionData?.[0];
 
-const resetSheetState = useCallback((values: PropertyFormValues = getEmptyPropertyFormValues()) => {
+const resetSheetState = useCallback((values: PropertyFormValues = getEmptyPropertyFormValues(), docApprovers?: { order: number; approver: string }[]) => {
     setFiles([]);
-    setApprover1Search("");
-    setApprover2Search("");
-    setOpenApproverField(null);
+    setApprovers(docApprovers ?? []);
     reset(values);
     setConnections(values.electricity_connections || []);
     setLandlineConnections(values.landline_connections || []);
@@ -326,6 +311,9 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
       setConnections(doc.electricity_connections || []);
       setLandlineConnections(doc.landline_connections || []);
       setSecurityDepositCheques(doc.security_deposit_cheques || []);
+      const docApprovers = doc.approver
+        ? [...doc.approver].sort((a, b) => a.order - b.order)
+        : [];
       resetSheetState({
         ...getEmptyPropertyFormValues(),
         ...doc,
@@ -340,46 +328,26 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
         po_box_renewal_date: doc.po_box_renewal_date?.split("T")[0],
         cdc_expiry: doc.cdc_expiry?.split("T")[0],
         hassantuk_expiry: doc.hassantuk_expiry?.split("T")[0],
-      });
+      }, docApprovers);
     }
   }, [open, isCreate, doc, resetSheetState]);
  
-// Handle outside click to close approver dropdown
-  useEffect(() => {
-    if (!open || !openApproverField) return;
-
-    const handlePointerDown = (event: MouseEvent) => {
-      const activeContainer = approverFieldRefs.current[openApproverField];
-      if (activeContainer && !activeContainer.contains(event.target as Node)) {
-        setOpenApproverField(null);
-      }
-    };
-
-    document.addEventListener("mousedown", handlePointerDown);
-    return () => {
-      document.removeEventListener("mousedown", handlePointerDown);
-    };
-  }, [open, openApproverField]);
- 
   useEffect(() => {
     if (!open || !divisionWatch) return;
- 
     const div = selectedDivision ?? selectedDivisionData?.[0];
     if (!div || lastAutoFilledDivisionRef.current === divisionWatch) return;
- 
-    if (div?.division_head) {
-      setValue("approver_1", div.division_head, { shouldValidate: true, shouldDirty: true });
-      setValue("approver_2", div.division_gm || "", { shouldValidate: true, shouldDirty: true });
-    } else if (div?.division_gm) {
-      setValue("approver_1", div.division_gm, { shouldValidate: true, shouldDirty: true });
-      setValue("approver_2", "", { shouldValidate: true, shouldDirty: true });
-    } else {
-      setValue("approver_1", "", { shouldValidate: true, shouldDirty: true });
-      setValue("approver_2", "", { shouldValidate: true, shouldDirty: true });
+
+    // Auto-populate approvers from division head/GM when list is empty.
+    // Keep this — required default-approver behavior, not dead code.
+    if (approvers.length === 0) {
+      const autoApprovers: { order: number; approver: string }[] = [];
+      if (div.division_head) autoApprovers.push({ order: 1, approver: div.division_head });
+      if (div.division_gm) autoApprovers.push({ order: autoApprovers.length + 1, approver: div.division_gm });
+      if (autoApprovers.length > 0) setApprovers(autoApprovers);
     }
- 
+
     lastAutoFilledDivisionRef.current = divisionWatch;
-  }, [divisionWatch, open, selectedDivision, selectedDivisionData, setValue]);
+  }, [divisionWatch, open, selectedDivision, selectedDivisionData, approvers.length]);
 
   useEffect(() => {
     if (!isCreate || !tenancyPeriodWatch || !leaseStartDateWatch) return;
@@ -388,15 +356,6 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
       setValue("renewal_date", renewalDate, { shouldValidate: true, shouldDirty: true });
     }
   }, [tenancyPeriodWatch, leaseStartDateWatch, isCreate, setValue]);
- 
-  const userOptions = useMemo(
-    () =>
-      (usersData ?? []).map((user) => ({
-        value: user.name,
-        label: user.full_name ? `${user.email} (${user.full_name})` : user.email || user.name,
-      })),
-    [usersData]
-  );
  
   const formatDateForAPI = (date?: string) => {
     if (!date) return "";
@@ -421,6 +380,12 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
   const onSubmit = async (data: PropertyFormValues) => {
     const formData = {
       ...data,
+      approver: approvers.map((row, index) => ({
+        doctype: "JH Property Approver",
+        order: row.order,
+        approver: row.approver,
+        idx: index + 1,
+      })),
       electricity_connections: connections.map((conn, index) => ({
         doctype: "JH Property Electricity Connection",
         ...conn,
@@ -440,8 +405,6 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
       landline_accounts: data.landline_accounts !== undefined ? data.landline_accounts : landlineConnections.length,
       electricity_accounts: data.electricity_accounts !== undefined ? data.electricity_accounts : connections.length,
     } as any;
-
-    console.log("Property save payload:", JSON.stringify(formData, null, 2));
 
     if (isCreate && data.renewal_date && new Date(data.renewal_date) <= new Date()) {
       toast.error("Renewal Date must be a future date");
@@ -552,136 +515,97 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
     );
   };
  
-  const renderApproverField = (
-    label: string,
-    name: keyof z.infer<typeof propertySchema>,
-    value?: string,
-    required = false
-  ) => {
-    return (
-      <div className="flex flex-col gap-1">
-        {!isView && (
-          <Label className="text-sm text-gray-600">
-            {label} {required && <span className="text-red-500">*</span>}
-          </Label>
-        )}
- 
-        {isView ? (
-          <div className="flex items-center gap-2 py-1 text-sm">
-            <span className="font-medium text-gray-600">{label}:</span>
+  const renderApproversTable = () => {
+    if (isView) {
+      const sorted = [...(doc?.approver ?? [])].sort((a, b) => a.order - b.order);
+      return (
+        <div className="flex flex-col gap-1 md:col-span-3">
+          <div className="flex items-start gap-2 py-1 text-sm">
+            <span className="font-medium text-gray-600">Approvers:</span>
             {usersLoading ? (
-              <Skeleton className="h-4 w-32" />
-            ) : usersError || !usersData ? (
-              <span className="text-gray-400 text-xs">Error loading user</span>
-            ) : (() => {
-                const user = usersData?.find((u) => u.name === value);
-                const display = user?.email || value || "-";
-                const tooltip = user?.full_name
-                  ? `${user.full_name} (${user.email || value})`
-                  : value || "No approver";
-                return (
-                  <span className="font-medium text-sm max-w-48 truncate" title={tooltip}>
-                    {display}
-                  </span>
-                );
-              })()}
+              <Skeleton className="h-4 w-48" />
+            ) : sorted.length === 0 ? (
+              <span>-</span>
+            ) : (
+              <div className="flex flex-col gap-0.5">
+                {sorted.map((row) => {
+                  const user = usersData?.find((u) => u.name === row.approver);
+                  const display = user?.email || row.approver || "-";
+                  const tooltip = user?.full_name ? `${user.full_name} (${user.email ?? row.approver})` : row.approver;
+                  return (
+                    <span key={row.order} title={tooltip}>
+                      {row.order}. {display}
+                    </span>
+                  );
+                })}
+              </div>
+            )}
           </div>
-        ) : (
-          <Controller
-            name={name}
-            control={control}
-            render={({ field }) => {
-              const selectedUser = usersData?.find((u) => u.name === field.value);
-              const displayValue = selectedUser?.email || field.value || "";
-              const searchValue = name === "approver_1" ? approver1Search : approver2Search;
-              const setSearchValue = name === "approver_1" ? setApprover1Search : setApprover2Search;
-              const filteredUserOptions = userOptions.filter((option) =>
-                option.label.toLowerCase().includes(searchValue.toLowerCase())
-              );
-              const isOpen = openApproverField === name;
- 
-              return (
-                <div
-                  ref={(node) => {
-                    approverFieldRefs.current[name as "approver_1" | "approver_2"] = node;
-                  }}
-                  className="relative"
-                >
-                  <Button
-                    type="button"
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={isOpen}
-                    disabled={usersLoading || !!usersError}
-                    className={cn(
-                      "w-full justify-between text-sm",
-                      errors[name] ? "border-red-500" : ""
-                    )}
-                    onClick={() => {
-                      const nextOpen = !isOpen;
-                      setOpenApproverField(nextOpen ? (name as "approver_1" | "approver_2") : null);
-                      if (!nextOpen) {
-                        setSearchValue("");
-                      }
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex flex-col gap-1 md:col-span-3">
+        <Label className="text-sm text-gray-600">Approvers</Label>
+        <div className="space-y-2">
+          {approvers.map((row, index) => (
+            <div key={index} className="flex gap-2 items-end bg-muted p-3 rounded-lg">
+              <div className="flex-1 grid grid-cols-[80px_1fr] gap-2">
+                <div className="flex flex-col gap-1">
+                  <Label className="text-xs">Order</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={row.order}
+                    onChange={(e) => {
+                      const updated = [...approvers];
+                      updated[index] = { ...updated[index], order: parseInt(e.target.value, 10) || index + 1 };
+                      setApprovers(updated);
                     }}
-                  >
-                    {displayValue || `Select ${label.toLowerCase()}`}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
- 
-                  {isOpen && (
-                    <div className="bg-popover text-popover-foreground absolute left-0 top-full z-50 mt-1 w-full rounded-md border shadow-md">
-                      <div className="border-b p-2">
-                        <Input
-                          value={searchValue}
-                          onChange={(event) => setSearchValue(event.target.value)}
-                          placeholder={`Search ${label.toLowerCase()}...`}
-                          className="h-9"
-                          autoFocus
-                        />
-                      </div>
- 
-                      <div className="max-h-[300px] overflow-y-auto p-1">
-                        {usersLoading ? (
-                          <div className="px-2 py-3 text-sm text-gray-500">Loading users...</div>
-                        ) : usersError ? (
-                          <div className="px-2 py-3 text-sm text-red-500">Error loading users</div>
-                        ) : filteredUserOptions.length === 0 ? (
-                          <div className="px-2 py-3 text-sm text-gray-500">No users found.</div>
-                        ) : (
-                          filteredUserOptions.map((option) => (
-                            <button
-                              key={option.value}
-                              type="button"
-                              className={cn(
-                                "hover:bg-accent hover:text-accent-foreground flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm",
-                                field.value === option.value ? "bg-accent text-accent-foreground" : ""
-                              )}
-                              onMouseDown={(event) => {
-                                event.preventDefault();
-                                field.onChange(option.value);
-                                setSearchValue("");
-                                setOpenApproverField(null);
-                              }}
-                            >
-                              <Check
-                                className={cn(
-                                  "h-4 w-4 shrink-0",
-                                  field.value === option.value ? "opacity-100" : "opacity-0"
-                                )}
-                              />
-                              <span className="truncate">{option.label}</span>
-                            </button>
-                          ))
-                        )}
-                      </div>
-                    </div>
-                  )}
+                    className="text-sm"
+                  />
                 </div>
-              );
-            }}
-          />
-        )}
+                <div className="flex flex-col gap-1">
+                  <Label className="text-xs">Approver <span className="text-red-500">*</span></Label>
+                  <select
+                    value={row.approver}
+                    onChange={(e) => {
+                      const updated = [...approvers];
+                      updated[index] = { ...updated[index], approver: e.target.value };
+                      setApprovers(updated);
+                    }}
+                    className="border rounded px-2 py-2 text-sm"
+                  >
+                    <option value="">Select approver</option>
+                    {usersData?.map((user) => (
+                      <option key={user.name} value={user.name}>
+                        {user.full_name ? `${user.email} (${user.full_name})` : user.email || user.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 p-0 -mr-2"
+                onClick={() => setApprovers(approvers.filter((_, i) => i !== index))}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          ))}
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full border-2 text-gray-500 border-dashed h-10 text-sm mt-1"
+            onClick={() => setApprovers([...approvers, { order: approvers.length + 1, approver: "" }])}
+          >
+            + Add Approver
+          </Button>
+        </div>
       </div>
     );
   };
@@ -1150,14 +1074,6 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
     name: keyof z.infer<typeof propertySchema>,
     value?: string | null
   ) => {
-    const [tenancyValue, tenancyUnit] = useMemo(() => {
-      if (!value) return [undefined, "Months"] as [number | undefined, string];
-      const match = value.match(/^(\d+)\s*(Months?|Weeks?|Years?)$/i);
-      return match 
-        ? [parseInt(match[1], 10), match[2] || "Months"] 
-        : [undefined, "Months"];
-    }, [value]);
-
     return (
       <div className="flex flex-col gap-1">
         {!isView && (
@@ -1344,8 +1260,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                 )}
               </div>
  
-              {renderApproverField("Approver 1", "approver_1", doc?.approver_1, true)}
-              {renderApproverField("Approver 2", "approver_2", doc?.approver_2)}
+              {renderApproversTable()}
               {renderField("Booked Under", "booked_under", doc?.booked_under)}
               {renderField("Profit Center", "profit_center", doc?.profit_center)}
               {renderField("Number of Units", "number_of_units", doc?.number_of_units)}
