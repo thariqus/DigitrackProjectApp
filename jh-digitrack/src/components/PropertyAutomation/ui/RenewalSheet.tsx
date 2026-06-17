@@ -1163,6 +1163,9 @@ const renderDelegationBadge = () => {
   [
     "Pending Approver 1",
     "Pending Approver 2",
+    "Pending Approver 3",
+    "Pending Admin HOD",
+    "Pending FC",
     "Pending CFO",
     "Pending MD",
   ].includes(renewalDoc?.workflow_state || "") &&
