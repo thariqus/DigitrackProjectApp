@@ -218,9 +218,12 @@ export const propertyApi = {
       draft: number;
       pending_approver_1: number;
       pending_approver_2: number;
+      pending_approver_3: number;
+      pending_cheque_details: number;
+      pending_admin_hod: number;
+      pending_fc: number;
       pending_cfo: number;
       pending_md: number;
-      pending_cheque_details: number;
       pending_property_po: number;
       pending_miro: number;
       completed: number;
