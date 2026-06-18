@@ -12,12 +12,10 @@ export type RenewalProgressPayload = {
 };
 
 export type ChequeDetailPayload = {
-  bank_name?: string;
-  cheque_number?: string;
+  cheque_type?: string;
   cheque_amount?: number;
   cheque_date?: string;
   payee?: string;
-  signatory?: string;
 };
 
 const buildQueryString = (
@@ -237,5 +235,13 @@ export const propertyApi = {
     });
     const data = await res.json();
     return (data.message as { bank_accounts: string[] }).bank_accounts ?? [];
+  },
+
+  getChequeTypes: async (): Promise<string[]> => {
+    const res = await fetch(`${API_BASE}.get_cheque_types`, {
+      credentials: "include",
+    });
+    const data = await res.json();
+    return (data.message as { cheque_types: string[] }).cheque_types ?? [];
   },
 };
