@@ -76,11 +76,18 @@ export const useRenewalRole = (renewalId?: string) =>
     enabled: !!renewalId,
   });
 
- export const useBankAccounts = () =>
+//  export const useBankAccounts = () =>
+//   useQuery({
+//     queryKey: ["BankAccounts"],
+//     queryFn: propertyApi.getBankAccounts,
+//     staleTime: 10 * 60 * 1000,
+//   });
+
+export const useChequeTypes = () =>
   useQuery({
-    queryKey: ["BankAccounts"],
-    queryFn: propertyApi.getBankAccounts,
-    staleTime: 10 * 60 * 1000,
+    queryKey: ["ChequeTypes"],
+    queryFn: propertyApi.getChequeTypes,
+    staleTime: 30 * 60 * 1000,
   });
  
  
