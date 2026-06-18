@@ -72,12 +72,10 @@ export interface JHPropertyElectricityConnection {
 }
 
 export interface ChequeDetail {
-  bank_name?: string;
-  cheque_number?: string;
+  cheque_type?: string;
   cheque_amount?: number;
   cheque_date?: string;
   payee?: string;
-  signatory?: string;
 }
 
 export interface RentalRenewal {
