@@ -223,7 +223,7 @@ function Renewals() {
   const isApprover2 = roleBasedAccess?.is_approver_2;
   const isApprover3 = roleBasedAccess?.is_approver_3;
   const isGLTeam = roleBasedAccess?.has_gl_team_role;
-  
+
   return (
     <div className="w-full space-y-4">
       <FilterButtons
@@ -286,8 +286,11 @@ function Renewals() {
 
       <div className="rounded-md border">
         <Table className="w-full table-fixed">
-          <PropertyTableHeader tableHeadings={tableHeadings} canHaveAccess={true} />
-
+          <PropertyTableHeader
+            tableHeadings={tableHeadings}
+            showCheckbox={false}
+            canHaveAccess={true}
+          />
           <TableBody>
             {renewals.map((item, index) => (
               <RenewalTableRow
@@ -301,6 +304,7 @@ function Renewals() {
                 formatDate={formatDate}
                 renewalColorHighlight={undefined}
                 isLicensingTeam={isLicensingTeam}
+                // showActionsCell={showActions}
               />
             ))}
           </TableBody>
