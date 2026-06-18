@@ -3,15 +3,13 @@ import { Pencil, RefreshCw } from "lucide-react";
 import { useOutletContext } from "react-router";
 import StatusBadge from "./StatusBadge";
 import { Button } from "@/components/ui/button";
-import StartRenewalModal from "./StartRenewalModal";
 import { useRenewalList } from "../hooks/useProperty";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 type ContextType = {
   propertyRole: any;
 };
 
-function PropertyTableRow({ property, index, onClick,isLoading,onEdit,renewalColorHighlight,getRenewalStatus,formatDate,canCreateOrEditProperty, canStartRenewal,onStartRenewal}: any) {
+function PropertyTableRow({ property, index, onClick,isLoading,onEdit,renewalColorHighlight,getRenewalStatus,formatDate,canCreateOrEditProperty, canStartRenewal,onStartRenewal,isSelected,onSelect}: any) {
 
    const { propertyRole } = useOutletContext<ContextType>();
    const { data: renewalsListData } = useRenewalList(
@@ -41,7 +39,7 @@ const isRenewalInProgress =
   if(isLoading){
     return (
       <TableRow>
-        {Array.from({ length: 8 }).map((_, i) => (
+        {Array.from({ length: 9 }).map((_, i) => (
           <TableCell key={i}>
             <div className="h-4 w-full bg-gray-200 rounded animate-pulse"></div>
           </TableCell>
@@ -52,6 +50,19 @@ const isRenewalInProgress =
 
   return (
     <TableRow className="cursor-pointer" onClick={onClick}>
+      <TableCell>
+        <input
+          type="checkbox"
+          checked={isSelected}
+          onChange={(e) => {
+            e.stopPropagation();
+            onSelect(property.name, e.target.checked);
+          }}
+          onClick={(e) => e.stopPropagation()}
+          aria-label="Select row"
+          className="h-4 w-4 cursor-pointer accent-[#972e26]"
+        />
+      </TableCell>
       <TableCell className="">{index + 1}</TableCell>
       <TableCell>{property.property_name}</TableCell>
       <TableCell>{property.type_of_property}</TableCell>
@@ -68,52 +79,34 @@ const isRenewalInProgress =
         </div>
       </TableCell>
 
-     
-        <TableCell>
-        {canCreateOrEditProperty && (
-        <div
-        className="flex justify-center items-center cursor-pointer"
-        onClick={(e) => {
-          e.stopPropagation(); //  prevent row click
-          onEdit(property.name);
-        }}
-      >
-        <Pencil size={13} />
-      </div>
-        )}
 
-        {
-          canStartRenewal && (
-            <div>
-             <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    disabled={isRenewalInProgress}
-                    className="p-0 bg-[#972e26] hover:bg-[#972e26]/90"
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onStartRenewal(property);
-                    }}
-                  >
-                    <RefreshCw className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
+      {(canCreateOrEditProperty || canStartRenewal) && (
+        <TableCell className="flex pt-5 justify-center items-center gap-2">
+          {canCreateOrEditProperty && (
+            <div
+              className="flex justify-center items-center cursor-pointer"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit(property.name);
+              }}
+            >
+              <Pencil size={14} />
+            </div>
+          )}
 
-                <TooltipContent>
-                  <p>Initiate Renewal</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-                    </div>
-
-                    
-                  )
-                }
-
-
-      </TableCell>
+          {canStartRenewal && !isRenewalInProgress && (
+            <div
+              title="Initiate Renewal"
+              onClick={(e) => {
+                e.stopPropagation();
+                onStartRenewal(property);
+              }}
+            >
+              <RefreshCw size={15} />
+            </div>
+          )}
+        </TableCell>
+      )}
   
     </TableRow>
   );
