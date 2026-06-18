@@ -20,7 +20,7 @@ import { useUpdateDoc, useDocs } from "@/hooks/doc";
 import { useCurrentUser } from "@/hooks/auth";
 import { useEffect, useState } from "react";
 import { PropertyMaster, RentalRenewal } from "@/types/JHDigitrack/JHPropertyAutomation";
-import { usePropertyDoc, useRenewalDoc, useRenewalRole, useBankAccounts } from "../hooks/useProperty";
+import { usePropertyDoc, useRenewalDoc, useRenewalRole, useChequeTypes } from "../hooks/useProperty";
 import { propertyApi, type RenewalProgressPayload } from "../api/property";
 import { useApplyWorkflowAction } from "../hooks/useApplyWorkflowAction";
 import { useCreateDelegation, useDocumentDelegation, useRevokeDelegation } from "../hooks/useDelegation";
@@ -59,19 +59,11 @@ const renewalSchema = z.object({
   remarks: z.string().optional(),
   po_number: z.string().optional(),
   miro_number: z.string().optional(),
-  bank_name: z.string().optional(),
-  cheque_number: z.string().optional(),
-  cheque_amount: z.coerce.number().min(0).optional(),
-  cheque_date: z.string().optional(),
-  payee: z.string().optional(),
-  signatory: z.string().optional(),
   cheque_details: z.array(z.object({
-    bank_name: z.string().optional(),
-    cheque_number: z.string().optional(),
+    cheque_type: z.string().optional(),
     cheque_amount: z.coerce.number().optional(),
     cheque_date: z.string().optional(),
     payee: z.string().optional(),
-    signatory: z.string().optional(),
   })).optional(),
 });
  
@@ -162,7 +154,7 @@ const [isApprovalModalOpen, setIsApprovalModalOpen] = useState(false);
     renewalDoc?.property
   );
   const property = propertyData?.doc as PropertyMaster | undefined;
-  const { data: bankAccounts = [] } = useBankAccounts();
+  const { data: chequeTypes = [] } = useChequeTypes();
   const hasExternalModification = Boolean(
     localModified && renewalDoc?.modified && localModified !== renewalDoc.modified
   );
@@ -205,12 +197,6 @@ const [isApprovalModalOpen, setIsApprovalModalOpen] = useState(false);
       remarks: renewalDoc.remarks || "",
       po_number: renewalDoc.po_number || "",
       miro_number: renewalDoc.miro_number || "",
-      bank_name: renewalDoc.cheque_details?.[0]?.bank_name || "",
-      cheque_number: renewalDoc.cheque_details?.[0]?.cheque_number || "",
-      cheque_amount: Number(renewalDoc.cheque_details?.[0]?.cheque_amount || 0),
-      cheque_date: renewalDoc.cheque_details?.[0]?.cheque_date || "",
-      payee: renewalDoc.cheque_details?.[0]?.payee || "",
-      signatory: renewalDoc.cheque_details?.[0]?.signatory || "",
       cheque_details: renewalDoc.cheque_details || [],
     });
   }, [open, renewalDoc, reset]);
@@ -267,11 +253,9 @@ useEffect(() => {
     renewalDoc?.workflow_state === "Pending Cheque Details"
   ) {
     const validCheques = chequeDetails.filter((cheque) =>
-      cheque.bank_name &&
-      cheque.cheque_number &&
+      cheque.cheque_type &&
       cheque.cheque_date &&
       cheque.payee &&
-      cheque.signatory &&
       Number(cheque.cheque_amount || 0) > 0
     );
 
@@ -403,23 +387,19 @@ useEffect(() => {
     };
  
     if (currentState === "Pending Cheque Details") {
-     payload.cheque_details = chequeDetails
-  .filter((cheque) =>
-    cheque.bank_name &&
-    cheque.cheque_number &&
-    cheque.cheque_date &&
-    cheque.payee &&
-    cheque.signatory &&
-    Number(cheque.cheque_amount || 0) > 0
-  )
-  .map((cheque) => ({
-    bank_name: cheque.bank_name,
-    cheque_number: cheque.cheque_number,
-    cheque_amount: Number(cheque.cheque_amount),
-    cheque_date: cheque.cheque_date,
-    payee: cheque.payee,
-    signatory: cheque.signatory,
-  }));
+      payload.cheque_details = chequeDetails
+        .filter((cheque) =>
+          cheque.cheque_type &&
+          cheque.cheque_date &&
+          cheque.payee &&
+          Number(cheque.cheque_amount || 0) > 0
+        )
+        .map((cheque) => ({
+          cheque_type: cheque.cheque_type,
+          cheque_amount: Number(cheque.cheque_amount),
+          cheque_date: cheque.cheque_date,
+          payee: cheque.payee,
+        }));
     }
  
     if (currentState === "Pending Property PO") {
@@ -939,7 +919,34 @@ const renderDelegationBadge = () => {
  
               {renderRenewalField("Renewal From", "renewal_from", renewalDoc?.renewal_from, "date", true)}
               {renderRenewalField("Renewal To", "renewal_to", renewalDoc?.renewal_to, "date", true)}
-              {renderRenewalField("Payment Schedule", "payment_schedule", renewalDoc?.payment_schedule || "")}
+              <div>
+                {isView ? (
+                  <div className="flex gap-1">
+                    <Label className="text-sm text-gray-600">Payment Schedule:</Label>
+                    <span>{renewalDoc?.payment_schedule}</span>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-1">
+                    <Label className="text-sm text-gray-600">Payment Schedule</Label>
+                    <Controller
+                      name="payment_schedule"
+                      control={control}
+                      render={({ field }) => (
+                        <Select value={field.value ?? ""} onValueChange={field.onChange}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {["Monthly", "Bi-Monthly", "Quarterly", "Half Yearly", "Yearly"].map((opt) => (
+                              <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
+                  </div>
+                )}
+              </div>
               {renderRenewalField(
                 "New Security Deposit",
                 "new_security_deposit",
@@ -1021,31 +1028,31 @@ const renderDelegationBadge = () => {
                   ) : (
                     chequeDetails.map((cheque, index) => (
                       <div className="flex gap-2 items-end bg-muted p-3 rounded-lg">
-                        <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-2">
+                        <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-2">
                           <div className="flex flex-col gap-1">
-                            <Label className="text-xs">Bank Name</Label>
+                            <Label className="text-xs">Type of Cheque</Label>
                             <Select
-                              value={cheque.bank_name || ""}
+                              value={cheque.cheque_type || ""}
                               onValueChange={(value) => {
                                 const next = [...chequeDetails];
-                                next[index].bank_name = value;
+                                next[index] = { ...next[index], cheque_type: value };
                                 setChequeDetails(next);
                               }}
                             >
                               <SelectTrigger className="text-sm h-9">
-                                <SelectValue placeholder="Select bank..." />
+                                <SelectValue placeholder="Select type..." />
                               </SelectTrigger>
                               <SelectContent>
-                                {bankAccounts.map((name) => (
-                                  <SelectItem className="cursor-pointer" key={name} value={name}>{name}</SelectItem>
+                                {chequeTypes.map((type) => (
+                                  <SelectItem className="cursor-pointer" key={type} value={type}>{type}</SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
                           </div>
-                          {(["cheque_number", "cheque_amount", "cheque_date", "payee", "signatory"] as const).map((fieldName) => (
+                          {(["cheque_date", "cheque_amount", "payee"] as const).map((fieldName) => (
                             <div key={fieldName} className="flex flex-col gap-1">
                               <Label className="text-xs">
-                                {fieldName === "cheque_number" ? "Cheque Number" : fieldName === "cheque_amount" ? "Amount" : fieldName === "cheque_date" ? "Cheque Date" : fieldName === "payee" ? "Payee" : "Signatory"}
+                                {fieldName === "cheque_date" ? "Date" : fieldName === "cheque_amount" ? "Amount" : "Payee"}
                               </Label>
                               <Input
                                 type={fieldName === "cheque_amount" ? "number" : fieldName === "cheque_date" ? "date" : "text"}
@@ -1079,7 +1086,7 @@ const renderDelegationBadge = () => {
                     type="button"
                     variant="outline"
                     className="w-full border-2 border-dashed h-10 text-sm"
-                    onClick={() => setChequeDetails([...chequeDetails, { bank_name: "", cheque_number: "", cheque_amount: 0, cheque_date: "", payee: "", signatory: "" }])}
+                    onClick={() => setChequeDetails([...chequeDetails, { cheque_type: "", cheque_amount: 0, cheque_date: "", payee: "" }])}
                   >
                     + Add Cheque
                   </Button>
