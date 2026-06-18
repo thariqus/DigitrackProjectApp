@@ -23,7 +23,7 @@ import { PropertyMaster, JHPropertyElectricityConnection, JHPropertyLandline, Ch
 import { X } from "lucide-react";
 import { queryClient } from "@/utils/query-client";
 import RenewalTimeline from "./RenewalTimeline";
-import { useBankAccounts } from "../hooks/useProperty";
+import { useChequeTypes } from "../hooks/useProperty";
  
 type PropertySheetProps = {
   open: boolean;
@@ -81,12 +81,10 @@ const propertySchema = z.object({
   renewal_date: z.string().min(1, "Required field"),
   landlord_security_deposit: z.coerce.number().optional(),
   security_deposit_cheques: z.array(z.object({
-    bank_name: z.string().optional(),
-    cheque_number: z.string().optional(),
+    cheque_type: z.string().optional(),
     cheque_amount: z.coerce.number().optional(),
     cheque_date: z.string().optional(),
     payee: z.string().optional(),
-    signatory: z.string().optional(),
   })).optional(),
   tenancy_period: z.string().optional().refine((val) => {
     if (!val) return true;
@@ -166,23 +164,6 @@ const getMultiValueItems = (value?: string | null) =>
     .map((item) => item.trim())
     .filter(Boolean);
 
-const calculateRenewalDate = (leaseStartDate: string, tenancyPeriod: string): string | null => {
-  if (!leaseStartDate || !tenancyPeriod) return null;
-  const match = tenancyPeriod.match(/^(\d+)\s*(Months?|Weeks?|Years?)$/i);
-  if (!match) return null;
-  const amount = parseInt(match[1], 10);
-  const unit = match[2].toLowerCase();
-  const date = new Date(leaseStartDate);
-  if (unit.startsWith("month")) {
-    date.setMonth(date.getMonth() + amount);
-  } else if (unit.startsWith("year")) {
-    date.setFullYear(date.getFullYear() + amount);
-  } else if (unit.startsWith("week")) {
-    date.setDate(date.getDate() + amount * 7);
-  }
-  return date.toISOString().split("T")[0];
-};
- 
 export default function PropertySheet({
   open,
   onOpenChange,
@@ -220,7 +201,7 @@ export default function PropertySheet({
   !!propertyId
 );
 const renewalsData = renewalsListData?.renewals ?? [];
-  const { data: bankAccounts = [] } = useBankAccounts();
+  const { data: chequeTypes = [] } = useChequeTypes();
  
   const doc = propertyData?.doc as PropertyMaster | undefined;
  
@@ -267,9 +248,6 @@ const renewalsData = renewalsListData?.renewals ?? [];
 
   const numberOfPremisesWatch = useWatch({ control, name: "number_of_premises" });
   const premiseNumberWatch = useWatch({ control, name: "premise_number" });
-  const tenancyPeriodWatch = useWatch({ control, name: "tenancy_period" });
-  const leaseStartDateWatch = useWatch({ control, name: "lease_start_date" });
- 
   const { data: selectedDivisionData } = useDocs({
     doctype: "JH Division Master",
     fields: ["name", "division_head", "division_gm"],
@@ -332,31 +310,23 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
     }
   }, [open, isCreate, doc, resetSheetState]);
  
-  useEffect(() => {
-    if (!open || !divisionWatch) return;
-    const div = selectedDivision ?? selectedDivisionData?.[0];
-    if (!div || lastAutoFilledDivisionRef.current === divisionWatch) return;
+  // useEffect(() => {
+  //   if (!open || !divisionWatch) return;
+  //   const div = selectedDivision ?? selectedDivisionData?.[0];
+  //   if (!div || lastAutoFilledDivisionRef.current === divisionWatch) return;
 
-    // Auto-populate approvers from division head/GM when list is empty.
-    // Keep this — required default-approver behavior, not dead code.
-    if (approvers.length === 0) {
-      const autoApprovers: { order: number; approver: string }[] = [];
-      if (div.division_head) autoApprovers.push({ order: 1, approver: div.division_head });
-      if (div.division_gm) autoApprovers.push({ order: autoApprovers.length + 1, approver: div.division_gm });
-      if (autoApprovers.length > 0) setApprovers(autoApprovers);
-    }
+  //   // Auto-populate approvers from division head/GM when list is empty.
+  //   // Keep this — required default-approver behavior, not dead code.
+  //   if (approvers.length === 0) {
+  //     const autoApprovers: { order: number; approver: string }[] = [];
+  //     if (div.division_head) autoApprovers.push({ order: 1, approver: div.division_head });
+  //     if (div.division_gm) autoApprovers.push({ order: autoApprovers.length + 1, approver: div.division_gm });
+  //     if (autoApprovers.length > 0) setApprovers(autoApprovers);
+  //   }
 
-    lastAutoFilledDivisionRef.current = divisionWatch;
-  }, [divisionWatch, open, selectedDivision, selectedDivisionData, approvers.length]);
+  //   lastAutoFilledDivisionRef.current = divisionWatch;
+  // }, [divisionWatch, open, selectedDivision, selectedDivisionData, approvers.length]);
 
-  useEffect(() => {
-    if (!isCreate || !tenancyPeriodWatch || !leaseStartDateWatch) return;
-    const renewalDate = calculateRenewalDate(leaseStartDateWatch, tenancyPeriodWatch);
-    if (renewalDate) {
-      setValue("renewal_date", renewalDate, { shouldValidate: true, shouldDirty: true });
-    }
-  }, [tenancyPeriodWatch, leaseStartDateWatch, isCreate, setValue]);
- 
   const formatDateForAPI = (date?: string) => {
     if (!date) return "";
     return new Date(date).toISOString().split("T")[0];
@@ -530,8 +500,10 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
               <div className="flex flex-col gap-0.5">
                 {sorted.map((row) => {
                   const user = usersData?.find((u) => u.name === row.approver);
-                  const display = user?.email || row.approver || "-";
-                  const tooltip = user?.full_name ? `${user.full_name} (${user.email ?? row.approver})` : row.approver;
+                  const display = user?.full_name
+                    ? `${user.full_name} (${user.email ?? row.approver})`
+                    : user?.email || row.approver || "-";
+                  const tooltip = display;
                   return (
                     <span key={row.order} title={tooltip}>
                       {row.order}. {display}
@@ -547,65 +519,86 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
 
     return (
       <div className="flex flex-col gap-1 md:col-span-3">
-        <Label className="text-sm text-gray-600">Approvers</Label>
-        <div className="space-y-2">
-          {approvers.map((row, index) => (
-            <div key={index} className="flex gap-2 items-end bg-muted p-3 rounded-lg">
-              <div className="flex-1 grid grid-cols-[80px_1fr] gap-2">
-                <div className="flex flex-col gap-1">
-                  <Label className="text-xs">Order</Label>
-                  <Input
-                    type="number"
-                    min={1}
-                    value={row.order}
-                    onChange={(e) => {
-                      const updated = [...approvers];
-                      updated[index] = { ...updated[index], order: parseInt(e.target.value, 10) || index + 1 };
-                      setApprovers(updated);
-                    }}
-                    className="text-sm"
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <Label className="text-xs">Approver <span className="text-red-500">*</span></Label>
-                  <select
-                    value={row.approver}
-                    onChange={(e) => {
-                      const updated = [...approvers];
-                      updated[index] = { ...updated[index], approver: e.target.value };
-                      setApprovers(updated);
-                    }}
-                    className="border rounded px-2 py-2 text-sm"
-                  >
-                    <option value="">Select approver</option>
-                    {usersData?.map((user) => (
-                      <option key={user.name} value={user.name}>
-                        {user.full_name ? `${user.email} (${user.full_name})` : user.email || user.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 p-0 -mr-2"
-                onClick={() => setApprovers(approvers.filter((_, i) => i !== index))}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          ))}
+        <div className="flex justify-between items-center">
+          <Label className="text-sm text-gray-600">Approvers</Label>
           <Button
-            type="button"
-            variant="outline"
-            className="w-full border-2 text-gray-500 border-dashed h-10 text-sm mt-1"
-            onClick={() => setApprovers([...approvers, { order: approvers.length + 1, approver: "" }])}
-          >
-            + Add Approver
-          </Button>
+          type="button"
+          variant="outline"
+          className="w-30 border-2 border-red-300 text-gray-500 border-dashed h-8 text-sm mt-1"
+          onClick={() => setApprovers([...approvers, { order: approvers.length + 1, approver: "" }])}
+        >
+          + Add Approver
+        </Button>
         </div>
+        
+        <div className="rounded-md border overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-muted">
+              <tr>
+                <th className="px-3 py-2 text-left font-medium text-gray-600 w-20">Order</th>
+                <th className="px-3 py-2 text-left font-medium text-gray-600">Approver <span className="text-red-500">*</span></th>
+                <th className="px-3 py-2 w-10" />
+              </tr>
+            </thead>
+            <tbody>
+              {approvers.length === 0 ? (
+                <tr>
+                  <td colSpan={3} className="px-3 py-4 text-center text-gray-400 text-sm">
+                    No approvers added
+                  </td>
+                </tr>
+              ) : (
+                approvers.map((row, index) => (
+                  <tr key={index} className="border-t">
+                    <td className="px-3 py-2">
+                      <Input
+                        type="number"
+                        min={1}
+                        value={row.order}
+                        onChange={(e) => {
+                          const updated = [...approvers];
+                          updated[index] = { ...updated[index], order: parseInt(e.target.value, 10) || index + 1 };
+                          setApprovers(updated);
+                        }}
+                        className="text-sm h-8 w-16"
+                      />
+                    </td>
+                    <td className="px-3 py-2">
+                      <select
+                        value={row.approver}
+                        onChange={(e) => {
+                          const updated = [...approvers];
+                          updated[index] = { ...updated[index], approver: e.target.value };
+                          setApprovers(updated);
+                        }}
+                        className="w-full border rounded px-2 py-1.5 text-sm"
+                      >
+                        <option value="">Select approver</option>
+                        {usersData?.map((user) => (
+                          <option key={user.name} value={user.name}>
+                            {user.full_name ? `${user.email} (${user.full_name})` : user.email || user.name}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td className="px-3 py-2">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 p-0"
+                        onClick={() => setApprovers(approvers.filter((_, i) => i !== index))}
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+        
       </div>
     );
   };
@@ -820,81 +813,78 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
 
       <div className="space-y-2">
         {data.map((cheque, index) => (
-            <div
-              className="flex gap-2 items-end bg-muted p-3 rounded-lg"
-            >
-              <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-2">
-                <div className={`${isViewMode ? "flex items-center gap-1" : "flex flex-col gap-1"}`}>
-                  <Label className="text-xs">Bank Name:</Label>
+          <div key={index} className="flex gap-2 items-end bg-muted p-3 rounded-lg">
+            <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-2">
+              <div className={`${isViewMode ? "flex items-center gap-1" : "flex flex-col gap-1"}`}>
+                <Label className="text-xs">Type of Cheque:</Label>
+                {isViewMode ? (
+                  <span className="text-sm font-medium">{cheque.cheque_type || "-"}</span>
+                ) : (
+                  <Select
+                    value={cheque.cheque_type || ""}
+                    onValueChange={(value) => {
+                      const newCheques = [...securityDepositCheques];
+                      newCheques[index] = { ...newCheques[index], cheque_type: value };
+                      setSecurityDepositCheques(newCheques);
+                      setValue("security_deposit_cheques", newCheques);
+                    }}
+                  >
+                    <SelectTrigger className="text-sm h-9">
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {chequeTypes.map((type) => (
+                        <SelectItem key={type} className="cursor-pointer" value={type}>{type}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+
+              {(["cheque_date", "cheque_amount", "payee"] as const).map((fieldName) => (
+                <div key={fieldName} className={`${isViewMode ? "flex items-center gap-1" : "flex flex-col gap-1"}`}>
+                  <Label className="text-xs">
+                    {fieldName === "cheque_date" ? "Date:" : fieldName === "cheque_amount" ? "Amount:" : "Payee:"}
+                  </Label>
                   {isViewMode ? (
-                    <span className="text-sm font-medium">{cheque.bank_name || "-"}</span>
+                    <span className="text-sm">{fieldName === "cheque_date" ? formatDate(cheque.cheque_date) : cheque[fieldName] || "-"}</span>
                   ) : (
-                    <Select
-                      value={cheque.bank_name || ""}
-                      onValueChange={(value) => {
+                    <Input
+                      type={fieldName === "cheque_amount" ? "number" : fieldName === "cheque_date" ? "date" : "text"}
+                      value={cheque[fieldName] || ""}
+                      onChange={(e) => {
                         const newCheques = [...securityDepositCheques];
-                        newCheques[index].bank_name = value;
+                        newCheques[index] = {
+                          ...newCheques[index],
+                          [fieldName]: fieldName === "cheque_amount" ? Number(e.target.value || 0) : e.target.value,
+                        };
                         setSecurityDepositCheques(newCheques);
                         setValue("security_deposit_cheques", newCheques);
                       }}
-                    >
-                      <SelectTrigger className="text-sm h-9">
-                        <SelectValue placeholder="Select bank" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {bankAccounts.map((name) => (
-                          <SelectItem key={name} className="cursor-pointer" value={name}>{name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      className="text-sm"
+                    />
                   )}
                 </div>
-
-                {(["cheque_number", "cheque_amount", "cheque_date", "payee", "signatory"] as const).map((fieldName) => (
-                  <div key={fieldName} className={`${isViewMode ? "flex items-center gap-1" : "flex flex-col gap-1"}`}>
-                    <Label className="text-xs">
-                      {fieldName === "cheque_number" ? "Cheque Number:" : fieldName === "cheque_amount" ? "Amount:" : fieldName === "cheque_date" ? "Cheque Date:" : fieldName === "payee" ? "Payee:" : "Signatory:"}
-                    </Label>
-                    {isViewMode ? (
-                      <span className="text-sm">{fieldName === "cheque_date" ? formatDate(cheque.cheque_date) : cheque[fieldName] || "-"}</span>
-                    ) : (
-                      <Input
-                        type={fieldName === "cheque_amount" ? "number" : fieldName === "cheque_date" ? "date" : "text"}
-                        value={cheque[fieldName] || ""}
-                        onChange={(e) => {
-                          const newCheques = [...securityDepositCheques];
-                          newCheques[index] = {
-                            ...newCheques[index],
-                            [fieldName]: fieldName === "cheque_amount" ? Number(e.target.value || 0) : e.target.value,
-                          };
-                          setSecurityDepositCheques(newCheques);
-                          setValue("security_deposit_cheques", newCheques);
-                        }}
-                        className="text-sm"
-                      />
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              {!isViewMode && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 p-0 -mr-2"
-                  onClick={() => {
-                    const newCheques = securityDepositCheques.filter((_, i) => i !== index);
-                    setSecurityDepositCheques(newCheques);
-                    setValue("security_deposit_cheques", newCheques);
-                  }}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              )}
+              ))}
             </div>
-          ))
-        }
+
+            {!isViewMode && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 p-0 -mr-2"
+                onClick={() => {
+                  const newCheques = securityDepositCheques.filter((_, i) => i !== index);
+                  setSecurityDepositCheques(newCheques);
+                  setValue("security_deposit_cheques", newCheques);
+                }}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        ))}
 
         {!isViewMode && (
           <Button
@@ -902,7 +892,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
             variant="outline"
             className="w-full border-2 text-gray-500 border-dashed h-10 text-sm mt-1"
             onClick={() => {
-              const newCheques = [...securityDepositCheques, { bank_name: "", cheque_number: "", cheque_amount: 0, cheque_date: "", payee: "", signatory: "" }];
+              const newCheques = [...securityDepositCheques, { cheque_type: "", cheque_amount: 0, cheque_date: "", payee: "" }];
               setSecurityDepositCheques(newCheques);
               setValue("security_deposit_cheques", newCheques);
             }}
@@ -1259,14 +1249,14 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                   />
                 )}
               </div>
- 
-              {renderApproversTable()}
+
               {renderField("Booked Under", "booked_under", doc?.booked_under)}
               {renderField("Profit Center", "profit_center", doc?.profit_center)}
               {renderField("Number of Units", "number_of_units", doc?.number_of_units)}
               {renderField("Number of Premises", "number_of_premises", doc?.number_of_premises)}
               {renderMultiValueField("Premise Number", "premise_number", doc?.premise_number)}
               {renderField("Staff Allocated", "staff_allocated", doc?.staff_allocated)}
+              {renderApproversTable()}
             </div>
  
             <Separator />
