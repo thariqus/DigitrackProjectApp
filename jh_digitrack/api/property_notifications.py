@@ -9,6 +9,7 @@ Single scheduler entry point that processes:
 import frappe
 from frappe.utils import today, date_diff, getdate
 from jh_digitrack.api.helpers.property_email import generate_property_notification_email
+from jh_digitrack.api.property_management import _get_property_approvers_list
 
 
 def process_property_notifications():
@@ -107,12 +108,7 @@ def _get_pre_renewal_recipients(property_doc, include_escalation=False):
     )
 
     if include_escalation:
-        approvers = frappe.db.get_value(
-            "JH Property Master", property_doc.name,
-            ["approver_1", "approver_2"],
-        ) or (None, None)
-
-        for approver in approvers:
+        for approver in _get_property_approvers_list(property_doc.name):
             if approver and approver not in users:
                 users.append(approver)
 
@@ -213,26 +209,27 @@ def _resolve_step_assignee(renewal):
     """
     state = renewal.workflow_state
     settings = frappe.get_single("JH Digitrack Settings")
-    property_doc = frappe.get_doc("JH Property Master", renewal.property)
 
-    STEP_TO_ASSIGNEE = {
-        "Pending Approver 1": property_doc.approver_1,
-        "Pending Approver 2": property_doc.approver_2,
-        "Pending CFO":        settings.cfo_user,
-        "Pending MD":         settings.md_user,
+    if state in ("Pending Approver 1", "Pending Approver 2", "Pending Approver 3"):
+        approvers = _get_property_approvers_list(renewal.property)
+        idx = {"Pending Approver 1": 0, "Pending Approver 2": 1, "Pending Approver 3": 2}[state]
+        return approvers[idx] if len(approvers) > idx else None
+
+    settings_map = {
+        "Pending Admin HOD": settings.admin_hod_user,
+        "Pending FC":        settings.fc_user,
+        "Pending CFO":       settings.cfo_user,
+        "Pending MD":        settings.md_user,
     }
+    if state in settings_map:
+        return settings_map[state]
 
-    assignee = STEP_TO_ASSIGNEE.get(state)
-    if assignee:
-        return assignee
-
-    STEP_TO_ROLE = {
+    role_map = {
         "Pending Cheque Details": "JH Property Department",
         "Pending Property PO":    "JH Property Department",
         "Pending MIRO":           "JH GL Team",
     }
-
-    role = STEP_TO_ROLE.get(state)
+    role = role_map.get(state)
     if role:
         return frappe.get_all(
             "Has Role",
@@ -246,21 +243,26 @@ def _resolve_step_assignee(renewal):
 def _get_escalation_recipient(renewal):
     """
     Get the escalation recipient based on the workflow hierarchy.
-    Post-CFO/MD operational steps (Cheque Details, PO, MIRO) escalate to MD
-    since CFO has already approved by that point.
+    Approver chains escalate to the next approver if one exists, then Admin HOD.
+    Post-approval operational steps (Cheque Details, PO, MIRO) escalate to Admin HOD.
     """
     state = renewal.workflow_state
     settings = frappe.get_single("JH Digitrack Settings")
-    property_doc = frappe.get_doc("JH Property Master", renewal.property)
+
+    if state in ("Pending Approver 1", "Pending Approver 2", "Pending Approver 3"):
+        approvers = _get_property_approvers_list(renewal.property)
+        idx = {"Pending Approver 1": 0, "Pending Approver 2": 1, "Pending Approver 3": 2}[state]
+        next_approver = approvers[idx + 1] if len(approvers) > idx + 1 else None
+        return next_approver or settings.admin_hod_user
 
     ESCALATION_MAP = {
-        "Pending Approver 1":     property_doc.approver_2,
-        "Pending Approver 2":     settings.cfo_user,
+        "Pending Admin HOD":      settings.fc_user,
+        "Pending FC":             settings.cfo_user,
         "Pending CFO":            settings.md_user,
-        "Pending MD":             None,  
-        "Pending Cheque Details": settings.md_user,  
-        "Pending Property PO":    settings.md_user,  
-        "Pending MIRO":           settings.md_user,  
+        "Pending MD":             None,
+        "Pending Cheque Details": settings.admin_hod_user,
+        "Pending Property PO":    settings.admin_hod_user,
+        "Pending MIRO":           settings.md_user,
     }
 
     return ESCALATION_MAP.get(state)
