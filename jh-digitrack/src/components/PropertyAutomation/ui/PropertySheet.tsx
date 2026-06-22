@@ -52,18 +52,29 @@ const requiredNumberField = z.preprocess(
     invalid_type_error: "Required",
   })
 );
+
+const numericOnlyField = z.preprocess(
+  (val) => {
+    if (val === "" || val === null || val === undefined) return undefined;
+    const str = String(val).trim();
+    if (str === "") return undefined;
+    if (/^\d+(\.\d+)?$/.test(str)) return Number(str);
+    return str;
+  },
+  z.number({ invalid_type_error: "Numbers only allowed" }).optional()
+);
  
 const propertySchema = z.object({
   property_name: z.string().min(1, "Required field"),
   type_of_property: z.string().nullable().optional(),
   business_used: z.string().nullable().optional(),
   division_used: z.string().nullable().optional(),
-  booked_under: z.coerce.number().optional(),
-  profit_center: z.coerce.number().optional(),
-  number_of_units: z.coerce.number().optional(),
-  number_of_premises: z.coerce.number().optional(),
+  booked_under: numericOnlyField,
+  profit_center: numericOnlyField,
+  number_of_units: numericOnlyField,
+  number_of_premises: numericOnlyField,
   premise_number: z.string().nullable().optional(),
-  staff_allocated: z.coerce.number().optional(),
+  staff_allocated: numericOnlyField,
  
   location: z.string().nullable().optional(),
   emirate: z.string().nullable().optional(),
@@ -79,7 +90,7 @@ const propertySchema = z.object({
   real_estate: z.string().nullable().optional(),
   current_rent: requiredNumberField,
   renewal_date: z.string().min(1, "Required field"),
-  landlord_security_deposit: z.coerce.number().optional(),
+  landlord_security_deposit: numericOnlyField,
   security_deposit_cheques: z.array(z.object({
     cheque_type: z.string().optional(),
     cheque_amount: z.coerce.number().optional(),
@@ -95,7 +106,7 @@ const propertySchema = z.object({
   }),
   lease_start_date: z.string().nullable().optional(),
  
-  electricity_accounts: z.coerce.number().optional(),
+  electricity_accounts: numericOnlyField,
   electricity_connections: z.array(z.object({
     connection_number: z.string().min(1, "Connection Number required"),
     meter_id: z.string().optional(),
@@ -103,14 +114,14 @@ const propertySchema = z.object({
     connection_type: z.enum(["Electricity", "Water", "Dual"]).optional(),
   })).optional(),
   electricity_connection_numbers: z.string().nullable().optional(),
-  electricity_water_security_deposit: z.coerce.number().optional(),
+  electricity_water_security_deposit: numericOnlyField,
   landline_connections: z.array(z.object({
     landline_number: z.string().min(1, "Landline Number required"),
     provider: z.string().optional(),
     line_type: z.enum(["Fixed", "Fax"]).optional(),
   })).optional(),
-  landline_accounts: z.coerce.number().optional(),
-  internet_connection: z.string().nullable().optional(),
+  landline_accounts: numericOnlyField,
+  internet_connection: z.string().regex(/^\d*$/, "Numbers only allowed").nullable().optional(),
  
   cdc_expiry: z.string().optional(),
   hassantuk_expiry: z.string().optional(),
@@ -179,6 +190,7 @@ export default function PropertySheet({
   const [connections, setConnections] = useState<JHPropertyElectricityConnection[]>([]);
   const [landlineConnections, setLandlineConnections] = useState<JHPropertyLandline[]>([]);
   const [securityDepositCheques, setSecurityDepositCheques] = useState<ChequeDetail[]>([]);
+  const [landlineErrors, setLandlineErrors] = useState<Record<number, string>>({});
   const lastAutoFilledDivisionRef = useRef<string | null>(null);
   const { data: roleBasedAccess } = useUserAccess();
   const isLicensingTeam = !!roleBasedAccess?.is_licensing;
@@ -248,6 +260,8 @@ const renewalsData = renewalsListData?.renewals ?? [];
 
   const numberOfPremisesWatch = useWatch({ control, name: "number_of_premises" });
   const premiseNumberWatch = useWatch({ control, name: "premise_number" });
+  const electricityAccountsWatch = useWatch({ control, name: "electricity_accounts" });
+  const landlineAccountsWatch = useWatch({ control, name: "landline_accounts" });
   const { data: selectedDivisionData } = useDocs({
     doctype: "JH Division Master",
     fields: ["name", "division_head", "division_gm"],
@@ -264,6 +278,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
     setConnections(values.electricity_connections || []);
     setLandlineConnections(values.landline_connections || []);
     setSecurityDepositCheques(values.security_deposit_cheques || []);
+    setLandlineErrors({});
   }, [reset]);
 
   const handleSheetOpenChange = (nextOpen: boolean) => {
@@ -376,6 +391,20 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
       electricity_accounts: data.electricity_accounts !== undefined ? data.electricity_accounts : connections.length,
     } as any;
 
+    // const invalidLandlines = landlineConnections.some(
+    //   (conn) => conn.landline_number && !/^\d+$/.test(conn.landline_number)
+    // );
+    // if (invalidLandlines) {
+    //   const errors: Record<number, string> = {};
+    //   landlineConnections.forEach((conn, i) => {
+    //     if (conn.landline_number && !/^\d+$/.test(conn.landline_number)) {
+    //       errors[i] = "Numbers only allowed";
+    //     }
+    //   });
+    //   setLandlineErrors(errors);
+    //   return;
+    // }
+
     if (isCreate && data.renewal_date && new Date(data.renewal_date) <= new Date()) {
       toast.error("Renewal Date must be a future date");
       return;
@@ -445,7 +474,8 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
     label: string,
     name: keyof z.infer<typeof propertySchema>,
     value?: string | number,
-    type = "text"
+    type = "text",
+    disabled = false
   ) => {
     const isRequired = requiredFields.includes(name as string);
 
@@ -472,7 +502,8 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                 type={type}
                 {...field}
                 value={field.value ?? ""}
-                className={errors[name] ? "border-red-500" : ""}
+                disabled={disabled}
+                className={cn(errors[name] ? "border-red-500" : "", disabled ? "bg-muted cursor-not-allowed opacity-60" : "")}
               />
             )}
           />
@@ -606,7 +637,8 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
   const renderMultiValueField = (
     label: string,
     name: "premise_number" | "electricity_connection_numbers",
-    value?: string
+    value?: string,
+    maxItems?: number
   ) => {
     const items = getMultiValueItems(value);
 
@@ -642,7 +674,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
               <MultiValueInput
                 value={field.value}
                 onChange={field.onChange}
-                // placeholder={`Enter ${label.toLowerCase()} and press Enter`}
+                maxItems={maxItems}
                 className={errors[name] ? "border-red-500" : ""}
               />
             )}
@@ -699,16 +731,31 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                         {conn.landline_number || "-"}
                       </span>
                     ) : (
-                      <Input
-                        value={conn.landline_number || ""}
-                        onChange={(e) => {
-                          const newConns = [...landlineConnections];
-                          newConns[index].landline_number = e.target.value;
-                          setLandlineConnections(newConns);
-                          setValue("landline_accounts", newConns.length);
-                        }}
-                        className="text-sm"
-                      />
+                      <>
+                        <Input
+                          value={conn.landline_number || ""}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            const newConns = [...landlineConnections];
+                            newConns[index].landline_number = val;
+                            setLandlineConnections(newConns);
+                            setValue("landline_accounts", newConns.length);
+                            if (val && !/^\d+$/.test(val)) {
+                              setLandlineErrors(prev => ({ ...prev, [index]: "Numbers only allowed" }));
+                            } else {
+                              setLandlineErrors(prev => {
+                                const next = { ...prev };
+                                delete next[index];
+                                return next;
+                              });
+                            }
+                          }}
+                          className={`text-sm ${landlineErrors[index] ? "border-red-500" : ""}`}
+                        />
+                        {landlineErrors[index] && (
+                          <span className="text-red-500 text-xs">{landlineErrors[index]}</span>
+                        )}
+                      </>
                     )}
                   </div>
 
@@ -766,6 +813,15 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                       const newConns = landlineConnections.filter((_, i) => i !== index);
                       setLandlineConnections(newConns);
                       setValue("landline_accounts", newConns.length);
+                      setLandlineErrors(prev => {
+                        const next: Record<number, string> = {};
+                        Object.entries(prev).forEach(([k, v]) => {
+                          const idx = Number(k);
+                          if (idx < index) next[idx] = v;
+                          else if (idx > index) next[idx - 1] = v;
+                        });
+                        return next;
+                      });
                     }}
                   >
                     <X className="h-4 w-4" />
@@ -775,20 +831,24 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
             ))
           }
 
-          {!isViewMode && (
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full text-gray-500 border-2 border-dashed h-10 text-sm mt-1"
-              onClick={() => {
-                const newConns = [...landlineConnections, { landline_number: "" }];
-                setLandlineConnections(newConns);
-                setValue("landline_accounts", newConns.length);
-              }}
-            >
-              + Add Landline
-            </Button>
-          )}
+          {!isViewMode && (() => {
+            const max = Number(landlineAccountsWatch) || 0;
+            const atMax = max > 0 && landlineConnections.length >= max;
+            return (
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full text-gray-500 border-2 border-dashed h-10 text-sm mt-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={() => {
+                  const newConns = [...landlineConnections, { landline_number: "" }];
+                  setLandlineConnections(newConns);
+                  setValue("landline_accounts", newConns.length);
+                }}
+              >
+                + Add Landline
+              </Button>
+            );
+          })()}
         </div>
       )}
 
@@ -1033,20 +1093,18 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
             ))
           }
 
-          {!isViewMode && (
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full border-2 text-gray-500 border-dashed h-10 text-sm mt-1"
-              onClick={() => {
-                const newConns = [...connections, { connection_number: "" }];
-                setConnections(newConns);
-                setValue("electricity_accounts", newConns.length);
-              }}
-            >
-              + Add Electricity Connection
-            </Button>
-          )}
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full border-2 text-gray-500 border-dashed h-10 text-sm mt-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={() => {
+                  const newConns = [...connections, { connection_number: "" }];
+                  setConnections(newConns);
+                  setValue("electricity_accounts", newConns.length);
+                }}
+              >
+                + Add Electricity Connection
+              </Button>
         </div>
       )}
 
@@ -1254,7 +1312,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
               {renderField("Profit Center", "profit_center", doc?.profit_center)}
               {renderField("Number of Units", "number_of_units", doc?.number_of_units)}
               {renderField("Number of Premises", "number_of_premises", doc?.number_of_premises)}
-              {renderMultiValueField("Premise Number", "premise_number", doc?.premise_number)}
+              {renderMultiValueField("Premise Number", "premise_number", doc?.premise_number, Number(numberOfPremisesWatch) || undefined)}
               {renderField("Staff Allocated", "staff_allocated", doc?.staff_allocated)}
               {renderApproversTable()}
             </div>
@@ -1345,7 +1403,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                 "electricity_water_security_deposit",
                 doc?.electricity_water_security_deposit
               )}
-              {renderField("Landline Accounts", "landline_accounts", doc?.landline_accounts)}
+              {renderField("Landline Accounts", "landline_accounts", doc?.landline_accounts, "text", true)}
               {renderField("Internet Connection", "internet_connection", doc?.internet_connection)}
             </div>
             {renderLandlineConnections(isView, doc?.landline_connections)}
