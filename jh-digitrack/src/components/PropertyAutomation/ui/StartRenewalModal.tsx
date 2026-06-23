@@ -37,19 +37,31 @@ const calculateRenewalTo = (fromDate: string, tenancyPeriod: string): string | n
   return date.toISOString().split("T")[0];
 };
 
+const isNumeric = (val: string | undefined) =>
+  val === undefined || val === "" || (!isNaN(Number(val)) && val.trim() !== "");
+
 const schema = z
   .object({
     proposed_rent: z
       .string()
       .min(1, "Proposed Rent is required")
-      .refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
-        message: "Must be a valid number greater than 0",
+      .refine((val) => !isNaN(Number(val)) && val.trim() !== "", {
+        message: "Only numbers allowed",
+      })
+      .refine((val) => Number(val) > 0, {
+        message: "Must be greater than 0",
       }),
     renewal_from: z.string().min(1, "Renewal From date is required"),
     renewal_to: z.string().min(1, "Renewal To date is required"),
-    additional_charges: z.string().optional(),
+    additional_charges: z
+      .string()
+      .optional()
+      .refine(isNumeric, { message: "Only numbers allowed" }),
     payment_schedule: z.string().optional(),
-    new_security_deposit: z.string().optional(),
+    new_security_deposit: z
+      .string()
+      .optional()
+      .refine(isNumeric, { message: "Only numbers allowed" }),
     remarks: z.string().optional(),
   })
   .refine((data) => new Date(data.renewal_from) < new Date(data.renewal_to), {
@@ -94,7 +106,7 @@ export default function StartRenewalModal({
 
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
-    mode: "onBlur",
+    mode: "onChange",
     defaultValues: {
       proposed_rent: isNewMode ? "" : currentRent?.toString() || "",
       renewal_from: renewalFrom || "",
@@ -244,7 +256,7 @@ export default function StartRenewalModal({
                 name="proposed_rent"
                 control={form.control}
                 render={({ field }) => (
-                  <Input {...field} type="number" step="0.01" min="0.01" />
+                  <Input {...field} type="text" inputMode="decimal" placeholder="0.00" />
                 )}
               />
               {form.formState.errors.proposed_rent && (
@@ -269,9 +281,14 @@ export default function StartRenewalModal({
                 name="additional_charges"
                 control={form.control}
                 render={({ field }) => (
-                  <Input {...field} type="number" step="0.01" min="0" placeholder="0" />
+                  <Input {...field} type="text" inputMode="decimal" placeholder="0" />
                 )}
               />
+              {form.formState.errors.additional_charges && (
+                <p className="text-red-500 text-xs">
+                  {form.formState.errors.additional_charges.message}
+                </p>
+              )}
             </div>
           </div>
 
@@ -345,9 +362,14 @@ export default function StartRenewalModal({
                 name="new_security_deposit"
                 control={form.control}
                 render={({ field }) => (
-                  <Input {...field} type="number" step="0.01" min="0" placeholder="0" />
+                  <Input {...field} type="text" inputMode="decimal" placeholder="0" />
                 )}
               />
+              {form.formState.errors.new_security_deposit && (
+                <p className="text-red-500 text-xs">
+                  {form.formState.errors.new_security_deposit.message}
+                </p>
+              )}
             </div>
           </div>
 
