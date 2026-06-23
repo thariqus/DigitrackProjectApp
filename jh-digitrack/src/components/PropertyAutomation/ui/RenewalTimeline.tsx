@@ -99,7 +99,7 @@ export default function RenewalTimeline({
           {/* State */}
           {log.current_state && log.changed_state && (
             <div className="text-sm text-gray-600">
-              {log.current_state}{" "}
+              {log.current_state.replace(/^Pending\s+/i, "")}{" "}
               <span className="text-gray-400">→</span>{" "}
               {log.changed_state}
             </div>
