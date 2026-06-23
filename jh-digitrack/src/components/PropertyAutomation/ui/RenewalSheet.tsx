@@ -108,7 +108,7 @@ const [isApprovalModalOpen, setIsApprovalModalOpen] = useState(false);
   const { data: usersData = [], isLoading: isUsersLoading } = useDocs<{ name: string; full_name?: string; email?: string }>({
     doctype: "User",
     fields: ["name", "full_name", "email"],
-    limit: 500,
+    limit: 0,
   });
  
   const {
