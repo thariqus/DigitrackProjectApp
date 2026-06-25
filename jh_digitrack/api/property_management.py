@@ -1288,6 +1288,22 @@ def get_division_gm(division: str = None, property: str = None, renewal_id: str 
 
 
 @frappe.whitelist(methods=["GET"])
+def get_divisions_by_business(business: str = None):
+    """Return divisions filtered by business. If no business supplied, return all divisions."""
+    filters = {}
+    if business:
+        filters["business"] = business
+
+    divisions = frappe.db.get_all(
+        "JH Division Master",
+        filters=filters,
+        fields=["name", "division_name", "business"],
+        order_by="name asc",
+    )
+    return {"divisions": divisions}
+
+
+@frappe.whitelist(methods=["GET"])
 def get_my_pending_renewals():
     """Return renewals where the logged-in user is the next actor, delegation-aware."""
     user = frappe.session.user
@@ -1720,16 +1736,16 @@ def get_renewal_pipeline_counts():
     return counts
 
 
-@frappe.whitelist(methods=["GET"])
-def get_bank_accounts():
-    accounts = frappe.get_all(
-        "JH Bank Account",
-        filters={"is_active": 1},
-        fields=["bank_name"],
-        order_by="bank_name asc",
-        ignore_permissions=True,
-    )
-    return {"bank_accounts": [a.bank_name for a in accounts]}
+# @frappe.whitelist(methods=["GET"])
+# def get_bank_accounts():
+#     accounts = frappe.get_all(
+#         "JH Bank Account",
+#         filters={"is_active": 1},
+#         fields=["bank_name"],
+#         order_by="bank_name asc",
+#         ignore_permissions=True,
+#     )
+#     return {"bank_accounts": [a.bank_name for a in accounts]}
 
 
 @frappe.whitelist(methods=["GET"])
