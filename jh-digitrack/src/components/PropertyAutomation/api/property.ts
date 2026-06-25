@@ -244,4 +244,13 @@ export const propertyApi = {
     const data = await res.json();
     return (data.message as { cheque_types: string[] }).cheque_types ?? [];
   },
+
+  getDivisionsByBusiness: async (business?: string): Promise<{ name: string; division_name: string; business: string }[]> => {
+    const query = business ? `?business=${encodeURIComponent(business)}` : "";
+    const res = await fetch(`${API_BASE}.get_divisions_by_business${query}`, {
+      credentials: "include",
+    });
+    const data = await res.json();
+    return (data.message as { divisions: { name: string; division_name: string; business: string }[] }).divisions ?? [];
+  },
 };

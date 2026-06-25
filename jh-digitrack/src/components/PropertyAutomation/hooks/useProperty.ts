@@ -89,5 +89,12 @@ export const useChequeTypes = () =>
     queryFn: propertyApi.getChequeTypes,
     staleTime: 30 * 60 * 1000,
   });
+
+export const useDivisionsByBusiness = (business?: string | null) =>
+  useQuery({
+    queryKey: ["DivisionsByBusiness", business ?? ""],
+    queryFn: () => propertyApi.getDivisionsByBusiness(business || undefined),
+    staleTime: 5 * 60 * 1000,
+  });
  
  

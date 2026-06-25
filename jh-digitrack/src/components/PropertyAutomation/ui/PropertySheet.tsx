@@ -4,7 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { XIcon } from "lucide-react";
+import { XIcon, ChevronDown } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
@@ -18,7 +18,7 @@ import { toast } from "sonner";
 import FileAttachment from "./FileAttachment";
 import MultiValueInput from "./MultiValueInput";
 import { useDocs, useSaveDoc, useUpdateDoc } from "@/hooks/doc";
-import { usePropertyDoc, useRenewalList, useUserAccess } from "../hooks/useProperty";
+import { usePropertyDoc, useRenewalList, useUserAccess, useDivisionsByBusiness } from "../hooks/useProperty";
 import { PropertyMaster, JHPropertyElectricityConnection, JHPropertyLandline, ChequeDetail, RentalRenewal } from "@/types/JHDigitrack/JHPropertyAutomation";
 import { X } from "lucide-react";
 import { queryClient } from "@/utils/query-client";
@@ -192,6 +192,11 @@ export default function PropertySheet({
   const [securityDepositCheques, setSecurityDepositCheques] = useState<ChequeDetail[]>([]);
   const [landlineErrors, setLandlineErrors] = useState<Record<number, string>>({});
   const lastAutoFilledDivisionRef = useRef<string | null>(null);
+  const prevBusinessRef = useRef<string | null | undefined>(undefined);
+  const [openApproverIndex, setOpenApproverIndex] = useState<number | null>(null);
+  const [approverSearchQuery, setApproverSearchQuery] = useState("");
+  const [approverDropdownPos, setApproverDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null);
+  const approverSearchRef = useRef<HTMLInputElement>(null);
   const { data: roleBasedAccess } = useUserAccess();
   const isLicensingTeam = !!roleBasedAccess?.is_licensing;
  
@@ -207,7 +212,7 @@ export default function PropertySheet({
   const { data: renewalsListData, refetch: refetchRenewals } = useRenewalList(
   {
     property: propertyId || undefined,
-    limit: 50,
+    limit: 0,
     page: 1,
   },
   !!propertyId
@@ -227,17 +232,14 @@ const renewalsData = renewalsListData?.renewals ?? [];
   //   !!latestRenewal &&
   //   latestRenewal.workflow_state !== "Completed";
  
-  const { data: divisionData } = useDocs({
-    doctype: "JH Division Master",
-  });
- 
   const { data: businessData } = useDocs({
     doctype: "JH Business Master",
+    limit: 0,
   });
  
   const { data: usersData, isLoading: usersLoading } = useDocs<UserOption>({
     doctype: "User",
-    limit: 200,
+    limit: 0,
     fields: ["name", "full_name", "email"],
   });
  
@@ -253,6 +255,9 @@ const renewalsData = renewalsListData?.renewals ?? [];
     defaultValues: getEmptyPropertyFormValues(),
   });
  
+  const businessWatch = useWatch({ control, name: "business_used" });
+  const { data: divisionData } = useDivisionsByBusiness(businessWatch);
+
   const divisionWatch = useWatch({
     control,
     name: "division_used",
@@ -284,6 +289,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
   const handleSheetOpenChange = (nextOpen: boolean) => {
     if (!nextOpen) {
       lastAutoFilledDivisionRef.current = null;
+      prevBusinessRef.current = undefined;
       resetSheetState();
     }
 
@@ -325,6 +331,18 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
     }
   }, [open, isCreate, doc, resetSheetState]);
  
+  useEffect(() => {
+    if (!open || isView) return;
+    if (prevBusinessRef.current === undefined) {
+      prevBusinessRef.current = businessWatch;
+      return;
+    }
+    if (prevBusinessRef.current !== businessWatch) {
+      setValue("division_used", "");
+      prevBusinessRef.current = businessWatch;
+    }
+  }, [businessWatch, open, isView, setValue]);
+
   // useEffect(() => {
   //   if (!open || !divisionWatch) return;
   //   const div = selectedDivision ?? selectedDivisionData?.[0];
@@ -595,22 +613,92 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                       />
                     </td>
                     <td className="px-3 py-2">
-                      <select
-                        value={row.approver}
-                        onChange={(e) => {
-                          const updated = [...approvers];
-                          updated[index] = { ...updated[index], approver: e.target.value };
-                          setApprovers(updated);
-                        }}
-                        className="w-full border rounded px-2 py-1.5 text-sm"
-                      >
-                        <option value="">Select approver</option>
-                        {usersData?.map((user) => (
-                          <option key={user.name} value={user.name}>
-                            {user.full_name ? `${user.email} (${user.full_name})` : user.email || user.name}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="relative">
+                        <button
+                          type="button"
+                          className="w-full border rounded px-2 py-1.5 text-sm text-left flex items-center justify-between gap-1 bg-white hover:bg-muted/30 focus:outline-none focus:ring-1 focus:ring-ring"
+                          onClick={(e) => {
+                            if (openApproverIndex === index) {
+                              setOpenApproverIndex(null);
+                              setApproverSearchQuery("");
+                              setApproverDropdownPos(null);
+                            } else {
+                              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                              setApproverDropdownPos({ top: rect.bottom, left: rect.left, width: rect.width });
+                              setOpenApproverIndex(index);
+                              setApproverSearchQuery("");
+                            }
+                          }}
+                        >
+                          <span className={row.approver ? "" : "text-gray-400"}>
+                            {row.approver ? (() => {
+                              const user = usersData?.find(u => u.name === row.approver);
+                              return user?.full_name
+                                ? `${user.full_name} (${user.email ?? row.approver})`
+                                : user?.email || row.approver;
+                            })() : "Search approver..."}
+                          </span>
+                          <ChevronDown className="h-4 w-4 text-gray-400 shrink-0" />
+                        </button>
+
+                        {openApproverIndex === index && approverDropdownPos && (
+                          <>
+                            <div
+                              className="fixed inset-0 z-40"
+                              onClick={() => { setOpenApproverIndex(null); setApproverSearchQuery(""); setApproverDropdownPos(null); }}
+                            />
+                            <div
+                              className="fixed z-50 bg-white border rounded-md shadow-lg"
+                              style={{ top: approverDropdownPos.top + 4, left: approverDropdownPos.left, width: approverDropdownPos.width }}
+                            >
+                              <div className="p-2 border-b">
+                                <Input
+                                  ref={approverSearchRef}
+                                  autoFocus
+                                  placeholder="Search by name or email..."
+                                  value={approverSearchQuery}
+                                  onChange={(e) => setApproverSearchQuery(e.target.value)}
+                                  className="h-8 text-sm"
+                                />
+                              </div>
+                              <div className="max-h-48 overflow-y-auto">
+                                {(() => {
+                                  const q = approverSearchQuery.toLowerCase();
+                                  const filtered = (usersData ?? []).filter(user =>
+                                    !q ||
+                                    user.full_name?.toLowerCase().includes(q) ||
+                                    user.email?.toLowerCase().includes(q) ||
+                                    user.name?.toLowerCase().includes(q)
+                                  );
+                                  if (filtered.length === 0) {
+                                    return <div className="px-3 py-2 text-sm text-gray-400">No users found</div>;
+                                  }
+                                  return filtered.map(user => (
+                                    <button
+                                      key={user.name}
+                                      type="button"
+                                      className="w-full text-left px-3 py-2 text-sm hover:bg-muted flex gap-2 items-center"
+                                      onClick={() => {
+                                        const updated = [...approvers];
+                                        updated[index] = { ...updated[index], approver: user.name };
+                                        setApprovers(updated);
+                                        setOpenApproverIndex(null);
+                                        setApproverSearchQuery("");
+                                        setApproverDropdownPos(null);
+                                      }}
+                                    >
+                                      <span className="font-medium">{user.full_name || user.email || user.name}</span>
+                                      {user.email && user.full_name && (
+                                        <span className="text-xs text-gray-400">({user.email})</span>
+                                      )}
+                                    </button>
+                                  ));
+                                })()}
+                              </div>
+                            </div>
+                          </>
+                        )}
+                      </div>
                     </td>
                     <td className="px-3 py-2">
                       <Button
@@ -1270,14 +1358,18 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                     name="business_used"
                     control={control}
                     render={({ field }) => (
-                      <select {...field} className="border rounded px-2 py-2 text-sm">
-                        <option value="">Select Business</option>
-                        {businessData?.map((business: NamedOption) => (
-                          <option key={business.name} value={business.name}>
-                            {business.name}
-                          </option>
-                        ))}
-                      </select>
+                      <Select value={field.value ?? ""} onValueChange={field.onChange}>
+                        <SelectTrigger className="text-sm h-9">
+                          <SelectValue placeholder="Select Business" />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-60 overflow-y-auto">
+                          {[...(businessData ?? [])].sort((a: NamedOption, b: NamedOption) => a.name.localeCompare(b.name)).map((business: NamedOption) => (
+                            <SelectItem key={business.name} value={business.name}>
+                              {business.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     )}
                   />
                 )}
@@ -1295,14 +1387,18 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                     name="division_used"
                     control={control}
                     render={({ field }) => (
-                      <select {...field} className="border rounded px-2 py-2 text-sm">
-                        <option value="">Select Division</option>
-                        {divisionData?.map((div: NamedOption) => (
-                          <option key={div.name} value={div.name}>
-                            {div.name}
-                          </option>
-                        ))}
-                      </select>
+                      <Select value={field.value ?? ""} onValueChange={field.onChange}>
+                        <SelectTrigger className="text-sm h-9">
+                          <SelectValue placeholder="Select Division" />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-60 overflow-y-auto">
+                          {[...(divisionData ?? [])].sort((a, b) => a.name.localeCompare(b.name)).map((div) => (
+                            <SelectItem key={div.name} value={div.name}>
+                              {div.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     )}
                   />
                 )}

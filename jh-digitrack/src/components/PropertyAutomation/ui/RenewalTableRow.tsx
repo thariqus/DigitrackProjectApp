@@ -93,7 +93,7 @@ function RenewalTableRow({ renewals , index, onClick,isLoading,onEdit,renewalCol
               </div>
             )}
 
-            {renewals.workflow_state === "Completed" && (
+            {renewals.workflow_state === "Pending Property PO" && (
               <div
                 className="cursor-pointer text-primary hover:text-green-800"
                 onClick={(e) => {
