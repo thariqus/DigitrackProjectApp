@@ -8,8 +8,8 @@ export interface JHPropertyLandline {
 export interface PropertyMaster {
   name: string;
   property_name: string;
-
   type_of_property: "Shop" | "Office" | "Warehouse" | "Other";
+  other_property_type?: string;
   business_used?: string;
 
   division_used: string;
