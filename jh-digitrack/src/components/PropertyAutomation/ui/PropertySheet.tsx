@@ -1287,6 +1287,43 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
 
   
  
+  const activeRenewal = useMemo(() => {
+    if (!renewalsData.length) return null;
+    return (renewalsData as RentalRenewal[])
+      .filter(r => r.workflow_state !== "Withdrawn")
+      .sort((a, b) => new Date(b.modified).getTime() - new Date(a.modified).getTime())[0] ?? null;
+  }, [renewalsData]);
+
+  console.log(activeRenewal,"actiiiii")
+  const renewalStatusBadge = useMemo(() => {
+    if (!activeRenewal || isCreate) return null;
+    const state = activeRenewal.workflow_state;
+
+    const stateConfig: Partial<Record<string, { label: string; style: string }>> = {
+      "Draft":                  { label: "Draft",                                                          style: "bg-gray-100 text-gray-700" },
+      "Pending Approver 1":     { label: `Pending: ${activeRenewal.approver_1_name || "Approver 1"}`,     style: "bg-yellow-100 text-yellow-800" },
+      "Pending Approver 2":     { label: `Approved by ${activeRenewal.approver_1_name || "Approver 1"}`,  style: "bg-orange-100 text-orange-800" },
+      "Pending Approver 3":     { label: `Approved by ${activeRenewal.approver_2_name || "Approver 2"}`,  style: "bg-orange-100 text-orange-800" },
+      "Pending Cheque Details": { label: `Approved by ${activeRenewal.approver_3_name || "Approver 3"}`,   style: "bg-blue-100 text-blue-800" },
+      "Pending Admin HOD":      { label: "Added cheque details",                                              style: "bg-blue-100 text-blue-800" },
+      "Pending FC":             { label: "Approved Admin HOD",                                                     style: "bg-blue-100 text-blue-800" },
+      "Pending CFO":            { label: "Approved by FC",                                                 style: "bg-red-100 text-red-800" },
+      "Pending MD":             { label: "Approved by CFO",                                                style: "bg-red-100 text-red-800" },
+      "Pending Property PO":    { label: "Approved by MD",                                                 style: "bg-purple-100 text-purple-800" },
+      "Pending MIRO":           { label: "PO Created",                                                     style: "bg-indigo-100 text-indigo-800" },
+      "Completed":              { label: "Completed",                                                      style: "bg-green-100 text-green-800" },
+      "Withdrawn":              { label: "Withdrawn",                                                      style: "bg-gray-100 text-gray-500" },
+    };
+
+    const config = stateConfig[state ?? ""] ?? { label: state ?? "Unknown", style: "bg-gray-100 text-gray-500" };
+
+    return (
+      <span className={`inline-flex items-center px-3 py-2 rounded-full text-sm font-medium ${config.style}`}>
+        {config.label}
+      </span>
+    );
+  }, [activeRenewal, isCreate]);
+
   const propertyTypeOptions =["Shop", "Villa", "Flat", "Other"];
   const emirateOptions = [
     "Abu Dhabi",
@@ -1307,7 +1344,11 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
               {isCreate ? "Create Property" : isEdit ? "Edit Property" : "Property Details"}
             </SheetTitle>
           </div>
- 
+
+          <div className="">
+            {renewalStatusBadge}
+          </div>
+
           <Button variant="ghost" size="icon" onClick={() => handleSheetOpenChange(false)}>
             <XIcon className="size-4" />
           </Button>
