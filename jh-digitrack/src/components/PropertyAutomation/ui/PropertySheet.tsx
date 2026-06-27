@@ -18,7 +18,7 @@ import { toast } from "sonner";
 import FileAttachment from "./FileAttachment";
 import MultiValueInput from "./MultiValueInput";
 import { useDocs, useSaveDoc, useUpdateDoc } from "@/hooks/doc";
-import { usePropertyDoc, useRenewalList, useUserAccess, useDivisionsByBusiness } from "../hooks/useProperty";
+import { usePropertyDoc, useRenewalList, useUserAccess, useDivisionsByBusiness, usePropertyTypes } from "../hooks/useProperty";
 import { PropertyMaster, JHPropertyElectricityConnection, JHPropertyLandline, ChequeDetail, RentalRenewal } from "@/types/JHDigitrack/JHPropertyAutomation";
 import { X } from "lucide-react";
 import { queryClient } from "@/utils/query-client";
@@ -212,6 +212,7 @@ export default function PropertySheet({
   const formId = "property-form";
  
   const { data: propertyData, isFetching: isPropertyFetching } = usePropertyDoc(propertyId);
+  console.log(propertyData,"neewwww")
   const { data: renewalsListData, refetch: refetchRenewals } = useRenewalList(
   {
     property: propertyId || undefined,
@@ -222,6 +223,7 @@ export default function PropertySheet({
 );
 const renewalsData = renewalsListData?.renewals ?? [];
   const { data: chequeTypes = [] } = useChequeTypes();
+  const { data: propertyTypeOptions = [] } = usePropertyTypes();
  
   const doc = propertyData?.doc as PropertyMaster | undefined;
  
@@ -579,6 +581,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
           + Add Approver
         </Button>
         </div>
+        
         
         <div className="rounded-md border overflow-hidden">
           <table className="w-full text-sm">
@@ -1304,6 +1307,9 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
       "Pending Approver 1":     { label: `Pending: ${activeRenewal.approver_1_name || "Approver 1"}`,     style: "bg-yellow-100 text-yellow-800" },
       "Pending Approver 2":     { label: `Approved by ${activeRenewal.approver_1_name || "Approver 1"}`,  style: "bg-orange-100 text-orange-800" },
       "Pending Approver 3":     { label: `Approved by ${activeRenewal.approver_2_name || "Approver 2"}`,  style: "bg-orange-100 text-orange-800" },
+      "Pending Approver 4":     { label: `Approved by ${activeRenewal.approver_3_name || "Approver 3"}`, style: "bg-orange-100 text-orange-800" },
+      "Pending Approver 5":     { label: `Approved by ${activeRenewal.approver_4_name || "Approver 4"}`, style: "bg-orange-100 text-orange-800" },
+      "Pending Approver 6":     { label: `Approved by ${activeRenewal.approver_5_name || "Approver 5"}`, style: "bg-orange-100 text-orange-800" },
       "Pending Cheque Details": { label: `Approved by ${activeRenewal.approver_3_name || "Approver 3"}`,   style: "bg-blue-100 text-blue-800" },
       "Pending Admin HOD":      { label: "Added cheque details",                                              style: "bg-blue-100 text-blue-800" },
       "Pending FC":             { label: "Approved Admin HOD",                                                     style: "bg-blue-100 text-blue-800" },
@@ -1324,7 +1330,6 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
     );
   }, [activeRenewal, isCreate]);
 
-  const propertyTypeOptions =["Shop", "Villa", "Flat", "Other"];
   const emirateOptions = [
     "Abu Dhabi",
     "Dubai",
