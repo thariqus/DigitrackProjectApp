@@ -11,6 +11,9 @@ ROLE_PRIORITY = [
     "approver_1",
     "approver_2",
     "approver_3",
+    "approver_4",
+    "approver_5",
+    "approver_6",
     "property_dept",
     "gl_team",
     "licensing",
@@ -21,6 +24,9 @@ ACTIVE_RENEWAL_STATES = [
     "Pending Approver 1",
     "Pending Approver 2",
     "Pending Approver 3",
+    "Pending Approver 4",
+    "Pending Approver 5",
+    "Pending Approver 6",
     "Pending Cheque Details",
     "Pending Admin HOD",
     "Pending FC",
@@ -33,39 +39,25 @@ ACTIVE_RENEWAL_STATES = [
 # Full set of possible sendback targets per state.
 # Dynamic approver states that don't exist for a given property are filtered
 # out by _get_valid_sendback_options() before being sent to the client.
+_ALL_APPROVER_STATES = {
+    "Pending Approver 1", "Pending Approver 2", "Pending Approver 3",
+    "Pending Approver 4", "Pending Approver 5", "Pending Approver 6",
+}
+
 SENDBACK_TRANSITIONS = {
     "Pending Approver 1": {"Draft"},
     "Pending Approver 2": {"Pending Approver 1", "Draft"},
     "Pending Approver 3": {"Pending Approver 2", "Pending Approver 1", "Draft"},
-    "Pending Cheque Details": {
-        "Pending Approver 3", "Pending Approver 2", "Pending Approver 1", "Draft",
-    },
-    "Pending Admin HOD": {
-        "Pending Cheque Details",
-        "Pending Approver 3", "Pending Approver 2", "Pending Approver 1", "Draft",
-    },
-    "Pending FC": {
-        "Pending Admin HOD", "Pending Cheque Details",
-        "Pending Approver 3", "Pending Approver 2", "Pending Approver 1", "Draft",
-    },
-    "Pending CFO": {
-        "Pending FC", "Pending Admin HOD", "Pending Cheque Details",
-        "Pending Approver 3", "Pending Approver 2", "Pending Approver 1", "Draft",
-    },
-    "Pending MD": {
-        "Pending CFO", "Pending FC", "Pending Admin HOD", "Pending Cheque Details",
-        "Pending Approver 3", "Pending Approver 2", "Pending Approver 1", "Draft",
-    },
-    "Pending Property PO": {
-        "Pending MD", "Pending CFO", "Pending FC", "Pending Admin HOD",
-        "Pending Cheque Details",
-        "Pending Approver 3", "Pending Approver 2", "Pending Approver 1", "Draft",
-    },
-    "Pending MIRO": {
-        "Pending Property PO", "Pending MD", "Pending CFO", "Pending FC",
-        "Pending Admin HOD", "Pending Cheque Details",
-        "Pending Approver 3", "Pending Approver 2", "Pending Approver 1", "Draft",
-    },
+    "Pending Approver 4": {"Pending Approver 3", "Pending Approver 2", "Pending Approver 1", "Draft"},
+    "Pending Approver 5": {"Pending Approver 4", "Pending Approver 3", "Pending Approver 2", "Pending Approver 1", "Draft"},
+    "Pending Approver 6": {"Pending Approver 5", "Pending Approver 4", "Pending Approver 3", "Pending Approver 2", "Pending Approver 1", "Draft"},
+    "Pending Cheque Details": _ALL_APPROVER_STATES | {"Draft"},
+    "Pending Admin HOD":      _ALL_APPROVER_STATES | {"Pending Cheque Details", "Draft"},
+    "Pending FC":             _ALL_APPROVER_STATES | {"Pending Admin HOD", "Pending Cheque Details", "Draft"},
+    "Pending CFO":            _ALL_APPROVER_STATES | {"Pending FC", "Pending Admin HOD", "Pending Cheque Details", "Draft"},
+    "Pending MD":             _ALL_APPROVER_STATES | {"Pending CFO", "Pending FC", "Pending Admin HOD", "Pending Cheque Details", "Draft"},
+    "Pending Property PO":    _ALL_APPROVER_STATES | {"Pending MD", "Pending CFO", "Pending FC", "Pending Admin HOD", "Pending Cheque Details", "Draft"},
+    "Pending MIRO":           _ALL_APPROVER_STATES | {"Pending Property PO", "Pending MD", "Pending CFO", "Pending FC", "Pending Admin HOD", "Pending Cheque Details", "Draft"},
 }
 
 STATE_ROLE_MAP = {
@@ -73,6 +65,9 @@ STATE_ROLE_MAP = {
     "Pending Approver 1":     {"approver_1", "module_admin", "Administrator"},
     "Pending Approver 2":     {"approver_2", "module_admin", "Administrator"},
     "Pending Approver 3":     {"approver_3", "module_admin", "Administrator"},
+    "Pending Approver 4":     {"approver_4", "module_admin", "Administrator"},
+    "Pending Approver 5":     {"approver_5", "module_admin", "Administrator"},
+    "Pending Approver 6":     {"approver_6", "module_admin", "Administrator"},
     "Pending Cheque Details": {"property_dept", "module_admin", "Administrator"},
     "Pending Admin HOD":      {"admin_hod", "module_admin", "Administrator"},
     "Pending FC":             {"fc", "module_admin", "Administrator"},
@@ -101,6 +96,18 @@ WORKFLOW_TRANSITIONS = {
         },
         "Pending Approver 3": {
             "roles": {"approver_3", "module_admin", "Administrator"},
+            "next_state": None,  # dynamic: check approver count
+        },
+        "Pending Approver 4": {
+            "roles": {"approver_4", "module_admin", "Administrator"},
+            "next_state": None,  # dynamic: check approver count
+        },
+        "Pending Approver 5": {
+            "roles": {"approver_5", "module_admin", "Administrator"},
+            "next_state": None,  # dynamic: check approver count
+        },
+        "Pending Approver 6": {
+            "roles": {"approver_6", "module_admin", "Administrator"},
             "next_state": "Pending Cheque Details",
         },
         "Pending Cheque Details": {
@@ -137,6 +144,9 @@ WORKFLOW_TRANSITIONS = {
         "Pending Approver 1": {"roles": {"approver_1"}, "next_state": "Withdrawn"},
         "Pending Approver 2": {"roles": {"approver_2"}, "next_state": "Withdrawn"},
         "Pending Approver 3": {"roles": {"approver_3"}, "next_state": "Withdrawn"},
+        "Pending Approver 4": {"roles": {"approver_4"}, "next_state": "Withdrawn"},
+        "Pending Approver 5": {"roles": {"approver_5"}, "next_state": "Withdrawn"},
+        "Pending Approver 6": {"roles": {"approver_6"}, "next_state": "Withdrawn"},
         "Pending Admin HOD":  {"roles": {"admin_hod"}, "next_state": "Withdrawn"},
         "Pending FC":         {"roles": {"fc"}, "next_state": "Withdrawn"},
         "Pending CFO":        {"roles": {"cfo"}, "next_state": "Withdrawn"},
@@ -156,9 +166,21 @@ WORKFLOW_TRANSITIONS = {
             "roles": {"approver_3", "module_admin", "Administrator"},
             "next_state": "Pending Approver 2",
         },
+        "Pending Approver 4": {
+            "roles": {"approver_4", "module_admin", "Administrator"},
+            "next_state": "Pending Approver 3",
+        },
+        "Pending Approver 5": {
+            "roles": {"approver_5", "module_admin", "Administrator"},
+            "next_state": "Pending Approver 4",
+        },
+        "Pending Approver 6": {
+            "roles": {"approver_6", "module_admin", "Administrator"},
+            "next_state": "Pending Approver 5",
+        },
         "Pending Cheque Details": {
             "roles": {"property_dept", "module_admin", "Administrator"},
-            "next_state": "Pending Approver 1",
+            "next_state": None,  # dynamic: last active approver state
         },
         "Pending Admin HOD": {
             "roles": {"admin_hod", "module_admin", "Administrator"},
@@ -190,6 +212,9 @@ WORKFLOW_TRANSITIONS = {
         "Pending Approver 1":     {"roles": {"approver_1", "module_admin", "Administrator"}, "next_state": "Withdrawn"},
         "Pending Approver 2":     {"roles": {"approver_2", "module_admin", "Administrator"}, "next_state": "Withdrawn"},
         "Pending Approver 3":     {"roles": {"approver_3", "module_admin", "Administrator"}, "next_state": "Withdrawn"},
+        "Pending Approver 4":     {"roles": {"approver_4", "module_admin", "Administrator"}, "next_state": "Withdrawn"},
+        "Pending Approver 5":     {"roles": {"approver_5", "module_admin", "Administrator"}, "next_state": "Withdrawn"},
+        "Pending Approver 6":     {"roles": {"approver_6", "module_admin", "Administrator"}, "next_state": "Withdrawn"},
         "Pending Cheque Details": {"roles": {"property_dept", "module_admin", "Administrator"}, "next_state": "Withdrawn"},
         "Pending Admin HOD":      {"roles": {"admin_hod", "module_admin", "Administrator"}, "next_state": "Withdrawn"},
         "Pending FC":             {"roles": {"fc", "module_admin", "Administrator"}, "next_state": "Withdrawn"},
@@ -278,12 +303,13 @@ def _get_valid_sendback_options(renewal, current_state):
     for option in all_options:
         if not option.startswith("Pending Approver"):
             valid.add(option)
-        elif option == "Pending Approver 1" and n >= 1:
-            valid.add(option)
-        elif option == "Pending Approver 2" and n >= 2:
-            valid.add(option)
-        elif option == "Pending Approver 3" and n >= 3:
-            valid.add(option)
+        else:
+            try:
+                idx = int(option.split("Pending Approver ")[1])
+                if n >= idx:
+                    valid.add(option)
+            except (IndexError, ValueError):
+                pass
     return valid
 
 
@@ -663,6 +689,9 @@ def _attach_approver_names(records):
         record["approver_1_name"] = _name(0)
         record["approver_2_name"] = _name(1)
         record["approver_3_name"] = _name(2)
+        record["approver_4_name"] = _name(3)
+        record["approver_5_name"] = _name(4)
+        record["approver_6_name"] = _name(5)
 
     return records
 
@@ -1122,6 +1151,9 @@ def whoami(renewal_id: str = None, is_new: bool = False):
         "Pending Approver 1":     ["approver_1", "module_admin"],
         "Pending Approver 2":     ["approver_2", "module_admin"],
         "Pending Approver 3":     ["approver_3", "module_admin"],
+        "Pending Approver 4":     ["approver_4", "module_admin"],
+        "Pending Approver 5":     ["approver_5", "module_admin"],
+        "Pending Approver 6":     ["approver_6", "module_admin"],
         "Pending Cheque Details": ["property_dept", "module_admin"],
         "Pending Admin HOD":      ["admin_hod", "module_admin"],
         "Pending FC":             ["fc", "module_admin"],
@@ -1398,6 +1430,33 @@ def get_my_pending_renewals():
             if approver_props_3:
                 _add_rows({"workflow_state": "Pending Approver 3", "property": ["in", approver_props_3]})
 
+            approver_props_4 = frappe.get_all(
+                "JH Property Approver",
+                filters={"approver": actor, "order": 4, "parenttype": "JH Property Master"},
+                pluck="parent",
+                ignore_permissions=True,
+            )
+            if approver_props_4:
+                _add_rows({"workflow_state": "Pending Approver 4", "property": ["in", approver_props_4]})
+
+            approver_props_5 = frappe.get_all(
+                "JH Property Approver",
+                filters={"approver": actor, "order": 5, "parenttype": "JH Property Master"},
+                pluck="parent",
+                ignore_permissions=True,
+            )
+            if approver_props_5:
+                _add_rows({"workflow_state": "Pending Approver 5", "property": ["in", approver_props_5]})
+
+            approver_props_6 = frappe.get_all(
+                "JH Property Approver",
+                filters={"approver": actor, "order": 6, "parenttype": "JH Property Master"},
+                pluck="parent",
+                ignore_permissions=True,
+            )
+            if approver_props_6:
+                _add_rows({"workflow_state": "Pending Approver 6", "property": ["in", approver_props_6]})
+
         _fetch_for_actor(user, user_roles)
 
         for delegator in (_get_standing_delegators(user) or []):
@@ -1603,15 +1662,21 @@ def apply_workflow_action(
             frappe.throw(_("Comment is required"))
         next_state = transition["next_state"]
 
-        # Dynamic next_state for Approver 1
-        if current_state == "Pending Approver 1" and action == "approve":
-            approvers = _get_property_approvers_list(renewal.property)
-            next_state = "Pending Approver 2" if len(approvers) >= 2 else "Pending Cheque Details"
+        # Dynamic next_state for Approvers 1-5 (advance to next approver or Cheque Details)
+        if action == "approve" and current_state.startswith("Pending Approver "):
+            try:
+                idx = int(current_state.split("Pending Approver ")[1])
+            except (IndexError, ValueError):
+                idx = 0
+            if 1 <= idx <= 5:
+                approvers = _get_property_approvers_list(renewal.property)
+                next_state = f"Pending Approver {idx + 1}" if len(approvers) >= idx + 1 else "Pending Cheque Details"
 
-        # Dynamic next_state for Approver 2
-        elif current_state == "Pending Approver 2" and action == "approve":
+        # Dynamic next_state for Cheque Details sendback (go to last active approver)
+        elif action == "sendback" and current_state == "Pending Cheque Details":
             approvers = _get_property_approvers_list(renewal.property)
-            next_state = "Pending Approver 3" if len(approvers) >= 3 else "Pending Cheque Details"
+            n = len(approvers)
+            next_state = f"Pending Approver {n}" if n >= 1 else "Draft"
 
         # CFO approval: conditional on rent change
         elif current_state == "Pending CFO" and action == "approve":
