@@ -90,6 +90,13 @@ export const useChequeTypes = () =>
     staleTime: 30 * 60 * 1000,
   });
 
+export const usePropertyTypes = () =>
+  useQuery({
+    queryKey: ["PropertyTypes"],
+    queryFn: propertyApi.getPropertyTypes,
+    staleTime: 30 * 60 * 1000,
+  });
+
 export const useDivisionsByBusiness = (business?: string | null) =>
   useQuery({
     queryKey: ["DivisionsByBusiness", business ?? ""],

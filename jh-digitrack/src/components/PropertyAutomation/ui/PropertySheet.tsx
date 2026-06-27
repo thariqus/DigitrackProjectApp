@@ -18,10 +18,11 @@ import { toast } from "sonner";
 import FileAttachment from "./FileAttachment";
 import MultiValueInput from "./MultiValueInput";
 import { useDocs, useSaveDoc, useUpdateDoc } from "@/hooks/doc";
-import { usePropertyDoc, useRenewalList, useUserAccess, useDivisionsByBusiness } from "../hooks/useProperty";
+import { usePropertyDoc, useRenewalList, useUserAccess, useDivisionsByBusiness, usePropertyTypes } from "../hooks/useProperty";
 import { PropertyMaster, JHPropertyElectricityConnection, JHPropertyLandline, ChequeDetail, RentalRenewal } from "@/types/JHDigitrack/JHPropertyAutomation";
 import { X } from "lucide-react";
 import { queryClient } from "@/utils/query-client";
+import frappe from "@/utils/frappe-client";
 import RenewalTimeline from "./RenewalTimeline";
 import { useChequeTypes } from "../hooks/useProperty";
  
@@ -67,6 +68,7 @@ const numericOnlyField = z.preprocess(
 const propertySchema = z.object({
   property_name: z.string().min(1, "Required field"),
   type_of_property: z.string().nullable().optional(),
+  other_property_type: z.string().nullable().optional(),
   business_used: z.string().nullable().optional(),
   division_used: z.string().nullable().optional(),
   booked_under: numericOnlyField,
@@ -136,6 +138,7 @@ type PropertyFormValues = z.infer<typeof propertySchema> & {
   const getEmptyPropertyFormValues = (): PropertyFormValues => ({
   property_name: "",
   type_of_property: "",
+  other_property_type: "",
   business_used: "",
   division_used: "",
   booked_under: undefined,
@@ -209,6 +212,7 @@ export default function PropertySheet({
   const formId = "property-form";
  
   const { data: propertyData, isFetching: isPropertyFetching } = usePropertyDoc(propertyId);
+  console.log(propertyData,"neewwww")
   const { data: renewalsListData, refetch: refetchRenewals } = useRenewalList(
   {
     property: propertyId || undefined,
@@ -219,6 +223,7 @@ export default function PropertySheet({
 );
 const renewalsData = renewalsListData?.renewals ?? [];
   const { data: chequeTypes = [] } = useChequeTypes();
+  const { data: propertyTypeOptions = [] } = usePropertyTypes();
  
   const doc = propertyData?.doc as PropertyMaster | undefined;
  
@@ -256,6 +261,7 @@ const renewalsData = renewalsListData?.renewals ?? [];
   });
  
   const businessWatch = useWatch({ control, name: "business_used" });
+  const typeOfPropertyWatch = useWatch({ control, name: "type_of_property" });
   const { data: divisionData } = useDivisionsByBusiness(businessWatch);
 
   const divisionWatch = useWatch({
@@ -366,18 +372,14 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
   };
  
   const uploadFile = async (file: File) => {
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("is_private", "1");
- 
-    const res = await fetch("/api/method/upload_file", {
-      method: "POST",
-      body: formData,
-      credentials: "include",
-    });
- 
-    const data = await res.json();
-    return data.message.file_url as string;
+    const res = await frappe.file.uploadFile(
+      file,
+      { isPrivate: false, otherData: { is_private: "0" } }
+    );
+    const fileUrl = (res.data?.message as { file_url?: string })?.file_url;
+    if (!fileUrl) throw new Error("File upload failed: no file_url returned");
+    console.log("[uploadFile] uploaded as:", fileUrl);
+    return fileUrl;
   };
  
   const onSubmit = async (data: PropertyFormValues) => {
@@ -579,6 +581,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
           + Add Approver
         </Button>
         </div>
+        
         
         <div className="rounded-md border overflow-hidden">
           <table className="w-full text-sm">
@@ -1304,6 +1307,9 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
       "Pending Approver 1":     { label: `Pending: ${activeRenewal.approver_1_name || "Approver 1"}`,     style: "bg-yellow-100 text-yellow-800" },
       "Pending Approver 2":     { label: `Approved by ${activeRenewal.approver_1_name || "Approver 1"}`,  style: "bg-orange-100 text-orange-800" },
       "Pending Approver 3":     { label: `Approved by ${activeRenewal.approver_2_name || "Approver 2"}`,  style: "bg-orange-100 text-orange-800" },
+      "Pending Approver 4":     { label: `Approved by ${activeRenewal.approver_3_name || "Approver 3"}`, style: "bg-orange-100 text-orange-800" },
+      "Pending Approver 5":     { label: `Approved by ${activeRenewal.approver_4_name || "Approver 4"}`, style: "bg-orange-100 text-orange-800" },
+      "Pending Approver 6":     { label: `Approved by ${activeRenewal.approver_5_name || "Approver 5"}`, style: "bg-orange-100 text-orange-800" },
       "Pending Cheque Details": { label: `Approved by ${activeRenewal.approver_3_name || "Approver 3"}`,   style: "bg-blue-100 text-blue-800" },
       "Pending Admin HOD":      { label: "Added cheque details",                                              style: "bg-blue-100 text-blue-800" },
       "Pending FC":             { label: "Approved Admin HOD",                                                     style: "bg-blue-100 text-blue-800" },
@@ -1324,7 +1330,6 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
     );
   }, [activeRenewal, isCreate]);
 
-  const propertyTypeOptions =["Shop", "Villa", "Flat", "Other"];
   const emirateOptions = [
     "Abu Dhabi",
     "Dubai",
@@ -1367,7 +1372,11 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                 {isView ? (
                   <div className="flex items-center gap-2 py-1 text-sm">
                     <span className="font-medium text-gray-600">Property Type:</span>
-                    <span>{doc?.type_of_property || "-"}</span>
+                    <span>
+                      {doc?.type_of_property === "Other"
+                        ? doc?.other_property_type || "Other"
+                        : doc?.type_of_property || "-"}
+                    </span>
                   </div>
                 ) : (
                   <Controller
@@ -1386,6 +1395,23 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                   />
                 )}
               </div>
+
+              {typeOfPropertyWatch === "Other" && !isView && (
+                <div className="flex flex-col gap-1">
+                  <Label className="text-sm text-gray-600">Specify Type</Label>
+                  <Controller
+                    name="other_property_type"
+                    control={control}
+                    render={({ field }) => (
+                      <Input
+                        {...field}
+                        value={field.value ?? ""}
+                        placeholder="Please specify property type"
+                      />
+                    )}
+                  />
+                </div>
+              )}
  
               <div className="flex flex-col gap-1">
                 {!isView && <Label className="text-sm text-gray-600">Business Used</Label>}

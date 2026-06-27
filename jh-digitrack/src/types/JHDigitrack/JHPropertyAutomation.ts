@@ -10,6 +10,7 @@ export interface PropertyMaster {
   property_name: string;
 
   type_of_property: "Shop" | "Office" | "Warehouse" | "Other";
+  other_property_type?: string;
   business_used?: string;
 
   division_used: string;
@@ -114,6 +115,9 @@ export interface RentalRenewal {
   approver_1_name?: string | null;
   approver_2_name?: string | null;
   approver_3_name?: string | null;
+  approver_4_name?: string | null;
+  approver_5_name?: string | null;
+  approver_6_name?: string | null;
 
   // Workflow
   workflow_state?:
