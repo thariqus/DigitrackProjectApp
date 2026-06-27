@@ -1056,6 +1056,15 @@ def get_org_role_users():
     }
 
 
+@frappe.whitelist(methods=["GET"])
+def get_property_types():
+    meta = frappe.get_meta("JH Property Master")
+    field = next((f for f in meta.fields if f.fieldname == "type_of_property"), None)
+    if not field or not field.options:
+        return {"property_types": []}
+    return {"property_types": [opt for opt in field.options.split("\n") if opt.strip()]}
+
+
 def _get_effective_roles(user, renewal=None):
     """
     Returns all workflow roles the user can act as, including via delegation.
