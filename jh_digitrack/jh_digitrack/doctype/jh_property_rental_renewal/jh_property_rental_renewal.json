@@ -227,7 +227,7 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Workflow State",
-   "options": "Draft\nPending Approver 1\nPending Approver 2\nPending Approver 3\nPending Cheque Details\nPending Admin HOD\nPending FC\nPending CFO\nPending MD\nPending Property PO\nPending MIRO\nCompleted\nWithdrawn",
+   "options": "Draft\nPending Approver 1\nPending Approver 2\nPending Approver 3\nPending Approver 4\nPending Approver 5\nPending Approver 6\nPending Cheque Details\nPending Admin HOD\nPending FC\nPending CFO\nPending MD\nPending Property PO\nPending MIRO\nCompleted\nWithdrawn",
    "read_only": 1
   },
   {
