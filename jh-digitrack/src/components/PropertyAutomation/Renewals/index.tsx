@@ -296,7 +296,7 @@ function Renewals() {
               <RenewalTableRow
                 key={item.name}
                 renewals={item}
-                index={index}
+                index={(currentPage - 1) * renewalsPerPage + index}
                 isLoading={isLoading}
                 onClick={() => handleRowClick(item.name)}
                 onEdit={handleEditClick}

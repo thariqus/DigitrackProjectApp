@@ -23,13 +23,19 @@ interface PropertyTabProps {
   activeTab: string;
   onTabChange: (value: string) => void;
   onDescriptionChange: (description: string) => void;
+  showPropertiesTab?: boolean;
 }
 
 export function PropertyTabs({
   activeTab,
   onTabChange,
   onDescriptionChange,
+  showPropertiesTab = true,
 }: PropertyTabProps) {
+
+  const visibleFilters = showPropertiesTab
+    ? filters
+    : filters.filter((f) => f.value !== "properties");
 
   const handleValueChange = (value: string) => {
     onTabChange(value);
@@ -42,7 +48,7 @@ export function PropertyTabs({
   return (
     <Tabs value={activeTab} onValueChange={handleValueChange}>
       <TabsList className="h-11 w-fit bg-rose-50 p-1">
-        {filters.map((filter) => (
+        {visibleFilters.map((filter) => (
           <TabsTrigger
             disabled={filter.disabled}
             key={filter.value}

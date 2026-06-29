@@ -322,6 +322,7 @@ function Properties() {
     roles.includes("JH Licensing Team") || roles.includes("JH Property Department");
 
   return (
+    
     <div className="w-full space-y-4">
       <div className="flex justify-between gap-3">
         <SearchBar
@@ -487,7 +488,7 @@ function Properties() {
               <PropertyTableRow
                 key={item.name}
                 property={item}
-                index={index}
+                index={(currentPage - 1) * propertiesPerPage + index}
                 isLoading={isLoading}
                 onClick={() => handleRowClick(item.name)}
                 onEdit={handleEditClick}
