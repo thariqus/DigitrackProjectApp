@@ -477,17 +477,38 @@ def get_property_list(
     ctx = _get_property_user_context()
     user = ctx["user"]
 
+    # FC, CFO, and GL Team may not view the properties list
+    if ctx["is_fc"] or ctx["is_cfo"] or ctx["has_gl_team"]:
+        frappe.throw(_("Not permitted"), frappe.PermissionError)
+
     has_full_access = (
-        ctx["is_admin"] or ctx["is_md"] or ctx["is_cfo"]
-        or ctx["is_admin_hod"] or ctx["is_fc"]
-        or ctx["has_property_dept"] or ctx["has_gl_team"] or ctx["is_licensing"]
+        ctx["is_admin"] or ctx["is_md"]
+        or ctx["is_admin_hod"]
+        or ctx["has_property_dept"] or ctx["is_licensing"]
     )
+
+    # Row-level filter applied for approvers (division-scoped access)
+    _division_scope = None
+    _property_scope = None
 
     if not has_full_access:
         approver_props = _get_approver_properties(user)
         has_adhoc_delegation = bool(_get_visible_adhoc_properties(user))
         if not approver_props and not has_adhoc_delegation:
             frappe.throw(_("Not permitted"), frappe.PermissionError)
+
+        if approver_props and not has_adhoc_delegation:
+            raw_divisions = frappe.db.get_all(
+                "JH Property Master",
+                filters={"name": ["in", approver_props]},
+                pluck="division_used",
+                ignore_permissions=True,
+            )
+            division_list = list(set(d for d in raw_divisions if d))
+            if division_list:
+                _division_scope = division_list
+            else:
+                _property_scope = approver_props
 
     filters = {}
 
@@ -535,6 +556,17 @@ def get_property_list(
             filters["po_box_renewal_date"] = ["between", [today_str, add_days(today_str, 30)]]
     elif expiring_soon:
         filters["renewal_date"] = ["between", [today_str, add_days(today_str, 90)]]
+
+    # Apply approver row-level scope (division or exact property list).
+    # If the user also filtered by a specific division, intersect with scope.
+    if _division_scope:
+        user_div = filters.get("division_used")
+        if user_div and isinstance(user_div, str):
+            filters["division_used"] = user_div if user_div in _division_scope else ["in", []]
+        else:
+            filters["division_used"] = ["in", _division_scope]
+    elif _property_scope:
+        filters["name"] = ["in", _property_scope]
 
     limit = cint(limit)
     page = cint(page)
