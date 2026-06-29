@@ -740,6 +740,8 @@ const renderDelegationBadge = () => {
   };
 
   const getFileName = (url: string) => url.split("/").pop() || "";
+
+  const isImageFile = (url: string) => /\.(png|jpg|jpeg)$/i.test(url);
  
   const renderReadonlyField = (
     label: string,
@@ -976,8 +978,9 @@ const renderDelegationBadge = () => {
           </span>
           <a
             href={renewalDoc.supporting_documents}
-            target="_blank"
-            rel="noopener noreferrer"
+            {...(isImageFile(renewalDoc.supporting_documents)
+              ? { download: getFileName(renewalDoc.supporting_documents) }
+              : { target: "_blank", rel: "noopener noreferrer" })}
             className="text-blue-600 text-sm underline"
           >
             View
@@ -998,8 +1001,9 @@ const renderDelegationBadge = () => {
             </span>
             <a
               href={renewalDoc.supporting_documents}
-              target="_blank"
-              rel="noopener noreferrer"
+              {...(isImageFile(renewalDoc.supporting_documents)
+                ? { download: getFileName(renewalDoc.supporting_documents) }
+                : { target: "_blank", rel: "noopener noreferrer" })}
               className="text-blue-600 text-sm underline"
             >
               View
@@ -1112,8 +1116,9 @@ const renderDelegationBadge = () => {
                       </span>
                       <a
                         href={renewalDoc.renewed_contract_document}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                        {...(isImageFile(renewalDoc.renewed_contract_document)
+                          ? { download: getFileName(renewalDoc.renewed_contract_document) }
+                          : { target: "_blank", rel: "noopener noreferrer" })}
                         className="text-blue-600 underline text-sm"
                       >
                         View

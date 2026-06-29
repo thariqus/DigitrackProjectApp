@@ -489,6 +489,8 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
   const requiredFields = ["property_name", "current_rent", "renewal_date"];
  
   const getFileName = (url: string) => url.split("/").pop() || "";
+
+  const isImageFile = (url: string) => /\.(png|jpg|jpeg)$/i.test(url);
  
   const renderField = (
     label: string,
@@ -1610,8 +1612,9 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                       <span className="text-sm text-gray-700">{getFileName(file.attachment)}</span>
                       <a
                         href={file.attachment}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                        {...(isImageFile(file.attachment)
+                          ? { download: getFileName(file.attachment) }
+                          : { target: "_blank", rel: "noopener noreferrer" })}
                         className="text-blue-600 text-sm underline"
                       >
                         View
@@ -1632,8 +1635,9 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                         <span className="text-sm text-gray-700">{getFileName(file.attachment)}</span>
                         <a
                           href={file.attachment}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                          {...(isImageFile(file.attachment)
+                            ? { download: getFileName(file.attachment) }
+                            : { target: "_blank", rel: "noopener noreferrer" })}
                           className="text-blue-600 text-sm underline"
                         >
                           View
