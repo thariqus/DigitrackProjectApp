@@ -273,6 +273,7 @@ const renewalsData = renewalsListData?.renewals ?? [];
   const premiseNumberWatch = useWatch({ control, name: "premise_number" });
   const electricityAccountsWatch = useWatch({ control, name: "electricity_accounts" });
   const landlineAccountsWatch = useWatch({ control, name: "landline_accounts" });
+  const depositAmountWatch = useWatch({ control, name: "landlord_security_deposit" });
   const { data: selectedDivisionData } = useDocs({
     doctype: "JH Division Master",
     fields: ["name", "division_head", "division_gm"],
@@ -428,6 +429,22 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
     if (isCreate && data.renewal_date && new Date(data.renewal_date) <= new Date()) {
       toast.error("Renewal Date must be a future date");
       return;
+    }
+
+    if (securityDepositCheques.length > 0 && data.landlord_security_deposit) {
+      const totalChequeAmount = securityDepositCheques.reduce(
+        (sum, c) => sum + Number(c.cheque_amount || 0),
+        0
+      );
+      if (totalChequeAmount !== Number(data.landlord_security_deposit)) {
+        const diff = totalChequeAmount - Number(data.landlord_security_deposit);
+        toast.error(
+          diff > 0
+            ? `Total cheque amount exceeds the deposit amount`
+            : `Total cheque amount is short of the deposit amount `
+        );
+        return;
+      }
     }
 
     if (data.number_of_premises && data.number_of_premises > 0) {
@@ -1038,6 +1055,29 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
             )}
           </div>
         ))}
+
+        {!isViewMode && securityDepositCheques.length > 0 && (() => {
+          const total = securityDepositCheques.reduce((sum, c) => sum + Number(c.cheque_amount || 0), 0);
+          const deposit = Number(depositAmountWatch || 0);
+          const isMatch = deposit > 0 && total === deposit;
+          const diff = total - deposit;
+          return (
+            <div className={`flex items-center gap-1 text-xs mt-1 ${deposit > 0 && !isMatch ? "text-red-500" : isMatch ? "text-green-600" : "text-gray-500"}`}>
+              <span>Total amount of cheques: <strong>{total}</strong></span>
+              {deposit > 0 && (
+                <>
+                  {/* <span>/</span>
+                  <span>Deposit: <strong>{deposit}</strong></span> */}
+                  {!isMatch && (
+                    <span>
+                      — {diff > 0 ? `${diff} over` : `${Math.abs(diff)} short of`} security deposit amount
+                    </span>
+                  )}
+                </>
+              )}
+            </div>
+          );
+        })()}
 
         {!isViewMode && (
           <Button
