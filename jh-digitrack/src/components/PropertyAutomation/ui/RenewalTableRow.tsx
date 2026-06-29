@@ -3,6 +3,12 @@ import { Pencil, Download } from "lucide-react";
 import { useOutletContext } from "react-router";
 import StatusBadge from "./StatusBadge";
 
+const decodeHtml = (str: string) => {
+  const el = document.createElement("div");
+  el.innerHTML = str;
+  return el.innerText;
+};
+
 
 function RenewalTableRow({ renewals , index, onClick,isLoading,onEdit,renewalColorHighlight,formatDate,isLicensingTeam,onDownload  }: any) {
 
@@ -48,7 +54,7 @@ function RenewalTableRow({ renewals , index, onClick,isLoading,onEdit,renewalCol
       <TableCell className="w-[50px]">{index + 1}</TableCell>
       <TableCell>{renewals.name}</TableCell>
       <TableCell>{renewals.property}</TableCell>
-      <TableCell>{renewals.division}</TableCell>
+      <TableCell>{renewals.division ? decodeHtml(renewals.division) : renewals.division}</TableCell>
       <TableCell>{renewals.current_rent} </TableCell>
       <TableCell>{renewals.proposed_rent}</TableCell>
       <TableCell>{renewals.rent_change_percent != null ? `${Number(renewals.rent_change_percent).toFixed(2)}%` : "-"}</TableCell>
