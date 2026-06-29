@@ -73,7 +73,7 @@
    "fieldname": "type_of_property",
    "fieldtype": "Select",
    "label": "Type of Property",
-   "options": "Flat\nShop\nVilla\nOther"
+   "options": "Shop\nOffice\nWarehouse\nOther"
   },
   {
    "fieldname": "division_used",
