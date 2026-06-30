@@ -1335,7 +1335,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
   const activeRenewal = useMemo(() => {
     if (!renewalsData.length) return null;
     return (renewalsData as RentalRenewal[])
-      .filter(r => r.workflow_state !== "Withdrawn")
+      .slice()
       .sort((a, b) => new Date(b.modified).getTime() - new Date(a.modified).getTime())[0] ?? null;
   }, [renewalsData]);
 
@@ -1359,8 +1359,9 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
       "Pending MD":             { label: "Approved by CFO",                                                style: "bg-red-100 text-red-800" },
       "Pending Property PO":    { label: "Approved by MD",                                                 style: "bg-purple-100 text-purple-800" },
       "Pending MIRO":           { label: "PO Created",                                                     style: "bg-indigo-100 text-indigo-800" },
-      "Completed":              { label: "Completed",                                                      style: "bg-green-100 text-green-800" },
       "Withdrawn":              { label: "Withdrawn",                                                      style: "bg-gray-100 text-gray-500" },
+      "Completed":              { label: "Completed",                                                      style: "bg-green-100 text-green-800" },
+      
     };
 
     const config = stateConfig[state ?? ""] ?? { label: state ?? "Unknown", style: "bg-gray-100 text-gray-500" };
