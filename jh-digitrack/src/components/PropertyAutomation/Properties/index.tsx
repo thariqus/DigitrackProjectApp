@@ -53,6 +53,7 @@ function Properties() {
   const renewalFilter = searchParams.get("renewal_filter") || undefined;
   const attentionFilter = searchParams.get("attention_filter") || undefined;
 
+  
   const listParams = useMemo(
     () => ({
       search: searchQuery || undefined,
