@@ -78,7 +78,7 @@ export default function SendBackModal({
                   <SelectContent>
                     {sendback_options.map((option) => (
                       <SelectItem key={option} value={option}>
-                        {option}
+                        {option.startsWith("Pending ") ? option.slice("Pending ".length) : option}
                       </SelectItem>
                     ))}
                   </SelectContent>
