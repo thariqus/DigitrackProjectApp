@@ -47,8 +47,6 @@ function Properties() {
   useState<PropertyMaster | null>(null);
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [isDownloading, setIsDownloading] = useState(false);
-  
-  console.log(permissionData,"permission")
 
   const renewalFilter = searchParams.get("renewal_filter") || undefined;
   const attentionFilter = searchParams.get("attention_filter") || undefined;
@@ -275,8 +273,6 @@ function Properties() {
       setIsDownloading(false);
     }
   };
-
-  console.log(selectedProperty, "selectedproperty")
 
   const getUrgencyColor = (date?: string) => {
     if (!date) return "text-gray-500";

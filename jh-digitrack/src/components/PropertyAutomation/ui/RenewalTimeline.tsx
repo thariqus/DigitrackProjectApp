@@ -44,7 +44,6 @@ export default function RenewalTimeline({
   const commentLogs = sortedAuditTrail.filter(
     (log) => log.comments && log.comments.trim()
   );
-    console.log(auditTrail,"audit")
 
     if (!sortedAuditTrail.length && !isLoading) {
   return (

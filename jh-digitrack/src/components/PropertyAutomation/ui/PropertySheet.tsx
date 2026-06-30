@@ -212,7 +212,6 @@ export default function PropertySheet({
   const formId = "property-form";
  
   const { data: propertyData, isFetching: isPropertyFetching } = usePropertyDoc(propertyId);
-  console.log(propertyData,"neewwww")
   const { data: renewalsListData, refetch: refetchRenewals } = useRenewalList(
   {
     property: propertyId || undefined,
@@ -1339,7 +1338,6 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
       .sort((a, b) => new Date(b.modified).getTime() - new Date(a.modified).getTime())[0] ?? null;
   }, [renewalsData]);
 
-  console.log(activeRenewal,"actiiiii")
   const renewalStatusBadge = useMemo(() => {
     if (!activeRenewal || isCreate) return null;
     const state = activeRenewal.workflow_state;
