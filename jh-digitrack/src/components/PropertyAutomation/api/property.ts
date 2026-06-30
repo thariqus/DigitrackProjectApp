@@ -220,6 +220,9 @@ export const propertyApi = {
       pending_approver_1: number;
       pending_approver_2: number;
       pending_approver_3: number;
+      pending_approver_4: number;
+      pending_approver_5: number;
+      pending_approver_6: number;
       pending_cheque_details: number;
       pending_admin_hod: number;
       pending_fc: number;
