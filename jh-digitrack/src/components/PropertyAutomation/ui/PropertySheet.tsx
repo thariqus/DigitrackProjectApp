@@ -46,6 +46,62 @@ type NamedOption = {
   name: string;
 };
 
+type TenancyPeriodInputProps = {
+  field: { value: string; onChange: (value: string) => void };
+  hasError: boolean;
+};
+
+const TenancyPeriodInput = ({ field, hasError }: TenancyPeriodInputProps) => {
+  const [numVal, unitVal] = useMemo(() => {
+    if (!field.value) return ["" as string, "Months" as string];
+    const match = field.value.match(/^(\d+)\s*(Months?|Weeks?|Years?)$/i);
+    return match ? [match[1], match[2] || "Months"] : ["", "Months"];
+  }, [field.value]);
+
+  const handleValueChange = (newNum: string) => {
+    const cleaned = newNum.replace(/\D/g, "");
+    const num = parseInt(cleaned, 10);
+    field.onChange(num > 0 ? `${num} ${unitVal}` : "");
+  };
+
+  const handleUnitChange = (newUnit: string) => {
+    const num = parseInt(numVal, 10);
+    field.onChange(num > 0 ? `${num} ${newUnit}` : "");
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const allowed = ["Backspace", "Delete", "ArrowLeft", "ArrowRight", "Tab", "Home", "End"];
+    if (!allowed.includes(e.key) && !/^\d$/.test(e.key)) {
+      e.preventDefault();
+    }
+  };
+
+  return (
+    <div className="flex gap-2">
+      <Input
+        type="text"
+        inputMode="numeric"
+        pattern="[0-9]*"
+        value={numVal}
+        onChange={(e) => handleValueChange(e.target.value)}
+        onKeyDown={handleKeyDown}
+        placeholder="0"
+        className={cn("flex-1", hasError && "border-red-500")}
+      />
+      <Select value={unitVal} onValueChange={handleUnitChange}>
+        <SelectTrigger className="w-[120px]">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="Months">Months</SelectItem>
+          <SelectItem value="Weeks">Weeks</SelectItem>
+          <SelectItem value="Years">Years</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+  );
+};
+
 const requiredNumberField = z.preprocess(
   (value) => (value === "" || value === null || value === undefined ? undefined : Number(value)),
   z.number({
@@ -201,7 +257,7 @@ export default function PropertySheet({
   const [approverDropdownPos, setApproverDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null);
   const approverSearchRef = useRef<HTMLInputElement>(null);
   const { data: roleBasedAccess } = useUserAccess();
-  const isLicensingTeam = !!roleBasedAccess?.is_licensing;
+  // const isLicensingTeam = !!roleBasedAccess?.is_licensing;
  
   const saveDoc = useSaveDoc();
   const updateDoc = useUpdateDoc();
@@ -270,7 +326,7 @@ const renewalsData = renewalsListData?.renewals ?? [];
 
   const numberOfPremisesWatch = useWatch({ control, name: "number_of_premises" });
   const premiseNumberWatch = useWatch({ control, name: "premise_number" });
-  const electricityAccountsWatch = useWatch({ control, name: "electricity_accounts" });
+  // const electricityAccountsWatch = useWatch({ control, name: "electricity_accounts" });
   const landlineAccountsWatch = useWatch({ control, name: "landline_accounts" });
   const depositAmountWatch = useWatch({ control, name: "landlord_security_deposit" });
   const { data: selectedDivisionData } = useDocs({
@@ -280,7 +336,7 @@ const renewalsData = renewalsListData?.renewals ?? [];
     limit: 0,
   });
  
-  const selectedDivision = selectedDivisionData?.[0];
+  // const selectedDivision = selectedDivisionData?.[0];
 
 const resetSheetState = useCallback((values: PropertyFormValues = getEmptyPropertyFormValues(), docApprovers?: { order: number; approver: string }[]) => {
     setFiles([]);
@@ -942,7 +998,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
 
           {!isViewMode && (() => {
             const max = Number(landlineAccountsWatch) || 0;
-            const atMax = max > 0 && landlineConnections.length >= max;
+            // const atMax = max > 0 && landlineConnections.length >= max;
             return (
               <Button
                 type="button"
@@ -1272,53 +1328,12 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
             key={name as string} // Force remount on value change
             name={name}
             control={control}
-            render={({ field }) => {
-              const [numVal, unitVal] = useMemo(() => {
-                if (!field.value) return ["" as string, "Months" as string];
-                const match = field.value.match(/^(\d+)\s*(Months?|Weeks?|Years?)$/i);
-                return match 
-                  ? [match[1], match[2] || "Months"] 
-                  : ["", "Months"];
-              }, [field.value]);
-
-              const handleValueChange = (newNum: string) => {
-                const num = parseInt(newNum, 10);
-                const combined = num > 0 ? `${num} ${unitVal}` : "";
-                field.onChange(combined);
-              };
-
-              const handleUnitChange = (newUnit: string) => {
-                const num = parseInt(numVal, 10);
-                const combined = num > 0 ? `${num} ${newUnit}` : "";
-                field.onChange(combined);
-              };
-
-              return (
-                <div className="flex gap-2">
-                  <Input
-                    type="number"
-                    min={1}
-                    value={numVal}
-                    onChange={(e) => handleValueChange(e.target.value)}
-                    placeholder="0"
-                    className={cn(
-                      "flex-1",
-                      errors[name] && "border-red-500"
-                    )}
-                  />
-                  <Select value={unitVal} onValueChange={handleUnitChange}>
-                    <SelectTrigger className="w-[120px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Months">Months</SelectItem>
-                      <SelectItem value="Weeks">Weeks</SelectItem>
-                      <SelectItem value="Years">Years</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              );
-            }}
+            render={({ field }) => (
+              <TenancyPeriodInput
+                field={field}
+                hasError={!!errors[name]}
+              />
+            )}
           />
         )}
 
