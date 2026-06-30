@@ -38,8 +38,6 @@ export default function RenewalApprovalFooter({
         className="w-full bg-rose-200 hover:bg-rose-100 text-gray-500"
         type="button"
         disabled={disabledSendBack}
-        title="Closes the renewal process entirely. If needed, initiators can duplicate or create a new process for that property."
-
         onClick={onSendBack}
       >
         Send Back
