@@ -1,7 +1,7 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronDown, MessageSquare, User } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
-import { useJhUser, useCurrentJhUser } from "@/hooks/auth";
+import { useJhUser } from "@/hooks/auth";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,10 +9,11 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { useEffect, useState } from "react";
-import { Textarea } from "@/components/ui/textarea";
+// import { useEffect, useState } from "react";
+// import { Textarea } from "@/components/ui/textarea";
 import { PropertyAuditTrail } from "@/types/JHDigitrack/JHPropertyAutomation";
 import { useRenewalAuditTrail } from "../hooks/useProperty";
+import { useState } from "react";
 
 interface RenewalTimelineProps {
   renewalId: string;

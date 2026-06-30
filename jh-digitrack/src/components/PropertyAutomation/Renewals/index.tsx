@@ -302,7 +302,6 @@ function Renewals() {
                 onEdit={handleEditClick}
                 onDownload={handleDownload}
                 formatDate={formatDate}
-                renewalColorHighlight={undefined}
                 isLicensingTeam={isLicensingTeam}
                 // showActionsCell={showActions}
               />

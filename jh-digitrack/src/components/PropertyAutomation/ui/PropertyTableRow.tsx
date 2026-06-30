@@ -1,17 +1,11 @@
 import { TableRow, TableCell } from "@/components/ui/table";
 import { Pencil, RefreshCw } from "lucide-react";
-import { useOutletContext } from "react-router";
 import StatusBadge from "./StatusBadge";
-import { Button } from "@/components/ui/button";
 import { useRenewalList } from "../hooks/useProperty";
-
-type ContextType = {
-  propertyRole: any;
-};
 
 function PropertyTableRow({ property, index, onClick,isLoading,onEdit,renewalColorHighlight,getRenewalStatus,formatDate,canCreateOrEditProperty, canStartRenewal,onStartRenewal,isSelected,onSelect}: any) {
 
-   const { propertyRole } = useOutletContext<ContextType>();
+  //  const { propertyRole } = useOutletContext<ContextType>();
    const { data: renewalsListData } = useRenewalList(
   {
     property: property.name,

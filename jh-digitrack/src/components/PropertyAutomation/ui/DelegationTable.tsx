@@ -1,5 +1,4 @@
-import React from "react";
-import { Badge } from "@/components/ui/badge";
+
 import {
   Table,
   TableBody,
@@ -8,7 +7,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { cn } from "@/lib/utils";
+// import { cn } from "@/lib/utils";
 import { PaginationControls } from "./PaginationControls";
 
 type DelegationRecord = {

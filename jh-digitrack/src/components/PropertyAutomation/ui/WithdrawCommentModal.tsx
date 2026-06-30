@@ -44,9 +44,8 @@ export default function WithdrawCommentModal({
   }, [open, reset]);
 
   const onSubmit = (data: WithdrawFormData) => {
-    if (propertyId) {
-      onWithdraw(data.comment);
-    }
+    if (!propertyId) return;
+    onWithdraw(data.comment);
   };
 
   return (

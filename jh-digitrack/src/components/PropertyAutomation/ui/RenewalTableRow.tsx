@@ -1,6 +1,6 @@
 import { TableRow, TableCell } from "@/components/ui/table";
 import { Pencil, Download } from "lucide-react";
-import { useOutletContext } from "react-router";
+// import { useOutletContext } from "react-router";
 import StatusBadge from "./StatusBadge";
 
 const decodeHtml = (str: string) => {
@@ -10,7 +10,7 @@ const decodeHtml = (str: string) => {
 };
 
 
-function RenewalTableRow({ renewals , index, onClick,isLoading,onEdit,renewalColorHighlight,formatDate,isLicensingTeam,onDownload  }: any) {
+function RenewalTableRow({ renewals , index, onClick,isLoading,onEdit,isLicensingTeam,onDownload  }: any) {
 
 
    const renewalPeriod = (() => {

@@ -272,7 +272,7 @@ function Properties() {
     } finally {
       setIsDownloading(false);
     }
-  };
+  };  
 
   const getUrgencyColor = (date?: string) => {
     if (!date) return "text-gray-500";

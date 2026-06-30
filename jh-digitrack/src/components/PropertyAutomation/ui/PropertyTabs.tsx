@@ -22,14 +22,12 @@ const filters = [
 interface PropertyTabProps {
   activeTab: string;
   onTabChange: (value: string) => void;
-  onDescriptionChange: (description: string) => void;
   showPropertiesTab?: boolean;
 }
 
 export function PropertyTabs({
   activeTab,
   onTabChange,
-  onDescriptionChange,
   showPropertiesTab = true,
 }: PropertyTabProps) {
 
@@ -39,10 +37,6 @@ export function PropertyTabs({
 
   const handleValueChange = (value: string) => {
     onTabChange(value);
-    const filter = filters.find((f) => f.value === value);
-    if (filter) {
-      onDescriptionChange(filter.description);
-    }
   };
 
   return (

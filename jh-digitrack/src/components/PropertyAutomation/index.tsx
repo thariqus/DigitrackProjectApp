@@ -62,7 +62,6 @@ export default function PropertyAutomation() {
        <PropertyTabs
           activeTab={activeTab}
           onTabChange={handleTabChange}
-          onDescriptionChange={() => {}}
           showPropertiesTab={canSeePropertiesTab}
         />
       <Outlet context={{ propertyRole, currentJhUser, userAccess }} />

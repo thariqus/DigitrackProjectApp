@@ -34,18 +34,18 @@ type RenewalSheetProps = {
   onOpenChange: (open: boolean) => void;
   propertyId: string | null;
   mode: "view" | "edit" | "create";
-  formatDate: (date?: string) => string;
-  workflowColorHighlight?: (date?: string) => string;
-  typeOptions?: string[];
-  isLicensingTeam: boolean;
+  // formatDate: (date?: string) => string;
+  // workflowColorHighlight?: (date?: string) => string;
+  // typeOptions?: string[];
+  // isLicensingTeam: boolean;
   isJHPropertyDepartment: boolean;
-  isCfo: boolean;
-  isGMTeam: boolean;
-  isMD: boolean;
-  isApprover: boolean;
+  // isCfo: boolean;
+  // isGMTeam: boolean;
+  // isMD: boolean;
+  // isApprover: boolean;
   isGLTeam: boolean;
-  isApprover1: boolean;
-  isApprover2: boolean;
+  // isApprover1: boolean;
+  // isApprover2: boolean;
 };
  
 const renewalSchema = z.object({
