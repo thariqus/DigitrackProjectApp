@@ -56,10 +56,10 @@ function Properties() {
   const listParams = useMemo(
     () => ({
       search: searchQuery || undefined,
-      emirate: selectedEmirate.length === 1 ? selectedEmirate[0] : undefined,
-      type_of_property: selectedType.length === 1 ? selectedType[0] : undefined,
-      division: selectedDivision.length === 1 ? selectedDivision[0] : undefined,
-      business: selectedBusiness.length === 1 ? selectedBusiness[0] : undefined,
+      emirate: selectedEmirate.length > 0 ? selectedEmirate : undefined,
+      type_of_property: selectedType.length > 0 ? selectedType : undefined,
+      division: selectedDivision.length > 0 ? selectedDivision : undefined,
+      business: selectedBusiness.length > 0 ? selectedBusiness : undefined,
       expiring_soon: expiringSoon || undefined,
       renewal_filter: renewalFilter,
       attention_filter: attentionFilter,
