@@ -19,12 +19,15 @@ export type ChequeDetailPayload = {
 };
 
 const buildQueryString = (
-  params: Record<string, string | number | boolean | undefined>
+  params: Record<string, string | number | boolean | string[] | undefined>
 ) => {
   const query = new URLSearchParams();
 
   Object.entries(params).forEach(([key, value]) => {
-    if (value !== undefined && value !== "" && value !== false) {
+    if (value === undefined || value === "" || value === false) return;
+    if (Array.isArray(value)) {
+      if (value.length > 0) query.set(key, JSON.stringify(value));
+    } else {
       query.set(key, String(value));
     }
   });
@@ -86,7 +89,7 @@ export const propertyApi = {
   },
 
   getPropertyList: async (
-    params: Record<string, string | number | boolean | undefined>
+    params: Record<string, string | number | boolean | string[] | undefined>
   ) => {
     const query = buildQueryString(params);
     const res = await fetch(`${API_BASE}.get_property_list?${query}`, {
@@ -146,7 +149,7 @@ export const propertyApi = {
   },
 
   getRenewalList: async (
-    params: Record<string, string | number | boolean | undefined>
+    params: Record<string, string | number | boolean | string[] | undefined>
   ) => {
     const query = buildQueryString(params);
     const res = await fetch(`${API_BASE}.get_renewal_list?${query}`, {
