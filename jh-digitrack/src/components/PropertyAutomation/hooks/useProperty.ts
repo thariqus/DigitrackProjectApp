@@ -3,7 +3,7 @@ import { propertyApi } from "../api/property";
 
 export type QueryParams = Record<
   string,
-  string | number | boolean | undefined
+  string | number | boolean | string[] | undefined
 >;
 
 export const useUserAccess = () =>
