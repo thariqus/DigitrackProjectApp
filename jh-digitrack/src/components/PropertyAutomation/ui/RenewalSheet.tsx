@@ -88,6 +88,7 @@ export default function RenewalSheet({
   const [localModified, setLocalModified] = useState<string>("");
   const [isDelegateModalOpen, setIsDelegateModalOpen] = useState(false);
   const [chequeDetails, setChequeDetails] = useState<NonNullable<RentalRenewal["cheque_details"]>>([]);
+  const [chequeAmountErrors, setChequeAmountErrors] = useState<Record<number, string>>({});
 const [isApprovalModalOpen, setIsApprovalModalOpen] = useState(false);
   const [pendingApprovalAction, setPendingApprovalAction] = useState<"approve" | "submit" | "reject">("approve");
   const [approvalTitle, setApprovalTitle] = useState("Approval Action");
@@ -1059,18 +1060,29 @@ const renderDelegationBadge = () => {
                                 {fieldName === "cheque_date" ? "Date" : fieldName === "cheque_amount" ? "Amount" : "Payee"}
                               </Label>
                               <Input
-                                type={fieldName === "cheque_amount" ? "number" : fieldName === "cheque_date" ? "date" : "text"}
-                                value={cheque[fieldName] || ""}
+                                type={fieldName === "cheque_amount" ? "text" : fieldName === "cheque_date" ? "date" : "text"}
+                                value={fieldName === "cheque_amount" ? (cheque[fieldName] === 0 ? "" : cheque[fieldName]) : (cheque[fieldName] || "")}
                                 onChange={(e) => {
                                   const next = [...chequeDetails];
-                                  next[index] = {
-                                    ...next[index],
-                                    [fieldName]: fieldName === "cheque_amount" ? Number(e.target.value || 0) : e.target.value,
-                                  };
+                                  if (fieldName === "cheque_amount") {
+                                    const raw = e.target.value;
+                                    if (raw === "" || /^\d*\.?\d*$/.test(raw)) {
+                                      next[index] = { ...next[index], cheque_amount: raw === "" ? 0 : Number(raw) };
+                                      setChequeAmountErrors((prev) => { const updated = { ...prev }; delete updated[index]; return updated; });
+                                    } else {
+                                      next[index] = { ...next[index] };
+                                      setChequeAmountErrors((prev) => ({ ...prev, [index]: "Amount must be a number" }));
+                                    }
+                                  } else {
+                                    next[index] = { ...next[index], [fieldName]: e.target.value };
+                                  }
                                   setChequeDetails(next);
                                 }}
-                                className="text-sm"
+                                className={`text-sm${fieldName === "cheque_amount" && chequeAmountErrors[index] ? " border-red-500 focus-visible:ring-red-500" : ""}`}
                               />
+                              {fieldName === "cheque_amount" && chequeAmountErrors[index] && (
+                                <p className="text-xs text-red-500">{chequeAmountErrors[index]}</p>
+                              )}
                             </div>
                           ))}
                         </div>
@@ -1079,7 +1091,17 @@ const renderDelegationBadge = () => {
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 p-0 -mr-2"
-                          onClick={() => setChequeDetails(chequeDetails.filter((_, i) => i !== index))}
+                          onClick={() => {
+                            setChequeDetails(chequeDetails.filter((_, i) => i !== index));
+                            setChequeAmountErrors((prev) => {
+                              const updated: Record<number, string> = {};
+                              Object.entries(prev).forEach(([k, v]) => {
+                                const ki = Number(k);
+                                if (ki !== index) updated[ki > index ? ki - 1 : ki] = v;
+                              });
+                              return updated;
+                            });
+                          }}
                         >
                           <XIcon className="h-4 w-4" />
                         </Button>
