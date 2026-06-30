@@ -201,7 +201,7 @@ function Renewals() {
 
   const handleDownload = (name: string) => {
     window.open(
-      `/api/method/frappe.utils.print_format.download_pdf?doctype=JH Property Rental Renewal&name=${encodeURIComponent(name)}&format=Standard&no_letterhead=0`,
+      `/api/method/frappe.utils.print_format.download_pdf?doctype=JH Property Rental Renewal&name=${encodeURIComponent(name)}&format=Property Template&no_letterhead=1`,
       "_blank"
     );
   };
