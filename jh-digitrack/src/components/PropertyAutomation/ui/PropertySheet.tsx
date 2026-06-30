@@ -278,7 +278,7 @@ const renewalsData = renewalsListData?.renewals ?? [];
     doctype: "JH Division Master",
     fields: ["name", "division_head", "division_gm"],
     filters: divisionWatch ? [["name", "=", divisionWatch]] : [],
-    limit: 1,
+    limit: 0,
   });
  
   const selectedDivision = selectedDivisionData?.[0];
