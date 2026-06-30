@@ -510,18 +510,38 @@ def get_property_list(
             else:
                 _property_scope = approver_props
 
+    import json as _json
     filters = {}
+
+    def _parse_filter(value):
+        if not value:
+            return None
+        if isinstance(value, list):
+            return value or None
+        try:
+            parsed = _json.loads(value)
+            return parsed if parsed else None
+        except (ValueError, TypeError):
+            return [value]
 
     if search:
         filters["property_name"] = ["like", f"%{search}%"]
-    if emirate:
-        filters["emirate"] = emirate
-    if type_of_property:
-        filters["type_of_property"] = type_of_property
-    if division:
-        filters["division_used"] = division
-    if business:
-        filters["business_used"] = business
+
+    emirate_vals = _parse_filter(emirate)
+    if emirate_vals:
+        filters["emirate"] = ["in", emirate_vals] if len(emirate_vals) > 1 else emirate_vals[0]
+
+    type_vals = _parse_filter(type_of_property)
+    if type_vals:
+        filters["type_of_property"] = ["in", type_vals] if len(type_vals) > 1 else type_vals[0]
+
+    division_vals = _parse_filter(division)
+    if division_vals:
+        filters["division_used"] = ["in", division_vals] if len(division_vals) > 1 else division_vals[0]
+
+    business_vals = _parse_filter(business)
+    if business_vals:
+        filters["business_used"] = ["in", business_vals] if len(business_vals) > 1 else business_vals[0]
 
     from frappe.utils import add_days, today
     today_str = today()
@@ -561,8 +581,13 @@ def get_property_list(
     # If the user also filtered by a specific division, intersect with scope.
     if _division_scope:
         user_div = filters.get("division_used")
-        if user_div and isinstance(user_div, str):
+        if user_div is None:
+            filters["division_used"] = ["in", _division_scope]
+        elif isinstance(user_div, str):
             filters["division_used"] = user_div if user_div in _division_scope else ["in", []]
+        elif isinstance(user_div, list) and user_div[0] == "in":
+            intersected = [d for d in user_div[1] if d in _division_scope]
+            filters["division_used"] = ["in", intersected]
         else:
             filters["division_used"] = ["in", _division_scope]
     elif _property_scope:
@@ -1787,6 +1812,9 @@ def get_renewal_pipeline_counts():
         ("pending_approver_1",     "Pending Approver 1"),
         ("pending_approver_2",     "Pending Approver 2"),
         ("pending_approver_3",     "Pending Approver 3"),
+        ("pending_approver_4",     "Pending Approver 4"),
+        ("pending_approver_5",     "Pending Approver 5"),
+        ("pending_approver_6",     "Pending Approver 6"),
         ("pending_cheque_details", "Pending Cheque Details"),
         ("pending_admin_hod",      "Pending Admin HOD"),
         ("pending_fc",             "Pending FC"),
