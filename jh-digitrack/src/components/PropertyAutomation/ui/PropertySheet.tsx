@@ -1379,7 +1379,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
     const config = stateConfig[state ?? ""] ?? { label: state ?? "Unknown", style: "bg-gray-100 text-gray-500" };
 
     return (
-      <span className={`inline-flex items-center px-3 py-2 rounded-full text-sm font-medium ${config.style}`}>
+      <span className={`inline-flex items-center px-3 text-xs py-2 rounded-full font-medium ${config.style}`}>
         {config.label}
       </span>
     );
@@ -1403,10 +1403,9 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
             <SheetTitle>
               {isCreate ? "Create Property" : isEdit ? "Edit Property" : "Property Details"}
             </SheetTitle>
-          </div>
-
-          <div className="">
-            {renewalStatusBadge}
+            <div className="">
+              {renewalStatusBadge}
+            </div>
           </div>
 
           <Button variant="ghost" size="icon" onClick={() => handleSheetOpenChange(false)}>
