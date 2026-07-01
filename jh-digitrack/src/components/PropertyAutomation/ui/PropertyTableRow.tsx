@@ -1,35 +1,11 @@
 import { TableRow, TableCell } from "@/components/ui/table";
 import { Pencil } from "lucide-react";
 import StatusBadge from "./StatusBadge";
-import { useRenewalList } from "../hooks/useProperty";
-import RenewalIcon from "../../../../public/icon2.png" 
+import RenewalIcon from "../../../../public/icon2.png"
 
 function PropertyTableRow({ property, index, onClick,isLoading,onEdit,renewalColorHighlight,getRenewalStatus,formatDate,canCreateOrEditProperty, canStartRenewal,onStartRenewal,isSelected,onSelect}: any) {
 
-  //  const { propertyRole } = useOutletContext<ContextType>();
-   const { data: renewalsListData } = useRenewalList(
-  {
-    property: property.name,
-    limit: 10,
-    page: 1,
-  },
-  !!property.name
-);
-
-const renewalsData = renewalsListData?.renewals ?? [];
-
-const latestRenewal =
-  renewalsData.length > 0
-    ? [...renewalsData].sort(
-        (a, b) =>
-          new Date(b.modified).getTime() -
-          new Date(a.modified).getTime()
-      )[0]
-    : null;
-
-const isRenewalInProgress =
-  !!latestRenewal &&
-  latestRenewal.workflow_state !== "Completed";
+const isRenewalInProgress = !!property.has_active_renewal;
 
   if(isLoading){
     return (
