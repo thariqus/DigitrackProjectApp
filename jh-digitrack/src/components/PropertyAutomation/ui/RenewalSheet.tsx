@@ -58,7 +58,7 @@ const renewalSchema = z.object({
   new_security_deposit: z.coerce.number().min(0).optional(),
   remarks: z.string().optional(),
   po_number: z.string().optional(),
-  miro_number: z.string().optional(),
+  miro_number: z.string().regex(/^\d*$/, "MIRO number must contain numbers only").optional(),
   cheque_details: z.array(z.object({
     cheque_type: z.string().optional(),
     cheque_amount: z.coerce.number().optional(),
@@ -89,7 +89,7 @@ export default function RenewalSheet({
   const [isDelegateModalOpen, setIsDelegateModalOpen] = useState(false);
   const [chequeDetails, setChequeDetails] = useState<NonNullable<RentalRenewal["cheque_details"]>>([]);
   const [chequeAmountErrors, setChequeAmountErrors] = useState<Record<number, string>>({});
-const [isApprovalModalOpen, setIsApprovalModalOpen] = useState(false);
+  const [isApprovalModalOpen, setIsApprovalModalOpen] = useState(false);
   const [pendingApprovalAction, setPendingApprovalAction] = useState<"approve" | "submit" | "reject">("approve");
   const [approvalTitle, setApprovalTitle] = useState("Approval Action");
   const [approvalDescription, setApprovalDescription] = useState("Please provide justification or notes.");

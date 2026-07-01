@@ -81,7 +81,6 @@ interface StartRenewalModalProps {
   renewalTo?: string;
   tenancyPeriod?: string;
   mode?: "new" | "edit";
-  onCreated?: () => Promise<void> | void;
 }
 
 export default function StartRenewalModal({
@@ -94,7 +93,6 @@ export default function StartRenewalModal({
   renewalTo,
   tenancyPeriod,
   mode = "new",
-  onCreated,
 }: StartRenewalModalProps) {
   const queryClient = useQueryClient();
   const saveDoc = useSaveDoc();
@@ -203,14 +201,14 @@ export default function StartRenewalModal({
       };
 
       await saveDoc.mutateAsync(renewalDoc);
-      await onCreated?.();
       onOpenChange(false);
       form.reset();
       setSupportingFiles([]);
       toast.success("Renewal created successfully!");
-      await queryClient.invalidateQueries({
-        queryKey: ["RenewalList", { property: propertyId }],
-      });
+      await queryClient.invalidateQueries({ queryKey: ["RenewalList"], exact: false });
+      await queryClient.invalidateQueries({ queryKey: ["PropertyList"], exact: false });
+      await queryClient.invalidateQueries({ queryKey: ["PropertyDashboardCounts"] });
+      await queryClient.invalidateQueries({ queryKey: ["RenewalPipelineCounts"] });
     } catch (error: unknown) {
       console.error("Renewal creation error:", error);
       toast.error(

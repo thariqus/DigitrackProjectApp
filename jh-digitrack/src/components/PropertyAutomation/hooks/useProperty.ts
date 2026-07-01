@@ -17,6 +17,7 @@ export const usePropertyList = (params: QueryParams) =>
   useQuery({
     queryKey: ["PropertyList", JSON.stringify(params)],
     queryFn: () => propertyApi.getPropertyList(params),
+    staleTime: 2 * 60 * 1000,
   });
 
 export const usePropertyDashboardCounts = () =>
@@ -38,6 +39,7 @@ export const usePendingRenewals = (enabled: boolean) =>
     queryKey: ["PendingRenewals"],
     queryFn: propertyApi.getPendingRenewals,
     enabled,
+    staleTime: 2 * 60 * 1000,
   });
 
 export const useRenewalDoc = (name?: string) =>
@@ -45,6 +47,7 @@ export const useRenewalDoc = (name?: string) =>
     queryKey: ["RenewalDoc", name],
     queryFn: () => propertyApi.getRenewalDoc(name!),
     enabled: !!name,
+    staleTime: 5 * 60 * 1000,
   });
 
 export const usePropertyDoc = (name?: string) =>
@@ -52,7 +55,7 @@ export const usePropertyDoc = (name?: string) =>
     queryKey: ["PropertyDoc", name],
     queryFn: () => propertyApi.getPropertyDoc(name!),
     enabled: !!name,
-    staleTime: 1000, // Reduced for immediate fresh data after save
+    staleTime: 5 * 60 * 1000,
   });
 
 export const useRenewalList = (params: QueryParams, enabled = true) =>
@@ -60,6 +63,7 @@ export const useRenewalList = (params: QueryParams, enabled = true) =>
     queryKey: ["RenewalList", JSON.stringify(params)],
     queryFn: () => propertyApi.getRenewalList(params),
     enabled,
+    staleTime: 2 * 60 * 1000,
   });
 
 export const useRenewalAuditTrail = (renewalId?: string) =>
@@ -67,6 +71,7 @@ export const useRenewalAuditTrail = (renewalId?: string) =>
     queryKey: ["RenewalAuditTrail", renewalId],
     queryFn: () => propertyApi.getRenewalAuditTrail(renewalId!),
     enabled: !!renewalId,
+    staleTime: 5 * 60 * 1000,
   });
 
 export const useRenewalRole = (renewalId?: string) =>
@@ -74,6 +79,7 @@ export const useRenewalRole = (renewalId?: string) =>
     queryKey: ["RenewalRole", renewalId],
     queryFn: () => propertyApi.getRenewalRole(renewalId!),
     enabled: !!renewalId,
+    staleTime: 5 * 60 * 1000,
   });
 
 //  export const useBankAccounts = () =>

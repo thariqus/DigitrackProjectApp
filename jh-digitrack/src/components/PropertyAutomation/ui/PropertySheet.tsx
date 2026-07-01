@@ -546,9 +546,8 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
  
       await queryClient.invalidateQueries({ queryKey: ["PropertyList"], exact: false });
       await queryClient.invalidateQueries({ queryKey: ["PropertyDashboardCounts"] });
+      await queryClient.invalidateQueries({ queryKey: ["RenewalPipelineCounts"] });
       await queryClient.invalidateQueries({ queryKey: ["PropertyDoc", propertyId] });
-      // Force refetch for immediate UI update
-      await queryClient.refetchQueries({ queryKey: ["PropertyDoc", propertyId] });
       await queryClient.invalidateQueries({ queryKey: ["RenewalList"], exact: false });
  
       handleSheetOpenChange(false);

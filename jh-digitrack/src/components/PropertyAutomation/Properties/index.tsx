@@ -13,7 +13,6 @@ import { PaginationControls } from "../ui/PaginationControls";
 import SearchBar from "../ui/SearchBar";
 import { usePropertyList, useUserAccess } from "../hooks/useProperty";
 import StartRenewalModal from "../ui/StartRenewalModal";
-import { queryClient } from "@/utils/query-client";
 import { propertyApi } from "../api/property";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
@@ -533,15 +532,6 @@ function Properties() {
           renewalFrom={selectedRenewalProperty.renewal_date}
           tenancyPeriod={selectedRenewalProperty.tenancy_period}
           mode="new"
-          onCreated={() => {
-            queryClient.invalidateQueries({
-              queryKey: ["RenewalList"],
-            });
-
-            queryClient.invalidateQueries({
-              queryKey: ["PropertyList"],
-            });
-          }}
         />
       )}
 

@@ -1,7 +1,8 @@
 import { TableRow, TableCell } from "@/components/ui/table";
-import { Pencil, RefreshCw } from "lucide-react";
+import { Pencil } from "lucide-react";
 import StatusBadge from "./StatusBadge";
 import { useRenewalList } from "../hooks/useProperty";
+import RenewalIcon from "../../../../public/icon2.png" 
 
 function PropertyTableRow({ property, index, onClick,isLoading,onEdit,renewalColorHighlight,getRenewalStatus,formatDate,canCreateOrEditProperty, canStartRenewal,onStartRenewal,isSelected,onSelect}: any) {
 
@@ -9,7 +10,7 @@ function PropertyTableRow({ property, index, onClick,isLoading,onEdit,renewalCol
    const { data: renewalsListData } = useRenewalList(
   {
     property: property.name,
-    limit: 50,
+    limit: 10,
     page: 1,
   },
   !!property.name
@@ -75,7 +76,7 @@ const isRenewalInProgress =
 
 
       {(canCreateOrEditProperty || canStartRenewal) && (
-        <TableCell className="flex pt-5 justify-center items-center gap-2">
+        <TableCell className="flex pt-5 justify-center items-center gap-1">
           {canCreateOrEditProperty && (
             <div
               className="flex justify-center items-center cursor-pointer"
@@ -96,7 +97,7 @@ const isRenewalInProgress =
                 onStartRenewal(property);
               }}
             >
-              <RefreshCw size={15} />
+              <img src={RenewalIcon} alt="Renewal icon" className="w-[30px] h-6"/>
             </div>
           )}
         </TableCell>
