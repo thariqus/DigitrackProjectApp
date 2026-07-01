@@ -290,6 +290,14 @@ fixtures = [
         "doctype": "Role",
         "filters": [["role_name", "in", ["JRC Permission","JH Property Department","JH Licensing Team","JH GL Team"]]],
     },
+    {
+        "doctype": "Print Format",
+        "filters": [["name", "in", ["Property Template"]]],
+    },
+     {
+        "doctype": "File",
+        "filters": [["file_name", "in", ["jhLogo.png"]]],
+    }
 ]
 
 website_route_rules = [
