@@ -54,6 +54,7 @@ export interface PropertyMaster {
 
   cdc_expiry: string;
   hassantuk_expiry: string;
+  has_active_renewal?: boolean;
 
   documents?: {
     attachment?: string;
