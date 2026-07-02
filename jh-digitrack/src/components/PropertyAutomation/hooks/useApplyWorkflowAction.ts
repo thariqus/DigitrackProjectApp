@@ -80,15 +80,19 @@ export const useApplyWorkflowAction = () => {
       queryClient.invalidateQueries({ queryKey: ['Docs'] });
       queryClient.invalidateQueries({ queryKey: ['DocInfo'] });
       queryClient.invalidateQueries({ queryKey: ['RenewalDoc'] });
-      queryClient.invalidateQueries({ queryKey: ['RenewalRole'] });
+      // Remove (not just invalidate) so canApproveWorkflow immediately drops to false
+      // while the fresh fetch runs — prevents wrong buttons showing during revalidation.
+      queryClient.removeQueries({ queryKey: ['RenewalRole'] });
       queryClient.invalidateQueries({ queryKey: ['RenewalList'] });
       queryClient.invalidateQueries({ queryKey: ['PendingRenewals'] });
+      queryClient.invalidateQueries({ queryKey: ['RenewalAuditTrail'] });
       queryClient.invalidateQueries({ queryKey: ['Delegations'] });
       queryClient.invalidateQueries({ queryKey: ['DocumentDelegation'] });
       queryClient.invalidateQueries({ queryKey: ['UserAccess'] });
       queryClient.invalidateQueries({ queryKey: ['property-nav-access'] });
       queryClient.invalidateQueries({ queryKey: ['PropertyList'] });
       queryClient.invalidateQueries({ queryKey: ['PropertyDashboardCounts'] });
+      queryClient.invalidateQueries({ queryKey: ['RenewalPipelineCounts'] });
     },
     onError: (error: unknown) => {
       const message = error instanceof Error ? error.message : 'Something went wrong';

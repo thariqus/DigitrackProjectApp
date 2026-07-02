@@ -209,6 +209,45 @@ def update_scrap_item(
 
 
 
+@frappe.whitelist(allow_guest=False, methods=["GET"])
+def search_all_scrap_items(page=1, page_size=10, search_query=None, status=None):
+    conditions = []
+    values = []
+
+    if search_query:
+        conditions.append("`item_name` LIKE %s")
+        values.append(f"%{search_query}%")
+
+    if status:
+        conditions.append("`status` = %s")
+        values.append(status)
+
+    where_clause = " AND ".join(conditions) if conditions else "1=1"
+
+    total = frappe.db.sql(
+        f"SELECT COUNT(*) FROM `tabJH Scrap Item` WHERE {where_clause}",
+        tuple(values),
+    )[0][0]
+
+    start = (int(page) - 1) * int(page_size)
+    data = frappe.db.sql(
+        f"""
+        SELECT
+            `name`, `item_name`, `date`, `employee_id`, `employee_name`,
+            `contact_details`, `status`, `quantity`, `location`, `description`,
+            `image1`, `image2`, `image3`
+        FROM `tabJH Scrap Item`
+        WHERE {where_clause}
+        ORDER BY creation DESC
+        LIMIT %s, %s
+        """,
+        tuple(values) + (start, int(page_size)),
+        as_dict=True,
+    )
+
+    return {"data": data, "total": total}
+
+
 @frappe.whitelist(allow_guest=False, methods=["POST"])
 def delete_scrap_item(name: str):
     if not name:

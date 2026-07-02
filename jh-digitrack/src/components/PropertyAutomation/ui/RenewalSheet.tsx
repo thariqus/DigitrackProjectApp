@@ -20,7 +20,7 @@ import { useUpdateDoc, useDocs } from "@/hooks/doc";
 import { useCurrentUser } from "@/hooks/auth";
 import { useEffect, useState } from "react";
 import { PropertyMaster, RentalRenewal } from "@/types/JHDigitrack/JHPropertyAutomation";
-import { usePropertyDoc, useRenewalDoc, useRenewalRole, useBankAccounts } from "../hooks/useProperty";
+import { usePropertyDoc, useRenewalDoc, useRenewalRole, useChequeTypes } from "../hooks/useProperty";
 import { propertyApi, type RenewalProgressPayload } from "../api/property";
 import { useApplyWorkflowAction } from "../hooks/useApplyWorkflowAction";
 import { useCreateDelegation, useDocumentDelegation, useRevokeDelegation } from "../hooks/useDelegation";
@@ -34,18 +34,18 @@ type RenewalSheetProps = {
   onOpenChange: (open: boolean) => void;
   propertyId: string | null;
   mode: "view" | "edit" | "create";
-  formatDate: (date?: string) => string;
-  workflowColorHighlight?: (date?: string) => string;
-  typeOptions?: string[];
-  isLicensingTeam: boolean;
+  // formatDate: (date?: string) => string;
+  // workflowColorHighlight?: (date?: string) => string;
+  // typeOptions?: string[];
+  // isLicensingTeam: boolean;
   isJHPropertyDepartment: boolean;
-  isCfo: boolean;
-  isGMTeam: boolean;
-  isMD: boolean;
-  isApprover: boolean;
+  // isCfo: boolean;
+  // isGMTeam: boolean;
+  // isMD: boolean;
+  // isApprover: boolean;
   isGLTeam: boolean;
-  isApprover1: boolean;
-  isApprover2: boolean;
+  // isApprover1: boolean;
+  // isApprover2: boolean;
 };
  
 const renewalSchema = z.object({
@@ -58,20 +58,12 @@ const renewalSchema = z.object({
   new_security_deposit: z.coerce.number().min(0).optional(),
   remarks: z.string().optional(),
   po_number: z.string().optional(),
-  miro_number: z.string().optional(),
-  bank_name: z.string().optional(),
-  cheque_number: z.string().optional(),
-  cheque_amount: z.coerce.number().min(0).optional(),
-  cheque_date: z.string().optional(),
-  payee: z.string().optional(),
-  signatory: z.string().optional(),
+  miro_number: z.string().regex(/^\d*$/, "MIRO number must contain numbers only").optional(),
   cheque_details: z.array(z.object({
-    bank_name: z.string().optional(),
-    cheque_number: z.string().optional(),
+    cheque_type: z.string().optional(),
     cheque_amount: z.coerce.number().optional(),
     cheque_date: z.string().optional(),
     payee: z.string().optional(),
-    signatory: z.string().optional(),
   })).optional(),
 });
  
@@ -96,7 +88,8 @@ export default function RenewalSheet({
   const [localModified, setLocalModified] = useState<string>("");
   const [isDelegateModalOpen, setIsDelegateModalOpen] = useState(false);
   const [chequeDetails, setChequeDetails] = useState<NonNullable<RentalRenewal["cheque_details"]>>([]);
-const [isApprovalModalOpen, setIsApprovalModalOpen] = useState(false);
+  const [chequeAmountErrors, setChequeAmountErrors] = useState<Record<number, string>>({});
+  const [isApprovalModalOpen, setIsApprovalModalOpen] = useState(false);
   const [pendingApprovalAction, setPendingApprovalAction] = useState<"approve" | "submit" | "reject">("approve");
   const [approvalTitle, setApprovalTitle] = useState("Approval Action");
   const [approvalDescription, setApprovalDescription] = useState("Please provide justification or notes.");
@@ -116,7 +109,7 @@ const [isApprovalModalOpen, setIsApprovalModalOpen] = useState(false);
   const { data: usersData = [], isLoading: isUsersLoading } = useDocs<{ name: string; full_name?: string; email?: string }>({
     doctype: "User",
     fields: ["name", "full_name", "email"],
-    limit: 500,
+    limit: 0,
   });
  
   const {
@@ -162,7 +155,7 @@ const [isApprovalModalOpen, setIsApprovalModalOpen] = useState(false);
     renewalDoc?.property
   );
   const property = propertyData?.doc as PropertyMaster | undefined;
-  const { data: bankAccounts = [] } = useBankAccounts();
+  const { data: chequeTypes = [] } = useChequeTypes();
   const hasExternalModification = Boolean(
     localModified && renewalDoc?.modified && localModified !== renewalDoc.modified
   );
@@ -205,12 +198,6 @@ const [isApprovalModalOpen, setIsApprovalModalOpen] = useState(false);
       remarks: renewalDoc.remarks || "",
       po_number: renewalDoc.po_number || "",
       miro_number: renewalDoc.miro_number || "",
-      bank_name: renewalDoc.cheque_details?.[0]?.bank_name || "",
-      cheque_number: renewalDoc.cheque_details?.[0]?.cheque_number || "",
-      cheque_amount: Number(renewalDoc.cheque_details?.[0]?.cheque_amount || 0),
-      cheque_date: renewalDoc.cheque_details?.[0]?.cheque_date || "",
-      payee: renewalDoc.cheque_details?.[0]?.payee || "",
-      signatory: renewalDoc.cheque_details?.[0]?.signatory || "",
       cheque_details: renewalDoc.cheque_details || [],
     });
   }, [open, renewalDoc, reset]);
@@ -267,11 +254,9 @@ useEffect(() => {
     renewalDoc?.workflow_state === "Pending Cheque Details"
   ) {
     const validCheques = chequeDetails.filter((cheque) =>
-      cheque.bank_name &&
-      cheque.cheque_number &&
+      cheque.cheque_type &&
       cheque.cheque_date &&
       cheque.payee &&
-      cheque.signatory &&
       Number(cheque.cheque_amount || 0) > 0
     );
 
@@ -403,23 +388,19 @@ useEffect(() => {
     };
  
     if (currentState === "Pending Cheque Details") {
-     payload.cheque_details = chequeDetails
-  .filter((cheque) =>
-    cheque.bank_name &&
-    cheque.cheque_number &&
-    cheque.cheque_date &&
-    cheque.payee &&
-    cheque.signatory &&
-    Number(cheque.cheque_amount || 0) > 0
-  )
-  .map((cheque) => ({
-    bank_name: cheque.bank_name,
-    cheque_number: cheque.cheque_number,
-    cheque_amount: Number(cheque.cheque_amount),
-    cheque_date: cheque.cheque_date,
-    payee: cheque.payee,
-    signatory: cheque.signatory,
-  }));
+      payload.cheque_details = chequeDetails
+        .filter((cheque) =>
+          cheque.cheque_type &&
+          cheque.cheque_date &&
+          cheque.payee &&
+          Number(cheque.cheque_amount || 0) > 0
+        )
+        .map((cheque) => ({
+          cheque_type: cheque.cheque_type,
+          cheque_amount: Number(cheque.cheque_amount),
+          cheque_date: cheque.cheque_date,
+          payee: cheque.payee,
+        }));
     }
  
     if (currentState === "Pending Property PO") {
@@ -760,6 +741,8 @@ const renderDelegationBadge = () => {
   };
 
   const getFileName = (url: string) => url.split("/").pop() || "";
+
+  const isImageFile = (url: string) => /\.(png|jpg|jpeg)$/i.test(url);
  
   const renderReadonlyField = (
     label: string,
@@ -939,7 +922,34 @@ const renderDelegationBadge = () => {
  
               {renderRenewalField("Renewal From", "renewal_from", renewalDoc?.renewal_from, "date", true)}
               {renderRenewalField("Renewal To", "renewal_to", renewalDoc?.renewal_to, "date", true)}
-              {renderRenewalField("Payment Schedule", "payment_schedule", renewalDoc?.payment_schedule || "")}
+              <div>
+                {isView ? (
+                  <div className="flex gap-1">
+                    <Label className="text-sm text-gray-600">Payment Schedule:</Label>
+                    <span>{renewalDoc?.payment_schedule}</span>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-1">
+                    <Label className="text-sm text-gray-600">Payment Schedule</Label>
+                    <Controller
+                      name="payment_schedule"
+                      control={control}
+                      render={({ field }) => (
+                        <Select value={field.value ?? ""} onValueChange={field.onChange}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {["Monthly", "Bi-Monthly", "Quarterly", "Half Yearly", "Yearly"].map((opt) => (
+                              <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
+                  </div>
+                )}
+              </div>
               {renderRenewalField(
                 "New Security Deposit",
                 "new_security_deposit",
@@ -969,8 +979,9 @@ const renderDelegationBadge = () => {
           </span>
           <a
             href={renewalDoc.supporting_documents}
-            target="_blank"
-            rel="noopener noreferrer"
+            {...(isImageFile(renewalDoc.supporting_documents)
+              ? { download: getFileName(renewalDoc.supporting_documents) }
+              : { target: "_blank", rel: "noopener noreferrer" })}
             className="text-blue-600 text-sm underline"
           >
             View
@@ -991,8 +1002,9 @@ const renderDelegationBadge = () => {
             </span>
             <a
               href={renewalDoc.supporting_documents}
-              target="_blank"
-              rel="noopener noreferrer"
+              {...(isImageFile(renewalDoc.supporting_documents)
+                ? { download: getFileName(renewalDoc.supporting_documents) }
+                : { target: "_blank", rel: "noopener noreferrer" })}
               className="text-blue-600 text-sm underline"
             >
               View
@@ -1021,45 +1033,56 @@ const renderDelegationBadge = () => {
                   ) : (
                     chequeDetails.map((cheque, index) => (
                       <div className="flex gap-2 items-end bg-muted p-3 rounded-lg">
-                        <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-2">
+                        <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-2">
                           <div className="flex flex-col gap-1">
-                            <Label className="text-xs">Bank Name</Label>
+                            <Label className="text-xs">Type of Cheque</Label>
                             <Select
-                              value={cheque.bank_name || ""}
+                              value={cheque.cheque_type || ""}
                               onValueChange={(value) => {
                                 const next = [...chequeDetails];
-                                next[index].bank_name = value;
+                                next[index] = { ...next[index], cheque_type: value };
                                 setChequeDetails(next);
                               }}
                             >
                               <SelectTrigger className="text-sm h-9">
-                                <SelectValue placeholder="Select bank..." />
+                                <SelectValue placeholder="Select type..." />
                               </SelectTrigger>
                               <SelectContent>
-                                {bankAccounts.map((name) => (
-                                  <SelectItem className="cursor-pointer" key={name} value={name}>{name}</SelectItem>
+                                {chequeTypes.map((type) => (
+                                  <SelectItem className="cursor-pointer" key={type} value={type}>{type}</SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
                           </div>
-                          {(["cheque_number", "cheque_amount", "cheque_date", "payee", "signatory"] as const).map((fieldName) => (
+                          {(["cheque_date", "cheque_amount", "payee"] as const).map((fieldName) => (
                             <div key={fieldName} className="flex flex-col gap-1">
                               <Label className="text-xs">
-                                {fieldName === "cheque_number" ? "Cheque Number" : fieldName === "cheque_amount" ? "Amount" : fieldName === "cheque_date" ? "Cheque Date" : fieldName === "payee" ? "Payee" : "Signatory"}
+                                {fieldName === "cheque_date" ? "Date" : fieldName === "cheque_amount" ? "Amount" : "Payee"}
                               </Label>
                               <Input
-                                type={fieldName === "cheque_amount" ? "number" : fieldName === "cheque_date" ? "date" : "text"}
-                                value={cheque[fieldName] || ""}
+                                type={fieldName === "cheque_amount" ? "text" : fieldName === "cheque_date" ? "date" : "text"}
+                                value={fieldName === "cheque_amount" ? (cheque[fieldName] === 0 ? "" : cheque[fieldName]) : (cheque[fieldName] || "")}
                                 onChange={(e) => {
                                   const next = [...chequeDetails];
-                                  next[index] = {
-                                    ...next[index],
-                                    [fieldName]: fieldName === "cheque_amount" ? Number(e.target.value || 0) : e.target.value,
-                                  };
+                                  if (fieldName === "cheque_amount") {
+                                    const raw = e.target.value;
+                                    if (raw === "" || /^\d*\.?\d*$/.test(raw)) {
+                                      next[index] = { ...next[index], cheque_amount: raw === "" ? 0 : Number(raw) };
+                                      setChequeAmountErrors((prev) => { const updated = { ...prev }; delete updated[index]; return updated; });
+                                    } else {
+                                      next[index] = { ...next[index] };
+                                      setChequeAmountErrors((prev) => ({ ...prev, [index]: "Amount must be a number" }));
+                                    }
+                                  } else {
+                                    next[index] = { ...next[index], [fieldName]: e.target.value };
+                                  }
                                   setChequeDetails(next);
                                 }}
-                                className="text-sm"
+                                className={`text-sm${fieldName === "cheque_amount" && chequeAmountErrors[index] ? " border-red-500 focus-visible:ring-red-500" : ""}`}
                               />
+                              {fieldName === "cheque_amount" && chequeAmountErrors[index] && (
+                                <p className="text-xs text-red-500">{chequeAmountErrors[index]}</p>
+                              )}
                             </div>
                           ))}
                         </div>
@@ -1068,7 +1091,17 @@ const renderDelegationBadge = () => {
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 p-0 -mr-2"
-                          onClick={() => setChequeDetails(chequeDetails.filter((_, i) => i !== index))}
+                          onClick={() => {
+                            setChequeDetails(chequeDetails.filter((_, i) => i !== index));
+                            setChequeAmountErrors((prev) => {
+                              const updated: Record<number, string> = {};
+                              Object.entries(prev).forEach(([k, v]) => {
+                                const ki = Number(k);
+                                if (ki !== index) updated[ki > index ? ki - 1 : ki] = v;
+                              });
+                              return updated;
+                            });
+                          }}
                         >
                           <XIcon className="h-4 w-4" />
                         </Button>
@@ -1079,7 +1112,7 @@ const renderDelegationBadge = () => {
                     type="button"
                     variant="outline"
                     className="w-full border-2 border-dashed h-10 text-sm"
-                    onClick={() => setChequeDetails([...chequeDetails, { bank_name: "", cheque_number: "", cheque_amount: 0, cheque_date: "", payee: "", signatory: "" }])}
+                    onClick={() => setChequeDetails([...chequeDetails, { cheque_type: "", cheque_amount: 0, cheque_date: "", payee: "" }])}
                   >
                     + Add Cheque
                   </Button>
@@ -1105,8 +1138,9 @@ const renderDelegationBadge = () => {
                       </span>
                       <a
                         href={renewalDoc.renewed_contract_document}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                        {...(isImageFile(renewalDoc.renewed_contract_document)
+                          ? { download: getFileName(renewalDoc.renewed_contract_document) }
+                          : { target: "_blank", rel: "noopener noreferrer" })}
                         className="text-blue-600 underline text-sm"
                       >
                         View
@@ -1163,6 +1197,12 @@ const renderDelegationBadge = () => {
   [
     "Pending Approver 1",
     "Pending Approver 2",
+    "Pending Approver 3",
+    "Pending Approver 4",
+    "Pending Approver 5",
+    "Pending Approver 6",
+    "Pending Admin HOD",
+    "Pending FC",
     "Pending CFO",
     "Pending MD",
   ].includes(renewalDoc?.workflow_state || "") &&

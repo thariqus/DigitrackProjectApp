@@ -17,6 +17,7 @@ export interface ScrapRowProps {
   onRowClick: (id: string) => void;
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
+  onView?: (item: JHScrapItem) => void;
   currentPage?: number;
   perPage?: number;
 }
@@ -27,6 +28,7 @@ export const ScrapRow = ({
   onRowClick,
   onEdit,
   onDelete,
+  onView,
   currentPage = 1,
   perPage = 10,
 }: ScrapRowProps) => {
@@ -51,12 +53,10 @@ export const ScrapRow = ({
       <TableCell className="text-right">
       <ScrapActions
         scrap={scrap}
-        onEdit={(id) => {
-          onEdit(id); 
-        }}
-        onDelete={() => {}}  
-        hideDelete={true} 
-        
+        onEdit={(id) => { onEdit(id); }}
+        onDelete={() => {}}
+        onView={onView}
+        hideDelete={true}
         showRestore={false}
       />
 

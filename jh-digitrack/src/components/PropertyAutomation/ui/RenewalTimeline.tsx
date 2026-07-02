@@ -1,7 +1,7 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronDown, MessageSquare, User } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
-import { useJhUser, useCurrentJhUser } from "@/hooks/auth";
+import { useJhUser } from "@/hooks/auth";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,10 +9,11 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { useEffect, useState } from "react";
-import { Textarea } from "@/components/ui/textarea";
+// import { useEffect, useState } from "react";
+// import { Textarea } from "@/components/ui/textarea";
 import { PropertyAuditTrail } from "@/types/JHDigitrack/JHPropertyAutomation";
 import { useRenewalAuditTrail } from "../hooks/useProperty";
+import { useState } from "react";
 
 interface RenewalTimelineProps {
   renewalId: string;
@@ -44,7 +45,6 @@ export default function RenewalTimeline({
   const commentLogs = sortedAuditTrail.filter(
     (log) => log.comments && log.comments.trim()
   );
-    console.log(auditTrail,"audit")
 
     if (!sortedAuditTrail.length && !isLoading) {
   return (
@@ -99,7 +99,7 @@ export default function RenewalTimeline({
           {/* State */}
           {log.current_state && log.changed_state && (
             <div className="text-sm text-gray-600">
-              {log.current_state}{" "}
+              {log.current_state.replace(/^Pending\s+/i, "")}{" "}
               <span className="text-gray-400">→</span>{" "}
               {log.changed_state}
             </div>

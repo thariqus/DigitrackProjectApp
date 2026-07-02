@@ -9,17 +9,18 @@
   "section_break_afv9",
   "property_name",
   "type_of_property",
+  "other_property_type",
   "business_used",
   "division_used",
-  "approver_1",
-  "approver_2",
-  "column_break_rpia",
   "booked_under",
+  "column_break_rpia",
   "profit_center",
   "number_of_units",
   "number_of_premises",
   "premise_number",
   "staff_allocated",
+  "section_break_518v",
+  "approver",
   "location_details_section",
   "location",
   "emirate",
@@ -72,7 +73,7 @@
    "fieldname": "type_of_property",
    "fieldtype": "Select",
    "label": "Type of Property",
-   "options": "Flat\nShop\nVilla\nOther"
+   "options": "Shop\nOffice\nWarehouse\nOther"
   },
   {
    "fieldname": "division_used",
@@ -252,19 +253,6 @@
    "options": "JH Business Master"
   },
   {
-   "fieldname": "approver_1",
-   "fieldtype": "Link",
-   "label": "Approver 1",
-   "options": "User",
-   "reqd": 1
-  },
-  {
-   "fieldname": "approver_2",
-   "fieldtype": "Link",
-   "label": "Approver 2",
-   "options": "User"
-  },
-  {
    "fieldname": "lease_start_date",
    "fieldtype": "Date",
    "label": "Lease start Date"
@@ -307,12 +295,29 @@
    "fieldname": "landline_accounts",
    "fieldtype": "Int",
    "label": "Landline Accounts"
+  },
+  {
+   "fieldname": "section_break_518v",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "approver",
+   "fieldtype": "Table",
+   "label": "Approver",
+   "options": "JH Property Approver"
+  },
+  {
+   "depends_on": "eval:doc.type_of_property == \"Other\"",
+   "fieldname": "other_property_type",
+   "fieldtype": "Data",
+   "label": "Other Property Type",
+   "mandatory_depends_on": "eval:doc.type_of_property == \"Other\"\n"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-05-22 12:36:17.618070",
+ "modified": "2026-06-26 12:11:35.290821",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Property Master",

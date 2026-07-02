@@ -10,6 +10,7 @@ type MultiValueInputProps = {
   placeholder?: string;
   disabled?: boolean;
   className?: string;
+  maxItems?: number;
 };
 
 const parseValues = (value?: string | null) =>
@@ -24,15 +25,19 @@ export default function MultiValueInput({
   placeholder,
   disabled = false,
   className,
+  maxItems,
 }: MultiValueInputProps) {
   const [draft, setDraft] = useState("");
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   const values = useMemo(() => parseValues(value), [value]);
 
+  const isAtMax = maxItems !== undefined && values.length >= maxItems;
+
   const commitValue = (rawValue: string) => {
     const nextValue = rawValue.trim();
     if (!nextValue) return;
+    if (isAtMax) return;
     if (values.includes(nextValue)) {
       setDraft("");
       return;
@@ -77,25 +82,27 @@ export default function MultiValueInput({
         </span>
       ))}
 
-      <Input
-        ref={inputRef}
-        value={draft}
-        disabled={disabled}
-        onChange={(event) => setDraft(event.target.value)}
-        onBlur={() => commitValue(draft)}
-        onKeyDown={(event) => {
-          if (event.key === "Enter" || event.key === ",") {
-            event.preventDefault();
-            commitValue(draft);
-          }
+      {!isAtMax && (
+        <Input
+          ref={inputRef}
+          value={draft}
+          disabled={disabled}
+          onChange={(event) => setDraft(event.target.value)}
+          onBlur={() => commitValue(draft)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === ",") {
+              event.preventDefault();
+              commitValue(draft);
+            }
 
-          if (event.key === "Backspace" && !draft && values.length > 0) {
-            removeValue(values[values.length - 1]);
-          }
-        }}
-        placeholder={values.length === 0 ? placeholder : ""}
-        className="h-auto min-w-[140px] flex-1 border-0 p-0 shadow-none focus-visible:ring-0"
-      />
+            if (event.key === "Backspace" && !draft && values.length > 0) {
+              removeValue(values[values.length - 1]);
+            }
+          }}
+          placeholder={values.length === 0 ? placeholder : ""}
+          className="h-auto min-w-[140px] flex-1 border-0 p-0 shadow-none focus-visible:ring-0"
+        />
+      )}
     </div>
   );
 }

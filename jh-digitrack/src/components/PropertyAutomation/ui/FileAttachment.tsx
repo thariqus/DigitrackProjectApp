@@ -1,10 +1,31 @@
 import { useState } from "react";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { File, X, Cloud } from "lucide-react";
-import { ScrollBar } from "@/components/ui/scroll-area";
-import { toast } from "sonner";
+import { File, X, Cloud, AlertCircle } from "lucide-react";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+
+const ALLOWED_EXTENSIONS = [".pdf", ".doc", ".docx", ".xlsx", ".png", ".jpg", ".jpeg"];
+const ALLOWED_MIME_TYPES = [
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "image/png",
+  "image/jpeg",
+];
+const MAX_FILE_SIZE_BYTES = 2 * 1024 * 1024;
+
+function validateFile(file: File): string | null {
+  const ext = "." + (file.name.split(".").pop()?.toLowerCase() ?? "");
+  const validType = ALLOWED_EXTENSIONS.includes(ext) || ALLOWED_MIME_TYPES.includes(file.type);
+  if (!validType) {
+    return `"${file.name}" — unsupported file type. Allowed: PDF, DOC, DOCX, XLSX, PNG, JPG.`;
+  }
+  if (file.size > MAX_FILE_SIZE_BYTES) {
+    return `"${file.name}" exceeds the 2 MB size limit.`;
+  }
+  return null;
+}
 
 interface FileAttachmentProps {
   files: File[];
@@ -12,16 +33,25 @@ interface FileAttachmentProps {
 }
 
 export default function FileAttachment({files, setFiles}: FileAttachmentProps) {
-  
-
   const [isDragging, setIsDragging] = useState(false);
+  const [errors, setErrors] = useState<string[]>([]);
+
+  const addFiles = (incoming: File[]) => {
+    const newErrors: string[] = [];
+    const valid: File[] = [];
+    for (const file of incoming) {
+      const err = validateFile(file);
+      if (err) newErrors.push(err);
+      else valid.push(file);
+    }
+    setErrors(newErrors);
+    if (valid.length > 0) setFiles((prev) => [...prev, ...valid]);
+  };
 
   // Handle file input selection
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      const newFiles = Array.from(e.target.files);
-      setFiles((prev) => [...prev, ...newFiles]);
-      // Reset input
+      addFiles(Array.from(e.target.files));
       e.target.value = '';
     }
   };
@@ -32,7 +62,7 @@ export default function FileAttachment({files, setFiles}: FileAttachmentProps) {
     setIsDragging(false);
 
     if (e.dataTransfer.files) {
-      setFiles((prev) => [...prev, ...Array.from(e.dataTransfer.files)]);
+      addFiles(Array.from(e.dataTransfer.files));
     }
   };
 
@@ -40,7 +70,7 @@ export default function FileAttachment({files, setFiles}: FileAttachmentProps) {
     e.preventDefault();
   };
 
-  const handleDragEnter = () => setIsDragging(true);
+  const handleDragEnter = () => { setIsDragging(true); setErrors([]); };
   const handleDragLeave = () => setIsDragging(false);
 
   // Remove file
@@ -52,58 +82,59 @@ export default function FileAttachment({files, setFiles}: FileAttachmentProps) {
     <div className="space-y-2 mb-10">
 
       {/* File Preview Section */}
-      <div className="flex space-x-4 mt-2 max-w-2xl overflow-x-auto shadow-sm pb-2">
-        {files.length > 0 ? (
-          files.map((file, index) => {
-            const preview = URL.createObjectURL(file);
+      <ScrollArea className="w-full max-w-2xl shadow-sm pb-2">
+        <div className="flex space-x-4 mt-2">
+          {files.length > 0 ? (
+            files.map((file, index) => {
+              const preview = URL.createObjectURL(file);
 
-            return (
-              <div
-                key={index}
-                className="flex flex-col items-center gap-1 w-36"
-              >
-                {/* Preview */}
-                <div className="w-full h-24 border rounded-md overflow-hidden">
-                  {file.type.startsWith("image/") ? (
-                    <img
-                      src={preview}
-                      alt={file.name}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex items-center justify-center h-full">
-                      <File className="h-8 w-8 text-gray-500" />
-                    </div>
-                  )}
-                </div>
-
-                {/* Name + Delete */}
-                <div className="flex justify-between w-full items-center">
-                  <div
-                    className="text-sm text-gray-500 truncate px-1 w-full"
-                    title={file.name}
-                  >
-                    {file.name}
+              return (
+                <div
+                  key={index}
+                  className="flex flex-col items-center gap-1 w-36 shrink-0"
+                >
+                  {/* Preview */}
+                  <div className="w-full h-24 border rounded-md overflow-hidden">
+                    {file.type.startsWith("image/") ? (
+                      <img
+                        src={preview}
+                        alt={file.name}
+                        className="w-full h-full object-fit"
+                      />
+                    ) : (
+                      <div className="flex items-center justify-center h-full">
+                        <File className="h-8 w-8 text-gray-500" />
+                      </div>
+                    )}
                   </div>
 
-                  <Button
-                    type="button"
-                    variant="link"
-                    className="p-0 h-min"
-                    onClick={() => handleRemoveFile(index)}
-                  >
-                    <X className="h-4 w-4 text-red-500" />
-                  </Button>
-                </div>
-              </div>
-            );
-          })
-        ) : (
-          <p className="text-sm text-gray-400">No files selected</p>
-        )}
+                  {/* Name + Delete */}
+                  <div className="flex justify-between w-full items-center">
+                    <div
+                      className="text-xs text-gray-500 truncate px-1 w-full"
+                      title={file.name}
+                    >
+                      {file.name}
+                    </div>
 
+                    <Button
+                      type="button"
+                      variant="link"
+                      className="p-0 h-min"
+                      onClick={() => handleRemoveFile(index)}
+                    >
+                      <X className="h-4 w-4 text-red-500" />
+                    </Button>
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <p className="text-sm text-gray-400">No files selected</p>
+          )}
+        </div>
         <ScrollBar orientation="horizontal" />
-      </div>
+      </ScrollArea>
 
       {/* Drag & Drop Area */}
       <div
@@ -125,7 +156,7 @@ export default function FileAttachment({files, setFiles}: FileAttachmentProps) {
           className="hidden"
           id="file-upload"
           onChange={handleFileChange}
-          accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+          accept=".pdf,.doc,.docx,.xlsx,.png,.jpg,.jpeg"
         />
 
         {/* Upload UI */}
@@ -134,12 +165,25 @@ export default function FileAttachment({files, setFiles}: FileAttachmentProps) {
 
           <div className="text-sm text-[#64748b]">
             Drag your file(s) or{" "}
-            <span className="text-[#972e26] font-medium">
-              browse
-            </span>
+            <span className="text-[#972e26] font-medium">browse</span>
+          </div>
+          <div className="text-sm text-gray-500 mt-1">
+            PDF, DOC, DOCX, XLSX, PNG, JPG — max 2 MB size
           </div>
         </label>
       </div>
+
+      {/* Validation Errors */}
+      {errors.length > 0 && (
+        <div className="space-y-1">
+          {errors.map((err, i) => (
+            <div key={i} className="flex items-start gap-1.5 text-xs text-red-600">
+              <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+              <span>{err}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

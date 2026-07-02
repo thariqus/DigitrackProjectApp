@@ -39,14 +39,22 @@ export function MainNav() {
  
  
 
+  const segments = pathname.split("/");
+  const isPropertyActive = segments.includes("property");
+
   const className = (path: string[]) => {
     return cn(
       "flex items-center gap-2 hover:text-primary",
-      path?.some((p) => p === pathname.split("/").pop())
+      !isPropertyActive && path?.some((p) => p === segments[segments.length - 1])
         ? "font-medium text-primary"
         : "text-gray-600"
     );
   };
+
+  const propertyClassName = cn(
+    "flex items-center gap-2 hover:text-primary",
+    isPropertyActive ? "font-medium text-primary" : "text-gray-600"
+  );
 
   const { data: attachmentDetailed } = useDocDetail<JHDigitrackSettings>({
     doctype: "JH Digitrack Settings",
@@ -137,7 +145,7 @@ export function MainNav() {
               }
               navigate("property")
             }}
-            className="flex items-center gap-2 text-gray-600 hover:text-primary"
+            className={propertyClassName}
           >
             <Warehouse className="h-5 w-5" />
             <span>Property Automation</span>

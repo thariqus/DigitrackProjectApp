@@ -1,10 +1,16 @@
 import { TableRow, TableCell } from "@/components/ui/table";
 import { Pencil, Download } from "lucide-react";
-import { useOutletContext } from "react-router";
+// import { useOutletContext } from "react-router";
 import StatusBadge from "./StatusBadge";
 
+const decodeHtml = (str: string) => {
+  const el = document.createElement("div");
+  el.innerHTML = str;
+  return el.innerText;
+};
 
-function RenewalTableRow({ renewals , index, onClick,isLoading,onEdit,renewalColorHighlight,formatDate,isLicensingTeam,onDownload  }: any) {
+
+function RenewalTableRow({ renewals , index, onClick,isLoading,onEdit,isLicensingTeam,onDownload  }: any) {
 
 
    const renewalPeriod = (() => {
@@ -48,7 +54,7 @@ function RenewalTableRow({ renewals , index, onClick,isLoading,onEdit,renewalCol
       <TableCell className="w-[50px]">{index + 1}</TableCell>
       <TableCell>{renewals.name}</TableCell>
       <TableCell>{renewals.property}</TableCell>
-      <TableCell>{renewals.division}</TableCell>
+      <TableCell>{renewals.division ? decodeHtml(renewals.division) : renewals.division}</TableCell>
       <TableCell>{renewals.current_rent} </TableCell>
       <TableCell>{renewals.proposed_rent}</TableCell>
       <TableCell>{renewals.rent_change_percent != null ? `${Number(renewals.rent_change_percent).toFixed(2)}%` : "-"}</TableCell>
@@ -62,6 +68,14 @@ function RenewalTableRow({ renewals , index, onClick,isLoading,onEdit,renewalCol
                   ? renewals.approver_1_name
                   : renewals.workflow_state === "Pending Approver 2"
                   ? renewals.approver_2_name
+                  : renewals.workflow_state === "Pending Approver 3"
+                  ? renewals.approver_3_name
+                  : renewals.workflow_state === "Pending Approver 4"
+                  ? renewals.approver_4_name
+                  : renewals.workflow_state === "Pending Approver 5"
+                  ? renewals.approver_5_name
+                  : renewals.workflow_state === "Pending Approver 6"
+                  ? renewals.approver_6_name
                   : undefined
               }
             />
@@ -76,38 +90,35 @@ function RenewalTableRow({ renewals , index, onClick,isLoading,onEdit,renewalCol
         })() : "-"}
       </TableCell>
 
-      <TableCell>
-        <div className="flex justify-center items-center gap-1">
-          {isLicensingTeam && (
-            <div
-              className="cursor-pointer"
-              onClick={(e) => {
-                e.stopPropagation();
-                onEdit(renewals.name);
-              }}
-              title="Edit Renewal"
-            >
-              <Pencil size={14} />
-            </div>
-          )}
+        <TableCell>
+          <div className="flex justify-center items-center gap-1">
+            {isLicensingTeam && (
+              <div
+                className="cursor-pointer"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit(renewals.name);
+                }}
+                title="Edit Renewal"
+              >
+                <Pencil size={14} />
+              </div>
+            )}
 
-          {renewals.workflow_state === "Completed" && (
-            <div
-              className="cursor-pointer text-primary hover:text-green-800"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDownload(renewals.name);
-              }}
-              title="Download PDF"
-            >
-              <Download size={17} />
-            </div>
-          )}
-          
-        </div>
-      </TableCell>
-      
-  
+            {(renewals.workflow_state === "Pending Property PO" || renewals.workflow_state === "Pending MIRO" || renewals.workflow_state === "Completed")  && (
+              <div
+                className="cursor-pointer text-primary hover:text-green-800"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDownload(renewals.name);
+                }}
+                title="Download PDF"
+              >
+                <Download size={17} />
+              </div>
+            )}
+          </div>
+        </TableCell>
     </TableRow>
   );
 }

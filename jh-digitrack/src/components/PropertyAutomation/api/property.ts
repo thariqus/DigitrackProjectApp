@@ -12,21 +12,22 @@ export type RenewalProgressPayload = {
 };
 
 export type ChequeDetailPayload = {
-  bank_name?: string;
-  cheque_number?: string;
+  cheque_type?: string;
   cheque_amount?: number;
   cheque_date?: string;
   payee?: string;
-  signatory?: string;
 };
 
 const buildQueryString = (
-  params: Record<string, string | number | boolean | undefined>
+  params: Record<string, string | number | boolean | string[] | undefined>
 ) => {
   const query = new URLSearchParams();
 
   Object.entries(params).forEach(([key, value]) => {
-    if (value !== undefined && value !== "" && value !== false) {
+    if (value === undefined || value === "" || value === false) return;
+    if (Array.isArray(value)) {
+      if (value.length > 0) query.set(key, JSON.stringify(value));
+    } else {
       query.set(key, String(value));
     }
   });
@@ -88,7 +89,7 @@ export const propertyApi = {
   },
 
   getPropertyList: async (
-    params: Record<string, string | number | boolean | undefined>
+    params: Record<string, string | number | boolean | string[] | undefined>
   ) => {
     const query = buildQueryString(params);
     const res = await fetch(`${API_BASE}.get_property_list?${query}`, {
@@ -148,7 +149,7 @@ export const propertyApi = {
   },
 
   getRenewalList: async (
-    params: Record<string, string | number | boolean | undefined>
+    params: Record<string, string | number | boolean | string[] | undefined>
   ) => {
     const query = buildQueryString(params);
     const res = await fetch(`${API_BASE}.get_renewal_list?${query}`, {
@@ -218,9 +219,15 @@ export const propertyApi = {
       draft: number;
       pending_approver_1: number;
       pending_approver_2: number;
+      pending_approver_3: number;
+      pending_approver_4: number;
+      pending_approver_5: number;
+      pending_approver_6: number;
+      pending_cheque_details: number;
+      pending_admin_hod: number;
+      pending_fc: number;
       pending_cfo: number;
       pending_md: number;
-      pending_cheque_details: number;
       pending_property_po: number;
       pending_miro: number;
       completed: number;
@@ -234,5 +241,30 @@ export const propertyApi = {
     });
     const data = await res.json();
     return (data.message as { bank_accounts: string[] }).bank_accounts ?? [];
+  },
+
+  getChequeTypes: async (): Promise<string[]> => {
+    const res = await fetch(`${API_BASE}.get_cheque_types`, {
+      credentials: "include",
+    });
+    const data = await res.json();
+    return (data.message as { cheque_types: string[] }).cheque_types ?? [];
+  },
+
+  getPropertyTypes: async (): Promise<string[]> => {
+    const res = await fetch(`${API_BASE}.get_property_types`, {
+      credentials: "include",
+    });
+    const data = await res.json();
+    return (data.message as { property_types: string[] }).property_types ?? [];
+  },
+
+  getDivisionsByBusiness: async (business?: string): Promise<{ name: string; division_name: string; business: string }[]> => {
+    const query = business ? `?business=${encodeURIComponent(business)}` : "";
+    const res = await fetch(`${API_BASE}.get_divisions_by_business${query}`, {
+      credentials: "include",
+    });
+    const data = await res.json();
+    return (data.message as { divisions: { name: string; division_name: string; business: string }[] }).divisions ?? [];
   },
 };

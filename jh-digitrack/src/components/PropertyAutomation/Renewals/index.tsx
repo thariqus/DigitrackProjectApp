@@ -201,7 +201,7 @@ function Renewals() {
 
   const handleDownload = (name: string) => {
     window.open(
-      `/api/method/frappe.utils.print_format.download_pdf?doctype=JH Property Rental Renewal&name=${encodeURIComponent(name)}&format=Standard&no_letterhead=0`,
+      `/api/method/frappe.utils.print_format.download_pdf?doctype=JH Property Rental Renewal&name=${encodeURIComponent(name)}&format=Property Template&no_letterhead=1`,
       "_blank"
     );
   };
@@ -221,8 +221,9 @@ function Renewals() {
   const isMD = roleBasedAccess?.is_md;
   const isApprover1 = roleBasedAccess?.is_approver_1;
   const isApprover2 = roleBasedAccess?.is_approver_2;
+  const isApprover3 = roleBasedAccess?.is_approver_3;
   const isGLTeam = roleBasedAccess?.has_gl_team_role;
-  
+
   return (
     <div className="w-full space-y-4">
       <FilterButtons
@@ -285,21 +286,24 @@ function Renewals() {
 
       <div className="rounded-md border">
         <Table className="w-full table-fixed">
-          <PropertyTableHeader tableHeadings={tableHeadings} canHaveAccess={true} />
-
+          <PropertyTableHeader
+            tableHeadings={tableHeadings}
+            showCheckbox={false}
+            canHaveAccess={true}
+          />
           <TableBody>
             {renewals.map((item, index) => (
               <RenewalTableRow
                 key={item.name}
                 renewals={item}
-                index={index}
+                index={(currentPage - 1) * renewalsPerPage + index}
                 isLoading={isLoading}
                 onClick={() => handleRowClick(item.name)}
                 onEdit={handleEditClick}
                 onDownload={handleDownload}
                 formatDate={formatDate}
-                renewalColorHighlight={undefined}
                 isLicensingTeam={isLicensingTeam}
+                // showActionsCell={showActions}
               />
             ))}
           </TableBody>
@@ -329,7 +333,7 @@ function Renewals() {
         isCfo={isCfo}
         isApprover1={isApprover1}
         isApprover2={isApprover2}
-        isApprover={!!(isApprover1 || isApprover2)}
+        isApprover={!!(isApprover1 || isApprover2 || isApprover3)}
         isGMTeam={false}
         isMD={isMD}
         isGLTeam={isGLTeam}

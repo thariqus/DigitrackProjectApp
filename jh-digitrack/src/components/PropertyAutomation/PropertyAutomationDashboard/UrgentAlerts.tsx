@@ -42,7 +42,7 @@ export function UrgentAlerts({
     return (
 
       <div className="pb-10">
-         <div className="flex flec-col gap-1 items-center">
+         <div className="flex flex-col gap-1 items-center">
             <h2 className="text-lg font-bold text-primary">Required Attention</h2>
           </div>
           <div className="flex items-center gap-3 rounded-xl border border-green-200 bg-green-50 p-4 mt-4">

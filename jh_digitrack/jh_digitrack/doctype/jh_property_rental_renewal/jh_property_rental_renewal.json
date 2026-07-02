@@ -227,7 +227,7 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Workflow State",
-   "options": "Draft\nPending Approver 1\nPending Approver 2\nPending Cheque Details\nPending CFO\nPending MD\nPending Property PO\nPending MIRO\nCompleted\nWithdrawn",
+   "options": "Draft\nPending Approver 1\nPending Approver 2\nPending Approver 3\nPending Approver 4\nPending Approver 5\nPending Approver 6\nPending Cheque Details\nPending Admin HOD\nPending FC\nPending CFO\nPending MD\nPending Property PO\nPending MIRO\nCompleted\nWithdrawn",
    "read_only": 1
   },
   {
@@ -295,7 +295,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-04-29 10:44:15.259178",
+ "modified": "2026-06-15 14:25:14.977699",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Property Rental Renewal",

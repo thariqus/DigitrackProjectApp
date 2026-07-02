@@ -1,20 +1,16 @@
 import { TableRow, TableCell } from "@/components/ui/table";
 import { Pencil } from "lucide-react";
-import { useOutletContext } from "react-router";
 import StatusBadge from "./StatusBadge";
+import RenewalIcon from "../../../../public/icon2.png"
 
-type ContextType = {
-  propertyRole: any;
-};
+function PropertyTableRow({ property, index, onClick,isLoading,onEdit,renewalColorHighlight,getRenewalStatus,formatDate,canCreateOrEditProperty, canStartRenewal,onStartRenewal,isSelected,onSelect}: any) {
 
-function PropertyTableRow({ property, index, onClick,isLoading,onEdit,renewalColorHighlight,getRenewalStatus,formatDate,canCreateOrEditProperty, }: any) {
-
-   const { propertyRole } = useOutletContext<ContextType>();
+const isRenewalInProgress = !!property.has_active_renewal;
 
   if(isLoading){
     return (
       <TableRow>
-        {Array.from({ length: 8 }).map((_, i) => (
+        {Array.from({ length: 9 }).map((_, i) => (
           <TableCell key={i}>
             <div className="h-4 w-full bg-gray-200 rounded animate-pulse"></div>
           </TableCell>
@@ -25,6 +21,19 @@ function PropertyTableRow({ property, index, onClick,isLoading,onEdit,renewalCol
 
   return (
     <TableRow className="cursor-pointer" onClick={onClick}>
+      <TableCell>
+        <input
+          type="checkbox"
+          checked={isSelected}
+          onChange={(e) => {
+            e.stopPropagation();
+            onSelect(property.name, e.target.checked);
+          }}
+          onClick={(e) => e.stopPropagation()}
+          aria-label="Select row"
+          className="h-4 w-4 cursor-pointer accent-[#972e26]"
+        />
+      </TableCell>
       <TableCell className="">{index + 1}</TableCell>
       <TableCell>{property.property_name}</TableCell>
       <TableCell>{property.type_of_property}</TableCell>
@@ -41,21 +50,34 @@ function PropertyTableRow({ property, index, onClick,isLoading,onEdit,renewalCol
         </div>
       </TableCell>
 
-      {canCreateOrEditProperty && (
-        <TableCell>
-        <div
-        className="flex justify-center items-center cursor-pointer"
-        onClick={(e) => {
-          e.stopPropagation(); //  prevent row click
-          onEdit(property.name);
-        }}
-      >
-        <Pencil size={13} />
-      </div>
-      </TableCell>
-      )
-        
-      }
+
+      {(canCreateOrEditProperty || canStartRenewal) && (
+        <TableCell className="flex pt-5 justify-center items-center gap-1">
+          {canCreateOrEditProperty && (
+            <div
+              className="flex justify-center items-center cursor-pointer"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit(property.name);
+              }}
+            >
+              <Pencil size={14} />
+            </div>
+          )}
+
+          {canStartRenewal && !isRenewalInProgress && (
+            <div
+              title="Initiate Renewal"
+              onClick={(e) => {
+                e.stopPropagation();
+                onStartRenewal(property);
+              }}
+            >
+              <img src={RenewalIcon} alt="Renewal icon" className="w-[30px] h-6"/>
+            </div>
+          )}
+        </TableCell>
+      )}
   
     </TableRow>
   );
