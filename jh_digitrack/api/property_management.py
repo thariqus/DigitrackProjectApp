@@ -619,7 +619,22 @@ def get_property_list(
         ignore_permissions=True,
     )
     total = frappe.db.count("JH Property Master", filters=filters, cache=False)
-
+    if records:
+        property_names = [r["name"] for r in records]
+        active_renewal_props = set(
+            frappe.get_all(
+                "JH Property Rental Renewal",
+                filters={
+                    "property": ["in", property_names],
+                    "workflow_state": ["not in", ["Completed", "Withdrawn"]],
+                },
+                pluck="property",
+                ignore_permissions=True,
+            )
+        )
+        for r in records:
+            r["has_active_renewal"] = r["name"] in active_renewal_props
+ 
     return {"properties": records, "total": total}
 
 

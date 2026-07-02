@@ -1,4 +1,5 @@
-import { StatusCard } from "./StatusCard";
+import React from "react";
+import { Plane } from "lucide-react";
 
 const statuses = ["Approval Pending", "Urgent", "Reconfirmation Pending"];
 
@@ -15,45 +16,40 @@ export const TravelRequestCard = ({
   };
 
   const handleStatusClick = (e: React.MouseEvent, status: string) => {
-    e.stopPropagation(); 
+    e.stopPropagation();
     const statusParam = encodeURIComponent(status);
     window.location.href = `/app/jh-travel-request/view/list?request_status=${statusParam}`;
   };
 
-  const total =
-    (counts["Approval Pending"] || 0) +
-    (counts["Urgent"] || 0) +
-    (counts["Reconfirmation Pending"] || 0);
+  const total = statuses.reduce((sum, s) => sum + (counts[s] || 0), 0);
 
   return (
     <div
       onClick={handleCardClick}
-      className="relative cursor-pointer bg-rose-100/60 backdrop-blur border border-rose-200 rounded-2xl shadow-sm p-6 hover:shadow-md transition"
+      className="cursor-pointer bg-rose-100/60 backdrop-blur border border-rose-200 rounded-xl shadow-sm p-3 hover:shadow-md transition"
     >
-      <div className="absolute top-3 right-3 bg-rose-200 text-sm font-semibold text-gray-800 px-3 py-1 rounded-full shadow-sm">
-        Total: {total}
+      <div className="flex justify-between items-center mb-2">
+        <div className="flex items-center gap-1.5">
+          <Plane size={14} className="text-primary flex-shrink-0 !important" />
+          <h3 className="text-sm font-semibold text-primary">{title}</h3>
+        </div>
+        <span className="text-sm font-bold text-gray-700">{String(total).padStart(2, "0")}</span>
       </div>
 
-      <h3 className="text-lg font-semibold text-gray-800 mb-4">{title}</h3>
-
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="flex flex-col divide-y divide-rose-200">
         {statuses.map((status) => (
           <div
             key={status}
             onClick={(e) => handleStatusClick(e, status)}
-            className="cursor-pointer"
+            className="flex justify-between items-center py-1"
           >
-            <StatusCard
-              status={status}
-              count={counts?.[status] || 0}
-              type="travel"
-            />
+            <span className="text-xs text-gray-600">{status}</span>
+            <span className="text-xs font-semibold text-gray-800">
+              {String(counts[status] || 0).padStart(2, "0")}
+            </span>
           </div>
         ))}
       </div>
     </div>
   );
 };
-
-
-
