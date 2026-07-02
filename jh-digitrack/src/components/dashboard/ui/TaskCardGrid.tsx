@@ -1,40 +1,25 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import { ListTodo } from "lucide-react";
 import { TaskCard } from "./TaskCard";
 import { getTaskStatusCounts } from "@/hooks/task_status_count";
-import { AuditCard } from "./AuditCard";
 import { TravelRequestCard } from "./TravelRequestCard";
 import { MeetingCard } from "./MeetingCard";
+import { AuditCard } from "./AuditCard";
 import { ProjectCard } from "./ProjectCard";
+import { PropertyAutomationCard } from "./PropertyAutomationCard";
+import { usePropertyDashboardCounts } from "@/components/PropertyAutomation/hooks/useProperty";
 
 const initialCounts = {
-  meetings: { open: 0 },
-  projects: { open: 0 },
-  audits: { open: 0 },
-  travel_request: {
-    approval_pending: 0,
-    urgent: 0,
-    reconfirmation_pending: 0,
-  },
-  my_tasks: {
-    Open: { count: 0, ages: [] },
-    In_Progress: { count: 0, ages: [] },
-    completed: { count: 0 },
-    canceled: { count: 0 },
-  },
-  created_by_me: {
-    Open: { count: 0, ages: [] },
-    In_Progress: { count: 0, ages: [] },
-    completed: { count: 0 },
-    canceled: { count: 0 },
-  },
-  team_tasks: {
-    Open: { count: 0, ages: [] },
-    In_Progress: { count: 0, ages: [] },
-  },
+  travel_request: {} as Record<string, number>,
+  my_tasks: {} as Record<string, { count: number; ages?: { label: string; count: number }[] }>,
+  created_by_me: {} as Record<string, { count: number; ages?: { label: string; count: number }[] }>,
+  audits: {} as Record<string, number>,
+  meetings: {} as Record<string, number>,
 };
 
 export const TaskCardGrid = () => {
   const [counts, setCounts] = useState(initialCounts);
+  const { data: propCounts, isError: propError } = usePropertyDashboardCounts();
 
   useEffect(() => {
     const fetchCounts = async () => {
@@ -68,35 +53,68 @@ export const TaskCardGrid = () => {
     fetchCounts();
   }, []);
 
-return (
-  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-    
-    <div className="md:col-span-2 flex flex-col gap-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <TaskCard title="My Tasks" filterKey="my-tasks" counts={counts.my_tasks} />
-        <TaskCard title="Created By Me" filterKey="created-by-me" counts={counts.created_by_me} />
+  const taskTotal = (c: Record<string, { count: number }>) =>
+    Object.values(c).reduce((s, v) => s + (v?.count || 0), 0);
+
+  const travelTotal = (c: Record<string, number>) =>
+    Object.values(c).reduce((s, v) => s + (v || 0), 0);
+
+  const propTotal = propError
+    ? 0
+    : (["active_properties", "renewals_30_days", "renewals_90_days", "overdue"] as const).reduce(
+        (s, k) => s + (propCounts?.[k] ?? 0),
+        0
+      );
+
+  const allCards = [
+    {
+      key: "my-tasks",
+      total: taskTotal(counts.my_tasks),
+      node: <TaskCard key="my-tasks" title="My Tasks" filterKey="my-tasks" counts={counts.my_tasks} icon={ListTodo} />,
+    },
+    {
+      key: "created-by-me",
+      total: taskTotal(counts.created_by_me),
+      node: <TaskCard key="created-by-me" title="Created By Me" filterKey="created-by-me" counts={counts.created_by_me} icon={ListTodo} />,
+    },
+    {
+      key: "travel",
+      total: travelTotal(counts.travel_request),
+      node: <TravelRequestCard key="travel" title="Travel Requests" filterKey="dashboard" counts={counts.travel_request} />,
+    },
+    {
+      key: "meetings",
+      total: counts.meetings?.open ?? 0,
+      node: <MeetingCard key="meetings" title="Meetings" filterKey="dashboard" count={counts.meetings?.open ?? 0} />,
+    },
+    {
+      key: "audits",
+      total: counts.audits?.open ?? 0,
+      node: <AuditCard key="audits" title="Audits" filterKey="dashboard" count={counts.audits?.open ?? 0} />,
+    },
+    {
+      key: "projects",
+      total: 0,
+      node: <ProjectCard key="projects" title="Projects" filterKey="dashboard" />,
+    },
+    ...(!propError ? [{
+      key: "property",
+      total: propTotal,
+      node: <PropertyAutomationCard key="property" />,
+    }] : []),
+  ].sort((a, b) => b.total - a.total);
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-x-7 gap-y-4">
+        {allCards.map((c) => c.node)}
       </div>
 
       <div className="bg-rose-100 rounded-xl shadow p-3">
-        <p className="text-sm text-black-700 text-center font-bold">
+        <p className="text-sm text-center font-bold">
           *Created By Me: Tasks in Completed / Cancelled status need your review, make them Closed or Re-open (if further action is required).
         </p>
       </div>
     </div>
-
-    <div className="flex flex-col gap-4">
-      <TravelRequestCard title="Travel Requests" filterKey="dashboard" counts={counts.travel_request} />
-      <div className="grid grid-cols-3 gap-4">
-        <MeetingCard title="Meetings" filterKey="dashboard" count={counts.meetings?.open || 0} />
-        <AuditCard title="Audits" filterKey="dashboard" count={counts.audits?.open || 0} />
-        <ProjectCard title="Projects" filterKey="dashboard" count={counts.projects?.open || 0} />
-      </div>
-    </div>
-
-  </div>
-);
+  );
 };
-
-
-
-
