@@ -12,7 +12,9 @@
   "other_property_type",
   "business_used",
   "division_used",
+  "co_code",
   "booked_under",
+  "area_sqftmtr",
   "column_break_rpia",
   "profit_center",
   "number_of_units",
@@ -312,12 +314,22 @@
    "fieldtype": "Data",
    "label": "Other Property Type",
    "mandatory_depends_on": "eval:doc.type_of_property == \"Other\"\n"
+  },
+  {
+   "fieldname": "co_code",
+   "fieldtype": "Int",
+   "label": "Co Code"
+  },
+  {
+   "fieldname": "area_sqftmtr",
+   "fieldtype": "Data",
+   "label": "Area (Sqft/Mtr)"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-06-26 12:11:35.290821",
+ "modified": "2026-07-03 15:47:57.131382",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Property Master",
