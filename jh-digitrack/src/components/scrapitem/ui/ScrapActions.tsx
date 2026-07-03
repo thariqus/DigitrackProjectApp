@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { FileEdit, Trash2, ArchiveRestore } from "lucide-react";
+import { Eye, FileEdit, Trash2, ArchiveRestore } from "lucide-react";
 import { useUpdateDoc } from "@/hooks/doc";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -9,6 +9,7 @@ interface ScrapActionsProps {
   scrap: JHScrapItem;
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
+  onView?: (item: JHScrapItem) => void;
   hideDelete?: boolean;
   showRestore?: boolean;
 }
@@ -17,6 +18,7 @@ export const ScrapActions = ({
   scrap,
   onEdit,
   onDelete,
+  onView,
   hideDelete,
   showRestore = false,
 }: ScrapActionsProps) => {
@@ -43,6 +45,18 @@ export const ScrapActions = ({
 
   return (
     <div className="flex justify-center gap-2">
+      {onView && (
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={(e) => {
+            e.stopPropagation();
+            onView(scrap);
+          }}
+        >
+          <Eye className="h-4 w-4" />
+        </Button>
+      )}
       <Button
         variant="ghost"
         size="icon"
