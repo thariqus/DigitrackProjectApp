@@ -902,7 +902,10 @@ def get_property_doc(name: str):
     )
 
     if not has_full_access:
-        has_property_access = bool(_get_approver_properties(user) or _get_visible_adhoc_properties(user))
+        has_property_access = (
+            name in _get_approver_properties(user)
+            or name in _get_visible_adhoc_properties(user)
+        )
         if not has_property_access:
             frappe.throw(_("Not permitted"), frappe.PermissionError)
 
