@@ -27,7 +27,7 @@
   "po_number",
   "renewed_contract_document",
   "miro_details_section",
-  "miro_number",
+  "table_gfwd",
   "property_information_section",
   "division",
   "location",
@@ -150,13 +150,6 @@
    "fieldname": "miro_details_section",
    "fieldtype": "Section Break",
    "label": "MIRO Details"
-  },
-  {
-   "allow_on_submit": 1,
-   "fieldname": "miro_number",
-   "fieldtype": "Data",
-   "label": "MIRO Number",
-   "permlevel": 3
   },
   {
    "fieldname": "property_information_section",
@@ -289,13 +282,18 @@
    "fieldname": "enable_escalation_notifications",
    "fieldtype": "Check",
    "label": "Enable Escalation Notifications"
+  },
+  {
+   "fieldname": "table_gfwd",
+   "fieldtype": "Table",
+   "options": "JH Property MIRO Number"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-06-15 14:25:14.977699",
+ "modified": "2026-07-06 19:19:56.643844",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Property Rental Renewal",
