@@ -39,7 +39,8 @@ class JHPropertyRentalRenewal(Document):
 		self.rent_change_percent = ((proposed_rent - current_rent) / current_rent) * 100
 
 	def validate_dates(self):
-		if self.renewal_from and getdate(self.renewal_from) < getdate(today()):
+		is_draft = self.is_new() or (self.workflow_state or "Draft") == "Draft"
+		if is_draft and self.renewal_from and getdate(self.renewal_from) < getdate(today()):
 			frappe.throw(_("Renewal From date cannot be in the past."))
 
 		if self.renewal_from and self.renewal_to:
