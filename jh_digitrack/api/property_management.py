@@ -487,17 +487,18 @@ def get_property_list(
         or ctx["has_property_dept"] or ctx["is_licensing"]
     )
 
-    # Row-level filter applied for approvers (division-scoped access)
-    _division_scope = None
+    # Row-level filter applied for approvers/ad-hoc delegates (name-scoped access)
     _property_scope = None
 
     if not has_full_access:
         approver_props = _get_approver_properties(user)
-        has_adhoc_delegation = bool(_get_visible_adhoc_properties(user))
-        if not approver_props and not has_adhoc_delegation:
+        adhoc_props = set(_get_visible_adhoc_properties(user))
+        if not approver_props and not adhoc_props:
             frappe.throw(_("Not permitted"), frappe.PermissionError)
 
-        if approver_props and not has_adhoc_delegation:
+        scoped_names = set(adhoc_props)
+
+        if approver_props:
             raw_divisions = frappe.db.get_all(
                 "JH Property Master",
                 filters={"name": ["in", approver_props]},
@@ -506,9 +507,17 @@ def get_property_list(
             )
             division_list = list(set(d for d in raw_divisions if d))
             if division_list:
-                _division_scope = division_list
+                division_props = frappe.db.get_all(
+                    "JH Property Master",
+                    filters={"division_used": ["in", division_list]},
+                    pluck="name",
+                    ignore_permissions=True,
+                )
+                scoped_names.update(division_props)
             else:
-                _property_scope = approver_props
+                scoped_names.update(approver_props)
+
+        _property_scope = scoped_names
 
     import json as _json
     filters = {}
@@ -577,21 +586,11 @@ def get_property_list(
     elif expiring_soon:
         filters["renewal_date"] = ["between", [today_str, add_days(today_str, 90)]]
 
-    # Apply approver row-level scope (division or exact property list).
-    # If the user also filtered by a specific division, intersect with scope.
-    if _division_scope:
-        user_div = filters.get("division_used")
-        if user_div is None:
-            filters["division_used"] = ["in", _division_scope]
-        elif isinstance(user_div, str):
-            filters["division_used"] = user_div if user_div in _division_scope else ["in", []]
-        elif isinstance(user_div, list) and user_div[0] == "in":
-            intersected = [d for d in user_div[1] if d in _division_scope]
-            filters["division_used"] = ["in", intersected]
-        else:
-            filters["division_used"] = ["in", _division_scope]
-    elif _property_scope:
-        filters["name"] = ["in", _property_scope]
+    # Apply row-level scope (union of ad-hoc delegated properties, approver's own
+    # properties, and all properties in the approver's divisions). ANDs with any
+    # user-supplied division/emirate/etc. filters above.
+    if _property_scope is not None:
+        filters["name"] = ["in", list(_property_scope)]
 
     limit = cint(limit)
     page = cint(page)
