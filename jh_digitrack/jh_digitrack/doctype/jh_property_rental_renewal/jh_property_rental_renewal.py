@@ -6,6 +6,8 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import flt, getdate, today
 
+from jh_digitrack.api.property_management import ACTIVE_RENEWAL_STATES
+
 
 class JHPropertyRentalRenewal(Document):
 
@@ -59,22 +61,11 @@ class JHPropertyRentalRenewal(Document):
 		if not self.property:
 			return
 
-		active_states = [
-			"Draft",
-			"Pending Approver 1",
-			"Pending Approver 2",
-			"Pending CFO",
-			"Pending MD",
-			"Pending Cheque Details",
-			"Pending Property PO",
-			"Pending MIRO",
-		]
-
 		existing_renewal = frappe.db.exists(
 			"JH Property Rental Renewal",
 			{
 				"property": self.property,
-				"workflow_state": ["in", active_states],
+				"workflow_state": ["in", ACTIVE_RENEWAL_STATES],
 				"name": ["!=", self.name],
 			},
 		)
