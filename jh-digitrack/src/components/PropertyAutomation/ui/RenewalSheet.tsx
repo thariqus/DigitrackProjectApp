@@ -30,6 +30,7 @@ import RenewalApprovalFooter from "./RenewalApprovalFooter";
 
  
 type RenewalSheetProps = {
+  handleDownload: (name: string) => void;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   propertyId: string | null;
@@ -73,6 +74,7 @@ export default function RenewalSheet({
   onOpenChange,
   propertyId,
   mode,
+  handleDownload,
   isJHPropertyDepartment,
   isGLTeam,
 }: RenewalSheetProps) {
@@ -89,6 +91,7 @@ export default function RenewalSheet({
   const [chequeDetails, setChequeDetails] = useState<NonNullable<RentalRenewal["cheque_details"]>>([]);
   const [chequeAmountErrors, setChequeAmountErrors] = useState<Record<number, string>>({});
   const [miroNumbers, setMiroNumbers] = useState<string[]>([]);
+  const [particulars, setParticulars] = useState<{ label: string; amount: string }[]>([]);
   const [isApprovalModalOpen, setIsApprovalModalOpen] = useState(false);
   const [pendingApprovalAction, setPendingApprovalAction] = useState<"approve" | "submit" | "reject">("approve");
   const [approvalTitle, setApprovalTitle] = useState("Approval Action");
@@ -179,6 +182,7 @@ export default function RenewalSheet({
       setSupportingFiles([]);
       setChequeDetails([]);
       setMiroNumbers([]);
+      setParticulars([]);
       // setMiroNumberErrors({});
     }
   }, [open]);
@@ -192,6 +196,12 @@ export default function RenewalSheet({
       (renewalDoc.table_gfwd || [])
         .map((row) => row.miro_number || "")
         .filter(Boolean)
+    );
+    setParticulars(
+      (renewalDoc.table_xqmr || []).map((row) => ({
+        label: row.label || "",
+        amount: row.amount !== undefined && row.amount !== null ? String(row.amount) : "",
+      }))
     );
 
     reset({
@@ -561,7 +571,12 @@ useEffect(() => {
  
   const handleApprovalSubmit = (action: string, comment: string) => {
     if (!propertyId) return;
- 
+
+    const wasGLMiroCompletion =
+      (isGLTeam || effectiveIsGLTeam) &&
+      action === "approve" &&
+      renewalDoc?.workflow_state === "Pending MIRO";
+
     applyAction(
       {
         renewal_id: propertyId,
@@ -576,6 +591,9 @@ useEffect(() => {
           await refetchRenewal();
           setIsApprovalModalOpen(false);
           toast.success(`${action.charAt(0).toUpperCase() + action.slice(1)}d successfully`);
+          if (wasGLMiroCompletion && propertyId) {
+            handleDownload(propertyId)
+          }
           if (["approve", "submit"].includes(action)) {
             onOpenChange(false);
           }
@@ -698,6 +716,15 @@ const renderDelegationBadge = () => {
         cheque_amount: Number(cheque.cheque_amount || 0),
         idx: index + 1,
       }));
+
+      const updatedParticulars = particulars
+        .filter((entry) => entry.label.trim() !== "" || entry.amount.trim() !== "")
+        .map((entry, index) => ({
+          doctype: "JH Property Particulars",
+          label: entry.label.trim(),
+          amount: Number(entry.amount || 0),
+          idx: index + 1,
+        }));
  
       const payload = {
         doctype: "JH Property Rental Renewal",
@@ -717,6 +744,7 @@ const renderDelegationBadge = () => {
         supporting_documents: supportingDocUrl,
         renewed_contract_document: contractDocUrl,
         cheque_details: updatedChequeDetails,
+        table_xqmr: updatedParticulars,
         flags: {
           ignore_validate_update_after_submit: true,
         },
@@ -907,8 +935,8 @@ const renderDelegationBadge = () => {
             <div
               className={`grid items-start gap-4 py-1 ${
                 isView
-                  ? "grid-cols-1 lg:grid-cols-3"
-                  : "grid-cols-1 md:grid-cols-4 lg:grid-cols-5"
+                  ? "grid-cols-1 lg:grid-cols-3 items-center"
+                  : "grid-cols-1 md:grid-cols-4 lg:grid-cols-4 items-center"
               }`}
             >
               {renderRenewalField(
@@ -918,13 +946,6 @@ const renderDelegationBadge = () => {
                 "number",
                 true
               )}
-              {renderRenewalField(
-                "Additional Charges",
-                "additional_charges",
-                String(renewalDoc?.additional_charges ?? ""),
-                "number"
-              )}
- 
               <div className={`${isView ? "flex gap-2" : "flex flex-col gap-1"}`}>
                 <Label className="text-gray-600">Rent Change %:</Label>
                 {isView ? (
@@ -933,9 +954,7 @@ const renderDelegationBadge = () => {
                   <Input value={`${rentChangePercentState}%`} readOnly className="bg-gray-200" />
                 )}
               </div>
- 
-              {renderRenewalField("Renewal From", "renewal_from", renewalDoc?.renewal_from, "date", true)}
-              {renderRenewalField("Renewal To", "renewal_to", renewalDoc?.renewal_to, "date", true)}
+
               <div>
                 {isView ? (
                   <div className="flex gap-1">
@@ -964,6 +983,10 @@ const renderDelegationBadge = () => {
                   </div>
                 )}
               </div>
+ 
+              {renderRenewalField("Renewal From", "renewal_from", renewalDoc?.renewal_from, "date", true)}
+              {renderRenewalField("Renewal To", "renewal_to", renewalDoc?.renewal_to, "date", true)}
+              
               {renderRenewalField(
                 "New Security Deposit",
                 "new_security_deposit",
@@ -971,16 +994,88 @@ const renderDelegationBadge = () => {
                 "number"
               )}
  
-              <div className={`${isView ? "flex py-1 gap-2" : "flex flex-col gap-1 py-1"}`}>
+              <div className={`${isView ? "flex items-start flex-nowrap py-1 gap-2" : "flex flex-col gap-1 py-1"}`}>
                 <Label className="text-gray-600">Remarks:</Label>
                 {isView ? (
-                  <div>{renewalDoc?.remarks}</div>
+                  <div className="flex-wrap h-auto">{renewalDoc?.remarks}</div>
                 ) : (
-                  <textarea {...register("remarks")} className="border rounded-md p-2 h-20 resize-vertical" />
+                  <textarea {...register("remarks")} className="border rounded-md p-2 h-30  w-100 resize-vertical" />
                 )}
               </div>
             </div>
- 
+
+            <div>
+              <h3 className="text-md font-semibold mb-2">Additional Charges</h3>
+              {isView ? (
+                particulars.length > 0 ? (
+                  <div className="space-y-2 mb-6">
+                    {particulars.map((entry, index) => (
+                      <div
+                        key={index}
+                        className="grid grid-cols-1 md:grid-cols-2 gap-2 bg-muted py-1 px-2 rounded-lg"
+                      >
+                        {renderReadonlyField("Label", entry.label)}
+                        {renderReadonlyField("Amount", entry.amount)}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground mb-6">No additional charges added.</p>
+                )
+              ) : (
+                <div className="space-y-2 mb-6">
+                  {particulars.map((entry, index) => (
+                    <div key={index} className="flex gap-2 items-end bg-muted p-3 rounded-lg">
+                      <div className="flex-1 flex flex-col gap-1">
+                        <Label className="text-xs">Label</Label>
+                        <Input
+                          type="text"
+                          value={entry.label}
+                          placeholder="e.g. Maintenance Fee"
+                          onChange={(e) => {
+                            const next = [...particulars];
+                            next[index] = { ...next[index], label: e.target.value };
+                            setParticulars(next);
+                          }}
+                        />
+                      </div>
+                      <div className="flex-1 flex flex-col gap-1">
+                        <Label className="text-xs">Amount</Label>
+                        <Input
+                          type="text"
+                          inputMode="decimal"
+                          value={entry.amount}
+                          placeholder="0.00"
+                          onChange={(e) => {
+                            const next = [...particulars];
+                            next[index] = { ...next[index], amount: e.target.value };
+                            setParticulars(next);
+                          }}
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 p-0"
+                        onClick={() => setParticulars(particulars.filter((_, i) => i !== index))}
+                      >
+                        <XIcon className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full border-2 border-dashed h-10 text-sm"
+                    onClick={() => setParticulars([...particulars, { label: "", amount: "" }])}
+                  >
+                    + Add Additional Charge
+                  </Button>
+                </div>
+              )}
+            </div>
+
             <div>
   <h3 className="text-md font-semibold mb-2">Supporting Documents</h3>
  
