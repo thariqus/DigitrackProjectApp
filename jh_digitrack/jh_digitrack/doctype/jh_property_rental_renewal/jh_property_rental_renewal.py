@@ -13,11 +13,15 @@ class JHPropertyRentalRenewal(Document):
 
 	def validate(self):
 		for field in [
-			'remarks', 'po_number', 'miro_number', 'division', 'location',
+			'remarks', 'po_number', 'division', 'location',
 			'emirate', 'landlord', 'property_type', 'tenancy_period',
 		]:
 			if self.get(field):
 				self.set(field, frappe.utils.sanitize_html(self.get(field), always_sanitize=True))
+				
+		for row in self.get("table_gfwd", []):
+			if row.miro_number:
+				row.miro_number = frappe.utils.sanitize_html(row.miro_number, always_sanitize=True)
 		self.validate_dates()
 		self.validate_currency_fields()
 		self.validate_active_property_renewal()

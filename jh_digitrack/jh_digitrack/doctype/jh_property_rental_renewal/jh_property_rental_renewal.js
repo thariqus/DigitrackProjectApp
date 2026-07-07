@@ -6,7 +6,7 @@ frappe.ui.form.on("JH Property Rental Renewal", {
 		calculate_percent(frm);
 		await add_workflow_action_buttons(frm);
 		jh_attach_sanitizer(frm, [
-			'po_number', 'miro_number', 'division', 'location', 'emirate',
+			'po_number', 'division', 'location', 'emirate',
 			'landlord', 'property_type', 'tenancy_period', 'remarks'
 		]);
 	},
