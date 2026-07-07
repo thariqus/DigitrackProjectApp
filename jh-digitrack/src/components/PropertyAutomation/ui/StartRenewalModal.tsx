@@ -18,7 +18,13 @@ import { useSaveDoc } from "@/hooks/doc";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
+import { XIcon } from "lucide-react";
 import FileAttachment from "./FileAttachment";
+
+interface AdditionalChargeEntry {
+  label: string;
+  amount: string;
+}
 
 const calculateRenewalTo = (fromDate: string, tenancyPeriod: string): string | null => {
   if (!fromDate || !tenancyPeriod) return null;
@@ -97,6 +103,7 @@ export default function StartRenewalModal({
   const queryClient = useQueryClient();
   const saveDoc = useSaveDoc();
   const [supportingFiles, setSupportingFiles] = useState<File[]>([]);
+  const [additionalCharges, setAdditionalCharges] = useState<AdditionalChargeEntry[]>([]);
 
   const isNewMode = mode === "new";
 
@@ -139,6 +146,7 @@ export default function StartRenewalModal({
         remarks: "",
       });
       setSupportingFiles([]);
+      setAdditionalCharges([]);
     }
   }, [open, isNewMode, currentRent, form, renewalFrom, renewalTo, tenancyPeriod]);
 
@@ -183,6 +191,13 @@ export default function StartRenewalModal({
           ? (await Promise.all(supportingFiles.map(uploadFile)))[0]
           : undefined;
 
+      const particulars = additionalCharges
+        .filter((entry) => entry.label.trim() !== "" || entry.amount.trim() !== "")
+        .map((entry) => ({
+          label: entry.label.trim(),
+          amount: Number(entry.amount || 0),
+        }));
+
       const renewalDoc = {
         doctype: "JH Property Rental Renewal",
         property: propertyId,
@@ -198,12 +213,14 @@ export default function StartRenewalModal({
         remarks: data.remarks || "",
         supporting_documents: supportingDocUrl,
         workflow_state: "Draft",
+        table_xqmr: particulars,
       };
 
       await saveDoc.mutateAsync(renewalDoc);
       onOpenChange(false);
       form.reset();
       setSupportingFiles([]);
+      setAdditionalCharges([]);
       toast.success("Renewal created successfully!");
       await queryClient.invalidateQueries({ queryKey: ["RenewalList"], exact: false });
       await queryClient.invalidateQueries({ queryKey: ["PropertyList"], exact: false });
@@ -273,25 +290,32 @@ export default function StartRenewalModal({
               />
             </div>
 
-             <div className="flex flex-col gap-1">
-              <Label className="text-sm text-gray-600">Additional Charges</Label>
-              <Controller
-                name="additional_charges"
-                control={form.control}
-                render={({ field }) => (
-                  <Input {...field} type="text" inputMode="decimal" placeholder="0" />
-                )}
-              />
-              {form.formState.errors.additional_charges && (
-                <p className="text-red-500 text-xs">
-                  {form.formState.errors.additional_charges.message}
-                </p>
-              )}
-            </div>
+            {/* Payment Schedule */}
+                <div className="flex flex-col gap-1">
+                  <Label className="text-sm text-gray-600">Payment Schedule</Label>
+                  <Controller
+                    name="payment_schedule"
+                    control={form.control}
+                    render={({ field }) => (
+                      <Select value={field.value || ""} onValueChange={field.onChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select schedule" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Monthly">Monthly</SelectItem>
+                          <SelectItem value="Bi-Monthly">Bi-Monthly</SelectItem>
+                          <SelectItem value="Quarterly">Quarterly</SelectItem>
+                          <SelectItem value="Half Yearly">Half Yearly</SelectItem>
+                          <SelectItem value="Yearly">Yearly</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+              </div>
           </div>
 
           {/* Renewal From / Renewal To */}
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <div className="flex flex-col gap-1">
               <Label className="text-sm text-gray-600">
                 Renewal From <span className="text-red-500">*</span>
@@ -332,28 +356,7 @@ export default function StartRenewalModal({
                 </p>
               )}
             </div>
-              {/* Payment Schedule */}
-                <div className="flex flex-col gap-1">
-                  <Label className="text-sm text-gray-600">Payment Schedule</Label>
-                  <Controller
-                    name="payment_schedule"
-                    control={form.control}
-                    render={({ field }) => (
-                      <Select value={field.value || ""} onValueChange={field.onChange}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select schedule" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Monthly">Monthly</SelectItem>
-                          <SelectItem value="Bi-Monthly">Bi-Monthly</SelectItem>
-                          <SelectItem value="Quarterly">Quarterly</SelectItem>
-                          <SelectItem value="Half Yearly">Half Yearly</SelectItem>
-                          <SelectItem value="Yearly">Yearly</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    )}
-                  />
-              </div>
+              
             <div className="flex flex-col gap-1">
               <Label className="text-sm text-gray-600">New Security Deposit</Label>
               <Controller
@@ -371,12 +374,67 @@ export default function StartRenewalModal({
             </div>
           </div>
 
+          {/* Additional Charges */}
+          <div className="flex flex-col gap-1">
+            <Label className="text-sm text-gray-600">Additional Charges</Label>
+            <div className="flex flex-col gap-2">
+              {additionalCharges.map((entry, index) => (
+                <div key={index} className="flex gap-2 items-end bg-muted p-3 rounded-lg">
+                  <div className="flex-1 flex flex-col gap-1">
+                    <Label className="text-xs">Label</Label>
+                    <Input
+                      type="text"
+                      value={entry.label}
+                      placeholder="e.g. Maintenance Fee"
+                      onChange={(e) => {
+                        const next = [...additionalCharges];
+                        next[index] = { ...next[index], label: e.target.value };
+                        setAdditionalCharges(next);
+                      }}
+                    />
+                  </div>
+                  <div className="flex-1 flex flex-col gap-1">
+                    <Label className="text-xs">Amount</Label>
+                    <Input
+                      type="text"
+                      inputMode="decimal"
+                      value={entry.amount}
+                      placeholder="0.00"
+                      onChange={(e) => {
+                        const next = [...additionalCharges];
+                        next[index] = { ...next[index], amount: e.target.value };
+                        setAdditionalCharges(next);
+                      }}
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 p-0"
+                    onClick={() => setAdditionalCharges(additionalCharges.filter((_, i) => i !== index))}
+                  >
+                    <XIcon className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full border-2 border-dashed h-10 text-sm"
+                onClick={() => setAdditionalCharges([...additionalCharges, { label: "", amount: "" }])}
+              >
+                + Add Additional Charge
+              </Button>
+            </div>
+          </div>
+
           {/* Remarks */}
           <div className="flex flex-col gap-1">
             <Label className="text-sm text-gray-600">Remarks</Label>
             <textarea
               {...form.register("remarks")}
-              className="border rounded-md p-2 h-20 resize-vertical text-sm"
+              className="border rounded-md p-2 h-30 resize-vertical text-sm"
               placeholder="Any additional notes..."
             />
           </div>
