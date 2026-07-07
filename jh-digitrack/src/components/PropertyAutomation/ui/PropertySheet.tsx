@@ -127,7 +127,10 @@ const propertySchema = z.object({
   other_property_type: z.string().nullable().optional(),
   business_used: z.string().nullable().optional(),
   division_used: z.string().nullable().optional(),
+  co_code: numericOnlyField,
+  area_sqftmtr: numericOnlyField,
   booked_under: numericOnlyField,
+  
   profit_center: numericOnlyField,
   number_of_units: numericOnlyField,
   number_of_premises: numericOnlyField,
@@ -137,10 +140,7 @@ const propertySchema = z.object({
   location: z.string().nullable().optional(),
   emirate: z.string().nullable().optional(),
   country: z.string().default("UAE").optional(),
-  makani_number: z.string().nullable().optional().refine(
-    val => !val || /^\d{10}$/.test(val),
-    "Makani number must be exactly 10 digits"
-  ),
+  makani_number: z.string().nullable().optional(),
   po_box_number: z.string().nullable().optional(),
   po_box_renewal_date: z.string().nullable().optional(),
  
@@ -197,6 +197,8 @@ type PropertyFormValues = z.infer<typeof propertySchema> & {
   other_property_type: "",
   business_used: "",
   division_used: "",
+  co_code:0,
+  area_sqftmtr:0,
   booked_under: undefined,
   profit_center: undefined,
   number_of_units: undefined,
@@ -252,6 +254,7 @@ export default function PropertySheet({
   const [landlineErrors, setLandlineErrors] = useState<Record<number, string>>({});
   const lastAutoFilledDivisionRef = useRef<string | null>(null);
   const prevBusinessRef = useRef<string | null | undefined>(undefined);
+  const prevCountryRef = useRef<string | null | undefined>(undefined);
   const [openApproverIndex, setOpenApproverIndex] = useState<number | null>(null);
   const [approverSearchQuery, setApproverSearchQuery] = useState("");
   const [approverDropdownPos, setApproverDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null);
@@ -281,17 +284,21 @@ const renewalsData = renewalsListData?.renewals ?? [];
   const { data: propertyTypeOptions = [] } = usePropertyTypes();
  
   const doc = propertyData?.doc as PropertyMaster | undefined;
- 
-  const hasExistingRenewals = renewalsData.length > 0;
-  // const latestRenewal = hasExistingRenewals
-  //   ? (renewalsData as RentalRenewal[]).slice().sort(
-  //       (a, b) => new Date(b.modified).getTime() - new Date(a.modified).getTime()
-  //     )[0]
-  //   : null;
-  // const isRenewalInProgress =
-  //   !!latestRenewal &&
-  //   latestRenewal.workflow_state !== "Completed";
- 
+
+  const activeRenewal = useMemo(() => {
+    if (!renewalsData.length) return null;
+    return (renewalsData as RentalRenewal[])
+      .slice()
+      .sort((a, b) => new Date(b.modified).getTime() - new Date(a.modified).getTime())[0] ?? null;
+  }, [renewalsData]);
+
+  // Block edits while a renewal is mid-approval; Draft/Completed renewals (and new properties) stay editable.
+  const isRenewalInProgress =
+    !isCreate &&
+    !!activeRenewal &&
+    activeRenewal.workflow_state !== "Draft" &&
+    activeRenewal.workflow_state !== "Completed";
+
   const { data: businessData } = useDocs({
     doctype: "JH Business Master",
     limit: 0,
@@ -317,6 +324,7 @@ const renewalsData = renewalsListData?.renewals ?? [];
  
   const businessWatch = useWatch({ control, name: "business_used" });
   const typeOfPropertyWatch = useWatch({ control, name: "type_of_property" });
+  const countryWatch = useWatch({ control, name: "country" });
   const { data: divisionData } = useDivisionsByBusiness(businessWatch);
 
   const divisionWatch = useWatch({
@@ -352,6 +360,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
     if (!nextOpen) {
       lastAutoFilledDivisionRef.current = null;
       prevBusinessRef.current = undefined;
+      prevCountryRef.current = undefined;
       resetSheetState();
     }
 
@@ -404,6 +413,18 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
       prevBusinessRef.current = businessWatch;
     }
   }, [businessWatch, open, isView, setValue]);
+
+  useEffect(() => {
+    if (!open || isView) return;
+    if (prevCountryRef.current === undefined) {
+      prevCountryRef.current = countryWatch;
+      return;
+    }
+    if (prevCountryRef.current !== countryWatch) {
+      setValue("emirate", "");
+      prevCountryRef.current = countryWatch;
+    }
+  }, [countryWatch, open, isView, setValue]);
 
   // useEffect(() => {
   //   if (!open || !divisionWatch) return;
@@ -1343,15 +1364,6 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
     );
   };
 
-  
- 
-  const activeRenewal = useMemo(() => {
-    if (!renewalsData.length) return null;
-    return (renewalsData as RentalRenewal[])
-      .slice()
-      .sort((a, b) => new Date(b.modified).getTime() - new Date(a.modified).getTime())[0] ?? null;
-  }, [renewalsData]);
-
   const renewalStatusBadge = useMemo(() => {
     if (!activeRenewal || isCreate) return null;
     const state = activeRenewal.workflow_state;
@@ -1385,15 +1397,64 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
     );
   }, [activeRenewal, isCreate]);
 
-  const emirateOptions = [
-    "Abu Dhabi",
-    "Dubai",
-    "Sharjah",
-    "Ajman",
-    "Umm Al Quwain",
-    "Ras Al Khaimah",
-    "Fujairah",
-  ];
+  const countryOptions = ["Saudi Arabia", "Bahrain", "Oman", "UAE"];
+
+  const emirateOptionsByCountry: Record<string, string[]> = {
+    "UAE": [
+      "Abu Dhabi",
+      "Dubai",
+      "Sharjah",
+      "Ajman",
+      "Umm Al Quwain",
+      "Ras Al Khaimah",
+      "Fujairah",
+    ],
+    "Saudi Arabia": [
+      "Riyadh",
+      "Makkah",
+      "Madinah",
+      "Eastern Province",
+      "Asir",
+      "Tabuk",
+      "Qassim",
+      "Hail",
+      "Northern Borders",
+      "Jazan",
+      "Najran",
+      "Al Bahah",
+      "Al Jouf",
+    ],
+    "Bahrain": [
+      "Capital",
+      "Muharraq",
+      "Northern",
+      "Southern",
+    ],
+    "Oman": [
+      "Muscat",
+      "Dhofar",
+      "Musandam",
+      "Al Buraimi",
+      "Ad Dakhiliyah",
+      "Al Batinah North",
+      "Al Batinah South",
+      "Ash Sharqiyah North",
+      "Ash Sharqiyah South",
+      "Adh Dhahirah",
+      "Al Wusta",
+    ],
+  };
+
+  const emirateLabelByCountry: Record<string, string> = {
+    "UAE": "Emirate",
+    "Saudi Arabia": "Region",
+    "Bahrain": "Governorate",
+    "Oman": "Governorate",
+  };
+
+  const emirateOptions = emirateOptionsByCountry[countryWatch ?? ""] ?? [];
+  const emirateFieldLabel = emirateLabelByCountry[countryWatch ?? ""] ?? "Emirate/Region";
+  const viewEmirateFieldLabel = emirateLabelByCountry[doc?.country ?? ""] ?? "Emirate/Region";
  
   return (
     <Sheet open={open} onOpenChange={handleSheetOpenChange}>
@@ -1525,6 +1586,8 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                 )}
               </div>
 
+              {renderField("Co Code", "co_code", doc?.co_code)}
+              {renderField("Area (Sqft/Mtr)", "area_sqftmtr", doc?.area_sqftmtr)}
               {renderField("Booked Under", "booked_under", doc?.booked_under)}
               {renderField("Profit Center", "profit_center", doc?.profit_center)}
               {renderField("Number of Units", "number_of_units", doc?.number_of_units)}
@@ -1540,10 +1603,32 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {renderField("Location", "location", doc?.location)}
               <div className="flex flex-col gap-1">
-                {!isView && <Label className="text-sm text-gray-600">Emirate</Label>}
+                {!isView && <Label className="text-sm text-gray-600">Country</Label>}
                 {isView ? (
                   <div className="flex items-center gap-2 py-1 text-sm">
-                    <span className="font-medium text-gray-600">Emirate:</span>
+                    <span className="font-medium text-gray-600">Country:</span>
+                    <span>{doc?.country || "-"}</span>
+                  </div>
+                ) : (
+                  <Controller
+                    name="country"
+                    control={control}
+                    render={({ field }) => (
+                      <select {...field} value={field.value ?? ""} className="border rounded px-2 py-2 text-sm">
+                        <option value="">Select Country</option>
+                        {countryOptions.map((opt) => (
+                          <option key={opt} value={opt}>{opt}</option>
+                        ))}
+                      </select>
+                    )}
+                  />
+                )}
+              </div>
+              <div className="flex flex-col gap-1">
+                {!isView && <Label className="text-sm text-gray-600">{emirateFieldLabel}</Label>}
+                {isView ? (
+                  <div className="flex items-center gap-2 py-1 text-sm">
+                    <span className="font-medium text-gray-600">{viewEmirateFieldLabel}:</span>
                     <span>{doc?.emirate || "-"}</span>
                   </div>
                 ) : (
@@ -1551,8 +1636,13 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                     name="emirate"
                     control={control}
                     render={({ field }) => (
-                      <select {...field} value={field.value ?? ""} className="border rounded px-2 py-2 text-sm">
-                        <option value="">Select Emirate</option>
+                      <select
+                        {...field}
+                        value={field.value ?? ""}
+                        disabled={!countryWatch}
+                        className="border rounded px-2 py-2 text-sm disabled:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        <option value="">Select {emirateFieldLabel}</option>
                         {emirateOptions.map((opt) => (
                           <option key={opt} value={opt}>{opt}</option>
                         ))}
@@ -1561,8 +1651,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                   />
                 )}
               </div>
-              {renderField("Country", "country", doc?.country)}
-              {renderField("Makani Number", "makani_number", doc?.makani_number, "text", (val) => val.replace(/\s/g, ""))}
+              {renderField("Makani Number", "makani_number", doc?.makani_number, "text")}
               {renderField("PO Box", "po_box_number", doc?.po_box_number)}
               {renderField("PO Box Renewal", "po_box_renewal_date", formatDate(doc?.po_box_renewal_date), "date")}
             </div>
@@ -1575,11 +1664,11 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
               {renderField("Real Estate", "real_estate", doc?.real_estate)}
                {isView ? (
                 <div className="flex items-center gap-2 py-1 text-sm">
-                  <span className="font-medium text-gray-600">Lease start date:</span>
+                  <span className="font-medium text-gray-600">Initial Contract Date:</span>
                   <span>{formatDate(doc?.lease_start_date)}</span>
                 </div>
               ) : (
-                renderField("Lease start date", "lease_start_date", doc?.lease_start_date, "date")
+                renderField("Initial Contract Date", "lease_start_date", doc?.lease_start_date, "date")
               )}
 
                {renderTenancyPeriodField("Tenancy Period", "tenancy_period", doc?.tenancy_period)}
@@ -1741,7 +1830,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                 <Button
                   type="submit"
                   form={formId}
-                  disabled={isSubmitting || hasExistingRenewals}
+                  disabled={isSubmitting || isRenewalInProgress}
                   className="w-full bg-[#972e26] hover:bg-[#972e26]/90"
                 >
                   {isSubmitting ? "Saving..." : isEdit ? "Update Property" : "Create Property"}
