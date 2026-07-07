@@ -28,6 +28,14 @@ function Renewals() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   const { data: roleBasedAccess } = useUserAccess();
+  const isMD = roleBasedAccess?.is_md;
+  const isLicensingTeam = !!roleBasedAccess?.is_licensing;
+  const isJHPropertyDepartment = !!roleBasedAccess?.has_property_dept_role;
+  const isCfo = roleBasedAccess?.is_cfo;
+  const isApprover1 = roleBasedAccess?.is_approver_1;
+  const isApprover2 = roleBasedAccess?.is_approver_2;
+  const isApprover3 = roleBasedAccess?.is_approver_3;
+  const isGLTeam = roleBasedAccess?.has_gl_team_role;
 
   const attentionFilter = searchParams.get("attention_filter") || undefined;
   const searchParamKey = searchParams.toString();
@@ -67,7 +75,9 @@ function Renewals() {
 
   const listParams = useMemo(
     () => ({
-      workflow_states: selectedWorkflowStage.length
+      workflow_states: isMD
+        ? JSON.stringify(["Pending MD"])
+        : selectedWorkflowStage.length
         ? JSON.stringify(selectedWorkflowStage)
         : undefined,
       divisions: selectedDivision.length ? JSON.stringify(selectedDivision) : undefined,
@@ -79,6 +89,7 @@ function Renewals() {
       page: currentPage,
     }),
     [
+      isMD,
       selectedWorkflowStage,
       selectedDivision,
       selectedRenewalDateRange,
@@ -130,7 +141,9 @@ function Renewals() {
 
     let rows = pendingRenewals;
 
-    if (selectedWorkflowStage.length) {
+    if (isMD) {
+      rows = rows.filter((r) => r.workflow_state === "Pending MD");
+    } else if (selectedWorkflowStage.length) {
       rows = rows.filter((r) => selectedWorkflowStage.includes(r.workflow_state ?? ""));
     }
 
@@ -175,6 +188,7 @@ function Renewals() {
     pendingMyAction,
     pageResult,
     pendingRenewals,
+    isMD,
     selectedWorkflowStage,
     selectedDivision,
     selectedRenewalDateRange,
@@ -215,14 +229,6 @@ function Renewals() {
     )}-${d.getFullYear()}`;
   };
 
-  const isLicensingTeam = !!roleBasedAccess?.is_licensing;
-  const isJHPropertyDepartment = !!roleBasedAccess?.has_property_dept_role;
-  const isCfo = roleBasedAccess?.is_cfo;
-  const isMD = roleBasedAccess?.is_md;
-  const isApprover1 = roleBasedAccess?.is_approver_1;
-  const isApprover2 = roleBasedAccess?.is_approver_2;
-  const isApprover3 = roleBasedAccess?.is_approver_3;
-  const isGLTeam = roleBasedAccess?.has_gl_team_role;
 
   return (
     <div className="w-full space-y-4">
