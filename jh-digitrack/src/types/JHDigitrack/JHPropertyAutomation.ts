@@ -88,6 +88,12 @@ export interface MiroNumberDetail {
   miro_number?: string;
 }
 
+export interface PropertyParticular {
+  name?: string;
+  label?: string;
+  amount?: number;
+}
+
 export interface RentalRenewal {
   name: string;
   property: string;
@@ -110,6 +116,9 @@ export interface RentalRenewal {
   // PO / MIRO
   po_number?: string;
   table_gfwd?: MiroNumberDetail[];
+
+  // Additional Charges / Particulars
+  table_xqmr?: PropertyParticular[];
 
   // Fetched Property Information
   division?: string;
