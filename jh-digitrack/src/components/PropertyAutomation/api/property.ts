@@ -7,7 +7,7 @@ export type RenewalProgressPayload = {
   cheque_details?: ChequeDetailPayload[];
 
   po_number?: string;
-  miro_number?: string;
+  miro_numbers?: string[];
   renewed_contract_document?: string;
 };
 
