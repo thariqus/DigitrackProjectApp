@@ -332,6 +332,7 @@ function Renewals() {
         propertyId={selectedRenewal}
         mode={mode}
         formatDate={formatDate}
+        handleDownload={handleDownload}
         workflowColorHighlight={() => "text-black"}
         typeOptions={[]}
         isLicensingTeam={isLicensingTeam}
