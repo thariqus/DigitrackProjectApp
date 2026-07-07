@@ -994,7 +994,7 @@ const renderDelegationBadge = () => {
                 "number"
               )}
  
-              <div className={`${isView ? "flex items-start flex-nowrap py-1 gap-2" : "flex flex-col gap-1 py-1"}`}>
+              <div className={`${isView ? "flex items-center flex-nowrap py-1 gap-2" : "flex flex-col gap-1 py-1"}`}>
                 <Label className="text-gray-600">Remarks:</Label>
                 {isView ? (
                   <div className="flex-wrap h-auto">{renewalDoc?.remarks}</div>
