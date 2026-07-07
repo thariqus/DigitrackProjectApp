@@ -303,7 +303,6 @@ export default function StartRenewalModal({
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="Monthly">Monthly</SelectItem>
-                          <SelectItem value="Bi-Monthly">Bi-Monthly</SelectItem>
                           <SelectItem value="Quarterly">Quarterly</SelectItem>
                           <SelectItem value="Half Yearly">Half Yearly</SelectItem>
                           <SelectItem value="Yearly">Yearly</SelectItem>
@@ -421,7 +420,7 @@ export default function StartRenewalModal({
               <Button
                 type="button"
                 variant="outline"
-                className="w-full border-2 border-dashed h-10 text-sm"
+                className="w-full text-gray-400 border-2 border-dashed h-10 text-sm"
                 onClick={() => setAdditionalCharges([...additionalCharges, { label: "", amount: "" }])}
               >
                 + Add Additional Charge
