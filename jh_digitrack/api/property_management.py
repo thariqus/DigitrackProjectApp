@@ -1622,8 +1622,9 @@ def _validate_stage_fields(renewal):
             frappe.throw(_("Renewed Contract Document is required."))
 
     elif state == "Pending MIRO":
-        if not renewal.miro_number:
-            frappe.throw(_("MIRO Number is required."))
+        miro_rows = renewal.get("table_gfwd") or []
+        if not miro_rows or not any((row.miro_number or "").strip() for row in miro_rows):
+            frappe.throw(_("At least one MIRO Number is required."))
 
 
 @frappe.whitelist(methods=["POST"])
@@ -1631,7 +1632,7 @@ def save_renewal_progress(
     renewal_id: str,
     cheque_details=None,
     po_number: str = None,
-    miro_number: str = None,
+    miro_numbers=None,    
     renewed_contract_document: str = None,
 ):
     if not renewal_id:
@@ -1679,7 +1680,24 @@ def save_renewal_progress(
             renewal.renewed_contract_document = renewed_contract_document or ""
 
     if current_state == "Pending MIRO":
-        renewal.miro_number = miro_number or ""
+        import json as _json
+        rows = miro_numbers
+        if isinstance(rows, str):
+            rows = _json.loads(rows)
+        rows = rows or []
+ 
+        values = [(row.get("miro_number") if isinstance(row, dict) else row) for row in rows]
+        values = [(value or "").strip() for value in values]
+        values = [value for value in values if value]
+ 
+        if not values:
+            frappe.throw(_("At least one MIRO Number is required."))
+        if any(not value.isdigit() for value in values):
+            frappe.throw(_("MIRO number must contain numbers only."))
+ 
+        renewal.set("table_gfwd", [])
+        for value in values:
+            renewal.append("table_gfwd", {"miro_number": value})
 
     _validate_stage_fields(renewal)
     renewal.save(ignore_permissions=True)
@@ -1689,7 +1707,7 @@ def save_renewal_progress(
         "workflow_state":           renewal.workflow_state,
         "modified":                 renewal.modified,
         "po_number":                renewal.po_number,
-        "miro_number":              renewal.miro_number,
+        "miro_numbers":             [row.miro_number for row in renewal.get("table_gfwd", [])],
         "renewed_contract_document": renewal.renewed_contract_document,
     }
 

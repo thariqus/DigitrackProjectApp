@@ -19,6 +19,8 @@
   "new_security_deposit",
   "remarks",
   "supporting_documents",
+  "pariculars_section",
+  "table_xqmr",
   "cheque_details_section",
   "cheque_details",
   "percent_calculation_section",
@@ -287,13 +289,23 @@
    "fieldname": "table_gfwd",
    "fieldtype": "Table",
    "options": "JH Property MIRO Number"
+  },
+  {
+   "fieldname": "pariculars_section",
+   "fieldtype": "Section Break",
+   "label": "Pariculars"
+  },
+  {
+   "fieldname": "table_xqmr",
+   "fieldtype": "Table",
+   "options": "JH Property Particulars"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-07-06 19:19:56.643844",
+ "modified": "2026-07-07 16:34:11.521216",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Property Rental Renewal",

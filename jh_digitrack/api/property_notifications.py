@@ -210,10 +210,10 @@ def _resolve_step_assignee(renewal):
     state = renewal.workflow_state
     settings = frappe.get_single("JH Digitrack Settings")
 
-    if state in ("Pending Approver 1", "Pending Approver 2", "Pending Approver 3"):
+    if state.startswith("Pending Approver "):
         approvers = _get_property_approvers_list(renewal.property)
-        idx = {"Pending Approver 1": 0, "Pending Approver 2": 1, "Pending Approver 3": 2}[state]
-        return approvers[idx] if len(approvers) > idx else None
+        idx = int(state.split("Pending Approver ")[1]) - 1
+        return approvers[idx] if 0 <= idx < len(approvers) else None
 
     settings_map = {
         "Pending Admin HOD": settings.admin_hod_user,
@@ -249,10 +249,10 @@ def _get_escalation_recipient(renewal):
     state = renewal.workflow_state
     settings = frappe.get_single("JH Digitrack Settings")
 
-    if state in ("Pending Approver 1", "Pending Approver 2", "Pending Approver 3"):
+    if state.startswith("Pending Approver "):
         approvers = _get_property_approvers_list(renewal.property)
-        idx = {"Pending Approver 1": 0, "Pending Approver 2": 1, "Pending Approver 3": 2}[state]
-        next_approver = approvers[idx + 1] if len(approvers) > idx + 1 else None
+        idx = int(state.split("Pending Approver ")[1]) - 1
+        next_approver = approvers[idx + 1] if 0 <= idx + 1 < len(approvers) else None
         return next_approver or settings.admin_hod_user
 
     ESCALATION_MAP = {

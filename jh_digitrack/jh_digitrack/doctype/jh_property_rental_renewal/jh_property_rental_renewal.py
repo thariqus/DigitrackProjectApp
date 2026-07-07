@@ -6,16 +6,22 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import flt, getdate, today
 
+from jh_digitrack.api.property_management import ACTIVE_RENEWAL_STATES
+
 
 class JHPropertyRentalRenewal(Document):
 
 	def validate(self):
 		for field in [
-			'remarks', 'po_number', 'miro_number', 'division', 'location',
+			'remarks', 'po_number', 'division', 'location',
 			'emirate', 'landlord', 'property_type', 'tenancy_period',
 		]:
 			if self.get(field):
 				self.set(field, frappe.utils.sanitize_html(self.get(field), always_sanitize=True))
+				
+		for row in self.get("table_gfwd", []):
+			if row.miro_number:
+				row.miro_number = frappe.utils.sanitize_html(row.miro_number, always_sanitize=True)
 		self.validate_dates()
 		self.validate_currency_fields()
 		self.validate_active_property_renewal()
@@ -39,7 +45,8 @@ class JHPropertyRentalRenewal(Document):
 		self.rent_change_percent = ((proposed_rent - current_rent) / current_rent) * 100
 
 	def validate_dates(self):
-		if self.renewal_from and getdate(self.renewal_from) < getdate(today()):
+		is_draft = self.is_new() or (self.workflow_state or "Draft") == "Draft"
+		if is_draft and self.renewal_from and getdate(self.renewal_from) < getdate(today()):
 			frappe.throw(_("Renewal From date cannot be in the past."))
 
 		if self.renewal_from and self.renewal_to:
@@ -58,22 +65,11 @@ class JHPropertyRentalRenewal(Document):
 		if not self.property:
 			return
 
-		active_states = [
-			"Draft",
-			"Pending Approver 1",
-			"Pending Approver 2",
-			"Pending CFO",
-			"Pending MD",
-			"Pending Cheque Details",
-			"Pending Property PO",
-			"Pending MIRO",
-		]
-
 		existing_renewal = frappe.db.exists(
 			"JH Property Rental Renewal",
 			{
 				"property": self.property,
-				"workflow_state": ["in", active_states],
+				"workflow_state": ["in", ACTIVE_RENEWAL_STATES],
 				"name": ["!=", self.name],
 			},
 		)
