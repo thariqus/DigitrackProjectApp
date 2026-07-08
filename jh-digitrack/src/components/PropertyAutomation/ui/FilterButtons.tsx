@@ -45,59 +45,61 @@ export default function FilterButtons({
     extraActive;
 
   return (
-    <div className="flex gap-2">
-      {filters.map((filter) => (
-        <Popover key={filter.label}>
-          <PopoverTrigger asChild>
-            <Button variant="outline" className="h-10 border-dashed">
-              <Plus className="mr-2 h-4 w-4" />
-              {filter.label}
-              {filter.selected.length > 0 && (
-                <Badge className="ml-2">{filter.selected.length}</Badge>
-              )}
-            </Button>
-          </PopoverTrigger>
+    <div className="flex flex-1 min-w-0 items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        {filters.map((filter) => (
+          <Popover key={filter.label}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="h-10 border-dashed">
+                <Plus className="mr-2 h-4 w-4" />
+                {filter.label}
+                {filter.selected.length > 0 && (
+                  <Badge className="ml-2">{filter.selected.length}</Badge>
+                )}
+              </Button>
+            </PopoverTrigger>
 
-          <PopoverContent className="w-[200px] p-0">
-            <Command>
-              <CommandInput placeholder={`Search ${filter.label}`} />
-              <CommandList>
-                <CommandGroup>
-                  {filter.options.map((option) => (
-                    <CommandItem
-                      key={option}
-                      onSelect={() => filter.onChange(option)}
-                    >
-                      <Check
-                        className={cn(
-                          "mr-2 h-4 w-4",
-                          filter.selected.includes(option)
-                            ? "opacity-100"
-                            : "opacity-0"
-                        )}
-                      />
-                      {option}
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </CommandList>
-            </Command>
-          </PopoverContent>
-        </Popover>
-      ))}
+            <PopoverContent className="w-[200px] p-0">
+              <Command>
+                <CommandInput placeholder={`Search ${filter.label}`} />
+                <CommandList>
+                  <CommandGroup>
+                    {filter.options.map((option) => (
+                      <CommandItem
+                        key={option}
+                        onSelect={() => filter.onChange(option)}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            filter.selected.includes(option)
+                              ? "opacity-100"
+                              : "opacity-0"
+                          )}
+                        />
+                        {option}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
+        ))}
+
+        {hasActiveFilters && (
+          <Button variant="ghost" className="text-primary" onClick={onClear}>
+            Clear filter <X />
+          </Button>
+        )}
+      </div>
 
       {quickFilter && (
         <Button
-          variant={quickFilter.active ? "default" : "outline"}
+          className={quickFilter.active ? "bg-primary" : "bg-rose-100 text-gray-500"}
           onClick={quickFilter.onToggle}
         >
           {quickFilter.label}
-        </Button>
-      )}
-
-      {hasActiveFilters && (
-        <Button variant="ghost" className="text-primary" onClick={onClear}>
-          Clear filter <X />
         </Button>
       )}
     </div>

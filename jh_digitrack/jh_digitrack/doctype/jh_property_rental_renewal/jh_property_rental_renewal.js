@@ -6,7 +6,7 @@ frappe.ui.form.on("JH Property Rental Renewal", {
 		calculate_percent(frm);
 		await add_workflow_action_buttons(frm);
 		jh_attach_sanitizer(frm, [
-			'po_number', 'miro_number', 'division', 'location', 'emirate',
+			'po_number', 'division', 'location', 'emirate',
 			'landlord', 'property_type', 'tenancy_period', 'remarks'
 		]);
 	},
@@ -22,9 +22,10 @@ frappe.ui.form.on("JH Property Rental Renewal", {
 	},
 	validate(frm) {
 		let today = frappe.datetime.get_today();
+		let is_draft = frm.is_new() || (frm.doc.workflow_state || "Draft") === "Draft";
 
 		// Check Renewal From >= Today
-		if (frm.doc.renewal_from && frm.doc.renewal_from < today) {
+		if (is_draft && frm.doc.renewal_from && frm.doc.renewal_from < today) {
 			frappe.throw("Renewal From date cannot be in the past.");
 		}
 
@@ -124,4 +125,3 @@ function calculate_percent(frm) {
 	frm.set_value("rent_change_percent", rent_change_percent);
 	frm.set_value("data_gisi", rent_change_percent);
 }
-

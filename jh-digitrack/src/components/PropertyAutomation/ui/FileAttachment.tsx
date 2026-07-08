@@ -13,7 +13,7 @@ const ALLOWED_MIME_TYPES = [
   "image/png",
   "image/jpeg",
 ];
-const MAX_FILE_SIZE_BYTES = 2 * 1024 * 1024;
+const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
 
 function validateFile(file: File): string | null {
   const ext = "." + (file.name.split(".").pop()?.toLowerCase() ?? "");
@@ -22,7 +22,7 @@ function validateFile(file: File): string | null {
     return `"${file.name}" — unsupported file type. Allowed: PDF, DOC, DOCX, XLSX, PNG, JPG.`;
   }
   if (file.size > MAX_FILE_SIZE_BYTES) {
-    return `"${file.name}" exceeds the 2 MB size limit.`;
+    return `"${file.name}" exceeds the 5 MB size limit.`;
   }
   return null;
 }
@@ -168,7 +168,7 @@ export default function FileAttachment({files, setFiles}: FileAttachmentProps) {
             <span className="text-[#972e26] font-medium">browse</span>
           </div>
           <div className="text-sm text-gray-500 mt-1">
-            PDF, DOC, DOCX, XLSX, PNG, JPG — max 2 MB size
+            PDF, DOC, DOCX, XLSX, PNG, JPG — max 5 MB size
           </div>
         </label>
       </div>

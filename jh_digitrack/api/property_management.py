@@ -487,17 +487,18 @@ def get_property_list(
         or ctx["has_property_dept"] or ctx["is_licensing"]
     )
 
-    # Row-level filter applied for approvers (division-scoped access)
-    _division_scope = None
+    # Row-level filter applied for approvers/ad-hoc delegates (name-scoped access)
     _property_scope = None
 
     if not has_full_access:
         approver_props = _get_approver_properties(user)
-        has_adhoc_delegation = bool(_get_visible_adhoc_properties(user))
-        if not approver_props and not has_adhoc_delegation:
+        adhoc_props = set(_get_visible_adhoc_properties(user))
+        if not approver_props and not adhoc_props:
             frappe.throw(_("Not permitted"), frappe.PermissionError)
 
-        if approver_props and not has_adhoc_delegation:
+        scoped_names = set(adhoc_props)
+
+        if approver_props:
             raw_divisions = frappe.db.get_all(
                 "JH Property Master",
                 filters={"name": ["in", approver_props]},
@@ -506,9 +507,17 @@ def get_property_list(
             )
             division_list = list(set(d for d in raw_divisions if d))
             if division_list:
-                _division_scope = division_list
+                division_props = frappe.db.get_all(
+                    "JH Property Master",
+                    filters={"division_used": ["in", division_list]},
+                    pluck="name",
+                    ignore_permissions=True,
+                )
+                scoped_names.update(division_props)
             else:
-                _property_scope = approver_props
+                scoped_names.update(approver_props)
+
+        _property_scope = scoped_names
 
     import json as _json
     filters = {}
@@ -577,21 +586,11 @@ def get_property_list(
     elif expiring_soon:
         filters["renewal_date"] = ["between", [today_str, add_days(today_str, 90)]]
 
-    # Apply approver row-level scope (division or exact property list).
-    # If the user also filtered by a specific division, intersect with scope.
-    if _division_scope:
-        user_div = filters.get("division_used")
-        if user_div is None:
-            filters["division_used"] = ["in", _division_scope]
-        elif isinstance(user_div, str):
-            filters["division_used"] = user_div if user_div in _division_scope else ["in", []]
-        elif isinstance(user_div, list) and user_div[0] == "in":
-            intersected = [d for d in user_div[1] if d in _division_scope]
-            filters["division_used"] = ["in", intersected]
-        else:
-            filters["division_used"] = ["in", _division_scope]
-    elif _property_scope:
-        filters["name"] = ["in", _property_scope]
+    # Apply row-level scope (union of ad-hoc delegated properties, approver's own
+    # properties, and all properties in the approver's divisions). ANDs with any
+    # user-supplied division/emirate/etc. filters above.
+    if _property_scope is not None:
+        filters["name"] = ["in", list(_property_scope)]
 
     limit = cint(limit)
     page = cint(page)
@@ -903,7 +902,10 @@ def get_property_doc(name: str):
     )
 
     if not has_full_access:
-        has_property_access = bool(_get_approver_properties(user) or _get_visible_adhoc_properties(user))
+        has_property_access = (
+            name in _get_approver_properties(user)
+            or name in _get_visible_adhoc_properties(user)
+        )
         if not has_property_access:
             frappe.throw(_("Not permitted"), frappe.PermissionError)
 
@@ -1483,60 +1485,27 @@ def get_my_pending_renewals():
             if actor == fc_user:
                 _add_rows({"workflow_state": "Pending FC"})
 
-            # Approver properties: any order level
-            approver_props_1 = frappe.get_all(
+            # Approver properties: position is the actor's index in each
+            # property's approver list sorted by `order` (same logic as
+            # _get_effective_roles), not the raw `order` value itself — child
+            # rows aren't renumbered when an earlier approver is removed, so
+            # `order` can have gaps and no longer match the actor's real turn.
+            approver_properties = frappe.get_all(
                 "JH Property Approver",
-                filters={"approver": actor, "order": 1, "parenttype": "JH Property Master"},
+                filters={"approver": actor, "parenttype": "JH Property Master"},
                 pluck="parent",
+                distinct=True,
                 ignore_permissions=True,
             )
-            if approver_props_1:
-                _add_rows({"workflow_state": "Pending Approver 1", "property": ["in", approver_props_1]})
+            properties_by_position = {}
+            for property_name in approver_properties:
+                approvers = _get_property_approvers_list(property_name)
+                if actor in approvers:
+                    position = approvers.index(actor) + 1
+                    properties_by_position.setdefault(position, []).append(property_name)
 
-            approver_props_2 = frappe.get_all(
-                "JH Property Approver",
-                filters={"approver": actor, "order": 2, "parenttype": "JH Property Master"},
-                pluck="parent",
-                ignore_permissions=True,
-            )
-            if approver_props_2:
-                _add_rows({"workflow_state": "Pending Approver 2", "property": ["in", approver_props_2]})
-
-            approver_props_3 = frappe.get_all(
-                "JH Property Approver",
-                filters={"approver": actor, "order": 3, "parenttype": "JH Property Master"},
-                pluck="parent",
-                ignore_permissions=True,
-            )
-            if approver_props_3:
-                _add_rows({"workflow_state": "Pending Approver 3", "property": ["in", approver_props_3]})
-
-            approver_props_4 = frappe.get_all(
-                "JH Property Approver",
-                filters={"approver": actor, "order": 4, "parenttype": "JH Property Master"},
-                pluck="parent",
-                ignore_permissions=True,
-            )
-            if approver_props_4:
-                _add_rows({"workflow_state": "Pending Approver 4", "property": ["in", approver_props_4]})
-
-            approver_props_5 = frappe.get_all(
-                "JH Property Approver",
-                filters={"approver": actor, "order": 5, "parenttype": "JH Property Master"},
-                pluck="parent",
-                ignore_permissions=True,
-            )
-            if approver_props_5:
-                _add_rows({"workflow_state": "Pending Approver 5", "property": ["in", approver_props_5]})
-
-            approver_props_6 = frappe.get_all(
-                "JH Property Approver",
-                filters={"approver": actor, "order": 6, "parenttype": "JH Property Master"},
-                pluck="parent",
-                ignore_permissions=True,
-            )
-            if approver_props_6:
-                _add_rows({"workflow_state": "Pending Approver 6", "property": ["in", approver_props_6]})
+            for position, props in properties_by_position.items():
+                _add_rows({"workflow_state": f"Pending Approver {position}", "property": ["in", props]})
 
         _fetch_for_actor(user, user_roles)
 
@@ -1620,8 +1589,9 @@ def _validate_stage_fields(renewal):
             frappe.throw(_("Renewed Contract Document is required."))
 
     elif state == "Pending MIRO":
-        if not renewal.miro_number:
-            frappe.throw(_("MIRO Number is required."))
+        miro_rows = renewal.get("table_gfwd") or []
+        if not miro_rows or not any((row.miro_number or "").strip() for row in miro_rows):
+            frappe.throw(_("At least one MIRO Number is required."))
 
 
 @frappe.whitelist(methods=["POST"])
@@ -1629,7 +1599,7 @@ def save_renewal_progress(
     renewal_id: str,
     cheque_details=None,
     po_number: str = None,
-    miro_number: str = None,
+    miro_numbers=None,    
     renewed_contract_document: str = None,
 ):
     if not renewal_id:
@@ -1677,7 +1647,24 @@ def save_renewal_progress(
             renewal.renewed_contract_document = renewed_contract_document or ""
 
     if current_state == "Pending MIRO":
-        renewal.miro_number = miro_number or ""
+        import json as _json
+        rows = miro_numbers
+        if isinstance(rows, str):
+            rows = _json.loads(rows)
+        rows = rows or []
+ 
+        values = [(row.get("miro_number") if isinstance(row, dict) else row) for row in rows]
+        values = [(value or "").strip() for value in values]
+        values = [value for value in values if value]
+ 
+        if not values:
+            frappe.throw(_("At least one MIRO Number is required."))
+        if any(not value.isdigit() for value in values):
+            frappe.throw(_("MIRO number must contain numbers only."))
+ 
+        renewal.set("table_gfwd", [])
+        for value in values:
+            renewal.append("table_gfwd", {"miro_number": value})
 
     _validate_stage_fields(renewal)
     renewal.save(ignore_permissions=True)
@@ -1687,7 +1674,7 @@ def save_renewal_progress(
         "workflow_state":           renewal.workflow_state,
         "modified":                 renewal.modified,
         "po_number":                renewal.po_number,
-        "miro_number":              renewal.miro_number,
+        "miro_numbers":             [row.miro_number for row in renewal.get("table_gfwd", [])],
         "renewed_contract_document": renewal.renewed_contract_document,
     }
 

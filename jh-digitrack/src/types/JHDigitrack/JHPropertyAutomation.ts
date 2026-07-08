@@ -9,6 +9,9 @@ export interface PropertyMaster {
   name: string;
   property_name: string;
 
+  co_code:number
+  area_sqftmtr: number
+
   type_of_property: "Shop" | "Office" | "Warehouse" | "Other";
   other_property_type?: string;
   business_used?: string;
@@ -80,6 +83,17 @@ export interface ChequeDetail {
   payee?: string;
 }
 
+export interface MiroNumberDetail {
+  name?: string;
+  miro_number?: string;
+}
+
+export interface PropertyParticular {
+  name?: string;
+  label?: string;
+  amount?: number;
+}
+
 export interface RentalRenewal {
   name: string;
   property: string;
@@ -101,7 +115,10 @@ export interface RentalRenewal {
 
   // PO / MIRO
   po_number?: string;
-  miro_number?: string;
+  table_gfwd?: MiroNumberDetail[];
+
+  // Additional Charges / Particulars
+  table_xqmr?: PropertyParticular[];
 
   // Fetched Property Information
   division?: string;
@@ -126,6 +143,9 @@ export interface RentalRenewal {
     | "Pending Approver 1"
     | "Pending Approver 2"
     | "Pending Approver 3"
+    | "Pending Approver 4"
+    | "Pending Approver 5"
+    | "Pending Approver 6"
     | "Pending Cheque Details"
     | "Pending Admin HOD"
     | "Pending FC"
