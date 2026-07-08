@@ -294,10 +294,6 @@ fixtures = [
         "doctype": "Print Format",
         "filters": [["name", "in", ["Property Template"]]],
     },
-     {
-        "doctype": "File",
-        "filters": [["file_name", "in", ["jhLogo.png"]]],
-    }
 ]
 
 website_route_rules = [

@@ -1485,60 +1485,27 @@ def get_my_pending_renewals():
             if actor == fc_user:
                 _add_rows({"workflow_state": "Pending FC"})
 
-            # Approver properties: any order level
-            approver_props_1 = frappe.get_all(
+            # Approver properties: position is the actor's index in each
+            # property's approver list sorted by `order` (same logic as
+            # _get_effective_roles), not the raw `order` value itself — child
+            # rows aren't renumbered when an earlier approver is removed, so
+            # `order` can have gaps and no longer match the actor's real turn.
+            approver_properties = frappe.get_all(
                 "JH Property Approver",
-                filters={"approver": actor, "order": 1, "parenttype": "JH Property Master"},
+                filters={"approver": actor, "parenttype": "JH Property Master"},
                 pluck="parent",
+                distinct=True,
                 ignore_permissions=True,
             )
-            if approver_props_1:
-                _add_rows({"workflow_state": "Pending Approver 1", "property": ["in", approver_props_1]})
+            properties_by_position = {}
+            for property_name in approver_properties:
+                approvers = _get_property_approvers_list(property_name)
+                if actor in approvers:
+                    position = approvers.index(actor) + 1
+                    properties_by_position.setdefault(position, []).append(property_name)
 
-            approver_props_2 = frappe.get_all(
-                "JH Property Approver",
-                filters={"approver": actor, "order": 2, "parenttype": "JH Property Master"},
-                pluck="parent",
-                ignore_permissions=True,
-            )
-            if approver_props_2:
-                _add_rows({"workflow_state": "Pending Approver 2", "property": ["in", approver_props_2]})
-
-            approver_props_3 = frappe.get_all(
-                "JH Property Approver",
-                filters={"approver": actor, "order": 3, "parenttype": "JH Property Master"},
-                pluck="parent",
-                ignore_permissions=True,
-            )
-            if approver_props_3:
-                _add_rows({"workflow_state": "Pending Approver 3", "property": ["in", approver_props_3]})
-
-            approver_props_4 = frappe.get_all(
-                "JH Property Approver",
-                filters={"approver": actor, "order": 4, "parenttype": "JH Property Master"},
-                pluck="parent",
-                ignore_permissions=True,
-            )
-            if approver_props_4:
-                _add_rows({"workflow_state": "Pending Approver 4", "property": ["in", approver_props_4]})
-
-            approver_props_5 = frappe.get_all(
-                "JH Property Approver",
-                filters={"approver": actor, "order": 5, "parenttype": "JH Property Master"},
-                pluck="parent",
-                ignore_permissions=True,
-            )
-            if approver_props_5:
-                _add_rows({"workflow_state": "Pending Approver 5", "property": ["in", approver_props_5]})
-
-            approver_props_6 = frappe.get_all(
-                "JH Property Approver",
-                filters={"approver": actor, "order": 6, "parenttype": "JH Property Master"},
-                pluck="parent",
-                ignore_permissions=True,
-            )
-            if approver_props_6:
-                _add_rows({"workflow_state": "Pending Approver 6", "property": ["in", approver_props_6]})
+            for position, props in properties_by_position.items():
+                _add_rows({"workflow_state": f"Pending Approver {position}", "property": ["in", props]})
 
         _fetch_for_actor(user, user_roles)
 
