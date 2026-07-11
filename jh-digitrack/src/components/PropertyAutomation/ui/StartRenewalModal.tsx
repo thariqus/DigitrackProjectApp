@@ -133,6 +133,13 @@ export default function StartRenewalModal({
     return (((proposed - current) / current) * 100).toFixed(2);
   })();
 
+  const rentChangeAmount = (() => {
+    const current = Number(currentRent || 0);
+    const proposed = Number(proposedRentWatch || 0);
+    if (proposed <= 0) return "0";
+    return Math.round(proposed - current).toString();
+  })();
+
   useEffect(() => {
     if (open) {
       const resolvedRenewalTo = renewalTo || (renewalFrom && tenancyPeriod ? calculateRenewalTo(renewalFrom, tenancyPeriod) : "") || "";
@@ -202,8 +209,9 @@ export default function StartRenewalModal({
         doctype: "JH Property Rental Renewal",
         property: propertyId,
         property_name: propertyName,
-        current_rent: isNewMode ? null : (currentRent ?? 0),
+        current_rent: currentRent ?? 0,
         proposed_rent: proposedRentNum,
+        rent_change: Math.round(proposedRentNum - current),
         rent_change_percent: rentPercent,
         renewal_from: data.renewal_from,
         renewal_to: data.renewal_to,
@@ -251,8 +259,8 @@ export default function StartRenewalModal({
             <Input value={propertyName} readOnly className="bg-muted" />
           </div>
 
-          {/* Current Rent / Proposed Rent / Rent Change % */}
-          <div className="grid grid-cols-4 gap-3">
+          {/* Current Rent / Proposed Rent / Rent Change Amount / Rent Change % */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
             <div className="flex flex-col gap-1">
               <Label className="text-sm text-gray-600">Current Rent</Label>
               <Input
@@ -279,6 +287,15 @@ export default function StartRenewalModal({
                   {form.formState.errors.proposed_rent.message}
                 </p>
               )}
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <Label className="text-sm text-gray-600">Rent Increase Amount</Label>
+              <Input
+                value={rentChangeAmount}
+                readOnly
+                className="bg-muted"
+              />
             </div>
 
             <div className="flex flex-col gap-1">
