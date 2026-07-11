@@ -13,6 +13,8 @@ import {
   useUserAccess,
 } from "../hooks/useProperty";
 
+const DOWNLOADABLE_STATES = ["Pending Property PO", "Pending MIRO", "Completed"];
+
 function Renewals() {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -114,6 +116,7 @@ function Renewals() {
     "Division",
     "Current Rent",
     "Proposed Rent",
+    "Rent Increase Amount",
     "Rent Change%",
     "Renewal Period",
     "Workflow Stage",
@@ -200,6 +203,13 @@ function Renewals() {
     if (pendingMyAction) return Math.ceil(pendingRenewals.length / renewalsPerPage);
     return Math.ceil((pageResult?.total ?? 0) / renewalsPerPage);
   }, [pendingMyAction, pendingRenewals.length, pageResult?.total, renewalsPerPage]);
+
+  const showActionsColumn = useMemo(
+    () =>
+      isLicensingTeam ||
+      renewals.some((r) => DOWNLOADABLE_STATES.includes(r.workflow_state ?? "")),
+    [isLicensingTeam, renewals]
+  );
 
   const handleRowClick = (name: string) => {
     setSelectedRenewal(name);
@@ -295,7 +305,7 @@ function Renewals() {
           <PropertyTableHeader
             tableHeadings={tableHeadings}
             showCheckbox={false}
-            canHaveAccess={true}
+            canHaveAccess={showActionsColumn}
           />
           <TableBody>
             {renewals.map((item, index) => (
@@ -309,7 +319,6 @@ function Renewals() {
                 onDownload={handleDownload}
                 formatDate={formatDate}
                 isLicensingTeam={isLicensingTeam}
-                // showActionsCell={showActions}
               />
             ))}
           </TableBody>
