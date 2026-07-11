@@ -719,7 +719,7 @@ def get_property_dashboard_counts():
 
 
 def _attach_approver_names(records):
-    """Attach approver_1_name, approver_2_name, approver_3_name (full names) to each renewal record."""
+    """Attach approver_1_name, approver_2_name, approver_3_name (full names) and property_name to each renewal record."""
     if not records:
         return records
 
@@ -727,6 +727,18 @@ def _attach_approver_names(records):
     if not property_names:
         return records
 
+    property_display_names = dict(
+        frappe.get_all(
+            "JH Property Master",
+            filters={"name": ["in", property_names]},
+            fields=["name", "property_name"],
+            ignore_permissions=True,
+            as_list=True,
+        )
+    )
+    for record in records:
+        record["property_name"] = property_display_names.get(record.get("property"), record.get("property"))
+        
     approver_rows = frappe.get_all(
         "JH Property Approver",
         filters={"parent": ["in", property_names], "parenttype": "JH Property Master"},
