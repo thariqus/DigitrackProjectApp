@@ -97,9 +97,11 @@ export interface PropertyParticular {
 export interface RentalRenewal {
   name: string;
   property: string;
+  property_name?: string;
   current_rent: number;
   proposed_rent: number;
   additional_charges?: number;
+  rent_change?: number;
   rent_change_percent?: number;
   renewal_from: string;
   renewal_to: string;
