@@ -118,10 +118,12 @@ function calculate_percent(frm) {
 	if (!current_rent || !frm.doc.proposed_rent) {
 		frm.set_value("rent_change_percent", 0);
 		frm.set_value("data_gisi", 0);
+		frm.set_value("rent_change", 0);
 		return;
 	}
 
 	const rent_change_percent = ((proposed_rent - current_rent) / current_rent) * 100;
 	frm.set_value("rent_change_percent", rent_change_percent);
 	frm.set_value("data_gisi", rent_change_percent);
+	frm.set_value("rent_change", Math.round(proposed_rent - current_rent));
 }

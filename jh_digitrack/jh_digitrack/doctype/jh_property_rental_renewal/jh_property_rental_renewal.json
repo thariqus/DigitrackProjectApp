@@ -25,6 +25,7 @@
   "cheque_details",
   "percent_calculation_section",
   "data_gisi",
+  "rent_change",
   "po_details_section",
   "po_number",
   "renewed_contract_document",
@@ -299,13 +300,19 @@
    "fieldname": "table_xqmr",
    "fieldtype": "Table",
    "options": "JH Property Particulars"
+  },
+  {
+   "fieldname": "rent_change",
+   "fieldtype": "Int",
+   "label": "Rent Change Amount",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-07-07 16:34:11.521216",
+ "modified": "2026-07-11 11:28:19.859348",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Property Rental Renewal",

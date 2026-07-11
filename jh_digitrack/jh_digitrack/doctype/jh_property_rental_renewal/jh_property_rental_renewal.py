@@ -40,9 +40,11 @@ class JHPropertyRentalRenewal(Document):
 
 		if not current_rent or self.proposed_rent in (None, ""):
 			self.rent_change_percent = 0
+			self.rent_change = 0
 			return
 
 		self.rent_change_percent = ((proposed_rent - current_rent) / current_rent) * 100
+		self.rent_change = round(proposed_rent - current_rent)
 
 	def validate_dates(self):
 		is_draft = self.is_new() or (self.workflow_state or "Draft") == "Draft"
