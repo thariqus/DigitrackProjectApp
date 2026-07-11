@@ -1,6 +1,7 @@
 import { TableRow, TableCell } from "@/components/ui/table";
 import { Pencil, Download } from "lucide-react";
 // import { useOutletContext } from "react-router";
+import { RentalRenewal } from "@/types/JHDigitrack/JHPropertyAutomation";
 import StatusBadge from "./StatusBadge";
 
 const decodeHtml = (str: string) => {
@@ -10,8 +11,22 @@ const decodeHtml = (str: string) => {
 };
 
 
-function RenewalTableRow({ renewals , index, onClick,isLoading,onEdit,isLicensingTeam,onDownload  }: any) {
+const DOWNLOADABLE_STATES = ["Pending Property PO", "Pending MIRO", "Completed"];
 
+type RenewalTableRowProps = {
+  renewals: RentalRenewal;
+  index: number;
+  onClick: () => void;
+  isLoading?: boolean;
+  onEdit: (name: string) => void;
+  isLicensingTeam?: boolean;
+  onDownload: (name: string) => void;
+};
+
+function RenewalTableRow({ renewals, index, onClick, isLoading, onEdit, isLicensingTeam, onDownload }: RenewalTableRowProps) {
+  const canEdit = !!isLicensingTeam;
+  const canDownload = DOWNLOADABLE_STATES.includes(renewals?.workflow_state);
+  const showActionsCell = canEdit || canDownload;
 
    const renewalPeriod = (() => {
   if (!renewals.renewal_to) return "-";
@@ -40,7 +55,7 @@ function RenewalTableRow({ renewals , index, onClick,isLoading,onEdit,isLicensin
   if(isLoading){
     return (
       <TableRow>
-        {Array.from({ length: 8 }).map((_, i) => (
+        {Array.from({ length: showActionsCell ? 12 : 11 }).map((_, i) => (
           <TableCell key={i}>
             <div className="h-4 w-full bg-gray-200 rounded animate-pulse"></div>
           </TableCell>
@@ -53,10 +68,11 @@ function RenewalTableRow({ renewals , index, onClick,isLoading,onEdit,isLicensin
     <TableRow className="cursor-pointer" onClick={onClick}>
       <TableCell className="w-[50px]">{index + 1}</TableCell>
       <TableCell>{renewals.name}</TableCell>
-      <TableCell>{renewals.property}</TableCell>
+      <TableCell>{renewals.property_name || renewals.property}</TableCell>
       <TableCell>{renewals.division ? decodeHtml(renewals.division) : renewals.division}</TableCell>
       <TableCell>{renewals.current_rent} </TableCell>
       <TableCell>{renewals.proposed_rent}</TableCell>
+      <TableCell>{renewals.rent_change != null ? renewals.rent_change : Math.round(Number(renewals.proposed_rent || 0) - Number(renewals.current_rent || 0))}</TableCell>
       <TableCell>{renewals.rent_change_percent != null ? `${Number(renewals.rent_change_percent).toFixed(2)}%` : "-"}</TableCell>
       <TableCell>{renewalPeriod}</TableCell>
       <TableCell className="text-center">
@@ -90,35 +106,37 @@ function RenewalTableRow({ renewals , index, onClick,isLoading,onEdit,isLicensin
         })() : "-"}
       </TableCell>
 
-        <TableCell>
-          <div className="flex justify-center items-center gap-1">
-            {isLicensingTeam && (
-              <div
-                className="cursor-pointer"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onEdit(renewals.name);
-                }}
-                title="Edit Renewal"
-              >
-                <Pencil size={14} />
-              </div>
-            )}
+        {showActionsCell && (
+          <TableCell>
+            <div className="flex justify-center items-center gap-1">
+              {canEdit && (
+                <div
+                  className="cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEdit(renewals.name);
+                  }}
+                  title="Edit Renewal"
+                >
+                  <Pencil size={14} />
+                </div>
+              )}
 
-            {(renewals.workflow_state === "Pending Property PO" || renewals.workflow_state === "Pending MIRO" || renewals.workflow_state === "Completed")  && (
-              <div
-                className="cursor-pointer text-primary hover:text-green-800"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDownload(renewals.name);
-                }}
-                title="Download PDF"
-              >
-                <Download size={17} />
-              </div>
-            )}
-          </div>
-        </TableCell>
+              {canDownload && (
+                <div
+                  className="cursor-pointer text-primary hover:text-green-800"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDownload(renewals.name);
+                  }}
+                  title="Download PDF"
+                >
+                  <Download size={17} />
+                </div>
+              )}
+            </div>
+          </TableCell>
+        )}
     </TableRow>
   );
 }
