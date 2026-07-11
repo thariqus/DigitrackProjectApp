@@ -58,7 +58,7 @@ export default function RenewalTimeline({
     const { data: user } = useJhUser(log.user);
 
     return (
-      <div className="relative pl-6 pb-3">
+      <div className="relative pl-6 pb-10">
         {/* Dot */}
         <div className="absolute left-0 top-2 w-2 h-2 bg-red-400 rounded-full"></div>
 
