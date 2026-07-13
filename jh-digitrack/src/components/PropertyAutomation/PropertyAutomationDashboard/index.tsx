@@ -1,15 +1,17 @@
 import { useNavigate } from "react-router";
 import RenewalPipeline from "./RenewalPipeline"
 import { UrgentAlerts, AlertItem } from "./UrgentAlerts";
-import { usePropertyDashboardCounts } from "../hooks/useProperty";
+import { usePropertyDashboardCounts, useUserAccess } from "../hooks/useProperty";
 
 
 function PropertyAutomationDashboard() {
 
   const navigate = useNavigate();
   const { data: counts, isLoading } = usePropertyDashboardCounts();
+  const { data: userAccess } = useUserAccess();
 
   const attention = counts?.attention;
+  const canSeePropertiesTab = Boolean(userAccess) && !userAccess?.is_fc && !userAccess?.is_cfo && !userAccess?.has_gl_team_role;
 
   const alerts: AlertItem[] = [
     attention?.overdue_no_renewal
@@ -89,12 +91,15 @@ function PropertyAutomationDashboard() {
 
   return (
     <div>
-        <div className="flex flex-col gap-0 pb-6">
-            <h2 className="text-lg font-bold text-primary">Property Management</h2>
-            <p className="text-gray-400 text-sm">Your portfolio at a glance</p>
-        </div>
+        {canSeePropertiesTab && (
+          <div className="flex flex-col gap-0 pb-6">
+              <h2 className="text-lg font-bold text-primary">Property Management</h2>
+              <p className="text-gray-400 text-sm">Your portfolio at a glance</p>
+          </div>
+        )}
         <div className="grid grid-cols-1 gap-2">
           {/* row1 */}
+          {canSeePropertiesTab && (
              <div className="grid grid-cols-6 gap-2 items-center">
                 <div
                   onClick={() => handleNavigateToProperties()}
@@ -151,6 +156,7 @@ function PropertyAutomationDashboard() {
                     </div>
                 </div>
             </div>
+          )}
 
              {/* row2 */}
             <RenewalPipeline/>
