@@ -283,7 +283,7 @@ useEffect(() => {
     const validCheques = chequeDetails.filter((cheque) =>
       cheque.cheque_type &&
       cheque.cheque_date &&
-      cheque.payee &&
+      // cheque.payee &&
       Number(cheque.cheque_amount || 0) > 0
     );
 
@@ -426,7 +426,7 @@ useEffect(() => {
         .filter((cheque) =>
           cheque.cheque_type &&
           cheque.cheque_date &&
-          cheque.payee &&
+          // cheque.payee &&
           Number(cheque.cheque_amount || 0) > 0
         )
         .map((cheque) => ({
@@ -1045,12 +1045,12 @@ const renderDelegationBadge = () => {
                     {particulars.map((entry, index) => (
                       <div
                         key={index}
-                        className="grid grid-cols-1 md:grid-cols-2 gap-2 bg-muted py-1 px-2 rounded-lg"
+                        className="grid grid-cols-1 md:grid-cols-4 gap-2 bg-muted py-1 px-2 rounded-lg"
                       >
                         <div className="flex items-center gap-2 py-1 text-sm">
                           <span>{entry.label}</span>
                         </div>
-                        {renderReadonlyField("Amount", entry.amount)}
+                        {renderReadonlyField("", entry.amount)}
                       </div>
                     ))}
                   </div>
@@ -1566,7 +1566,7 @@ const renderDelegationBadge = () => {
                     Mark Complete
                   </Button>
                 </div>
-            ) : !isView ? (
+            ) : !isView &&
               <>
                 <Button variant="outline" className="w-full" type="button" onClick={() => onOpenChange(false)}>
                   Close
@@ -1580,13 +1580,7 @@ const renderDelegationBadge = () => {
                   Update Renewal
                 </Button>
               </>
-            ) : (
-              <>
-                <Button variant="outline" className="w-full" type="button" onClick={() => onOpenChange(false)}>
-                  Cancel
-                </Button>
-              </>
-            )}
+             }
           </div>
         </SheetFooter>
       </SheetContent>

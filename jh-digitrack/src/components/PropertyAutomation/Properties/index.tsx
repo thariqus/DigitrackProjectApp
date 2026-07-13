@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Download, Plus, X } from "lucide-react";
+import { ExternalLink,Download, Plus, X } from "lucide-react";
 import { Table, TableBody, TableFooter } from "@/components/ui/table";
 import { PropertyTableHeader } from "../ui/PropertyTableHeader";
 import PropertyTableRow from "../ui/PropertyTableRow";
@@ -139,6 +139,10 @@ function Properties() {
     setSelectedProperty(null);
     setMode("create");
     setIsSheetOpen(true);
+  };
+
+    const handleOpenPropertyDivision = () => {
+    window.location.href = "/app/jh-property-division";
   };
 
   const handleEditClick = (name: string) => {
@@ -328,10 +332,20 @@ function Properties() {
         />
 
         {canCreateOrEditProperty && (
-          <Button size="sm" onClick={handleCreate}>
-            <Plus className="mr-2 h-4 w-4" />
-            Create Property
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => window.open("/app/jh-property-business", "_blank")}
+            >
+              <ExternalLink className="mr-2 h-4 w-4" />
+              Manage Business/Division
+            </Button>
+            <Button size="sm" onClick={handleCreate}>
+              <Plus className="mr-2 h-4 w-4" />
+              Create Property
+            </Button>
+          </div>
         )}
       </div>
 
