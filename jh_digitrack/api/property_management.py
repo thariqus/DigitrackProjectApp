@@ -1377,6 +1377,38 @@ def notify_md(renewal):
         frappe.logger().error(f"Failed to send MD notification: {str(e)}")
 
 
+def _notify_step_assignee(renewal, action, actor):
+    """Email whoever is responsible for the renewal's new workflow_state right away."""
+    from jh_digitrack.api.helpers.property_email import generate_property_notification_email
+    from jh_digitrack.api.property_notifications import _resolve_step_assignee
+
+    assignee = _resolve_step_assignee(renewal)
+    if not assignee:
+        return
+
+    recipients = assignee if isinstance(assignee, list) else [assignee]
+    actor_name = frappe.db.get_value("User", actor, "full_name") or actor
+    business_used = (
+        frappe.db.get_value("JH Property Master", renewal.property, "business_used")
+        if renewal.property else None
+    )
+    subject = f"DigiTrack: Action Required - {renewal.name} ({renewal.workflow_state})"
+    message = generate_property_notification_email(
+        type="workflow_assigned",
+        context={"renewal": renewal, "actor": actor_name, "action": action, "business_used": business_used},
+    )
+
+    try:
+        frappe.sendmail(
+            expose_recipients="header",
+            recipients=recipients,
+            subject=subject,
+            message=message,
+        )
+    except Exception:
+        frappe.logger().error(frappe.get_traceback())
+
+
 def update_property_master_renewal_date(renewal):
     if renewal.workflow_state != "Completed" or not renewal.property or not renewal.renewal_to:
         return
@@ -1829,6 +1861,7 @@ def apply_workflow_action(
     renewal.last_tat_notification = None
     renewal.save(ignore_permissions=True)
     update_property_master_renewal_date(renewal)
+    _notify_step_assignee(renewal, action, frappe.session.user)
 
     from jh_digitrack.api.helpers.delegation import expire_adhoc_delegations_for_document
     expire_adhoc_delegations_for_document(renewal)

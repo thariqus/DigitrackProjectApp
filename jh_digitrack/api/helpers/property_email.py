@@ -43,7 +43,7 @@ def generate_property_notification_email(type, context):
     Generate an HTML email for property automation notifications.
 
     Parameters:
-    - type (str): "pre_renewal" | "tat_reminder" | "tat_deadline" | "tat_escalation"
+    - type (str): "pre_renewal" | "tat_reminder" | "tat_deadline" | "tat_escalation" | "workflow_assigned"
     - context (dict): Data dict — keys vary by type (see callers in property_notifications.py)
 
     Returns:
@@ -89,6 +89,16 @@ def generate_property_notification_email(type, context):
             ("Current Step", renewal.workflow_state),
             ("TAT Allowed", f"{config.tat_days} day(s)"),
         ]
+
+    elif type == "workflow_assigned":
+        # Bare one-line body — no greeting/table/footer wrapper, just the summary line.
+        renewal = context["renewal"]
+        business_used = context.get("business_used") or ""
+        property_type = renewal.property_type or ""
+        label = " ".join(part for part in (business_used, property_type) if part)
+        renewal_from = frappe.utils.getdate(renewal.renewal_from).strftime("%d.%m.%Y") if renewal.renewal_from else ""
+        renewal_to = frappe.utils.getdate(renewal.renewal_to).strftime("%d.%m.%Y") if renewal.renewal_to else ""
+        return f"{label} rent renewal {renewal_from}-{renewal_to}".strip()
 
     elif type == "tat_escalation":
         renewal = context["renewal"]
