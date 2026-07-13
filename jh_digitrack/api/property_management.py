@@ -1431,6 +1431,18 @@ def get_divisions_by_business(business: str = None):
 
 
 @frappe.whitelist(methods=["GET"])
+def get_property_divisions():
+    """Return business/division selection rows used by Property Master."""
+    rows = frappe.get_all(
+        "JH Property Division",
+        fields=["business_used", "division_used"],
+        order_by="business_used asc, division_used asc",
+        ignore_permissions=True,
+    )
+    return {"property_divisions": rows}
+
+
+@frappe.whitelist(methods=["GET"])
 def get_my_pending_renewals():
     """Return renewals where the logged-in user is the next actor, delegation-aware."""
     user = frappe.session.user
