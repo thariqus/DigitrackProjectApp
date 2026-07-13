@@ -253,8 +253,6 @@ export default function PropertySheet({
   const [securityDepositCheques, setSecurityDepositCheques] = useState<ChequeDetail[]>([]);
   const [landlineErrors, setLandlineErrors] = useState<Record<number, string>>({});
   const lastAutoFilledDivisionRef = useRef<string | null>(null);
-  const prevBusinessRef = useRef<string | null | undefined>(undefined);
-  const prevCountryRef = useRef<string | null | undefined>(undefined);
   const [openApproverIndex, setOpenApproverIndex] = useState<number | null>(null);
   const [approverSearchQuery, setApproverSearchQuery] = useState("");
   const [approverDropdownPos, setApproverDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null);
@@ -359,8 +357,6 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
   const handleSheetOpenChange = (nextOpen: boolean) => {
     if (!nextOpen) {
       lastAutoFilledDivisionRef.current = null;
-      prevBusinessRef.current = undefined;
-      prevCountryRef.current = undefined;
       resetSheetState();
     }
 
@@ -402,30 +398,6 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
     }
   }, [open, isCreate, doc, resetSheetState]);
  
-  useEffect(() => {
-    if (!open || isView) return;
-    if (prevBusinessRef.current === undefined) {
-      prevBusinessRef.current = businessWatch;
-      return;
-    }
-    if (prevBusinessRef.current !== businessWatch) {
-      setValue("division_used", "");
-      prevBusinessRef.current = businessWatch;
-    }
-  }, [businessWatch, open, isView, setValue]);
-
-  useEffect(() => {
-    if (!open || isView) return;
-    if (prevCountryRef.current === undefined) {
-      prevCountryRef.current = countryWatch;
-      return;
-    }
-    if (prevCountryRef.current !== countryWatch) {
-      setValue("emirate", "");
-      prevCountryRef.current = countryWatch;
-    }
-  }, [countryWatch, open, isView, setValue]);
-
   // useEffect(() => {
   //   if (!open || !divisionWatch) return;
   //   const div = selectedDivision ?? selectedDivisionData?.[0];
@@ -1540,7 +1512,13 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                     name="business_used"
                     control={control}
                     render={({ field }) => (
-                      <Select value={field.value ?? ""} onValueChange={field.onChange}>
+                      <Select
+                        value={field.value ?? ""}
+                        onValueChange={(value) => {
+                          field.onChange(value);
+                          setValue("division_used", "");
+                        }}
+                      >
                         <SelectTrigger className="text-sm h-9">
                           <SelectValue placeholder="Select Business" />
                         </SelectTrigger>
@@ -1614,7 +1592,15 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                     name="country"
                     control={control}
                     render={({ field }) => (
-                      <select {...field} value={field.value ?? ""} className="border rounded px-2 py-2 text-sm">
+                      <select
+                        {...field}
+                        value={field.value ?? ""}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          setValue("emirate", "");
+                        }}
+                        className="border rounded px-2 py-2 text-sm"
+                      >
                         <option value="">Select Country</option>
                         {countryOptions.map((opt) => (
                           <option key={opt} value={opt}>{opt}</option>

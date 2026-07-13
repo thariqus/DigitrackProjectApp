@@ -76,6 +76,12 @@ export default function ApprovalCommentModal({
                   placeholder={`Enter your ${action} comment and justification...`}
                   rows={6}
                   {...field}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSubmit(onSubmit)();
+                    }
+                  }}
                   className={errors.comment ? "border-destructive" : "h-50"}
                 />
               )}

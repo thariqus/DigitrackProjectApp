@@ -74,7 +74,6 @@ export default function RenewalSheet({
   onOpenChange,
   propertyId,
   mode,
-  handleDownload,
   isJHPropertyDepartment,
   isGLTeam,
 }: RenewalSheetProps) {
@@ -176,6 +175,10 @@ export default function RenewalSheet({
   });
  
   const proposedRent = useWatch({ control, name: "proposed_rent" }) || 0;
+  const currentRentValue = Number(property?.current_rent ?? renewalDoc?.current_rent ?? 0);
+  const rentChangeAmountState = Math.round(Number(proposedRent || 0) - currentRentValue);
+  const rentChangeAmountDisplay =
+    renewalDoc?.rent_change ?? Math.round(Number(renewalDoc?.proposed_rent ?? 0) - Number(renewalDoc?.current_rent ?? 0));
  
   useEffect(() => {
     if (open) {
@@ -219,21 +222,29 @@ export default function RenewalSheet({
   }, [open, renewalDoc, reset]);
  
 useEffect(() => {
-  const current = Number(property?.current_rent || 0);
+  const current = currentRentValue;
   const proposed = Number(proposedRent || 0);
- 
+
   if (current <= 0) {
     setRentChangePercentState("0");
     return;
   }
- 
+
   const percent = ((proposed - current) / current) * 100;
   setRentChangePercentState(percent.toFixed(2));
-}, [proposedRent, property?.current_rent]);
+}, [currentRentValue, proposedRent]);
  
   const formatDateForAPI = (date?: string) => {
     if (!date) return "";
     return new Date(date).toISOString().split("T")[0];
+  };
+  const formatDate = (date?: string) => {
+    if (!date) return "";
+    const d = new Date(date);
+    return `${String(d.getDate()).padStart(2, "0")}-${String(d.getMonth() + 1).padStart(
+      2,
+      "0"
+    )}-${d.getFullYear()}`;
   };
   const uploadFile = async (file: File) => {
     const formData = new FormData();
@@ -460,7 +471,7 @@ useEffect(() => {
     if (!validateBeforeWorkflow()) return;
  
     try {
-      const { latestDoc } = await saveWorkflowProgress(data);
+      await saveWorkflowProgress(data);
       handleOpenApprovalModal("approve");
     } catch (error: unknown) {
       const message = getErrorMessage(error, "Failed to save renewal progress");
@@ -572,10 +583,10 @@ useEffect(() => {
   const handleApprovalSubmit = (action: string, comment: string) => {
     if (!propertyId) return;
 
-    const wasGLMiroCompletion =
-      (isGLTeam || effectiveIsGLTeam) &&
-      action === "approve" &&
-      renewalDoc?.workflow_state === "Pending MIRO";
+    // const wasGLMiroCompletion =
+    //   (isGLTeam || effectiveIsGLTeam) &&
+    //   action === "approve" &&
+    //   renewalDoc?.workflow_state === "Pending MIRO";
 
     applyAction(
       {
@@ -591,9 +602,9 @@ useEffect(() => {
           await refetchRenewal();
           setIsApprovalModalOpen(false);
           toast.success(`${action.charAt(0).toUpperCase() + action.slice(1)}d successfully`);
-          if (wasGLMiroCompletion && propertyId) {
-            handleDownload(propertyId)
-          }
+          // if (wasGLMiroCompletion && propertyId) {
+          //   handleDownload(propertyId)
+          // }
           if (["approve", "submit"].includes(action)) {
             onOpenChange(false);
           }
@@ -709,6 +720,7 @@ const renderDelegationBadge = () => {
           : latestDoc.renewed_contract_document;
  
       const rentPercent = Number(rentChangePercentState) || 0;
+      const rentChangeAmount = Math.round(Number(data.proposed_rent || 0) - Number(latestDoc.current_rent || 0));
  
       const updatedChequeDetails = chequeDetails.map((cheque, index) => ({
         doctype: "JH Property Cheque Detail",
@@ -738,6 +750,7 @@ const renderDelegationBadge = () => {
         new_security_deposit: Number(data.new_security_deposit || 0),
         remarks: data.remarks || "",
         po_number: data.po_number || "",
+        rent_change: rentChangeAmount,
         rent_change_percent: rentPercent,
         property: latestDoc.property,
         current_rent: latestDoc.current_rent,
@@ -811,7 +824,7 @@ const renderDelegationBadge = () => {
         {isView ? (
           <div className="flex gap-1">
             <Label className="text-sm text-gray-600">{label}:</Label>
-            <span>{value}</span>
+            <span>{type === "date" ? formatDate(value) : value}</span>
           </div>
         ) : (
           <div className="flex flex-col gap-1">
@@ -935,10 +948,19 @@ const renderDelegationBadge = () => {
             <div
               className={`grid items-start gap-4 py-1 ${
                 isView
-                  ? "grid-cols-1 lg:grid-cols-3 items-center"
-                  : "grid-cols-1 md:grid-cols-4 lg:grid-cols-4 items-center"
+                  ? "grid-cols-1 lg:grid-cols-4 items-center"
+                  : "grid-cols-1 md:grid-cols-3 lg:grid-cols-5 items-center"
               }`}
             >
+              <div className={`${isView ? "flex gap-2" : "flex flex-col gap-1"}`}>
+                <Label className="text-gray-600">Current Rent:</Label>
+                {isView ? (
+                  <div>{currentRentValue}</div>
+                ) : (
+                  <Input value={currentRentValue || ""} readOnly className="bg-gray-200" />
+                )}
+              </div>
+
               {renderRenewalField(
                 "Proposed Rent",
                 "proposed_rent",
@@ -946,10 +968,21 @@ const renderDelegationBadge = () => {
                 "number",
                 true
               )}
+
+
+              <div className={`${isView ? "flex gap-2" : "flex flex-col gap-1"}`}>
+                <Label className="text-gray-600">Rent Increase Amount:</Label>
+                {isView ? (
+                  <div>{rentChangeAmountDisplay}</div>
+                ) : (
+                  <Input value={rentChangeAmountState} readOnly className="bg-gray-200" />
+                )}
+              </div>
+
               <div className={`${isView ? "flex gap-2" : "flex flex-col gap-1"}`}>
                 <Label className="text-gray-600">Rent Change %:</Label>
                 {isView ? (
-                  <div>{renewalDoc?.rent_change_percent ?? 0}%</div>
+                  <div>{Number(renewalDoc?.rent_change_percent ?? 0).toFixed(2)}%</div>
                 ) : (
                   <Input value={`${rentChangePercentState}%`} readOnly className="bg-gray-200" />
                 )}
@@ -1014,7 +1047,9 @@ const renderDelegationBadge = () => {
                         key={index}
                         className="grid grid-cols-1 md:grid-cols-2 gap-2 bg-muted py-1 px-2 rounded-lg"
                       >
-                        {renderReadonlyField("Label", entry.label)}
+                        <div className="flex items-center gap-2 py-1 text-sm">
+                          <span>{entry.label}</span>
+                        </div>
                         {renderReadonlyField("Amount", entry.amount)}
                       </div>
                     ))}
