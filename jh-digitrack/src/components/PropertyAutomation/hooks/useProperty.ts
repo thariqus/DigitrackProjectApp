@@ -110,4 +110,9 @@ export const useDivisionsByBusiness = (business?: string | null) =>
     staleTime: 5 * 60 * 1000,
   });
  
- 
+ export const usePropertyDivisions = () =>
+  useQuery({
+    queryKey: ["PropertyDivisions"],
+    queryFn: propertyApi.getPropertyDivisions,
+    staleTime: 5 * 60 * 1000,
+  });
