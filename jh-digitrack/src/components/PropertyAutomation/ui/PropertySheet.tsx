@@ -18,7 +18,7 @@ import { toast } from "sonner";
 import FileAttachment from "./FileAttachment";
 import MultiValueInput from "./MultiValueInput";
 import { useDocs, useSaveDoc, useUpdateDoc } from "@/hooks/doc";
-import { usePropertyDoc, useRenewalList, useUserAccess, useDivisionsByBusiness, usePropertyTypes } from "../hooks/useProperty";
+import { usePropertyDoc, useRenewalList, useUserAccess, usePropertyTypes, usePropertyDivisions } from "../hooks/useProperty";
 import { PropertyMaster, JHPropertyElectricityConnection, JHPropertyLandline, ChequeDetail, RentalRenewal } from "@/types/JHDigitrack/JHPropertyAutomation";
 import { X } from "lucide-react";
 import { queryClient } from "@/utils/query-client";
@@ -40,10 +40,6 @@ type UserOption = {
   name: string;
   full_name?: string;
   email?: string;
-};
- 
-type NamedOption = {
-  name: string;
 };
 
 type TenancyPeriodInputProps = {
@@ -297,10 +293,7 @@ const renewalsData = renewalsListData?.renewals ?? [];
     activeRenewal.workflow_state !== "Draft" &&
     activeRenewal.workflow_state !== "Completed";
 
-  const { data: businessData } = useDocs({
-    doctype: "JH Business Master",
-    limit: 0,
-  });
+   const { data: propertyDivisionsData } = usePropertyDivisions();
  
   const { data: usersData, isLoading: usersLoading } = useDocs<UserOption>({
     doctype: "User",
@@ -323,24 +316,47 @@ const renewalsData = renewalsListData?.renewals ?? [];
   const businessWatch = useWatch({ control, name: "business_used" });
   const typeOfPropertyWatch = useWatch({ control, name: "type_of_property" });
   const countryWatch = useWatch({ control, name: "country" });
-  const { data: divisionData } = useDivisionsByBusiness(businessWatch);
-
-  const divisionWatch = useWatch({
-    control,
-    name: "division_used",
-  });
+   
+  const businessOptions = useMemo(() => {
+    const values = (propertyDivisionsData ?? [])
+      .map((row) => row.business_used)
+      .filter((value): value is string => Boolean(value));
+    return Array.from(new Set(values)).sort((a, b) => a.localeCompare(b));
+  }, [propertyDivisionsData]);
+ 
+  const divisionOptions = useMemo(() => {
+    const values = (propertyDivisionsData ?? [])
+      .filter((row) => !businessWatch || row.business_used === businessWatch)
+      .map((row) => row.division_used)
+      .filter((value): value is string => Boolean(value));
+    return Array.from(new Set(values)).sort((a, b) => a.localeCompare(b));
+  }, [propertyDivisionsData, businessWatch]);
 
   const numberOfPremisesWatch = useWatch({ control, name: "number_of_premises" });
   const premiseNumberWatch = useWatch({ control, name: "premise_number" });
   // const electricityAccountsWatch = useWatch({ control, name: "electricity_accounts" });
   const landlineAccountsWatch = useWatch({ control, name: "landline_accounts" });
   const depositAmountWatch = useWatch({ control, name: "landlord_security_deposit" });
-  const { data: selectedDivisionData } = useDocs({
-    doctype: "JH Division Master",
-    fields: ["name", "division_head", "division_gm"],
-    filters: divisionWatch ? [["name", "=", divisionWatch]] : [],
-    limit: 0,
-  });
+  // const businessOptions = useMemo(() => {
+  //   const values = [
+  //     doc?.business_used,
+  //     ...propertyDivisionData.map((row) => row.business_used),
+  //   ].filter(Boolean) as string[];
+ 
+  //   return Array.from(new Set(values)).sort((a, b) => a.localeCompare(b));
+  // }, [doc?.business_used, propertyDivisionData]);
+ 
+  // const divisionOptions = useMemo(() => {
+  //   const rows = businessWatch
+  //     ? propertyDivisionData.filter((row) => row.business_used === businessWatch)
+  //     : propertyDivisionData;
+  //   const values = [
+  //     doc?.division_used,
+  //     ...rows.map((row) => row.division_used),
+  //   ].filter(Boolean) as string[];
+ 
+  //   return Array.from(new Set(values)).sort((a, b) => a.localeCompare(b));
+  // }, [businessWatch, doc?.division_used, propertyDivisionData]);
  
   // const selectedDivision = selectedDivisionData?.[0];
 
@@ -813,7 +829,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                 {items.map((item) => (
                   <span
                     key={item}
-                    className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-foreground"
+                    className="inline-flex items-center rounded-full bg-rose-100 px-2 py-0.5 text-xs font-medium text-foreground"
                   >
                     {item}
                   </span>
@@ -1169,23 +1185,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
               >
                 <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-2">
                   <div className={`${isView ? "flex items-center gap-1": "flex  flex-col gap-1"}`}>
-                    <Label className="text-xs">Connection Number:</Label>
-                    {isViewMode ? (
-                      <span className="text-sm font-medium">
-                        {conn.connection_number || "-"}
-                      </span>
-                    ) : (
-                      <Input
-                        value={conn.connection_number || ""}
-                        onChange={(e) => {
-                          const newConns = [...connections];
-                          newConns[index].connection_number = e.target.value;
-                          setConnections(newConns);
-                          setValue("electricity_accounts", newConns.length);
-                        }}
-                        className="text-sm"
-                      />
-                    )}
+                    {renderMultiValueField("Premise Number", "premise_number", doc?.premise_number, Number(numberOfPremisesWatch) || undefined)}
                   </div>
 
                   <div className={`${isView ? "flex items-center gap-1": "flex  flex-col gap-1"}`}>
@@ -1523,9 +1523,9 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                           <SelectValue placeholder="Select Business" />
                         </SelectTrigger>
                         <SelectContent className="max-h-60 overflow-y-auto">
-                          {[...(businessData ?? [])].sort((a: NamedOption, b: NamedOption) => a.name.localeCompare(b.name)).map((business: NamedOption) => (
-                            <SelectItem key={business.name} value={business.name}>
-                              {business.name}
+                          {businessOptions.map((business) => (
+                            <SelectItem key={business} value={business}>
+                              {business}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -1552,9 +1552,9 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                           <SelectValue placeholder="Select Division" />
                         </SelectTrigger>
                         <SelectContent className="max-h-60 overflow-y-auto">
-                          {[...(divisionData ?? [])].sort((a, b) => a.name.localeCompare(b.name)).map((div) => (
-                            <SelectItem key={div.name} value={div.name}>
-                              {div.name}
+                          {divisionOptions.map((division) => (
+                            <SelectItem key={division} value={division}>
+                              {division}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -1570,7 +1570,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
               {renderField("Profit Center", "profit_center", doc?.profit_center)}
               {renderField("Number of Units", "number_of_units", doc?.number_of_units)}
               {renderField("Number of Premises", "number_of_premises", doc?.number_of_premises)}
-              {renderMultiValueField("Premise Number", "premise_number", doc?.premise_number, Number(numberOfPremisesWatch) || undefined)}
+              {/* {renderMultiValueField("Premise Number", "premise_number", doc?.premise_number, Number(numberOfPremisesWatch) || undefined)} */}
               {renderField("Staff Allocated", "staff_allocated", doc?.staff_allocated)}
               {renderApproversTable()}
             </div>
