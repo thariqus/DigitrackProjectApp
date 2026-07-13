@@ -5,5 +5,5 @@
 from frappe.tests.utils import FrappeTestCase
 
 
-class TestJHPropertyDivision(FrappeTestCase):
+class TestJHPropertyBusiness(FrappeTestCase):
 	pass

@@ -1432,13 +1432,32 @@ def get_divisions_by_business(business: str = None):
 
 @frappe.whitelist(methods=["GET"])
 def get_property_divisions():
-    """Return business/division selection rows used by Property Master."""
-    rows = frappe.get_all(
-        "JH Property Division",
-        fields=["business_used", "division_used"],
-        order_by="business_used asc, division_used asc",
+    """Return business/division selection rows used by Property Master.
+
+    JH Property Business holds one row per business, with its divisions stored
+    in the JH Property Division child table (a business can have many divisions).
+    """
+    businesses = frappe.get_all(
+        "JH Property Business",
+        fields=["name", "business_used"],
         ignore_permissions=True,
     )
+    if not businesses:
+        return {"property_divisions": []}
+
+    business_names = {b["name"]: b["business_used"] for b in businesses}
+    division_rows = frappe.get_all(
+        "JH Property Division",
+        filters={"parenttype": "JH Property Business", "parent": ["in", list(business_names)]},
+        fields=["parent", "division_used"],
+        ignore_permissions=True,
+    )
+
+    rows = [
+        {"business_used": business_names.get(row["parent"]), "division_used": row["division_used"]}
+        for row in division_rows
+    ]
+    rows.sort(key=lambda r: (r["business_used"] or "", r["division_used"] or ""))
     return {"property_divisions": rows}
 
 
