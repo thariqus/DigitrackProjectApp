@@ -79,9 +79,8 @@
   },
   {
    "fieldname": "division_used",
-   "fieldtype": "Link",
-   "label": "Division Used",
-   "options": "JH Division Master"
+   "fieldtype": "Select",
+   "label": "Division Used"
   },
   {
    "fieldname": "booked_under",
@@ -250,9 +249,8 @@
   },
   {
    "fieldname": "business_used",
-   "fieldtype": "Link",
-   "label": "Business Used",
-   "options": "JH Business Master"
+   "fieldtype": "Select",
+   "label": "Business Used"
   },
   {
    "fieldname": "lease_start_date",
