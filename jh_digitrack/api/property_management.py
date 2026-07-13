@@ -1616,7 +1616,7 @@ def _validate_stage_fields(renewal):
         required = {
             "cheque_type": _("Type of Cheque"),
             "cheque_date": _("Date"),
-            "payee": _("Payee"),
+            # "payee": _("Payee"),
         }
         for i, row in enumerate(renewal.cheque_details, start=1):
             missing = [label for field, label in required.items() if not row.get(field)]
