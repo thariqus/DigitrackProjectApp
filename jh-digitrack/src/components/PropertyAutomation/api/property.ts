@@ -267,4 +267,15 @@ export const propertyApi = {
     const data = await res.json();
     return (data.message as { divisions: { name: string; division_name: string; business: string }[] }).divisions ?? [];
   },
+  getPropertyDivisions: async (): Promise<{ business_used?: string | null; division_used?: string | null }[]> => {
+    const res = await fetch(`${API_BASE}.get_property_divisions`, {
+      credentials: "include",
+    });
+    const data = await res.json();
+    return (
+      data.message as {
+        property_divisions: { business_used?: string | null; division_used?: string | null }[];
+      }
+    ).property_divisions ?? [];
+  },
 };
