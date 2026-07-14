@@ -72,7 +72,7 @@ function RenewalTableRow({ renewals, index, onClick, isLoading, onEdit, isLicens
       <TableCell>{renewals.division ? decodeHtml(renewals.division) : renewals.division}</TableCell>
       <TableCell>{renewals.current_rent} </TableCell>
       <TableCell>{renewals.proposed_rent}</TableCell>
-      <TableCell>{renewals.rent_change != null ? renewals.rent_change : Math.round(Number(renewals.proposed_rent || 0) - Number(renewals.current_rent || 0))}</TableCell>
+      {/* <TableCell>{renewals.rent_change != null ? renewals.rent_change : Math.round(Number(renewals.proposed_rent || 0) - Number(renewals.current_rent || 0))}</TableCell> */}
       <TableCell>{renewals.rent_change_percent != null ? `${Number(renewals.rent_change_percent).toFixed(2)}%` : "-"}</TableCell>
       <TableCell>{renewalPeriod}</TableCell>
       <TableCell className="text-center">
