@@ -318,7 +318,7 @@ function Renewals() {
                 onEdit={handleEditClick}
                 onDownload={handleDownload}
                 formatDate={formatDate}
-                isLicensingTeam={isLicensingTeam}
+                isJHPropertyDepartment={isJHPropertyDepartment}
               />
             ))}
           </TableBody>
