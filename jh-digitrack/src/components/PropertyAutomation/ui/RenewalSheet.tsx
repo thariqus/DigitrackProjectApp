@@ -836,7 +836,7 @@ const renderDelegationBadge = () => {
       <span className="font-medium text-gray-600" >
         {label}:
       </span>
-      <span>{value}</span>
+      <span className="font-medium text-gray-600">{value}</span>
     </div>
   );
  
@@ -850,8 +850,8 @@ const renderDelegationBadge = () => {
     return (
       <div>
         {isView ? (
-          <div className="flex gap-1">
-            <Label className="text-sm text-gray-600">{label}:</Label>
+          <div className="flex gap-1 text-sm ">
+            <Label className="text-gray-600">{label} :</Label>
             <span>{type === "date" ? formatDate(value) : value}</span>
           </div>
         ) : (
@@ -964,7 +964,7 @@ const renderDelegationBadge = () => {
                     {renderReadonlyField("Property Type", property.type_of_property)}
                     {renderReadonlyField("Number of Units", property.number_of_units)}
                     {renderReadonlyField("Tenancy Period", property.tenancy_period)}
-                    {renderReadonlyField("Current Rent", property.current_rent)}
+                    {/* {renderReadonlyField("Current Rent", property.current_rent)} */}
                   </>
                 )}
               </div>
@@ -980,8 +980,8 @@ const renderDelegationBadge = () => {
                   : "grid-cols-1 md:grid-cols-3 lg:grid-cols-5 items-center"
               }`}
             >
-              <div className={`${isView ? "flex gap-2" : "flex flex-col gap-1"}`}>
-                <Label className="text-gray-600">Current Rent:</Label>
+              <div className={`${isView ? "flex gap-2 text-sm" : "flex flex-col gap-1"}`}>
+                <Label className="text-gray-600 ">Current Rent :</Label>
                 {isView ? (
                   <div>{currentRentValue}</div>
                 ) : (
@@ -998,7 +998,7 @@ const renderDelegationBadge = () => {
               )}
 
 
-              <div className={`${isView ? "flex gap-2" : "flex flex-col gap-1"}`}>
+              <div className={`${isView ? "flex gap-2 text-sm" : "flex flex-col gap-1"}`}>
                 <Label className="text-gray-600">Rent Increase Amount:</Label>
                 {isView ? (
                   <div>{rentChangeAmountDisplay}</div>
@@ -1007,7 +1007,7 @@ const renderDelegationBadge = () => {
                 )}
               </div>
 
-              <div className={`${isView ? "flex gap-2" : "flex flex-col gap-1"}`}>
+              <div className={`${isView ? "flex gap-2 text-sm" : "flex flex-col gap-1"}`}>
                 <Label className="text-gray-600">Rent Change %:</Label>
                 {isView ? (
                   <div>{Number(renewalDoc?.rent_change_percent ?? 0).toFixed(2)}%</div>
@@ -1070,17 +1070,16 @@ const renderDelegationBadge = () => {
               {isView ? (
                 particulars.length > 0 ? (
                   <div className="space-y-2 mb-6">
-                    {particulars.map((entry, index) => (
-                      <div
-                        key={index}
-                        className="grid grid-cols-1 md:grid-cols-4 gap-2 bg-muted py-1 px-2 rounded-lg"
-                      >
-                        <div className="flex items-center gap-2 py-1 text-sm">
-                          <span>{entry.label}</span>
-                        </div>
-                        {renderReadonlyField("", entry.amount)}
-                      </div>
+                    <div
+                        className="grid grid-cols-1 md:grid-cols-2 gap-2 bg-muted py-1 px-2 rounded-lg">
+                          {particulars.map((entry, index) => (
+                            <div  key={index} className="flex items-center gap-2 py-1 text-sm">
+                              <span>{entry.label}</span>
+                              {renderReadonlyField("", entry.amount)}
+                            </div>
+                      
                     ))}
+                    </div>
                   </div>
                 ) : (
                   <p className="text-sm text-muted-foreground mb-6">No particulars added.</p>
