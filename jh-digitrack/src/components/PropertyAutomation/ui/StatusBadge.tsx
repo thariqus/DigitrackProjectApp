@@ -44,7 +44,7 @@ export const StatusBadge = ({ status, approverName }: StatusBadgeProps) => {
       case "unknown":
         return "bg-gray-100 text-gray-500 hover:bg-gray-100";
       default:
-        return "bg-gray-100 text-gray-500 hover:bg-gray-100";
+        return "bg-indigo-100 text-indigo-500 hover:bg-indigo-100";
     }
   };
 
