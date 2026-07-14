@@ -19,12 +19,12 @@ type RenewalTableRowProps = {
   onClick: () => void;
   isLoading?: boolean;
   onEdit: (name: string) => void;
-  isLicensingTeam?: boolean;
+  isJHPropertyDepartment?: boolean;
   onDownload: (name: string) => void;
 };
 
-function RenewalTableRow({ renewals, index, onClick, isLoading, onEdit, isLicensingTeam, onDownload }: RenewalTableRowProps) {
-  const canEdit = !!isLicensingTeam;
+function RenewalTableRow({ renewals, index, onClick, isLoading, onEdit, isJHPropertyDepartment, onDownload }: RenewalTableRowProps) {
+  const canEdit = !!isJHPropertyDepartment;
   const canDownload = DOWNLOADABLE_STATES.includes(renewals?.workflow_state);
   const showActionsCell = canEdit || canDownload;
 
