@@ -116,7 +116,7 @@ function Renewals() {
     "Division",
     "Current Rent",
     "Proposed Rent",
-    "Rent Increase Amount",
+    // "Rent Increase Amount",
     "Rent Change%",
     "Renewal Period",
     "Workflow Stage",
