@@ -18,7 +18,13 @@ import { toast } from "sonner";
 import FileAttachment from "./FileAttachment";
 import MultiValueInput from "./MultiValueInput";
 import { useDocs, useSaveDoc, useUpdateDoc } from "@/hooks/doc";
-import { usePropertyDoc, useRenewalList, useUserAccess, usePropertyTypes, usePropertyDivisions } from "../hooks/useProperty";
+import {
+  usePropertyDoc,
+  useRenewalList,
+  useUserAccess,
+  usePropertyTypes,
+  usePropertyDivisions,
+} from "../hooks/useProperty";
 import { PropertyMaster, JHPropertyElectricityConnection, JHPropertyLandline, ChequeDetail, RentalRenewal } from "@/types/JHDigitrack/JHPropertyAutomation";
 import { X } from "lucide-react";
 import { queryClient } from "@/utils/query-client";
@@ -293,7 +299,23 @@ const renewalsData = renewalsListData?.renewals ?? [];
     activeRenewal.workflow_state !== "Draft" &&
     activeRenewal.workflow_state !== "Completed";
 
-   const { data: propertyDivisionsData } = usePropertyDivisions();
+  const { data: propertyDivisionsData, refetch: refetchPropertyDivisions } = usePropertyDivisions();
+  
+  const handleBusinessDropdownOpenChange = useCallback(
+    (isOpen: boolean) => {
+      if (isOpen) refetchPropertyDivisions();
+    },
+    [refetchPropertyDivisions]
+  );
+
+  const handleDivisionDropdownOpenChange = useCallback(
+    (isOpen: boolean) => {
+      if (isOpen) refetchPropertyDivisions();
+    },
+    [refetchPropertyDivisions]
+  );
+
+
  
   const { data: usersData, isLoading: usersLoading } = useDocs<UserOption>({
     doctype: "User",
@@ -448,6 +470,16 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
   };
  
   const onSubmit = async (data: PropertyFormValues) => {
+
+    if (approvers.length === 0) {
+      toast.error("Please add at least one approver.");
+      return;
+    }
+
+    if (approvers.some(a => !a.approver.trim())) {
+      toast.error("Please select an approver.");
+      return;
+    }
     const formData = {
       ...data,
       approver: approvers.map((row, index) => ({
@@ -818,7 +850,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
     return (
       <div className="flex flex-col gap-1">
         {!isView && <Label className="text-sm text-gray-600 text-nowrap">{label} 
-                      <span className="text-xs text-gray-400">({`Type and press Enter`})</span>
+                      {/* <span className="text-xs text-gray-400">({`Type and press Enter`})</span> */}
                      </Label>}
 
         {isView ? (
@@ -1514,11 +1546,13 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                     render={({ field }) => (
                       <Select
                         value={field.value ?? ""}
+                        onOpenChange={handleBusinessDropdownOpenChange as any}
                         onValueChange={(value) => {
                           field.onChange(value);
                           setValue("division_used", "");
                         }}
                       >
+
                         <SelectTrigger className="text-sm h-9">
                           <SelectValue placeholder="Select Business" />
                         </SelectTrigger>
@@ -1547,7 +1581,8 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                     name="division_used"
                     control={control}
                     render={({ field }) => (
-                      <Select value={field.value ?? ""} onValueChange={field.onChange}>
+                      <Select value={field.value ?? ""} onOpenChange={handleDivisionDropdownOpenChange as any} onValueChange={field.onChange}>
+
                         <SelectTrigger className="text-sm h-9">
                           <SelectValue placeholder="Select Division" />
                         </SelectTrigger>
