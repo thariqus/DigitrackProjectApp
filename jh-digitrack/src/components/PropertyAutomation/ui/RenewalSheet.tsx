@@ -296,6 +296,34 @@ useEffect(() => {
       toast.error("Please complete every cheque row before confirming");
       return false;
     }
+
+    // Cheque total must match backend particular_total
+    const enteredChequeTotal = chequeDetails.reduce(
+      (sum, cheque) => sum + Number(cheque.cheque_amount || 0),
+      0
+    );
+
+    // Backend value is expected to be available on renewalDoc
+    const particularTotal = Number(
+      (renewalDoc as any)?.particular_total ?? 0
+    );
+
+
+    if (!particularTotal) {
+      toast.error(`particular_total value is missing. Expected particular_total, got: ${particularTotal}`);
+      return false;
+    }
+
+    if (Number(enteredChequeTotal) !== Number(particularTotal)) {
+      toast.error(
+        <div className="text-md">
+          <div className="text-green-400">Cheque total must be : {particularTotal}</div>
+          <div className="text-red-500">Entered total : {enteredChequeTotal}</div>
+        </div>
+      );
+      return false;
+    }
+
  
   }
  
@@ -1038,7 +1066,7 @@ const renderDelegationBadge = () => {
             </div>
 
             <div>
-              <h3 className="text-md font-semibold mb-2">Additional Charges</h3>
+              <h3 className="text-md font-semibold mb-2">Particulars</h3>
               {isView ? (
                 particulars.length > 0 ? (
                   <div className="space-y-2 mb-6">
@@ -1055,7 +1083,7 @@ const renderDelegationBadge = () => {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground mb-6">No additional charges added.</p>
+                  <p className="text-sm text-muted-foreground mb-6">No particulars added.</p>
                 )
               ) : (
                 <div className="space-y-2 mb-6">
@@ -1105,7 +1133,7 @@ const renderDelegationBadge = () => {
                     className="w-full border-2 border-dashed h-10 text-sm"
                     onClick={() => setParticulars([...particulars, { label: "", amount: "" }])}
                   >
-                    + Add Additional Charge
+                    + Add particulars
                   </Button>
                 </div>
               )}
