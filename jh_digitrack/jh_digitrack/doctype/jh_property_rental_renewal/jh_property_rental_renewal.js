@@ -153,20 +153,18 @@ function calculate_percent(frm) {
 	frm.set_value("rent_change", Math.round(proposed_rent - current_rent));
 }
 
-// Keeps a single "Rent" row, always pinned as the first row, in the
-// particulars table equal to the proposed rent.
+// Keeps a single "Rent" row in the particulars table equal to the proposed rent.
 function sync_parent_rent_row(frm) {
 	const rows = frm.doc[PARTICULARS_FIELD] || [];
-	let existing = rows.find((row) => row.label === PARENT_RENT_LABEL);
+	const existing = rows.find((row) => row.label === PARENT_RENT_LABEL);
 
 	if (frm.doc.proposed_rent) {
 		const rent_amount = Math.round(flt(frm.doc.proposed_rent));
 		if (existing) {
 			frappe.model.set_value(existing.doctype, existing.name, "amount", rent_amount);
 		} else {
-			existing = frm.add_child(PARTICULARS_FIELD, { label: PARENT_RENT_LABEL, amount: rent_amount });
+			frm.add_child(PARTICULARS_FIELD, { label: PARENT_RENT_LABEL, amount: rent_amount });
 		}
-		move_row_to_top(frm, existing);
 	} else if (existing) {
 		frm.get_field(PARTICULARS_FIELD).grid.grid_rows_by_docname[existing.name].remove();
 	}
@@ -255,18 +253,6 @@ function move_row_after(frm, row, after_row) {
 	rows.splice(from_idx, 1);
 	const after_idx = rows.indexOf(after_row);
 	rows.splice(after_idx + 1, 0, row);
-	rows.forEach((r, i) => {
-		r.idx = i + 1;
-	});
-}
-
-function move_row_to_top(frm, row) {
-	const rows = frm.doc[PARTICULARS_FIELD];
-	const from_idx = rows.indexOf(row);
-	if (from_idx <= 0) return;
-
-	rows.splice(from_idx, 1);
-	rows.unshift(row);
 	rows.forEach((r, i) => {
 		r.idx = i + 1;
 	});

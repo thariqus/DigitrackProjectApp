@@ -63,19 +63,9 @@ class JHPropertyRentalRenewal(Document):
 			if existing:
 				existing.amount = rent_amount
 			else:
-				existing = self.append("table_xqmr", {"label": PARENT_RENT_LABEL, "amount": rent_amount})
-			self._move_particular_row_to_top(existing)
+				self.append("table_xqmr", {"label": PARENT_RENT_LABEL, "amount": rent_amount})
 		elif existing:
 			self.table_xqmr.remove(existing)
-
-	def _move_particular_row_to_top(self, row):
-		rows = self.table_xqmr
-		if not rows or rows[0] == row:
-			return
-		rows.remove(row)
-		rows.insert(0, row)
-		for i, r in enumerate(rows, start=1):
-			r.idx = i
 
 	def sync_parent_vat_row(self):
 		rows = self.get("table_xqmr") or []
