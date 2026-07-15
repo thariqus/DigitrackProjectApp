@@ -15,12 +15,17 @@
   "co_code",
   "booked_under",
   "area_sqftmtr",
+  "lease_type",
+  "address",
   "column_break_rpia",
   "profit_center",
   "number_of_units",
   "number_of_premises",
   "premise_number",
   "staff_allocated",
+  "per_staff_rent",
+  "remark",
+  "ownership",
   "section_break_518v",
   "approver",
   "location_details_section",
@@ -90,7 +95,7 @@
   {
    "fieldname": "profit_center",
    "fieldtype": "Data",
-   "label": "Profit Center"
+   "label": "Profit Center/Site"
   },
   {
    "fieldname": "column_break_rpia",
@@ -323,12 +328,38 @@
    "fieldname": "area_sqftmtr",
    "fieldtype": "Data",
    "label": "Area (Sqft/Mtr)"
+  },
+  {
+   "fieldname": "lease_type",
+   "fieldtype": "Select",
+   "label": "Lease Type",
+   "options": "Own Sublease\nSublease\nLong Lease- Yearly Renewal\nLong Lease"
+  },
+  {
+   "fieldname": "per_staff_rent",
+   "fieldtype": "Data",
+   "label": "Per Staff Rent"
+  },
+  {
+   "fieldname": "address",
+   "fieldtype": "Small Text",
+   "label": "Address"
+  },
+  {
+   "fieldname": "remark",
+   "fieldtype": "Small Text",
+   "label": "Remark"
+  },
+  {
+   "fieldname": "ownership",
+   "fieldtype": "Data",
+   "label": "Ownership"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-07-13 16:05:43.107751",
+ "modified": "2026-07-15 18:12:04.121762",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Property Master",

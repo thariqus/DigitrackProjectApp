@@ -17,7 +17,6 @@
   "renewal_to",
   "column_break_umpo",
   "payment_schedule",
-  "new_security_deposit",
   "remarks",
   "supporting_documents",
   "pariculars_section",
@@ -102,11 +101,6 @@
    "fieldtype": "Select",
    "label": "Payment Schedule",
    "options": "Monthly\nQuarterly\nHalf Yearly\nYearly"
-  },
-  {
-   "fieldname": "new_security_deposit",
-   "fieldtype": "Currency",
-   "label": "New Security Deposit"
   },
   {
    "fieldname": "remarks",
@@ -331,7 +325,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-07-15 16:50:23.837258",
+ "modified": "2026-07-15 19:23:04.937246",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Property Rental Renewal",

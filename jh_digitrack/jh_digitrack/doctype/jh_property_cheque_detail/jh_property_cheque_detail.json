@@ -34,14 +34,14 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Cheque Type",
-   "options": "PDC\nCDC\nJT Cheque\nCash"
+   "options": "PDC\nCDC\nJT Cheque\nCash\nUndated Cheque"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-06-13 17:29:51.689934",
+ "modified": "2026-07-15 18:06:43.485442",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Property Cheque Detail",
