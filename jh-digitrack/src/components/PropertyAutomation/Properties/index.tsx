@@ -190,7 +190,7 @@ function Properties() {
         "Profit Center": p.profit_center ?? "",
         "Number of Units": p.number_of_units ?? "",
         "Number of Premises": p.number_of_premises ?? "",
-        "Premise Number": p.premise_number ?? "",
+        // "Premise Number": p.premise_number ?? "",
         "Staff Allocated": p.staff_allocated ?? "",
         "Location": p.location ?? "",
         "Emirate": p.emirate ?? "",
@@ -219,7 +219,7 @@ function Properties() {
       const elecRows = docs.flatMap((p) =>
         (p.electricity_connections ?? []).map((conn) => ({
           "Property Name": p.property_name,
-          "Connection Number": conn.connection_number ?? "",
+          "Premise Number": conn.premise_number ?? "",
           "Meter ID": conn.meter_id ?? "",
           "Account Number": conn.account_number ?? "",
           "Connection Type": conn.connection_type ?? "",
