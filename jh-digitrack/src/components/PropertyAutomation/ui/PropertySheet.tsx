@@ -136,7 +136,7 @@ const propertySchema = z.object({
   profit_center: numericOnlyField,
   number_of_units: numericOnlyField,
   number_of_premises: numericOnlyField,
-  premise_number: z.string().nullable().optional(),
+  // premise_number: z.string().nullable().optional(),
   staff_allocated: numericOnlyField,
  
   location: z.string().nullable().optional(),
@@ -168,7 +168,7 @@ const propertySchema = z.object({
  
   electricity_accounts: numericOnlyField,
   electricity_connections: z.array(z.object({
-    connection_number: z.string().min(1, "Connection Number required"),
+    premise_number: z.string().min(1, "Premise Number required"),
     meter_id: z.string().optional(),
     account_number: z.string().optional(),
     connection_type: z.enum(["Electricity", "Water", "Dual"]).optional(),
@@ -205,7 +205,7 @@ type PropertyFormValues = z.infer<typeof propertySchema> & {
   profit_center: undefined,
   number_of_units: undefined,
   number_of_premises: undefined,
-  premise_number: "",
+  // premise_number: "",
   staff_allocated: undefined,
   location: "",
   emirate: "",
@@ -355,7 +355,7 @@ const renewalsData = renewalsListData?.renewals ?? [];
   }, [propertyDivisionsData, businessWatch]);
 
   const numberOfPremisesWatch = useWatch({ control, name: "number_of_premises" });
-  const premiseNumberWatch = useWatch({ control, name: "premise_number" });
+  // const premiseNumberWatch = useWatch({ control, name: "premise_number" });
   // const electricityAccountsWatch = useWatch({ control, name: "electricity_accounts" });
   const landlineAccountsWatch = useWatch({ control, name: "landline_accounts" });
   const depositAmountWatch = useWatch({ control, name: "landlord_security_deposit" });
@@ -480,6 +480,39 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
       toast.error("Please select an approver.");
       return;
     }
+
+    // Validate electricity connections
+      const hasInvalidElectricityConnection = connections.filter(
+        (conn) =>
+          !conn.premise_number?.trim() ||
+          !conn.meter_id?.trim() ||
+          !conn.account_number?.trim() ||
+          !conn.connection_type
+      );
+
+      if (hasInvalidElectricityConnection) {
+        toast.error(
+          "Please fill all fields in the Electricity Connections."
+        );
+        return;
+      }
+
+      // Validate landline connections
+      const hasInvalidLandlineConnection = landlineConnections.some(
+        (conn) =>
+          !conn.landline_number?.trim() ||
+          !conn.provider?.trim() ||
+          !conn.line_type
+      );
+
+      if (hasInvalidLandlineConnection) {
+        toast.error(
+          "Please fill all fields in the Landline Connections."
+        );
+        return;
+      }
+
+
     const formData = {
       ...data,
       approver: approvers.map((row, index) => ({
@@ -839,71 +872,71 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
     );
   };
 
-  const renderMultiValueField = (
-    label: string,
-    name: "premise_number" | "electricity_connection_numbers",
-    value?: string,
-    maxItems?: number
-  ) => {
-    const items = getMultiValueItems(value);
+  // const renderMultiValueField = (
+  //   label: string,
+  //   name: "premise_number" | "electricity_connection_numbers",
+  //   value?: string,
+  //   maxItems?: number
+  // ) => {
+  //   const items = getMultiValueItems(value);
 
-    return (
-      <div className="flex flex-col gap-1">
-        {!isView && <Label className="text-sm text-gray-600 text-nowrap">{label} 
-                      {/* <span className="text-xs text-gray-400">({`Type and press Enter`})</span> */}
-                     </Label>}
+  //   return (
+  //     <div className="flex flex-col gap-1">
+  //       {!isView && <Label className="text-sm text-gray-600 text-nowrap">{label} 
+  //                     {/* <span className="text-xs text-gray-400">({`Type and press Enter`})</span> */}
+  //                    </Label>}
 
-        {isView ? (
-          <div className="flex items-start gap-2 py-1 text-sm">
-            <span className="font-medium text-gray-600">{label}:</span>
-            {items.length > 0 ? (
-              <div className="flex flex-wrap gap-1">
-                {items.map((item) => (
-                  <span
-                    key={item}
-                    className="inline-flex items-center rounded-full bg-rose-100 px-2 py-0.5 text-xs font-medium text-foreground"
-                  >
-                    {item}
-                  </span>
-                ))}
-              </div>
-            ) : (
-              <span>-</span>
-            )}
-          </div>
-        ) : (
-          <Controller
-            name={name}
-            control={control}
-            render={({ field }) => (
-              <MultiValueInput
-                value={field.value}
-                onChange={field.onChange}
-                maxItems={maxItems}
-                className={errors[name] ? "border-red-500" : ""}
-              />
-            )}
-          />
-        )}
+  //       {isView ? (
+  //         <div className="flex items-start gap-2 py-1 text-sm">
+  //           <span className="font-medium text-gray-600">{label}:</span>
+  //           {items.length > 0 ? (
+  //             <div className="flex flex-wrap gap-1">
+  //               {items.map((item) => (
+  //                 <span
+  //                   key={item}
+  //                   className="inline-flex items-center rounded-full bg-rose-100 px-2 py-0.5 text-xs font-medium text-foreground"
+  //                 >
+  //                   {item}
+  //                 </span>
+  //               ))}
+  //             </div>
+  //           ) : (
+  //             <span>-</span>
+  //           )}
+  //         </div>
+  //       ) : (
+  //         <Controller
+  //           name={name}
+  //           control={control}
+  //           render={({ field }) => (
+  //             <MultiValueInput
+  //               value={field.value}
+  //               onChange={field.onChange}
+  //               maxItems={maxItems}
+  //               className={errors[name] ? "border-red-500" : ""}
+  //             />
+  //           )}
+  //         />
+  //       )}
 
-        {name === "premise_number" && !isView && Number(numberOfPremisesWatch) > 0 && (() => {
-          const currentCount = getMultiValueItems(premiseNumberWatch).length;
-          const required = Number(numberOfPremisesWatch);
-          const isMatch = currentCount === required;
-          return (
-            <span className={`text-xs ${isMatch ? "text-green-600" : "text-amber-600"}`}>
-              {currentCount} / {required} premise number{required !== 1 ? "s" : ""} added
-              {!isMatch && ` — ${required - currentCount > 0 ? `add ${required - currentCount} more` : `remove ${currentCount - required} extra`}`}
-            </span>
-          );
-        })()}
+  //       {name === "premise_number" && !isView && Number(numberOfPremisesWatch) > 0 && (() => {
+  //         const currentCount = getMultiValueItems(premiseNumberWatch).length;
+  //         const required = Number(numberOfPremisesWatch);
+  //         const isMatch = currentCount === required;
+  //         return (
+  //           <span className={`text-xs ${isMatch ? "text-green-600" : "text-amber-600"}`}>
+  //             {currentCount} / {required} premise number{required !== 1 ? "s" : ""} added
+  //             {!isMatch && ` — ${required - currentCount > 0 ? `add ${required - currentCount} more` : `remove ${currentCount - required} extra`}`}
+  //           </span>
+  //         );
+  //       })()}
 
-        {errors[name] && (
-          <span className="text-red-500 text-xs">{errors[name]?.message as string}</span>
-        )}
-      </div>
-    );
-  };
+  //       {errors[name] && (
+  //         <span className="text-red-500 text-xs">{errors[name]?.message as string}</span>
+  //       )}
+  //     </div>
+  //   );
+  // };
 
 
   const renderLandlineConnections = (
@@ -1623,7 +1656,6 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
               {renderField("Profit Center", "profit_center", doc?.profit_center)}
               {renderField("Number of Units", "number_of_units", doc?.number_of_units)}
               {renderField("Number of Premises", "number_of_premises", doc?.number_of_premises)}
-              {/* {renderMultiValueField("Premise Number", "premise_number", doc?.premise_number, Number(numberOfPremisesWatch) || undefined)} */}
               {renderField("Staff Allocated", "staff_allocated", doc?.staff_allocated)}
               {renderApproversTable()}
             </div>
