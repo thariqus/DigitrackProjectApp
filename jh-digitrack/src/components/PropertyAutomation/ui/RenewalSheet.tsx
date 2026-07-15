@@ -1068,8 +1068,8 @@ console.log("updatedParticulars",updatedParticulars);
 
               <div>
                 {isView ? (
-                  <div className="flex gap-1">
-                    <Label className="text-sm text-gray-600">Payment Schedule:</Label>
+                  <div className="flex gap-1 text-sm">
+                    <Label className=" text-gray-600">Payment Schedule:</Label>
                     <span>{renewalDoc?.payment_schedule}</span>
                   </div>
                 ) : (
@@ -1084,7 +1084,7 @@ console.log("updatedParticulars",updatedParticulars);
                             <SelectValue placeholder="Select..." />
                           </SelectTrigger>
                           <SelectContent>
-                            {["Monthly", "Bi-Monthly", "Quarterly", "Half Yearly", "Yearly"].map((opt) => (
+                            {["Monthly", "Quarterly", "Half Yearly", "Yearly"].map((opt) => (
                               <SelectItem key={opt} value={opt}>{opt}</SelectItem>
                             ))}
                           </SelectContent>
