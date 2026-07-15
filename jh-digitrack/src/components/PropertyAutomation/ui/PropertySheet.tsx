@@ -482,7 +482,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
     }
 
     // Validate electricity connections
-      const hasInvalidElectricityConnection = connections.filter(
+      const hasInvalidElectricityConnection = connections.some(
         (conn) =>
           !conn.premise_number?.trim() ||
           !conn.meter_id?.trim() ||
