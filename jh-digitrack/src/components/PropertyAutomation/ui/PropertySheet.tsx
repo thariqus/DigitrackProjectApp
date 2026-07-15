@@ -543,15 +543,15 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
       }
     }
 
-    if (data.number_of_premises && data.number_of_premises > 0) {
-      const premiseItems = getMultiValueItems(data.premise_number);
-      if (premiseItems.length !== data.number_of_premises) {
-        toast.warning(
-          `Please add exactly ${data.number_of_premises} premise number(s). Currently ${premiseItems.length} added.`
-        );
-        return;
-      }
-    }
+    // if (data.number_of_premises && data.number_of_premises > 0) {
+    //   const premiseItems = getMultiValueItems(data.premise_number);
+    //   if (premiseItems.length !== data.number_of_premises) {
+    //     toast.warning(
+    //       `Please add exactly ${data.number_of_premises} premise number(s). Currently ${premiseItems.length} added.`
+    //     );
+    //     return;
+    //   }
+    // }
     
     try {
       const uploadedFiles =
@@ -1216,8 +1216,26 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                 className="flex gap-2 items-end bg-muted p-3 rounded-lg"
               >
                 <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-2">
-                  <div className={`${isView ? "flex items-center gap-1": "flex  flex-col gap-1"}`}>
+                  {/* <div className={`${isView ? "flex items-center gap-1": "flex  flex-col gap-1"}`}>
                     {renderMultiValueField("Premise Number", "premise_number", doc?.premise_number, Number(numberOfPremisesWatch) || undefined)}
+                  </div> */}
+                    <div className={`${isView ? "flex items-center gap-1": "flex  flex-col gap-1"}`}>
+                    <Label className="text-xs">Premise Number:</Label>
+                    {isViewMode ? (
+                      <span className="text-sm">
+                        {conn.premise_number|| "-"}
+                      </span>
+                    ) : (
+                      <Input
+                        value={conn.premise_number|| ""}
+                        onChange={(e) => {
+                          const newConns = [...connections];
+                          newConns[index].premise_number= e.target.value;
+                          setConnections(newConns);
+                        }}
+                        className="text-sm"
+                      />
+                    )}
                   </div>
 
                   <div className={`${isView ? "flex items-center gap-1": "flex  flex-col gap-1"}`}>

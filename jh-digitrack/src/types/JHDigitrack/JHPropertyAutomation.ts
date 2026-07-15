@@ -66,7 +66,7 @@ export interface PropertyMaster {
 
 export interface JHPropertyElectricityConnection {
   name?: string;
-  connection_number: string;
+  premise_number: string;
   meter_id?: string;
   account_number?: string;
   connection_type?: "Electricity" | "Water" | "Dual";
