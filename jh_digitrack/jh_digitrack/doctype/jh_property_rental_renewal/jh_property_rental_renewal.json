@@ -101,7 +101,7 @@
    "fieldname": "payment_schedule",
    "fieldtype": "Select",
    "label": "Payment Schedule",
-   "options": "Monthly\nQuarterly\nYearly"
+   "options": "Monthly\nQuarterly\nHalf Yearly\nYearly"
   },
   {
    "fieldname": "new_security_deposit",
@@ -331,7 +331,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-07-14 11:34:33.805277",
+ "modified": "2026-07-15 16:50:23.837258",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Property Rental Renewal",
