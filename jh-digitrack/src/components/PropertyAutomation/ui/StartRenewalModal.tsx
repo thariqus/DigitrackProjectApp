@@ -21,7 +21,7 @@ import { useEffect, useState } from "react";
 import { XIcon } from "lucide-react";
 import FileAttachment from "./FileAttachment";
  
-interface AdditionalChargeEntry {
+export interface AdditionalChargeEntry {
   label: string;
   amount: string;
   vatIncluded: boolean;

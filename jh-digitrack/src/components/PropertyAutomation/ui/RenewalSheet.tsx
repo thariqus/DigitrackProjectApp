@@ -18,7 +18,7 @@ import FileAttachment from "./FileAttachment";
 import { useQueryClient } from "@tanstack/react-query";
 import { useUpdateDoc, useDocs } from "@/hooks/doc";
 import { useCurrentUser } from "@/hooks/auth";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { PropertyMaster, RentalRenewal } from "@/types/JHDigitrack/JHPropertyAutomation";
 import { usePropertyDoc, useRenewalDoc, useRenewalRole, useChequeTypes } from "../hooks/useProperty";
 import { propertyApi, type RenewalProgressPayload } from "../api/property";
@@ -26,7 +26,7 @@ import { useApplyWorkflowAction } from "../hooks/useApplyWorkflowAction";
 import { useCreateDelegation, useDocumentDelegation, useRevokeDelegation } from "../hooks/useDelegation";
 import { RenewalDelegationModal } from "./RenewalDelegationModal";
 import ApprovalCommentModal from "./ApprovalCommentModal";
-import RenewalApprovalFooter from "./RenewalApprovalFooter";
+import { AdditionalChargeEntry } from "./StartRenewalModal";
 
  
 type RenewalSheetProps = {
@@ -95,7 +95,8 @@ export default function RenewalSheet({
   const [pendingApprovalAction, setPendingApprovalAction] = useState<"approve" | "submit" | "reject">("approve");
   const [approvalTitle, setApprovalTitle] = useState("Approval Action");
   const [approvalDescription, setApprovalDescription] = useState("Please provide justification or notes.");
- 
+ const [additionalCharges, setAdditionalCharges] = useState<AdditionalChargeEntry[]>([]);
+
   const queryClient = useQueryClient();
   const updateDoc = useUpdateDoc();
  
@@ -233,6 +234,32 @@ useEffect(() => {
   const percent = ((proposed - current) / current) * 100;
   setRentChangePercentState(percent.toFixed(2));
 }, [currentRentValue, proposedRent]);
+
+useEffect(() => {
+  if (!open || !renewalDoc) return;
+
+  const rows = renewalDoc.table_xqmr || [];
+
+  // Rows like "<Label> Vat" are auto-derived from their base particular and
+  // should not be stored as their own entries, otherwise every save cycle
+  // re-adds the derived VAT row on top of the one already persisted.
+  const vatCompanionLabels = new Set(
+    rows
+      .filter((row) => rows.some((r) => r.label === `${row.label} Vat`))
+      .map((row) => `${row.label} Vat`)
+  );
+
+  const charges: AdditionalChargeEntry[] = rows
+    .filter((row) => !vatCompanionLabels.has(row.label || ""))
+    .map((row) => ({
+      label: row.label || "",
+      amount: String(row.amount ?? ""),
+      vatIncluded: vatCompanionLabels.has(`${row.label} Vat`),
+    }));
+
+  setAdditionalCharges(charges);
+
+}, [open, renewalDoc]);
  
   const formatDateForAPI = (date?: string) => {
     if (!date) return "";
@@ -696,7 +723,7 @@ const renderDelegationBadge = () => {
     );
   };
  
-  
+  console.log("charges",additionalCharges);
  
   const onSubmit = async (data: RenewalFormValues) => {
     if (!propertyId) return;
@@ -757,14 +784,34 @@ const renderDelegationBadge = () => {
         idx: index + 1,
       }));
 
-      const updatedParticulars = particulars
-        .filter((entry) => entry.label.trim() !== "" || entry.amount.trim() !== "")
-        .map((entry, index) => ({
-          doctype: "JH Property Particulars",
-          label: entry.label.trim(),
-          amount: Number(entry.amount || 0),
-          idx: index + 1,
-        }));
+      const updatedParticulars = additionalCharges.flatMap((entry, index) => {
+  if (!entry.label.trim()) return [];
+
+  const rows = [
+    {
+      doctype: "JH Property Particulars",
+      label: entry.label.trim(),
+      amount: Number(entry.amount),
+      vat: entry.vatIncluded,
+      idx: index + 1,
+    },
+  ];
+
+  if (entry.vatIncluded) {
+    rows.push({
+      doctype: "JH Property Particulars",
+      label: `${entry.label.trim()} Vat`,
+      amount: Number(
+        (Number(entry.amount) * 0.05).toFixed(2)
+      ),
+      vat: false,
+      idx: index + 2,
+    });
+  }
+
+  return rows;
+});
+console.log("updatedParticulars",updatedParticulars);
  
       const payload = {
         doctype: "JH Property Rental Renewal",
@@ -790,6 +837,8 @@ const renderDelegationBadge = () => {
           ignore_validate_update_after_submit: true,
         },
       };
+
+      console.log(payload.table_xqmr);
  
       await updateDoc.mutateAsync({
         doctype: "JH Property Rental Renewal",
@@ -1055,7 +1104,7 @@ const renderDelegationBadge = () => {
                 "number"
               )}
  
-              <div className={`${isView ? "flex items-center flex-nowrap py-1 gap-2" : "flex flex-col gap-1 py-1"}`}>
+              <div className={`${isView ? "flex items-start flex-nowrap py-1 gap-2" : "flex flex-col gap-1 py-1"}`}>
                 <Label className="text-gray-600">Remarks:</Label>
                 {isView ? (
                   <div className="flex-wrap text-sm h-auto">{renewalDoc?.remarks}</div>
@@ -1068,73 +1117,165 @@ const renderDelegationBadge = () => {
             <div>
               <h3 className="text-md font-semibold mb-2">Particulars</h3>
               {isView ? (
-                particulars.length > 0 ? (
+                additionalCharges.length > 0 ? (
                   <div className="space-y-2 mb-6">
                     <div
                         className="grid grid-cols-1 md:grid-cols-2 gap-2 bg-muted py-1 px-2 rounded-lg">
-                          {particulars.map((entry, index) => (
-                            <div  key={index} className="flex items-center gap-2 py-1 text-sm">
-                              <span>{entry.label}</span>
-                              {renderReadonlyField("", entry.amount)}
-                            </div>
-                      
-                    ))}
+                          {additionalCharges.map((entry, index) => {
+                            const vatAmount = entry.vatIncluded
+                              ? (Number(entry.amount || 0) * 0.05).toFixed(2)
+                              : null;
+                            return (
+                              <Fragment key={index}>
+                                <div className="flex items-center gap-2 py-1 text-sm">
+                                  <span>{entry.label}</span>
+                                  {renderReadonlyField("", entry.amount)}
+                                </div>
+                                {vatAmount !== null && (
+                                  <div className="flex items-center gap-2 py-1 text-sm">
+                                    <span>{entry.label} Vat</span>
+                                    {renderReadonlyField("", vatAmount)}
+                                  </div>
+                                )}
+                              </Fragment>
+                            );
+                          })}
                     </div>
                   </div>
                 ) : (
                   <p className="text-sm text-muted-foreground mb-6">No particulars added.</p>
                 )
               ) : (
-                <div className="space-y-2 mb-6">
-                  {particulars.map((entry, index) => (
-                    <div key={index} className="flex gap-2 items-end bg-muted p-3 rounded-lg">
+                <div className="flex flex-col gap-1">
+            <Label className="text-sm text-gray-600">Particulars</Label>
+            <div className="flex flex-col gap-2">
+             {additionalCharges.map((entry, index) => {
+                const amount = Number(entry.amount || 0);
+                const vatAmount = entry.vatIncluded
+                  ? (amount *  0.05).toFixed(2)
+                  : amount.toFixed(2);
+ 
+                return (
+              <div key={index} className="bg-muted p-3 rounded-lg">
+                <div className="flex gap-2 items-center">
+                  {/* Left side - all fields */}
+                  <div className="flex-1">
+                    {/* First Row */}
+                    <div className="flex gap-2 items-center">
                       <div className="flex-1 flex flex-col gap-1">
                         <Label className="text-xs">Label</Label>
                         <Input
-                          type="text"
-                          value={entry.label}
-                          placeholder="e.g. Maintenance Fee"
+                        value={entry.label}
+                         readOnly={entry.label === "Rent Vat"}
+                          className={entry.label === "Rent Vat" ? "bg-muted cursor-not-allowed" : ""}
                           onChange={(e) => {
-                            const next = [...particulars];
+                            if (entry.label === "Rent Vat") return;
+                            const next = [...additionalCharges];
                             next[index] = { ...next[index], label: e.target.value };
-                            setParticulars(next);
+                            setAdditionalCharges(next);
                           }}
                         />
                       </div>
+
                       <div className="flex-1 flex flex-col gap-1">
                         <Label className="text-xs">Amount</Label>
                         <Input
-                          type="text"
-                          inputMode="decimal"
-                          value={entry.amount}
-                          placeholder="0.00"
+                            type="text"
+                            inputMode="decimal"
+                            value={entry.amount}
+                            readOnly={entry.label === "Rent Vat"}
+                            className={entry.label === "Rent Vat" ? "bg-muted cursor-not-allowed" : ""}
+                            onChange={(e) => {
+                              if (entry.label === "Rent Vat") return;
+
+                              const value = e.target.value;
+                              if (value === "" || /^\d*\.?\d*$/.test(value)) {
+                                const next = [...additionalCharges];
+                                next[index] = {
+                                  ...next[index],
+                                  amount: value,
+                                };
+                                setAdditionalCharges(next);
+                              }
+                            }}
+                          />
+                      </div>
+
+                      {
+                        entry.label !== "Rent Vat" && (
+                          <div className="flex items-center gap-2 pt-6">
+                        <input
+                          type="checkbox"
+                          checked={entry.vatIncluded}
                           onChange={(e) => {
-                            const next = [...particulars];
-                            next[index] = { ...next[index], amount: e.target.value };
-                            setParticulars(next);
+                            const next = [...additionalCharges];
+                            next[index] = {
+                              ...next[index],
+                              vatIncluded: e.target.checked,
+                            };
+                            setAdditionalCharges(next);
                           }}
                         />
+                        <Label className="text-xs">VAT</Label>
                       </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 p-0"
-                        onClick={() => setParticulars(particulars.filter((_, i) => i !== index))}
-                      >
-                        <XIcon className="h-4 w-4" />
-                      </Button>
+                        )
+
+                      }    
+                      
                     </div>
-                  ))}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full border-2 border-dashed h-10 text-sm"
-                    onClick={() => setParticulars([...particulars, { label: "", amount: "" }])}
-                  >
-                    + Add particulars
-                  </Button>
+
+                    {/* VAT Row */}
+                    {entry.vatIncluded && (
+                      <div className="flex gap-2 mt-3">
+                        <div className="flex-1 flex flex-col gap-1">
+                          <Label className="text-xs">Label</Label>
+                          <Input value={`${entry.label} Vat`}  readOnly />
+                        </div>
+
+                        <div className="flex-1 flex flex-col gap-1 mr-12">
+                          <Label className="text-xs">Amount</Label>
+                          <Input value={vatAmount} readOnly />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Remove button centered across both rows */}
+                  <div className="self-center">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() =>
+                        setAdditionalCharges(
+                          additionalCharges.filter((_, i) => i !== index)
+                        )
+                      }
+                    >
+                      <XIcon className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
+              </div>
+              )})}
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full text-gray-400 border-2 border-dashed h-10 text-sm"
+                onClick={() => setAdditionalCharges([
+                  ...additionalCharges,
+                  {
+                    label: "",
+                    amount: "",
+                    vatIncluded: false,
+                  },
+                ])}
+              >
+                + Add Particulars
+              </Button>
+            </div>
+          </div>
               )}
             </div>
 
