@@ -54,7 +54,7 @@ export default function MultiValueInput({
   return (
     <div
       className={cn(
-        "flex min-h-10 w-full flex-wrap items-center gap-2 rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs",
+        "flex min-h-10  w-full flex-wrap items-center gap-2 rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs",
         disabled && "cursor-not-allowed opacity-60",
         className
       )}
@@ -99,8 +99,8 @@ export default function MultiValueInput({
               removeValue(values[values.length - 1]);
             }
           }}
-          placeholder={values.length === 0 ? placeholder : ""}
-          className="h-auto min-w-[140px] flex-1 border-0 p-0 shadow-none focus-visible:ring-0"
+          placeholder="Type and press Enter key to add"
+          className="h-auto min-w-[140px] flex-1 border-0 placeholder:text-xs p-0 shadow-none focus-visible:ring-0"
         />
       )}
     </div>

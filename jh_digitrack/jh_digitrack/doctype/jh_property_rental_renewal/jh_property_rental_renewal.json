@@ -10,6 +10,7 @@
   "property",
   "current_rent",
   "proposed_rent",
+  "include_vat",
   "additional_charges",
   "rent_change_percent",
   "renewal_from",
@@ -21,10 +22,13 @@
   "supporting_documents",
   "pariculars_section",
   "table_xqmr",
+  "particular_total",
   "cheque_details_section",
   "cheque_details",
+  "cheque_total",
   "percent_calculation_section",
   "data_gisi",
+  "rent_change",
   "po_details_section",
   "po_number",
   "renewed_contract_document",
@@ -299,13 +303,35 @@
    "fieldname": "table_xqmr",
    "fieldtype": "Table",
    "options": "JH Property Particulars"
+  },
+  {
+   "fieldname": "rent_change",
+   "fieldtype": "Int",
+   "label": "Rent Change Amount",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "include_vat",
+   "fieldtype": "Check",
+   "label": "Include VAT"
+  },
+  {
+   "fieldname": "particular_total",
+   "fieldtype": "Int",
+   "label": "Particulars Total"
+  },
+  {
+   "fieldname": "cheque_total",
+   "fieldtype": "Int",
+   "label": "Cheque Total"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-07-07 16:34:11.521216",
+ "modified": "2026-07-14 11:34:33.805277",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Property Rental Renewal",

@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Download, Plus, X } from "lucide-react";
+import { ExternalLink,Download, Plus, X } from "lucide-react";
 import { Table, TableBody, TableFooter } from "@/components/ui/table";
 import { PropertyTableHeader } from "../ui/PropertyTableHeader";
 import PropertyTableRow from "../ui/PropertyTableRow";
@@ -141,6 +141,10 @@ function Properties() {
     setIsSheetOpen(true);
   };
 
+    const handleOpenPropertyDivision = () => {
+    window.location.href = "/app/jh-property-division";
+  };
+
   const handleEditClick = (name: string) => {
     setSelectedProperty(name);
     setMode("edit");
@@ -186,7 +190,7 @@ function Properties() {
         "Profit Center": p.profit_center ?? "",
         "Number of Units": p.number_of_units ?? "",
         "Number of Premises": p.number_of_premises ?? "",
-        "Premise Number": p.premise_number ?? "",
+        // "Premise Number": p.premise_number ?? "",
         "Staff Allocated": p.staff_allocated ?? "",
         "Location": p.location ?? "",
         "Emirate": p.emirate ?? "",
@@ -215,7 +219,7 @@ function Properties() {
       const elecRows = docs.flatMap((p) =>
         (p.electricity_connections ?? []).map((conn) => ({
           "Property Name": p.property_name,
-          "Connection Number": conn.connection_number ?? "",
+          "Premise Number": conn.premise_number ?? "",
           "Meter ID": conn.meter_id ?? "",
           "Account Number": conn.account_number ?? "",
           "Connection Type": conn.connection_type ?? "",
@@ -328,10 +332,20 @@ function Properties() {
         />
 
         {canCreateOrEditProperty && (
-          <Button size="sm" onClick={handleCreate}>
-            <Plus className="mr-2 h-4 w-4" />
-            Create Property
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => window.open("/app/jh-property-business", "_blank")}
+            >
+              <ExternalLink className="mr-2 h-4 w-4" />
+              Manage Business/Division
+            </Button>
+            <Button size="sm" onClick={handleCreate}>
+              <Plus className="mr-2 h-4 w-4" />
+              Create Property
+            </Button>
+          </div>
         )}
       </div>
 

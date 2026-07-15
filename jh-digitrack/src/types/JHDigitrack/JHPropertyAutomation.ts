@@ -23,7 +23,7 @@ export interface PropertyMaster {
 
   number_of_units: number;
   number_of_premises: number;
-  premise_number: string;
+  // premise_number: string;
 
   staff_allocated: string;
   location: string;
@@ -66,7 +66,7 @@ export interface PropertyMaster {
 
 export interface JHPropertyElectricityConnection {
   name?: string;
-  connection_number: string;
+  premise_number: string;
   meter_id?: string;
   account_number?: string;
   connection_type?: "Electricity" | "Water" | "Dual";
@@ -97,9 +97,11 @@ export interface PropertyParticular {
 export interface RentalRenewal {
   name: string;
   property: string;
+  property_name?: string;
   current_rent: number;
   proposed_rent: number;
   additional_charges?: number;
+  rent_change?: number;
   rent_change_percent?: number;
   renewal_from: string;
   renewal_to: string;

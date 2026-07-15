@@ -225,6 +225,7 @@ def _resolve_step_assignee(renewal):
         return settings_map[state]
 
     role_map = {
+        "Draft":                  "JH Property Department",
         "Pending Cheque Details": "JH Property Department",
         "Pending Property PO":    "JH Property Department",
         "Pending MIRO":           "JH GL Team",

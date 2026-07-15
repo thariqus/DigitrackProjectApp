@@ -719,7 +719,7 @@ def get_property_dashboard_counts():
 
 
 def _attach_approver_names(records):
-    """Attach approver_1_name, approver_2_name, approver_3_name (full names) to each renewal record."""
+    """Attach approver_1_name, approver_2_name, approver_3_name (full names) and property_name to each renewal record."""
     if not records:
         return records
 
@@ -727,6 +727,18 @@ def _attach_approver_names(records):
     if not property_names:
         return records
 
+    property_display_names = dict(
+        frappe.get_all(
+            "JH Property Master",
+            filters={"name": ["in", property_names]},
+            fields=["name", "property_name"],
+            ignore_permissions=True,
+            as_list=True,
+        )
+    )
+    for record in records:
+        record["property_name"] = property_display_names.get(record.get("property"), record.get("property"))
+        
     approver_rows = frappe.get_all(
         "JH Property Approver",
         filters={"parent": ["in", property_names], "parenttype": "JH Property Master"},
@@ -1365,6 +1377,38 @@ def notify_md(renewal):
         frappe.logger().error(f"Failed to send MD notification: {str(e)}")
 
 
+def _notify_step_assignee(renewal, action, actor):
+    """Email whoever is responsible for the renewal's new workflow_state right away."""
+    from jh_digitrack.api.helpers.property_email import generate_property_notification_email
+    from jh_digitrack.api.property_notifications import _resolve_step_assignee
+
+    assignee = _resolve_step_assignee(renewal)
+    if not assignee:
+        return
+
+    recipients = assignee if isinstance(assignee, list) else [assignee]
+    actor_name = frappe.db.get_value("User", actor, "full_name") or actor
+    business_used = (
+        frappe.db.get_value("JH Property Master", renewal.property, "business_used")
+        if renewal.property else None
+    )
+    subject = f"DigiTrack: Action Required - {renewal.name} ({renewal.workflow_state})"
+    message = generate_property_notification_email(
+        type="workflow_assigned",
+        context={"renewal": renewal, "actor": actor_name, "action": action, "business_used": business_used},
+    )
+
+    try:
+        frappe.sendmail(
+            expose_recipients="header",
+            recipients=recipients,
+            subject=subject,
+            message=message,
+        )
+    except Exception:
+        frappe.logger().error(frappe.get_traceback())
+
+
 def update_property_master_renewal_date(renewal):
     if renewal.workflow_state != "Completed" or not renewal.property or not renewal.renewal_to:
         return
@@ -1416,6 +1460,37 @@ def get_divisions_by_business(business: str = None):
         order_by="name asc",
     )
     return {"divisions": divisions}
+
+
+@frappe.whitelist(methods=["GET"])
+def get_property_divisions():
+    """Return business/division selection rows used by Property Master.
+
+    JH Property Business holds one row per business, with its divisions stored
+    in the JH Property Division child table (a business can have many divisions).
+    """
+    businesses = frappe.get_all(
+        "JH Property Business",
+        fields=["name", "business_used"],
+        ignore_permissions=True,
+    )
+    if not businesses:
+        return {"property_divisions": []}
+
+    business_names = {b["name"]: b["business_used"] for b in businesses}
+    division_rows = frappe.get_all(
+        "JH Property Division",
+        filters={"parenttype": "JH Property Business", "parent": ["in", list(business_names)]},
+        fields=["parent", "division_used"],
+        ignore_permissions=True,
+    )
+
+    rows = [
+        {"business_used": business_names.get(row["parent"]), "division_used": row["division_used"]}
+        for row in division_rows
+    ]
+    rows.sort(key=lambda r: (r["business_used"] or "", r["division_used"] or ""))
+    return {"property_divisions": rows}
 
 
 @frappe.whitelist(methods=["GET"])
@@ -1573,7 +1648,7 @@ def _validate_stage_fields(renewal):
         required = {
             "cheque_type": _("Type of Cheque"),
             "cheque_date": _("Date"),
-            "payee": _("Payee"),
+            # "payee": _("Payee"),
         }
         for i, row in enumerate(renewal.cheque_details, start=1):
             missing = [label for field, label in required.items() if not row.get(field)]
@@ -1786,6 +1861,7 @@ def apply_workflow_action(
     renewal.last_tat_notification = None
     renewal.save(ignore_permissions=True)
     update_property_master_renewal_date(renewal)
+    _notify_step_assignee(renewal, action, frappe.session.user)
 
     from jh_digitrack.api.helpers.delegation import expire_adhoc_delegations_for_document
     expire_adhoc_delegations_for_document(renewal)

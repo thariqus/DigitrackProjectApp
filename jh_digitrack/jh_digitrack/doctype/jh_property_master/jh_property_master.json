@@ -79,9 +79,8 @@
   },
   {
    "fieldname": "division_used",
-   "fieldtype": "Link",
-   "label": "Division Used",
-   "options": "JH Division Master"
+   "fieldtype": "Select",
+   "label": "Division Used"
   },
   {
    "fieldname": "booked_under",
@@ -250,9 +249,8 @@
   },
   {
    "fieldname": "business_used",
-   "fieldtype": "Link",
-   "label": "Business Used",
-   "options": "JH Business Master"
+   "fieldtype": "Select",
+   "label": "Business Used"
   },
   {
    "fieldname": "lease_start_date",
@@ -306,7 +304,8 @@
    "fieldname": "approver",
    "fieldtype": "Table",
    "label": "Approver",
-   "options": "JH Property Approver"
+   "options": "JH Property Approver",
+   "reqd": 1
   },
   {
    "depends_on": "eval:doc.type_of_property == \"Other\"",
@@ -329,7 +328,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-07-03 15:47:57.131382",
+ "modified": "2026-07-13 16:05:43.107751",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Property Master",

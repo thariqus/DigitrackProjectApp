@@ -20,12 +20,13 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { XIcon } from "lucide-react";
 import FileAttachment from "./FileAttachment";
-
+ 
 interface AdditionalChargeEntry {
   label: string;
   amount: string;
+  vatIncluded: boolean;
 }
-
+ 
 const calculateRenewalTo = (fromDate: string, tenancyPeriod: string): string | null => {
   if (!fromDate || !tenancyPeriod) return null;
   const match = tenancyPeriod.match(/^(\d+)\s*(Months?|Weeks?|Years?)$/i);
@@ -42,10 +43,10 @@ const calculateRenewalTo = (fromDate: string, tenancyPeriod: string): string | n
   }
   return date.toISOString().split("T")[0];
 };
-
+ 
 const isNumeric = (val: string | undefined) =>
   val === undefined || val === "" || (!isNaN(Number(val)) && val.trim() !== "");
-
+ 
 const schema = z
   .object({
     proposed_rent: z
@@ -74,9 +75,9 @@ const schema = z
     message: "Renewal To must be after Renewal From",
     path: ["renewal_to"],
   });
-
+ 
 type FormData = z.infer<typeof schema>;
-
+ 
 interface StartRenewalModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -88,7 +89,7 @@ interface StartRenewalModalProps {
   tenancyPeriod?: string;
   mode?: "new" | "edit";
 }
-
+ 
 export default function StartRenewalModal({
   open,
   onOpenChange,
@@ -104,11 +105,12 @@ export default function StartRenewalModal({
   const saveDoc = useSaveDoc();
   const [supportingFiles, setSupportingFiles] = useState<File[]>([]);
   const [additionalCharges, setAdditionalCharges] = useState<AdditionalChargeEntry[]>([]);
-
+  const [vatIncluded, setVatIncluded] = useState(false);
+ 
   const isNewMode = mode === "new";
-
+ 
   const initialRenewalTo = renewalTo || (renewalFrom && tenancyPeriod ? calculateRenewalTo(renewalFrom, tenancyPeriod) : "") || "";
-
+ 
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
     mode: "onChange",
@@ -122,17 +124,28 @@ export default function StartRenewalModal({
       remarks: "",
     },
   });
-
+ 
   const proposedRentWatch = useWatch({ control: form.control, name: "proposed_rent" });
   const renewalFromWatch = useWatch({ control: form.control, name: "renewal_from" });
-
+ 
+  const proposedRent = Number(proposedRentWatch || 0);
+ 
+  const vatAmount = Number((proposedRent * 0.05).toFixed(2));
+ 
   const rentChangePercent = (() => {
     const current = Number(currentRent || 0);
     const proposed = Number(proposedRentWatch || 0);
     if (current <= 0 || proposed <= 0) return "0";
     return (((proposed - current) / current) * 100).toFixed(2);
   })();
-
+ 
+  const rentChangeAmount = (() => {
+    const current = Number(currentRent || 0);
+    const proposed = Number(proposedRentWatch || 0);
+    if (proposed <= 0) return "0";
+    return Math.round(proposed - current).toString();
+  })();
+ 
   useEffect(() => {
     if (open) {
       const resolvedRenewalTo = renewalTo || (renewalFrom && tenancyPeriod ? calculateRenewalTo(renewalFrom, tenancyPeriod) : "") || "";
@@ -149,7 +162,7 @@ export default function StartRenewalModal({
       setAdditionalCharges([]);
     }
   }, [open, isNewMode, currentRent, form, renewalFrom, renewalTo, tenancyPeriod]);
-
+ 
   useEffect(() => {
     if (!renewalFromWatch || !tenancyPeriod) return;
     const calculated = calculateRenewalTo(renewalFromWatch, tenancyPeriod);
@@ -157,53 +170,91 @@ export default function StartRenewalModal({
       form.setValue("renewal_to", calculated, { shouldValidate: true, shouldDirty: true });
     }
   }, [renewalFromWatch, tenancyPeriod, form]);
-
+ 
+  useEffect(() => {
+  if (vatIncluded) {
+    setAdditionalCharges((prev) => {
+      const otherCharges = prev.filter(
+        (item) => item.label !== "Rent Vat"
+      );
+ 
+      return [
+        ...otherCharges,
+        {
+          label: "Rent Vat",
+          amount: vatAmount.toFixed(2)
+        },
+      ];
+    });
+  } else {
+    setAdditionalCharges((prev) =>
+      prev.filter((item) => item.label !== "Rent Vat")
+    );
+  }
+}, [vatIncluded, vatAmount]);
+ 
   const uploadFile = async (file: File) => {
     const formData = new FormData();
     formData.append("file", file, file.name);
     formData.append("is_private", "1");
     const csrfToken =
       (window as { frappe?: { csrf_token?: string } })?.frappe?.csrf_token || "";
-
+ 
     const res = await fetch("/api/method/upload_file", {
       method: "POST",
       body: formData,
       credentials: "include",
       headers: csrfToken ? { "X-Frappe-CSRF-Token": csrfToken } : undefined,
     });
-
+ 
     const data = await res.json();
     if (!res.ok || !data?.message?.file_url) {
       throw new Error("File upload failed");
     }
     return data.message.file_url as string;
   };
-
+ 
   const onSubmit = async (data: FormData) => {
     try {
       const proposedRentNum = Number(data.proposed_rent);
       const current = Number(currentRent || 0);
       const rentPercent =
         current > 0 ? ((proposedRentNum - current) / current) * 100 : 0;
-
+ 
       const supportingDocUrl =
         supportingFiles.length > 0
           ? (await Promise.all(supportingFiles.map(uploadFile)))[0]
           : undefined;
+ 
+     const particulars = additionalCharges.flatMap((entry) => {
+  if (!entry.label.trim()) return [];
 
-      const particulars = additionalCharges
-        .filter((entry) => entry.label.trim() !== "" || entry.amount.trim() !== "")
-        .map((entry) => ({
-          label: entry.label.trim(),
-          amount: Number(entry.amount || 0),
-        }));
+  const rows = [
+    {
+      label: entry.label.trim(),
+      amount: Number(entry.amount || 0),
+      vat: entry.vatIncluded,
+    },
+  ];
 
+  if (entry.vatIncluded) {
+    rows.push({
+      label: `${entry.label.trim()} Vat`,
+      amount: Number((Number(entry.amount || 0) * 0.05).toFixed(2)),
+      vat: false,
+    });
+  }
+
+  return rows;
+});
+ 
       const renewalDoc = {
         doctype: "JH Property Rental Renewal",
         property: propertyId,
         property_name: propertyName,
-        current_rent: isNewMode ? null : (currentRent ?? 0),
+        current_rent: currentRent ?? 0,
         proposed_rent: proposedRentNum,
+        rent_change: Math.round(proposedRentNum - current),
         rent_change_percent: rentPercent,
         renewal_from: data.renewal_from,
         renewal_to: data.renewal_to,
@@ -215,7 +266,7 @@ export default function StartRenewalModal({
         workflow_state: "Draft",
         table_xqmr: particulars,
       };
-
+ 
       await saveDoc.mutateAsync(renewalDoc);
       onOpenChange(false);
       form.reset();
@@ -233,7 +284,7 @@ export default function StartRenewalModal({
       );
     }
   };
-
+ 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl w-full max-h-[95vh] overflow-y-auto">
@@ -243,16 +294,16 @@ export default function StartRenewalModal({
             Enter renewal details for <strong>{propertyName}</strong>
           </DialogDescription>
         </DialogHeader>
-
+ 
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2.5">
           {/* Property Name */}
           <div className="flex flex-col gap-1">
             <Label className="text-sm text-gray-600">Property Name</Label>
             <Input value={propertyName} readOnly className="bg-muted" />
           </div>
-
-          {/* Current Rent / Proposed Rent / Rent Change % */}
-          <div className="grid grid-cols-4 gap-3">
+ 
+          {/* Current Rent / Proposed Rent / Rent Change Amount / Rent Change % */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
             <div className="flex flex-col gap-1">
               <Label className="text-sm text-gray-600">Current Rent</Label>
               <Input
@@ -262,7 +313,7 @@ export default function StartRenewalModal({
                 className="bg-muted"
               />
             </div>
-
+ 
             <div className="flex flex-col gap-1">
               <Label className="text-sm text-gray-600">
                 Proposed Rent <span className="text-red-500">*</span>
@@ -280,7 +331,27 @@ export default function StartRenewalModal({
                 </p>
               )}
             </div>
-
+ 
+            <div className="flex items-center gap-1">
+              <input
+                type="checkbox"
+                checked={vatIncluded}
+                onChange={(e) => setVatIncluded(e.target.checked)}
+              />
+              <Label className="text-sm text-gray-600">
+                Vat Include
+              </Label>
+            </div>
+ 
+            <div className="flex flex-col gap-1">
+              <Label className="text-sm text-gray-600">Rent Increase Amount</Label>
+              <Input
+                value={rentChangeAmount}
+                readOnly
+                className="bg-muted"
+              />
+            </div>
+ 
             <div className="flex flex-col gap-1">
               <Label className="text-sm text-gray-600">Rent Change %</Label>
               <Input
@@ -289,7 +360,7 @@ export default function StartRenewalModal({
                 className="bg-muted"
               />
             </div>
-
+ 
             {/* Payment Schedule */}
                 <div className="flex flex-col gap-1">
                   <Label className="text-sm text-gray-600">Payment Schedule</Label>
@@ -311,10 +382,8 @@ export default function StartRenewalModal({
                     )}
                   />
               </div>
-          </div>
-
+         
           {/* Renewal From / Renewal To */}
-          <div className="grid grid-cols-3 gap-3">
             <div className="flex flex-col gap-1">
               <Label className="text-sm text-gray-600">
                 Renewal From <span className="text-red-500">*</span>
@@ -337,7 +406,7 @@ export default function StartRenewalModal({
                 </p>
               )}
             </div>
-
+ 
             <div className="flex flex-col gap-1">
               <Label className="text-sm text-gray-600">
                 Renewal To <span className="text-red-500">*</span>
@@ -372,62 +441,139 @@ export default function StartRenewalModal({
               )}
             </div>
           </div>
-
-          {/* Additional Charges */}
+ 
+          {/* Particulars */}
           <div className="flex flex-col gap-1">
-            <Label className="text-sm text-gray-600">Additional Charges</Label>
+            <Label className="text-sm text-gray-600">Particulars</Label>
             <div className="flex flex-col gap-2">
-              {additionalCharges.map((entry, index) => (
-                <div key={index} className="flex gap-2 items-end bg-muted p-3 rounded-lg">
-                  <div className="flex-1 flex flex-col gap-1">
-                    <Label className="text-xs">Label</Label>
-                    <Input
-                      type="text"
-                      value={entry.label}
-                      placeholder="e.g. Maintenance Fee"
-                      onChange={(e) => {
-                        const next = [...additionalCharges];
-                        next[index] = { ...next[index], label: e.target.value };
-                        setAdditionalCharges(next);
-                      }}
-                    />
+             {additionalCharges.map((entry, index) => {
+                const amount = Number(entry.amount || 0);
+                const vatAmount = entry.vatIncluded
+                  ? (amount *  0.05).toFixed(2)
+                  : amount.toFixed(2);
+ 
+                return (
+              <div key={index} className="bg-muted p-3 rounded-lg">
+                <div className="flex gap-2 items-center">
+                  {/* Left side - all fields */}
+                  <div className="flex-1">
+                    {/* First Row */}
+                    <div className="flex gap-2 items-center">
+                      <div className="flex-1 flex flex-col gap-1">
+                        <Label className="text-xs">Label</Label>
+                        <Input
+                        value={entry.label}
+                         readOnly={entry.label === "Rent Vat"}
+                          className={entry.label === "Rent Vat" ? "bg-muted cursor-not-allowed" : ""}
+                          onChange={(e) => {
+                            if (entry.label === "Rent Vat") return;
+                            const next = [...additionalCharges];
+                            next[index] = { ...next[index], label: e.target.value };
+                            setAdditionalCharges(next);
+                          }}
+                        />
+                      </div>
+
+                      <div className="flex-1 flex flex-col gap-1">
+                        <Label className="text-xs">Amount</Label>
+                        <Input
+                            type="text"
+                            inputMode="decimal"
+                            value={entry.amount}
+                            readOnly={entry.label === "Rent Vat"}
+                            className={entry.label === "Rent Vat" ? "bg-muted cursor-not-allowed" : ""}
+                            onChange={(e) => {
+                              if (entry.label === "Rent Vat") return;
+
+                              const value = e.target.value;
+                              if (value === "" || /^\d*\.?\d*$/.test(value)) {
+                                const next = [...additionalCharges];
+                                next[index] = {
+                                  ...next[index],
+                                  amount: value,
+                                };
+                                setAdditionalCharges(next);
+                              }
+                            }}
+                          />
+                      </div>
+
+                      {
+                        entry.label !== "Rent Vat" && (
+                          <div className="flex items-center gap-2 pt-6">
+                        <input
+                          type="checkbox"
+                          checked={entry.vatIncluded}
+                          onChange={(e) => {
+                            const next = [...additionalCharges];
+                            next[index] = {
+                              ...next[index],
+                              vatIncluded: e.target.checked,
+                            };
+                            setAdditionalCharges(next);
+                          }}
+                        />
+                        <Label className="text-xs">VAT</Label>
+                      </div>
+                        )
+
+                      }    
+                      
+                    </div>
+
+                    {/* VAT Row */}
+                    {entry.vatIncluded && (
+                      <div className="flex gap-2 mt-3">
+                        <div className="flex-1 flex flex-col gap-1">
+                          <Label className="text-xs">Label</Label>
+                          <Input value={`${entry.label} Vat`}  readOnly />
+                        </div>
+
+                        <div className="flex-1 flex flex-col gap-1 mr-12">
+                          <Label className="text-xs">Amount</Label>
+                          <Input value={vatAmount} readOnly />
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <div className="flex-1 flex flex-col gap-1">
-                    <Label className="text-xs">Amount</Label>
-                    <Input
-                      type="text"
-                      inputMode="decimal"
-                      value={entry.amount}
-                      placeholder="0.00"
-                      onChange={(e) => {
-                        const next = [...additionalCharges];
-                        next[index] = { ...next[index], amount: e.target.value };
-                        setAdditionalCharges(next);
-                      }}
-                    />
+
+                  {/* Remove button centered across both rows */}
+                  <div className="self-center">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() =>
+                        setAdditionalCharges(
+                          additionalCharges.filter((_, i) => i !== index)
+                        )
+                      }
+                    >
+                      <XIcon className="h-4 w-4" />
+                    </Button>
                   </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 p-0"
-                    onClick={() => setAdditionalCharges(additionalCharges.filter((_, i) => i !== index))}
-                  >
-                    <XIcon className="h-4 w-4" />
-                  </Button>
                 </div>
-              ))}
+              </div>
+              )})}
               <Button
                 type="button"
                 variant="outline"
                 className="w-full text-gray-400 border-2 border-dashed h-10 text-sm"
-                onClick={() => setAdditionalCharges([...additionalCharges, { label: "", amount: "" }])}
+                onClick={() => setAdditionalCharges([
+                  ...additionalCharges,
+                  {
+                    label: "",
+                    amount: "",
+                    vatIncluded: false,
+                  },
+                ])}
               >
-                + Add Additional Charge
+                + Add Particulars
               </Button>
             </div>
           </div>
-
+ 
           {/* Remarks */}
           <div className="flex flex-col gap-1">
             <Label className="text-sm text-gray-600">Remarks</Label>
@@ -437,13 +583,15 @@ export default function StartRenewalModal({
               placeholder="Any additional notes..."
             />
           </div>
-
+         
+ 
+ 
           {/* Supporting Documents */}
           <div className="flex flex-col gap-1">
             <Label className="text-sm text-gray-600">Supporting Documents</Label>
             <FileAttachment files={supportingFiles} setFiles={setSupportingFiles} />
           </div>
-
+ 
           <DialogFooter className="gap-2 ">
             <Button
               type="button"
@@ -461,3 +609,5 @@ export default function StartRenewalModal({
     </Dialog>
   );
 }
+ 
+ 

@@ -74,7 +74,6 @@ export default function RenewalSheet({
   onOpenChange,
   propertyId,
   mode,
-  handleDownload,
   isJHPropertyDepartment,
   isGLTeam,
 }: RenewalSheetProps) {
@@ -176,6 +175,10 @@ export default function RenewalSheet({
   });
  
   const proposedRent = useWatch({ control, name: "proposed_rent" }) || 0;
+  const currentRentValue = Number(property?.current_rent ?? renewalDoc?.current_rent ?? 0);
+  const rentChangeAmountState = Math.round(Number(proposedRent || 0) - currentRentValue);
+  const rentChangeAmountDisplay =
+    renewalDoc?.rent_change ?? Math.round(Number(renewalDoc?.proposed_rent ?? 0) - Number(renewalDoc?.current_rent ?? 0));
  
   useEffect(() => {
     if (open) {
@@ -219,21 +222,29 @@ export default function RenewalSheet({
   }, [open, renewalDoc, reset]);
  
 useEffect(() => {
-  const current = Number(property?.current_rent || 0);
+  const current = currentRentValue;
   const proposed = Number(proposedRent || 0);
- 
+
   if (current <= 0) {
     setRentChangePercentState("0");
     return;
   }
- 
+
   const percent = ((proposed - current) / current) * 100;
   setRentChangePercentState(percent.toFixed(2));
-}, [proposedRent, property?.current_rent]);
+}, [currentRentValue, proposedRent]);
  
   const formatDateForAPI = (date?: string) => {
     if (!date) return "";
     return new Date(date).toISOString().split("T")[0];
+  };
+  const formatDate = (date?: string) => {
+    if (!date) return "";
+    const d = new Date(date);
+    return `${String(d.getDate()).padStart(2, "0")}-${String(d.getMonth() + 1).padStart(
+      2,
+      "0"
+    )}-${d.getFullYear()}`;
   };
   const uploadFile = async (file: File) => {
     const formData = new FormData();
@@ -272,7 +283,7 @@ useEffect(() => {
     const validCheques = chequeDetails.filter((cheque) =>
       cheque.cheque_type &&
       cheque.cheque_date &&
-      cheque.payee &&
+      // cheque.payee &&
       Number(cheque.cheque_amount || 0) > 0
     );
 
@@ -285,6 +296,34 @@ useEffect(() => {
       toast.error("Please complete every cheque row before confirming");
       return false;
     }
+
+    // Cheque total must match backend particular_total
+    const enteredChequeTotal = chequeDetails.reduce(
+      (sum, cheque) => sum + Number(cheque.cheque_amount || 0),
+      0
+    );
+
+    // Backend value is expected to be available on renewalDoc
+    const particularTotal = Number(
+      (renewalDoc as any)?.particular_total ?? 0
+    );
+
+
+    if (!particularTotal) {
+      toast.error(`particular_total value is missing. Expected particular_total, got: ${particularTotal}`);
+      return false;
+    }
+
+    if (Number(enteredChequeTotal) !== Number(particularTotal)) {
+      toast.error(
+        <div className="text-md">
+          <div className="text-green-400">Cheque total must be : {particularTotal}</div>
+          <div className="text-red-500">Entered total : {enteredChequeTotal}</div>
+        </div>
+      );
+      return false;
+    }
+
  
   }
  
@@ -415,7 +454,7 @@ useEffect(() => {
         .filter((cheque) =>
           cheque.cheque_type &&
           cheque.cheque_date &&
-          cheque.payee &&
+          // cheque.payee &&
           Number(cheque.cheque_amount || 0) > 0
         )
         .map((cheque) => ({
@@ -460,7 +499,7 @@ useEffect(() => {
     if (!validateBeforeWorkflow()) return;
  
     try {
-      const { latestDoc } = await saveWorkflowProgress(data);
+      await saveWorkflowProgress(data);
       handleOpenApprovalModal("approve");
     } catch (error: unknown) {
       const message = getErrorMessage(error, "Failed to save renewal progress");
@@ -572,10 +611,10 @@ useEffect(() => {
   const handleApprovalSubmit = (action: string, comment: string) => {
     if (!propertyId) return;
 
-    const wasGLMiroCompletion =
-      (isGLTeam || effectiveIsGLTeam) &&
-      action === "approve" &&
-      renewalDoc?.workflow_state === "Pending MIRO";
+    // const wasGLMiroCompletion =
+    //   (isGLTeam || effectiveIsGLTeam) &&
+    //   action === "approve" &&
+    //   renewalDoc?.workflow_state === "Pending MIRO";
 
     applyAction(
       {
@@ -591,9 +630,9 @@ useEffect(() => {
           await refetchRenewal();
           setIsApprovalModalOpen(false);
           toast.success(`${action.charAt(0).toUpperCase() + action.slice(1)}d successfully`);
-          if (wasGLMiroCompletion && propertyId) {
-            handleDownload(propertyId)
-          }
+          // if (wasGLMiroCompletion && propertyId) {
+          //   handleDownload(propertyId)
+          // }
           if (["approve", "submit"].includes(action)) {
             onOpenChange(false);
           }
@@ -709,6 +748,7 @@ const renderDelegationBadge = () => {
           : latestDoc.renewed_contract_document;
  
       const rentPercent = Number(rentChangePercentState) || 0;
+      const rentChangeAmount = Math.round(Number(data.proposed_rent || 0) - Number(latestDoc.current_rent || 0));
  
       const updatedChequeDetails = chequeDetails.map((cheque, index) => ({
         doctype: "JH Property Cheque Detail",
@@ -738,6 +778,7 @@ const renderDelegationBadge = () => {
         new_security_deposit: Number(data.new_security_deposit || 0),
         remarks: data.remarks || "",
         po_number: data.po_number || "",
+        rent_change: rentChangeAmount,
         rent_change_percent: rentPercent,
         property: latestDoc.property,
         current_rent: latestDoc.current_rent,
@@ -795,7 +836,7 @@ const renderDelegationBadge = () => {
       <span className="font-medium text-gray-600" >
         {label}:
       </span>
-      <span>{value}</span>
+      <span className="font-medium text-gray-600">{value}</span>
     </div>
   );
  
@@ -809,9 +850,9 @@ const renderDelegationBadge = () => {
     return (
       <div>
         {isView ? (
-          <div className="flex gap-1">
-            <Label className="text-sm text-gray-600">{label}:</Label>
-            <span>{value}</span>
+          <div className="flex gap-1 text-sm ">
+            <Label className="text-gray-600">{label} :</Label>
+            <span>{type === "date" ? formatDate(value) : value}</span>
           </div>
         ) : (
           <div className="flex flex-col gap-1">
@@ -923,7 +964,7 @@ const renderDelegationBadge = () => {
                     {renderReadonlyField("Property Type", property.type_of_property)}
                     {renderReadonlyField("Number of Units", property.number_of_units)}
                     {renderReadonlyField("Tenancy Period", property.tenancy_period)}
-                    {renderReadonlyField("Current Rent", property.current_rent)}
+                    {/* {renderReadonlyField("Current Rent", property.current_rent)} */}
                   </>
                 )}
               </div>
@@ -935,10 +976,19 @@ const renderDelegationBadge = () => {
             <div
               className={`grid items-start gap-4 py-1 ${
                 isView
-                  ? "grid-cols-1 lg:grid-cols-3 items-center"
-                  : "grid-cols-1 md:grid-cols-4 lg:grid-cols-4 items-center"
+                  ? "grid-cols-1 lg:grid-cols-4 items-center"
+                  : "grid-cols-1 md:grid-cols-3 lg:grid-cols-5 items-center"
               }`}
             >
+              <div className={`${isView ? "flex gap-2 text-sm" : "flex flex-col gap-1"}`}>
+                <Label className="text-gray-600 ">Current Rent :</Label>
+                {isView ? (
+                  <div>{currentRentValue}</div>
+                ) : (
+                  <Input value={currentRentValue || ""} readOnly className="bg-gray-200" />
+                )}
+              </div>
+
               {renderRenewalField(
                 "Proposed Rent",
                 "proposed_rent",
@@ -946,10 +996,21 @@ const renderDelegationBadge = () => {
                 "number",
                 true
               )}
-              <div className={`${isView ? "flex gap-2" : "flex flex-col gap-1"}`}>
+
+
+              <div className={`${isView ? "flex gap-2 text-sm" : "flex flex-col gap-1"}`}>
+                <Label className="text-gray-600">Rent Increase Amount:</Label>
+                {isView ? (
+                  <div>{rentChangeAmountDisplay}</div>
+                ) : (
+                  <Input value={rentChangeAmountState} readOnly className="bg-gray-200" />
+                )}
+              </div>
+
+              <div className={`${isView ? "flex gap-2 text-sm" : "flex flex-col gap-1"}`}>
                 <Label className="text-gray-600">Rent Change %:</Label>
                 {isView ? (
-                  <div>{renewalDoc?.rent_change_percent ?? 0}%</div>
+                  <div>{Number(renewalDoc?.rent_change_percent ?? 0).toFixed(2)}%</div>
                 ) : (
                   <Input value={`${rentChangePercentState}%`} readOnly className="bg-gray-200" />
                 )}
@@ -994,33 +1055,34 @@ const renderDelegationBadge = () => {
                 "number"
               )}
  
-              <div className={`${isView ? "flex items-start flex-nowrap py-1 gap-2" : "flex flex-col gap-1 py-1"}`}>
+              <div className={`${isView ? "flex items-center flex-nowrap py-1 gap-2" : "flex flex-col gap-1 py-1"}`}>
                 <Label className="text-gray-600">Remarks:</Label>
                 {isView ? (
-                  <div className="flex-wrap h-auto">{renewalDoc?.remarks}</div>
+                  <div className="flex-wrap text-sm h-auto">{renewalDoc?.remarks}</div>
                 ) : (
-                  <textarea {...register("remarks")} className="border rounded-md p-2 h-30  w-100 resize-vertical" />
+                  <textarea {...register("remarks")} className="border text-sm rounded-md p-2 h-30  w-100 resize-vertical" />
                 )}
               </div>
             </div>
 
             <div>
-              <h3 className="text-md font-semibold mb-2">Additional Charges</h3>
+              <h3 className="text-md font-semibold mb-2">Particulars</h3>
               {isView ? (
                 particulars.length > 0 ? (
                   <div className="space-y-2 mb-6">
-                    {particulars.map((entry, index) => (
-                      <div
-                        key={index}
-                        className="grid grid-cols-1 md:grid-cols-2 gap-2 bg-muted py-1 px-2 rounded-lg"
-                      >
-                        {renderReadonlyField("Label", entry.label)}
-                        {renderReadonlyField("Amount", entry.amount)}
-                      </div>
+                    <div
+                        className="grid grid-cols-1 md:grid-cols-2 gap-2 bg-muted py-1 px-2 rounded-lg">
+                          {particulars.map((entry, index) => (
+                            <div  key={index} className="flex items-center gap-2 py-1 text-sm">
+                              <span>{entry.label}</span>
+                              {renderReadonlyField("", entry.amount)}
+                            </div>
+                      
                     ))}
+                    </div>
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground mb-6">No additional charges added.</p>
+                  <p className="text-sm text-muted-foreground mb-6">No particulars added.</p>
                 )
               ) : (
                 <div className="space-y-2 mb-6">
@@ -1070,7 +1132,7 @@ const renderDelegationBadge = () => {
                     className="w-full border-2 border-dashed h-10 text-sm"
                     onClick={() => setParticulars([...particulars, { label: "", amount: "" }])}
                   >
-                    + Add Additional Charge
+                    + Add particulars
                   </Button>
                 </div>
               )}
@@ -1531,7 +1593,7 @@ const renderDelegationBadge = () => {
                     Mark Complete
                   </Button>
                 </div>
-            ) : !isView ? (
+            ) : !isView &&
               <>
                 <Button variant="outline" className="w-full" type="button" onClick={() => onOpenChange(false)}>
                   Close
@@ -1545,13 +1607,7 @@ const renderDelegationBadge = () => {
                   Update Renewal
                 </Button>
               </>
-            ) : (
-              <>
-                <Button variant="outline" className="w-full" type="button" onClick={() => onOpenChange(false)}>
-                  Cancel
-                </Button>
-              </>
-            )}
+             }
           </div>
         </SheetFooter>
       </SheetContent>

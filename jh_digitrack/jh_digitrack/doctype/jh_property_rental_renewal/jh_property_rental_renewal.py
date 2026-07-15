@@ -8,6 +8,10 @@ from frappe.utils import flt, getdate, today
 
 from jh_digitrack.api.property_management import ACTIVE_RENEWAL_STATES
 
+VAT_RATE = 0.05
+PARENT_VAT_LABEL = "Rent VAT"
+PARENT_RENT_LABEL = "Rent"
+
 
 class JHPropertyRentalRenewal(Document):
 
@@ -28,6 +32,10 @@ class JHPropertyRentalRenewal(Document):
 
 	def before_save(self):
 		self.calculate_rent_change_percent()
+		self.sync_parent_rent_row()
+		self.sync_parent_vat_row()
+		self.calculate_particular_total()
+		self.calculate_cheque_total()
 
 	def before_submit(self):
 		if (self.workflow_state or "Draft") == "Draft":
@@ -40,9 +48,53 @@ class JHPropertyRentalRenewal(Document):
 
 		if not current_rent or self.proposed_rent in (None, ""):
 			self.rent_change_percent = 0
+			self.rent_change = 0
 			return
 
 		self.rent_change_percent = ((proposed_rent - current_rent) / current_rent) * 100
+		self.rent_change = round(proposed_rent - current_rent)
+
+	def sync_parent_rent_row(self):
+		rows = self.get("table_xqmr") or []
+		existing = next((row for row in rows if row.label == PARENT_RENT_LABEL), None)
+
+		if self.proposed_rent:
+			rent_amount = round(flt(self.proposed_rent))
+			if existing:
+				existing.amount = rent_amount
+			else:
+				existing = self.append("table_xqmr", {"label": PARENT_RENT_LABEL, "amount": rent_amount})
+			self._move_particular_row_to_top(existing)
+		elif existing:
+			self.table_xqmr.remove(existing)
+
+	def _move_particular_row_to_top(self, row):
+		rows = self.table_xqmr
+		if not rows or rows[0] == row:
+			return
+		rows.remove(row)
+		rows.insert(0, row)
+		for i, r in enumerate(rows, start=1):
+			r.idx = i
+
+	def sync_parent_vat_row(self):
+		rows = self.get("table_xqmr") or []
+		existing = next((row for row in rows if row.label == PARENT_VAT_LABEL), None)
+
+		if self.include_vat:
+			vat_amount = round(flt(self.proposed_rent) * VAT_RATE)
+			if existing:
+				existing.amount = vat_amount
+			else:
+				self.append("table_xqmr", {"label": PARENT_VAT_LABEL, "amount": vat_amount})
+		elif existing:
+			self.table_xqmr.remove(existing)
+
+	def calculate_particular_total(self):
+		self.particular_total = round(sum(flt(row.amount) for row in self.get("table_xqmr", [])))
+
+	def calculate_cheque_total(self):
+		self.cheque_total = round(sum(flt(row.cheque_amount) for row in self.get("cheque_details", [])))
 
 	def validate_dates(self):
 		is_draft = self.is_new() or (self.workflow_state or "Draft") == "Draft"

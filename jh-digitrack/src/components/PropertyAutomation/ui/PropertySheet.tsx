@@ -18,7 +18,13 @@ import { toast } from "sonner";
 import FileAttachment from "./FileAttachment";
 import MultiValueInput from "./MultiValueInput";
 import { useDocs, useSaveDoc, useUpdateDoc } from "@/hooks/doc";
-import { usePropertyDoc, useRenewalList, useUserAccess, useDivisionsByBusiness, usePropertyTypes } from "../hooks/useProperty";
+import {
+  usePropertyDoc,
+  useRenewalList,
+  useUserAccess,
+  usePropertyTypes,
+  usePropertyDivisions,
+} from "../hooks/useProperty";
 import { PropertyMaster, JHPropertyElectricityConnection, JHPropertyLandline, ChequeDetail, RentalRenewal } from "@/types/JHDigitrack/JHPropertyAutomation";
 import { X } from "lucide-react";
 import { queryClient } from "@/utils/query-client";
@@ -40,10 +46,6 @@ type UserOption = {
   name: string;
   full_name?: string;
   email?: string;
-};
- 
-type NamedOption = {
-  name: string;
 };
 
 type TenancyPeriodInputProps = {
@@ -134,7 +136,7 @@ const propertySchema = z.object({
   profit_center: numericOnlyField,
   number_of_units: numericOnlyField,
   number_of_premises: numericOnlyField,
-  premise_number: z.string().nullable().optional(),
+  // premise_number: z.string().nullable().optional(),
   staff_allocated: numericOnlyField,
  
   location: z.string().nullable().optional(),
@@ -166,7 +168,7 @@ const propertySchema = z.object({
  
   electricity_accounts: numericOnlyField,
   electricity_connections: z.array(z.object({
-    connection_number: z.string().min(1, "Connection Number required"),
+    premise_number: z.string().min(1, "Premise Number required"),
     meter_id: z.string().optional(),
     account_number: z.string().optional(),
     connection_type: z.enum(["Electricity", "Water", "Dual"]).optional(),
@@ -203,7 +205,7 @@ type PropertyFormValues = z.infer<typeof propertySchema> & {
   profit_center: undefined,
   number_of_units: undefined,
   number_of_premises: undefined,
-  premise_number: "",
+  // premise_number: "",
   staff_allocated: undefined,
   location: "",
   emirate: "",
@@ -253,8 +255,6 @@ export default function PropertySheet({
   const [securityDepositCheques, setSecurityDepositCheques] = useState<ChequeDetail[]>([]);
   const [landlineErrors, setLandlineErrors] = useState<Record<number, string>>({});
   const lastAutoFilledDivisionRef = useRef<string | null>(null);
-  const prevBusinessRef = useRef<string | null | undefined>(undefined);
-  const prevCountryRef = useRef<string | null | undefined>(undefined);
   const [openApproverIndex, setOpenApproverIndex] = useState<number | null>(null);
   const [approverSearchQuery, setApproverSearchQuery] = useState("");
   const [approverDropdownPos, setApproverDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null);
@@ -299,10 +299,23 @@ const renewalsData = renewalsListData?.renewals ?? [];
     activeRenewal.workflow_state !== "Draft" &&
     activeRenewal.workflow_state !== "Completed";
 
-  const { data: businessData } = useDocs({
-    doctype: "JH Business Master",
-    limit: 0,
-  });
+  const { data: propertyDivisionsData, refetch: refetchPropertyDivisions } = usePropertyDivisions();
+  
+  const handleBusinessDropdownOpenChange = useCallback(
+    (isOpen: boolean) => {
+      if (isOpen) refetchPropertyDivisions();
+    },
+    [refetchPropertyDivisions]
+  );
+
+  const handleDivisionDropdownOpenChange = useCallback(
+    (isOpen: boolean) => {
+      if (isOpen) refetchPropertyDivisions();
+    },
+    [refetchPropertyDivisions]
+  );
+
+
  
   const { data: usersData, isLoading: usersLoading } = useDocs<UserOption>({
     doctype: "User",
@@ -325,24 +338,47 @@ const renewalsData = renewalsListData?.renewals ?? [];
   const businessWatch = useWatch({ control, name: "business_used" });
   const typeOfPropertyWatch = useWatch({ control, name: "type_of_property" });
   const countryWatch = useWatch({ control, name: "country" });
-  const { data: divisionData } = useDivisionsByBusiness(businessWatch);
-
-  const divisionWatch = useWatch({
-    control,
-    name: "division_used",
-  });
+   
+  const businessOptions = useMemo(() => {
+    const values = (propertyDivisionsData ?? [])
+      .map((row) => row.business_used)
+      .filter((value): value is string => Boolean(value));
+    return Array.from(new Set(values)).sort((a, b) => a.localeCompare(b));
+  }, [propertyDivisionsData]);
+ 
+  const divisionOptions = useMemo(() => {
+    const values = (propertyDivisionsData ?? [])
+      .filter((row) => !businessWatch || row.business_used === businessWatch)
+      .map((row) => row.division_used)
+      .filter((value): value is string => Boolean(value));
+    return Array.from(new Set(values)).sort((a, b) => a.localeCompare(b));
+  }, [propertyDivisionsData, businessWatch]);
 
   const numberOfPremisesWatch = useWatch({ control, name: "number_of_premises" });
-  const premiseNumberWatch = useWatch({ control, name: "premise_number" });
+  // const premiseNumberWatch = useWatch({ control, name: "premise_number" });
   // const electricityAccountsWatch = useWatch({ control, name: "electricity_accounts" });
   const landlineAccountsWatch = useWatch({ control, name: "landline_accounts" });
   const depositAmountWatch = useWatch({ control, name: "landlord_security_deposit" });
-  const { data: selectedDivisionData } = useDocs({
-    doctype: "JH Division Master",
-    fields: ["name", "division_head", "division_gm"],
-    filters: divisionWatch ? [["name", "=", divisionWatch]] : [],
-    limit: 0,
-  });
+  // const businessOptions = useMemo(() => {
+  //   const values = [
+  //     doc?.business_used,
+  //     ...propertyDivisionData.map((row) => row.business_used),
+  //   ].filter(Boolean) as string[];
+ 
+  //   return Array.from(new Set(values)).sort((a, b) => a.localeCompare(b));
+  // }, [doc?.business_used, propertyDivisionData]);
+ 
+  // const divisionOptions = useMemo(() => {
+  //   const rows = businessWatch
+  //     ? propertyDivisionData.filter((row) => row.business_used === businessWatch)
+  //     : propertyDivisionData;
+  //   const values = [
+  //     doc?.division_used,
+  //     ...rows.map((row) => row.division_used),
+  //   ].filter(Boolean) as string[];
+ 
+  //   return Array.from(new Set(values)).sort((a, b) => a.localeCompare(b));
+  // }, [businessWatch, doc?.division_used, propertyDivisionData]);
  
   // const selectedDivision = selectedDivisionData?.[0];
 
@@ -359,8 +395,6 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
   const handleSheetOpenChange = (nextOpen: boolean) => {
     if (!nextOpen) {
       lastAutoFilledDivisionRef.current = null;
-      prevBusinessRef.current = undefined;
-      prevCountryRef.current = undefined;
       resetSheetState();
     }
 
@@ -402,30 +436,6 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
     }
   }, [open, isCreate, doc, resetSheetState]);
  
-  useEffect(() => {
-    if (!open || isView) return;
-    if (prevBusinessRef.current === undefined) {
-      prevBusinessRef.current = businessWatch;
-      return;
-    }
-    if (prevBusinessRef.current !== businessWatch) {
-      setValue("division_used", "");
-      prevBusinessRef.current = businessWatch;
-    }
-  }, [businessWatch, open, isView, setValue]);
-
-  useEffect(() => {
-    if (!open || isView) return;
-    if (prevCountryRef.current === undefined) {
-      prevCountryRef.current = countryWatch;
-      return;
-    }
-    if (prevCountryRef.current !== countryWatch) {
-      setValue("emirate", "");
-      prevCountryRef.current = countryWatch;
-    }
-  }, [countryWatch, open, isView, setValue]);
-
   // useEffect(() => {
   //   if (!open || !divisionWatch) return;
   //   const div = selectedDivision ?? selectedDivisionData?.[0];
@@ -460,6 +470,49 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
   };
  
   const onSubmit = async (data: PropertyFormValues) => {
+
+    if (approvers.length === 0) {
+      toast.error("Please add at least one approver.");
+      return;
+    }
+
+    if (approvers.some(a => !a.approver.trim())) {
+      toast.error("Please select an approver.");
+      return;
+    }
+
+    // Validate electricity connections
+      const hasInvalidElectricityConnection = connections.some(
+        (conn) =>
+          !conn.premise_number?.trim() ||
+          !conn.meter_id?.trim() ||
+          !conn.account_number?.trim() ||
+          !conn.connection_type
+      );
+
+      if (hasInvalidElectricityConnection) {
+        toast.error(
+          "Please fill all fields in the Electricity Connections."
+        );
+        return;
+      }
+
+      // Validate landline connections
+      const hasInvalidLandlineConnection = landlineConnections.some(
+        (conn) =>
+          !conn.landline_number?.trim() ||
+          !conn.provider?.trim() ||
+          !conn.line_type
+      );
+
+      if (hasInvalidLandlineConnection) {
+        toast.error(
+          "Please fill all fields in the Landline Connections."
+        );
+        return;
+      }
+
+
     const formData = {
       ...data,
       approver: approvers.map((row, index) => ({
@@ -523,15 +576,15 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
       }
     }
 
-    if (data.number_of_premises && data.number_of_premises > 0) {
-      const premiseItems = getMultiValueItems(data.premise_number);
-      if (premiseItems.length !== data.number_of_premises) {
-        toast.warning(
-          `Please add exactly ${data.number_of_premises} premise number(s). Currently ${premiseItems.length} added.`
-        );
-        return;
-      }
-    }
+    // if (data.number_of_premises && data.number_of_premises > 0) {
+    //   const premiseItems = getMultiValueItems(data.premise_number);
+    //   if (premiseItems.length !== data.number_of_premises) {
+    //     toast.warning(
+    //       `Please add exactly ${data.number_of_premises} premise number(s). Currently ${premiseItems.length} added.`
+    //     );
+    //     return;
+    //   }
+    // }
     
     try {
       const uploadedFiles =
@@ -819,71 +872,71 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
     );
   };
 
-  const renderMultiValueField = (
-    label: string,
-    name: "premise_number" | "electricity_connection_numbers",
-    value?: string,
-    maxItems?: number
-  ) => {
-    const items = getMultiValueItems(value);
+  // const renderMultiValueField = (
+  //   label: string,
+  //   name: "premise_number" | "electricity_connection_numbers",
+  //   value?: string,
+  //   maxItems?: number
+  // ) => {
+  //   const items = getMultiValueItems(value);
 
-    return (
-      <div className="flex flex-col gap-1">
-        {!isView && <Label className="text-sm text-gray-600 text-nowrap">{label} 
-                      <span className="text-xs text-gray-400">({`Type and press Enter`})</span>
-                     </Label>}
+  //   return (
+  //     <div className="flex flex-col gap-1">
+  //       {!isView && <Label className="text-sm text-gray-600 text-nowrap">{label} 
+  //                     {/* <span className="text-xs text-gray-400">({`Type and press Enter`})</span> */}
+  //                    </Label>}
 
-        {isView ? (
-          <div className="flex items-start gap-2 py-1 text-sm">
-            <span className="font-medium text-gray-600">{label}:</span>
-            {items.length > 0 ? (
-              <div className="flex flex-wrap gap-1">
-                {items.map((item) => (
-                  <span
-                    key={item}
-                    className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-foreground"
-                  >
-                    {item}
-                  </span>
-                ))}
-              </div>
-            ) : (
-              <span>-</span>
-            )}
-          </div>
-        ) : (
-          <Controller
-            name={name}
-            control={control}
-            render={({ field }) => (
-              <MultiValueInput
-                value={field.value}
-                onChange={field.onChange}
-                maxItems={maxItems}
-                className={errors[name] ? "border-red-500" : ""}
-              />
-            )}
-          />
-        )}
+  //       {isView ? (
+  //         <div className="flex items-start gap-2 py-1 text-sm">
+  //           <span className="font-medium text-gray-600">{label}:</span>
+  //           {items.length > 0 ? (
+  //             <div className="flex flex-wrap gap-1">
+  //               {items.map((item) => (
+  //                 <span
+  //                   key={item}
+  //                   className="inline-flex items-center rounded-full bg-rose-100 px-2 py-0.5 text-xs font-medium text-foreground"
+  //                 >
+  //                   {item}
+  //                 </span>
+  //               ))}
+  //             </div>
+  //           ) : (
+  //             <span>-</span>
+  //           )}
+  //         </div>
+  //       ) : (
+  //         <Controller
+  //           name={name}
+  //           control={control}
+  //           render={({ field }) => (
+  //             <MultiValueInput
+  //               value={field.value}
+  //               onChange={field.onChange}
+  //               maxItems={maxItems}
+  //               className={errors[name] ? "border-red-500" : ""}
+  //             />
+  //           )}
+  //         />
+  //       )}
 
-        {name === "premise_number" && !isView && Number(numberOfPremisesWatch) > 0 && (() => {
-          const currentCount = getMultiValueItems(premiseNumberWatch).length;
-          const required = Number(numberOfPremisesWatch);
-          const isMatch = currentCount === required;
-          return (
-            <span className={`text-xs ${isMatch ? "text-green-600" : "text-amber-600"}`}>
-              {currentCount} / {required} premise number{required !== 1 ? "s" : ""} added
-              {!isMatch && ` — ${required - currentCount > 0 ? `add ${required - currentCount} more` : `remove ${currentCount - required} extra`}`}
-            </span>
-          );
-        })()}
+  //       {name === "premise_number" && !isView && Number(numberOfPremisesWatch) > 0 && (() => {
+  //         const currentCount = getMultiValueItems(premiseNumberWatch).length;
+  //         const required = Number(numberOfPremisesWatch);
+  //         const isMatch = currentCount === required;
+  //         return (
+  //           <span className={`text-xs ${isMatch ? "text-green-600" : "text-amber-600"}`}>
+  //             {currentCount} / {required} premise number{required !== 1 ? "s" : ""} added
+  //             {!isMatch && ` — ${required - currentCount > 0 ? `add ${required - currentCount} more` : `remove ${currentCount - required} extra`}`}
+  //           </span>
+  //         );
+  //       })()}
 
-        {errors[name] && (
-          <span className="text-red-500 text-xs">{errors[name]?.message as string}</span>
-        )}
-      </div>
-    );
-  };
+  //       {errors[name] && (
+  //         <span className="text-red-500 text-xs">{errors[name]?.message as string}</span>
+  //       )}
+  //     </div>
+  //   );
+  // };
 
 
   const renderLandlineConnections = (
@@ -1196,20 +1249,22 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                 className="flex gap-2 items-end bg-muted p-3 rounded-lg"
               >
                 <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-2">
-                  <div className={`${isView ? "flex items-center gap-1": "flex  flex-col gap-1"}`}>
-                    <Label className="text-xs">Connection Number:</Label>
+                  {/* <div className={`${isView ? "flex items-center gap-1": "flex  flex-col gap-1"}`}>
+                    {renderMultiValueField("Premise Number", "premise_number", doc?.premise_number, Number(numberOfPremisesWatch) || undefined)}
+                  </div> */}
+                    <div className={`${isView ? "flex items-center gap-1": "flex  flex-col gap-1"}`}>
+                    <Label className="text-xs">Premise Number:</Label>
                     {isViewMode ? (
-                      <span className="text-sm font-medium">
-                        {conn.connection_number || "-"}
+                      <span className="text-sm">
+                        {conn.premise_number|| "-"}
                       </span>
                     ) : (
                       <Input
-                        value={conn.connection_number || ""}
+                        value={conn.premise_number|| ""}
                         onChange={(e) => {
                           const newConns = [...connections];
-                          newConns[index].connection_number = e.target.value;
+                          newConns[index].premise_number= e.target.value;
                           setConnections(newConns);
-                          setValue("electricity_accounts", newConns.length);
                         }}
                         className="text-sm"
                       />
@@ -1540,14 +1595,22 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                     name="business_used"
                     control={control}
                     render={({ field }) => (
-                      <Select value={field.value ?? ""} onValueChange={field.onChange}>
+                      <Select
+                        value={field.value ?? ""}
+                        onOpenChange={handleBusinessDropdownOpenChange as any}
+                        onValueChange={(value) => {
+                          field.onChange(value);
+                          setValue("division_used", "");
+                        }}
+                      >
+
                         <SelectTrigger className="text-sm h-9">
                           <SelectValue placeholder="Select Business" />
                         </SelectTrigger>
                         <SelectContent className="max-h-60 overflow-y-auto">
-                          {[...(businessData ?? [])].sort((a: NamedOption, b: NamedOption) => a.name.localeCompare(b.name)).map((business: NamedOption) => (
-                            <SelectItem key={business.name} value={business.name}>
-                              {business.name}
+                          {businessOptions.map((business) => (
+                            <SelectItem key={business} value={business}>
+                              {business}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -1569,14 +1632,15 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                     name="division_used"
                     control={control}
                     render={({ field }) => (
-                      <Select value={field.value ?? ""} onValueChange={field.onChange}>
+                      <Select value={field.value ?? ""} onOpenChange={handleDivisionDropdownOpenChange as any} onValueChange={field.onChange}>
+
                         <SelectTrigger className="text-sm h-9">
                           <SelectValue placeholder="Select Division" />
                         </SelectTrigger>
                         <SelectContent className="max-h-60 overflow-y-auto">
-                          {[...(divisionData ?? [])].sort((a, b) => a.name.localeCompare(b.name)).map((div) => (
-                            <SelectItem key={div.name} value={div.name}>
-                              {div.name}
+                          {divisionOptions.map((division) => (
+                            <SelectItem key={division} value={division}>
+                              {division}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -1592,7 +1656,6 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
               {renderField("Profit Center", "profit_center", doc?.profit_center)}
               {renderField("Number of Units", "number_of_units", doc?.number_of_units)}
               {renderField("Number of Premises", "number_of_premises", doc?.number_of_premises)}
-              {renderMultiValueField("Premise Number", "premise_number", doc?.premise_number, Number(numberOfPremisesWatch) || undefined)}
               {renderField("Staff Allocated", "staff_allocated", doc?.staff_allocated)}
               {renderApproversTable()}
             </div>
@@ -1614,7 +1677,15 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                     name="country"
                     control={control}
                     render={({ field }) => (
-                      <select {...field} value={field.value ?? ""} className="border rounded px-2 py-2 text-sm">
+                      <select
+                        {...field}
+                        value={field.value ?? ""}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          setValue("emirate", "");
+                        }}
+                        className="border rounded px-2 py-2 text-sm"
+                      >
                         <option value="">Select Country</option>
                         {countryOptions.map((opt) => (
                           <option key={opt} value={opt}>{opt}</option>
