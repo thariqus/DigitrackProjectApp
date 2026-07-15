@@ -23,7 +23,7 @@ export interface PropertyMaster {
 
   number_of_units: number;
   number_of_premises: number;
-  premise_number: string;
+  // premise_number: string;
 
   staff_allocated: string;
   location: string;
