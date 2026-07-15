@@ -27,6 +27,7 @@ import { useCreateDelegation, useDocumentDelegation, useRevokeDelegation } from 
 import { RenewalDelegationModal } from "./RenewalDelegationModal";
 import ApprovalCommentModal from "./ApprovalCommentModal";
 import { AdditionalChargeEntry } from "./StartRenewalModal";
+import RenewalApprovalFooter from "./RenewalApprovalFooter";
 
  
 type RenewalSheetProps = {
