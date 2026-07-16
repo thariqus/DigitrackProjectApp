@@ -4,6 +4,7 @@
 function set_property_division_options(frm) {
     frappe.call({
         method: 'jh_digitrack.api.property_management.get_property_divisions',
+        type: 'GET',
         callback: function (r) {
             const rows = (r.message && r.message.property_divisions) || [];
             const unique_options = (fieldname) => {
