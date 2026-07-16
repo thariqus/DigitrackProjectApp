@@ -20,7 +20,7 @@ import { useUpdateDoc, useDocs } from "@/hooks/doc";
 import { useCurrentUser } from "@/hooks/auth";
 import { Fragment, useEffect, useState } from "react";
 import { PropertyMaster, RentalRenewal } from "@/types/JHDigitrack/JHPropertyAutomation";
-import { usePropertyDoc, useRenewalDoc, useRenewalRole, useChequeTypes } from "../hooks/useProperty";
+import { usePropertyDoc, useRenewalDoc, useRenewalRole, useChequeTypes, usePaymentScheduleOptions } from "../hooks/useProperty";
 import { propertyApi, type RenewalProgressPayload } from "../api/property";
 import { useApplyWorkflowAction } from "../hooks/useApplyWorkflowAction";
 import { useCreateDelegation, useDocumentDelegation, useRevokeDelegation } from "../hooks/useDelegation";
@@ -160,6 +160,7 @@ export default function RenewalSheet({
   );
   const property = propertyData?.doc as PropertyMaster | undefined;
   const { data: chequeTypes = [] } = useChequeTypes();
+  const { data: paymentScheduleOptions = [] } = usePaymentScheduleOptions();
   const hasExternalModification = Boolean(
     localModified && renewalDoc?.modified && localModified !== renewalDoc.modified
   );
@@ -368,7 +369,7 @@ useEffect(() => {
       toast.error("Enter valid PO Number");
       return false;
     }
-    const hasContractDoc = contractFiles.length > 0 || !!renewalDoc?.renewed_contract_document;
+     const hasContractDoc = contractFiles.length > 0 || !!renewalDoc?.renewed_contract_document;
     if (!hasContractDoc) {
       toast.error("Renewed Contract Document is required before confirming");
       return false;
@@ -494,7 +495,7 @@ useEffect(() => {
     }
  
     if (currentState === "Pending Property PO") {
-      const contractDocUrl =
+          const contractDocUrl =
         contractFiles.length > 0
           ? (await Promise.all(contractFiles.map(uploadFile)))[0]
           : latestDoc.renewed_contract_document || "";
@@ -502,7 +503,7 @@ useEffect(() => {
       payload.po_number = data.po_number || "";
       payload.renewed_contract_document = contractDocUrl;
     }
- 
+
     if (currentState === "Pending MIRO") {
       payload.miro_numbers = miroNumbers
         .map((value) => value.trim())
@@ -1011,9 +1012,11 @@ console.log("updatedParticulars",updatedParticulars);
                     {renderReadonlyField("Location", property.location)}
                     {renderReadonlyField("Emirate", property.emirate)}
                     {renderReadonlyField("Landlord", property.landlord)}
+                    {renderReadonlyField("Co Code", property.co_code)}
                     {renderReadonlyField("Property Type", property.type_of_property)}
                     {renderReadonlyField("Number of Units", property.number_of_units)}
                     {renderReadonlyField("Tenancy Period", property.tenancy_period)}
+                    
                     {/* {renderReadonlyField("Current Rent", property.current_rent)} */}
                   </>
                 )}
@@ -1027,7 +1030,7 @@ console.log("updatedParticulars",updatedParticulars);
               className={`grid items-start gap-4 py-1 ${
                 isView
                   ? "grid-cols-1 lg:grid-cols-4 items-center"
-                  : "grid-cols-1 md:grid-cols-3 lg:grid-cols-5 items-center"
+                  : "grid-cols-1 md:grid-cols-3 lg:grid-cols-4 items-center"
               }`}
             >
               <div className={`${isView ? "flex gap-2 text-sm" : "flex flex-col gap-1"}`}>
@@ -1040,7 +1043,7 @@ console.log("updatedParticulars",updatedParticulars);
               </div>
 
               {renderRenewalField(
-                "Proposed Rent",
+                "Proposed New Rent",
                 "proposed_rent",
                 String(renewalDoc?.proposed_rent ?? ""),
                 "number",
@@ -1084,7 +1087,7 @@ console.log("updatedParticulars",updatedParticulars);
                             <SelectValue placeholder="Select..." />
                           </SelectTrigger>
                           <SelectContent>
-                            {["Monthly", "Quarterly", "Half Yearly", "Yearly"].map((opt) => (
+                            {paymentScheduleOptions.map((opt) => (
                               <SelectItem key={opt} value={opt}>{opt}</SelectItem>
                             ))}
                           </SelectContent>
@@ -1097,8 +1100,7 @@ console.log("updatedParticulars",updatedParticulars);
  
               {renderRenewalField("Renewal From", "renewal_from", renewalDoc?.renewal_from, "date", true)}
               {renderRenewalField("Renewal To", "renewal_to", renewalDoc?.renewal_to, "date", true)}
-              
-              {renderRenewalField(
+               {renderRenewalField(
                 "New Security Deposit",
                 "new_security_deposit",
                 String(renewalDoc?.new_security_deposit ?? ""),
@@ -1339,11 +1341,7 @@ console.log("updatedParticulars",updatedParticulars);
                 <Separator />
                 <h2 className="text-lg font-semibold">Cheque Details</h2>
                 <div className="space-y-4 pb-10">
-                  {chequeDetails.length === 0 ? (
-                    <p className="text-sm text-muted-foreground p-3 border-2 border-dashed rounded-lg text-center">
-                      Click + Add Cheque to start
-                    </p>
-                  ) : (
+                  {
                     chequeDetails.map((cheque, index) => (
                       <div className="flex gap-2 items-end bg-muted p-2 rounded-lg">
                         <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-2">
@@ -1420,7 +1418,7 @@ console.log("updatedParticulars",updatedParticulars);
                         </Button>
                       </div>
                     ))
-                  )}
+                  }
                   <Button
                     type="button"
                     variant="outline"
@@ -1486,8 +1484,8 @@ console.log("updatedParticulars",updatedParticulars);
                 <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-4 items-start gap-2">
                   {renderRenewalRoleField("PO Number", "po_number", renewalDoc?.po_number || "")}
                 </div>
- 
-                <div className="pb-10">
+
+                 <div className="pb-10">
                   <h3 className="text-sm text-gray-600 mb-2 font-semibold">Renewed Contract Document</h3>
                   {renewalDoc?.renewed_contract_document ? (
                     <div className="flex items-center gap-2 px-3 py-1 bg-gray-100 rounded">
