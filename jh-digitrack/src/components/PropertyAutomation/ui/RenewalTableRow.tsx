@@ -24,7 +24,7 @@ type RenewalTableRowProps = {
 };
 
 function RenewalTableRow({ renewals, index, onClick, isLoading, onEdit, isJHPropertyDepartment, onDownload }: RenewalTableRowProps) {
-  const canEdit = !!isJHPropertyDepartment;
+  const canEdit = !!isJHPropertyDepartment && renewals?.workflow_state === "Draft";
   const canDownload = DOWNLOADABLE_STATES.includes(renewals?.workflow_state);
   const showActionsCell = canEdit || canDownload;
 
