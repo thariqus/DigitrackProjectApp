@@ -8,13 +8,11 @@ import { XIcon, ChevronDown } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
- 
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
- 
 import FileAttachment from "./FileAttachment";
 import MultiValueInput from "./MultiValueInput";
 import { useDocs, useSaveDoc, useUpdateDoc } from "@/hooks/doc";
@@ -131,14 +129,18 @@ const propertySchema = z.object({
   division_used: z.string().nullable().optional(),
   co_code: numericOnlyField,
   area_sqftmtr: numericOnlyField,
-  booked_under: numericOnlyField,
+  booked_under: z.string().nullable().optional(),
   
   profit_center: numericOnlyField,
   number_of_units: numericOnlyField,
   number_of_premises: numericOnlyField,
   // premise_number: z.string().nullable().optional(),
   staff_allocated: numericOnlyField,
- 
+  // per_staff_rent : numericOnlyField,
+  // remark: z.string().nullable().optional(),
+  // ownership: z.string().nullable().optional(),
+  // address:z.string().nullable().optional(),
+  // lease_type:z.string().nullable().optional(),
   location: z.string().nullable().optional(),
   emirate: z.string().nullable().optional(),
   country: z.string().default("UAE").optional(),
@@ -168,21 +170,20 @@ const propertySchema = z.object({
  
   electricity_accounts: numericOnlyField,
   electricity_connections: z.array(z.object({
-    premise_number: z.string().min(1, "Premise Number required"),
-    meter_id: z.string().optional(),
-    account_number: z.string().optional(),
-    connection_type: z.enum(["Electricity", "Water", "Dual"]).optional(),
+    premise_number: z.string().min(1, "Premise Number required").nullable().optional(),
+    meter_id: z.string().nullable().optional(),
+    account_number: z.string().nullable().optional(),
+    connection_type: z.enum(["Electricity", "Water", "Dual"]).nullable().optional(),
   })).optional(),
   electricity_connection_numbers: z.string().nullable().optional(),
   electricity_water_security_deposit: numericOnlyField,
   landline_connections: z.array(z.object({
-    landline_number: z.string().min(1, "Landline Number required"),
-    provider: z.string().optional(),
-    line_type: z.enum(["Fixed", "Fax"]).optional(),
+    landline_number: z.string().min(1, "Landline Number required").nullable().optional(),
+    provider: z.string().nullable().optional(),
+    line_type: z.enum(["Fixed", "Fax"]).nullable().optional(),
   })).optional(),
   landline_accounts: numericOnlyField,
-  internet_connection: z.string().regex(/^\d*$/, "Numbers only allowed").nullable().optional(),
- 
+  internet_connection: numericOnlyField,
   cdc_expiry: z.string().optional(),
   hassantuk_expiry: z.string().optional(),
 });
@@ -270,7 +271,7 @@ export default function PropertySheet({
   const isCreate = mode === "create";
   const formId = "property-form";
  
-  const { data: propertyData, isFetching: isPropertyFetching } = usePropertyDoc(propertyId);
+  const { data: propertyData, isFetching: isPropertyFetching } = usePropertyDoc(propertyId)
   const { data: renewalsListData, refetch: refetchRenewals } = useRenewalList(
   {
     property: propertyId || undefined,
@@ -421,7 +422,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
       resetSheetState({
         ...getEmptyPropertyFormValues(),
         ...doc,
-        booked_under: doc.booked_under ? Number(doc.booked_under) : undefined,
+        booked_under: doc.booked_under ?? undefined,
         profit_center: doc.profit_center ? Number(doc.profit_center) : undefined,
         staff_allocated: doc.staff_allocated ? Number(doc.staff_allocated) : undefined,
         electricity_connections: doc.electricity_connections || [],
@@ -485,14 +486,13 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
       const hasInvalidElectricityConnection = connections.some(
         (conn) =>
           !conn.premise_number?.trim() ||
-          !conn.meter_id?.trim() ||
           !conn.account_number?.trim() ||
           !conn.connection_type
       );
 
       if (hasInvalidElectricityConnection) {
         toast.error(
-          "Please fill all fields in the Electricity Connections."
+          "Please fill all mandatory fields in the Electricity Connections."
         );
         return;
       }
@@ -511,7 +511,6 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
         );
         return;
       }
-
 
     const formData = {
       ...data,
@@ -998,7 +997,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                   </div>
 
                   <div className={`${isView ? "flex items-center gap-1": "flex  flex-col gap-1"}`}>
-                    <Label className="text-xs">Provider:</Label>
+                    <Label className="text-xs">Provider: <span className="text-red-500">*</span></Label>
                     {isViewMode ? (
                       <span className="text-sm">{conn.provider || "-"}</span>
                     ) : (
@@ -1015,7 +1014,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                   </div>
 
                   <div className={`${isView ? "flex items-center gap-1": "flex  flex-col gap-1"}`}>
-                    <Label className="text-xs">Line Type:</Label>
+                    <Label className="text-xs">Line Type: <span className="text-red-500">*</span></Label>
                     {isViewMode ? (
                       <span className="text-sm font-medium">
                         {conn.line_type || "-"}
@@ -1076,7 +1075,8 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
               <Button
                 type="button"
                 variant="outline"
-                className="w-full text-gray-500 border-2 border-dashed h-10 text-sm mt-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                className={`${isView ? "hidden" : "w-full text-gray-500 border-2 border-dashed h-10 text-sm mt-1 disabled:opacity-50 disabled:cursor-not-allowed"}
+                `}
                 onClick={() => {
                   const newConns = [...landlineConnections, { landline_number: "" }];
                   setLandlineConnections(newConns);
@@ -1253,7 +1253,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                     {renderMultiValueField("Premise Number", "premise_number", doc?.premise_number, Number(numberOfPremisesWatch) || undefined)}
                   </div> */}
                     <div className={`${isView ? "flex items-center gap-1": "flex  flex-col gap-1"}`}>
-                    <Label className="text-xs">Premise Number:</Label>
+                    <Label className="text-xs">Premise Number: <span className="text-red-500">*</span></Label>
                     {isViewMode ? (
                       <span className="text-sm">
                         {conn.premise_number|| "-"}
@@ -1272,7 +1272,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                   </div>
 
                   <div className={`${isView ? "flex items-center gap-1": "flex  flex-col gap-1"}`}>
-                    <Label className="text-xs">Meter ID:</Label>
+                    <Label className="text-xs">Meter ID: </Label>
                     {isViewMode ? (
                       <span className="text-sm">{conn.meter_id || "-"}</span>
                     ) : (
@@ -1289,7 +1289,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                   </div>
 
                  <div className={`${isView ? "flex items-center gap-1": "flex  flex-col gap-1"}`}>
-                    <Label className="text-xs">Account Number:</Label>
+                    <Label className="text-xs">Account Number: <span className="text-red-500">*</span></Label>
                     {isViewMode ? (
                       <span className="text-sm">
                         {conn.account_number || "-"}
@@ -1308,7 +1308,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                   </div>
 
                   <div className={`${isView ? "flex items-center gap-1": "flex  flex-col gap-1"}`}>
-                    <Label className="text-xs">Type:</Label>
+                    <Label className="text-xs">Type: <span className="text-red-500">*</span></Label>
                     {isViewMode ? (
                       <span className="text-sm font-medium">
                         {conn.connection_type || "-"}
@@ -1359,7 +1359,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
               <Button
                 type="button"
                 variant="outline"
-                className="w-full border-2 text-gray-500 border-dashed h-10 text-sm mt-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                className={`${isView ? "hidden" : "w-full border-2 text-gray-500 border-dashed h-10 text-sm mt-1 disabled:opacity-50 disabled:cursor-not-allowed"} `}
                 onClick={() => {
                   const newConns = [...connections, { connection_number: "" }];
                   setConnections(newConns);
@@ -1530,7 +1530,14 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
         </SheetHeader>
  
         <ScrollArea className="h-[calc(100vh-100px)] pr-3">
-          <form id={formId} onSubmit={handleSubmit(onSubmit)} className="space-y-6 mt-4">
+          <form
+            id={formId}
+            onSubmit={handleSubmit(onSubmit, (formErrors) => {
+              console.error("Property form validation failed:", formErrors);
+              toast.error("Please check the highlighted fields and try again.");
+            })}
+            className="space-y-6 mt-4"
+          >
  
             <h2 className="text-lg font-semibold">Identity</h2>
  
@@ -1619,7 +1626,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                   />
                 )}
               </div>
- 
+
               <div className="flex flex-col gap-1">
                 {!isView && <Label className="text-sm text-gray-600">Division Used</Label>}
                 {isView ? (
@@ -1652,11 +1659,15 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
 
               {renderField("Co Code", "co_code", doc?.co_code)}
               {renderField("Area (Sqft/Mtr)", "area_sqftmtr", doc?.area_sqftmtr)}
+              {/* {renderField("Address", "address", doc?.address)}
+              {renderField("Ownership", "ownership", doc?.ownership)}
+              {renderField("Remarks", "remark", doc?.remark)} */}
+              {/* {renderField("Per Staff Rent", "per_staff_rent", doc?.per_staff_rent)} */}
               {renderField("Booked Under", "booked_under", doc?.booked_under)}
-              {renderField("Profit Center", "profit_center", doc?.profit_center)}
+              {renderField("Profit Center/Site", "profit_center", doc?.profit_center)}
+              {renderField("Staff Allocated", "staff_allocated", doc?.staff_allocated)}
               {renderField("Number of Units", "number_of_units", doc?.number_of_units)}
               {renderField("Number of Premises", "number_of_premises", doc?.number_of_premises)}
-              {renderField("Staff Allocated", "staff_allocated", doc?.staff_allocated)}
               {renderApproversTable()}
             </div>
  
@@ -1894,9 +1905,6 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
           <div className="flex w-full gap-2">
            
               <>
-                <Button variant="outline" className="w-full" type="button" onClick={() => handleSheetOpenChange(false)}>
-                  Cancel
-                </Button>
  
                 <Button
                   type="submit"
