@@ -1151,6 +1151,24 @@ def get_property_types():
     return {"property_types": [opt for opt in field.options.split("\n") if opt.strip()]}
 
 
+@frappe.whitelist(methods=["GET"])
+def get_lease_type_options():
+    meta = frappe.get_meta("JH Property Master")
+    field = next((f for f in meta.fields if f.fieldname == "lease_type"), None)
+    if not field or not field.options:
+        return {"lease_type_options": []}
+    return {"lease_type_options": [opt for opt in field.options.split("\n") if opt.strip()]}
+
+
+@frappe.whitelist(methods=["GET"])
+def get_payment_schedule_options():
+    meta = frappe.get_meta("JH Property Rental Renewal")
+    field = next((f for f in meta.fields if f.fieldname == "payment_schedule"), None)
+    if not field or not field.options:
+        return {"payment_schedule_options": []}
+    return {"payment_schedule_options": [opt for opt in field.options.split("\n") if opt.strip()]}
+
+
 def _get_effective_roles(user, renewal=None):
     """
     Returns all workflow roles the user can act as, including via delegation.
