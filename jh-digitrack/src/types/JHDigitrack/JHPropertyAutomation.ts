@@ -18,6 +18,11 @@ export interface PropertyMaster {
 
   division_used: string;
   approvers?: { order: number; approver: string }[];
+  // lease_type: string;
+  // per_staff_rent: number;
+  // remark: string;
+  // address:string;
+  // ownership: string;
   booked_under: string;
   profit_center: string;
 
@@ -53,7 +58,7 @@ export interface PropertyMaster {
   landline_connections?: JHPropertyLandline[];
   landline_accounts?: number;
   landline_numbers?: string; // legacy
-  internet_connection: string;
+  internet_connection: number;
 
   cdc_expiry: string;
   hassantuk_expiry: string;
