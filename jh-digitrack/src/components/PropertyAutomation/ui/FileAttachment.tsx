@@ -13,7 +13,7 @@ const ALLOWED_MIME_TYPES = [
   "image/png",
   "image/jpeg",
 ];
-const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 
 function validateFile(file: File): string | null {
   const ext = "." + (file.name.split(".").pop()?.toLowerCase() ?? "");
@@ -22,7 +22,7 @@ function validateFile(file: File): string | null {
     return `"${file.name}" — unsupported file type. Allowed: PDF, DOC, DOCX, XLSX, PNG, JPG.`;
   }
   if (file.size > MAX_FILE_SIZE_BYTES) {
-    return `"${file.name}" exceeds the 5 MB size limit.`;
+    return `"${file.name}" exceeds the 10 MB size limit.`;
   }
   return null;
 }
@@ -136,6 +136,18 @@ export default function FileAttachment({files, setFiles}: FileAttachmentProps) {
         <ScrollBar orientation="horizontal" />
       </ScrollArea>
 
+      {/* Validation Errors */}
+      {errors.length > 0 && (
+        <div className="space-y-1">
+          {errors.map((err, i) => (
+            <div key={i} className="flex items-start gap-1.5 text-xs text-red-600">
+              <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+              <span>{err}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Drag & Drop Area */}
       <div
         className={cn(
@@ -168,22 +180,11 @@ export default function FileAttachment({files, setFiles}: FileAttachmentProps) {
             <span className="text-[#972e26] font-medium">browse</span>
           </div>
           <div className="text-sm text-gray-500 mt-1">
-            PDF, DOC, DOCX, XLSX, PNG, JPG — max 5 MB size
+            PDF, DOC, DOCX, XLSX, PNG, JPG — max 10 MB size
           </div>
         </label>
       </div>
 
-      {/* Validation Errors */}
-      {errors.length > 0 && (
-        <div className="space-y-1">
-          {errors.map((err, i) => (
-            <div key={i} className="flex items-start gap-1.5 text-xs text-red-600">
-              <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-              <span>{err}</span>
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
