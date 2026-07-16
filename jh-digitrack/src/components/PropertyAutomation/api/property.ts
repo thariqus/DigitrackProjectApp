@@ -259,6 +259,14 @@ export const propertyApi = {
     return (data.message as { property_types: string[] }).property_types ?? [];
   },
 
+  getPaymentScheduleOptions: async (): Promise<string[]> => {
+    const res = await fetch(`${API_BASE}.get_payment_schedule_options`, {
+      credentials: "include",
+    });
+    const data = await res.json();
+    return (data.message as { payment_schedule_options: string[] }).payment_schedule_options ?? [];
+  },
+
   getDivisionsByBusiness: async (business?: string): Promise<{ name: string; division_name: string; business: string }[]> => {
     const query = business ? `?business=${encodeURIComponent(business)}` : "";
     const res = await fetch(`${API_BASE}.get_divisions_by_business${query}`, {
