@@ -206,9 +206,9 @@ function Renewals() {
 
   const showActionsColumn = useMemo(
     () =>
-      isLicensingTeam ||
+      isJHPropertyDepartment ||
       renewals.some((r) => DOWNLOADABLE_STATES.includes(r.workflow_state ?? "")),
-    [isLicensingTeam, renewals]
+    [isJHPropertyDepartment, renewals]
   );
 
   const handleRowClick = (name: string) => {
