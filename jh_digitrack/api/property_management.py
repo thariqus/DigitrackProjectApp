@@ -570,7 +570,7 @@ def get_property_list(
         if attention_filter == "overdue_no_renewal":
             properties_with_any_renewal = frappe.get_all(
                 "JH Property Rental Renewal",
-                filters={"workflow_state": ["in", ACTIVE_RENEWAL_STATES + ["Withdrawn"]]},
+                filters={"workflow_state": ["in", ACTIVE_RENEWAL_STATES]},
                 pluck="property",
                 ignore_permissions=True,
             )
@@ -673,7 +673,7 @@ def get_property_dashboard_counts():
 
     properties_with_any_renewal = frappe.get_all(
         "JH Property Rental Renewal",
-        filters={"workflow_state": ["in", ACTIVE_RENEWAL_STATES + ["Withdrawn"]]},
+        filters={"workflow_state": ["in", ACTIVE_RENEWAL_STATES]},
         pluck="property",
         ignore_permissions=True,
     )
