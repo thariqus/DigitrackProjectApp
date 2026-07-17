@@ -425,7 +425,7 @@ export default function StartRenewalModal({
               )}
             </div>
               
-            <div className="flex flex-col gap-1">
+            {/* <div className="flex flex-col gap-1">
               <Label className="text-sm text-gray-600">New Security Deposit</Label>
               <Controller
                 name="new_security_deposit"
@@ -439,7 +439,7 @@ export default function StartRenewalModal({
                   {form.formState.errors.new_security_deposit.message}
                 </p>
               )}
-            </div>
+            </div> */}
           </div>
  
           {/* Particulars */}
