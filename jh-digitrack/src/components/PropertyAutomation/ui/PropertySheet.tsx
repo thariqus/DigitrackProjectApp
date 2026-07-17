@@ -1541,7 +1541,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
  
             <h2 className="text-lg font-semibold">Identity</h2>
  
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
               {renderField("Property Name", "property_name", doc?.property_name)}
  
               <div className="flex flex-col gap-1">
@@ -1674,7 +1674,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
             <Separator />
  
             <h2 className="text-lg font-semibold">Location</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
               {renderField("Location", "location", doc?.location)}
               <div className="flex flex-col gap-1">
                 {!isView && <Label className="text-sm text-gray-600">Country</Label>}
@@ -1741,7 +1741,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
             <Separator />
  
             <h2 className="text-lg font-semibold">Landlord</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
               {renderField("Landlord", "landlord", doc?.landlord)}
               {renderField("Real Estate", "real_estate", doc?.real_estate)}
                {isView ? (
@@ -1772,7 +1772,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
             <Separator />
 
             <h2 className="text-lg font-semibold">Security Deposit</h2>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
               {renderField(
                 "Deposit Amount",
                 "landlord_security_deposit",
@@ -1784,7 +1784,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
             <Separator />
  
             <h2 className="text-lg font-semibold">Utilities</h2>
-            <div className={`grid grid-cols-1 ${isView ? "md:grid-cols-3" : "md:grid-cols-4"} gap-3`}>
+            <div className={`grid grid-cols-1 ${isView ? "md:grid-cols-3" : "md:grid-cols-4"} gap-2`}>
               {renderField("Electricity Accounts", "electricity_accounts", doc?.electricity_accounts, "text", true)}
               {renderField(
                 "Electricity / Water Security Deposit",
