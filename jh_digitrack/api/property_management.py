@@ -409,6 +409,36 @@ def _get_approver_properties(user):
     return list(props)
 
 
+def _get_row_scoped_properties(approver_props, adhoc_props):
+    """
+    Union of ad-hoc delegated properties, the approver's own properties, and
+    all properties in the approver's divisions (row-level access for users
+    without full/admin-level access).
+    """
+    scoped_names = set(adhoc_props)
+
+    if approver_props:
+        raw_divisions = frappe.db.get_all(
+            "JH Property Master",
+            filters={"name": ["in", approver_props]},
+            pluck="division_used",
+            ignore_permissions=True,
+        )
+        division_list = list(set(d for d in raw_divisions if d))
+        if division_list:
+            division_props = frappe.db.get_all(
+                "JH Property Master",
+                filters={"division_used": ["in", division_list]},
+                pluck="name",
+                ignore_permissions=True,
+            )
+            scoped_names.update(division_props)
+        else:
+            scoped_names.update(approver_props)
+
+    return scoped_names
+
+
 def _get_property_user_context():
     """
     Returns a dict of booleans describing the current user's property access level.
@@ -496,28 +526,7 @@ def get_property_list(
         if not approver_props and not adhoc_props:
             frappe.throw(_("Not permitted"), frappe.PermissionError)
 
-        scoped_names = set(adhoc_props)
-
-        if approver_props:
-            raw_divisions = frappe.db.get_all(
-                "JH Property Master",
-                filters={"name": ["in", approver_props]},
-                pluck="division_used",
-                ignore_permissions=True,
-            )
-            division_list = list(set(d for d in raw_divisions if d))
-            if division_list:
-                division_props = frappe.db.get_all(
-                    "JH Property Master",
-                    filters={"division_used": ["in", division_list]},
-                    pluck="name",
-                    ignore_permissions=True,
-                )
-                scoped_names.update(division_props)
-            else:
-                scoped_names.update(approver_props)
-
-        _property_scope = scoped_names
+        _property_scope = _get_row_scoped_properties(approver_props, adhoc_props)
 
     import json as _json
     filters = {}
@@ -570,7 +579,7 @@ def get_property_list(
         if attention_filter == "overdue_no_renewal":
             properties_with_any_renewal = frappe.get_all(
                 "JH Property Rental Renewal",
-                filters={"workflow_state": ["in", ACTIVE_RENEWAL_STATES + ["Withdrawn"]]},
+                filters={"workflow_state": ["in", ACTIVE_RENEWAL_STATES]},
                 pluck="property",
                 ignore_permissions=True,
             )
@@ -651,11 +660,15 @@ def get_property_dashboard_counts():
     )
 
     base_filters = {}
+    property_scope = None
     if not has_full_access:
         approver_props = _get_approver_properties(user)
-        has_adhoc_delegation = bool(_get_visible_adhoc_renewals(user))
-        if not approver_props and not has_adhoc_delegation:
+        adhoc_props = set(_get_visible_adhoc_properties(user))
+        if not approver_props and not adhoc_props:
             frappe.throw(_("Not permitted"), frappe.PermissionError)
+
+        property_scope = _get_row_scoped_properties(approver_props, adhoc_props)
+        base_filters["name"] = ["in", list(property_scope)]
 
     today_str = today()
 
@@ -671,22 +684,28 @@ def get_property_dashboard_counts():
     renewals_90_days = _count({"renewal_date": ["between", [add_days(today_str, 61), add_days(today_str, 90)]]})
     overdue = _count({"renewal_date": ["<", today_str]})
 
+    renewal_filters = {"workflow_state": ["in", ACTIVE_RENEWAL_STATES]}
+    if property_scope is not None:
+        renewal_filters["property"] = ["in", list(property_scope)]
+
     properties_with_any_renewal = frappe.get_all(
         "JH Property Rental Renewal",
-        filters={"workflow_state": ["in", ACTIVE_RENEWAL_STATES + ["Withdrawn"]]},
+        filters=renewal_filters,
         pluck="property",
         ignore_permissions=True,
     )
+    excluded_names = set(properties_with_any_renewal)
     overdue_no_renewal_filters = {"renewal_date": ["<", today_str]}
-    if properties_with_any_renewal:
-        overdue_no_renewal_filters["name"] = ["not in", list(set(properties_with_any_renewal))]
+    if property_scope is not None:
+        # _count() merges extra_filters over base_filters via dict.update(), so a
+        # "name" key here must already be scope-intersected or it clobbers base_filters' scope.
+        overdue_no_renewal_filters["name"] = ["in", list(property_scope - excluded_names)]
+    elif excluded_names:
+        overdue_no_renewal_filters["name"] = ["not in", list(excluded_names)]
 
     stalled_renewals = frappe.db.count(
         "JH Property Rental Renewal",
-        filters={
-            "workflow_state": ["in", ACTIVE_RENEWAL_STATES],
-            "modified": ["<=", add_days(today_str, -7)],
-        },
+        filters={**renewal_filters, "modified": ["<=", add_days(today_str, -7)]},
         cache=False,
     )
 
@@ -914,11 +933,12 @@ def get_property_doc(name: str):
     )
 
     if not has_full_access:
-        has_property_access = (
-            name in _get_approver_properties(user)
-            or name in _get_visible_adhoc_properties(user)
-        )
-        if not has_property_access:
+        approver_props = _get_approver_properties(user)
+        adhoc_props = set(_get_visible_adhoc_properties(user))
+        # Read-only access should match the Properties list's visibility scope
+        # (own + division-mates' properties), not just directly-assigned ones.
+        property_scope = _get_row_scoped_properties(approver_props, adhoc_props)
+        if name not in property_scope:
             frappe.throw(_("Not permitted"), frappe.PermissionError)
 
     frappe.flags.ignore_permissions = True
