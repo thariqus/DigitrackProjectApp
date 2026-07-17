@@ -1027,10 +1027,10 @@ console.log("updatedParticulars",updatedParticulars);
  
             <h2 className="text-lg font-semibold">Renewal Details</h2>
             <div
-              className={`grid items-start gap-4 py-1 ${
+              className={`grid items-start gap-2 py-1 ${
                 isView
-                  ? "grid-cols-1 lg:grid-cols-4 items-center"
-                  : "grid-cols-1 md:grid-cols-3 lg:grid-cols-4 items-center"
+                  ? "grid-cols-1 lg:grid-cols-3 items-center"
+                  : "grid-cols-1 md:grid-cols-3 items-center"
               }`}
             >
               <div className={`${isView ? "flex gap-2 text-sm" : "flex flex-col gap-1"}`}>
@@ -1100,13 +1100,12 @@ console.log("updatedParticulars",updatedParticulars);
  
               {renderRenewalField("Renewal From", "renewal_from", renewalDoc?.renewal_from, "date", true)}
               {renderRenewalField("Renewal To", "renewal_to", renewalDoc?.renewal_to, "date", true)}
-               {renderRenewalField(
+               {/* {renderRenewalField(
                 "New Security Deposit",
                 "new_security_deposit",
                 String(renewalDoc?.new_security_deposit ?? ""),
                 "number"
-              )}
- 
+              )} */}
               <div className={`${isView ? "flex items-start flex-nowrap py-1 gap-2" : "flex flex-col gap-1 py-1"}`}>
                 <Label className="text-gray-600">Remarks:</Label>
                 {isView ? (
@@ -1117,6 +1116,7 @@ console.log("updatedParticulars",updatedParticulars);
               </div>
             </div>
 
+              
             <div>
               <h3 className="text-md font-semibold mb-2">Particulars</h3>
               {isView ? (
