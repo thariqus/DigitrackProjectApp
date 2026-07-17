@@ -14,7 +14,7 @@ function PropertyAutomationDashboard() {
   const canSeePropertiesTab = Boolean(userAccess) && !userAccess?.is_fc && !userAccess?.is_cfo && !userAccess?.has_gl_team_role;
 
   const alerts: AlertItem[] = [
-    attention?.overdue_no_renewal
+   canSeePropertiesTab && attention?.overdue_no_renewal
       ? {
           message: `${attention.overdue_no_renewal} properties are overdue with no renewal started`,
           subText: "Immediate attention required",
@@ -44,7 +44,7 @@ function PropertyAutomationDashboard() {
           cta: "Review & Approve",
         }
       : undefined,
-    attention?.hassantuk_expiring_soon
+    canSeePropertiesTab && attention?.hassantuk_expiring_soon
       ? {
           message: `${attention.hassantuk_expiring_soon} Hassantuk renewals expiring soon`,
           subText: "Within 30 days",
@@ -54,7 +54,7 @@ function PropertyAutomationDashboard() {
           cta: "View Properties",
         }
       : undefined,
-    attention?.cdc_expiring_soon
+    canSeePropertiesTab && attention?.cdc_expiring_soon
       ? {
           message: `${attention.cdc_expiring_soon} CDC expiries expiring soon`,
           subText: "Within 30 days",
@@ -64,7 +64,7 @@ function PropertyAutomationDashboard() {
           cta: "View Properties",
         }
       : undefined,
-    attention?.po_box_expiring_soon
+   canSeePropertiesTab && attention?.po_box_expiring_soon
       ? {
           message: `${attention.po_box_expiring_soon} PO Box renewals due soon`,
           subText: "Within 30 days",
