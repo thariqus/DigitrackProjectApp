@@ -20,12 +20,13 @@ type RenewalTableRowProps = {
   isLoading?: boolean;
   onEdit: (name: string) => void;
   isJHPropertyDepartment?: boolean;
+  isGLTeam ?: n
   onDownload: (name: string) => void;
 };
 
-function RenewalTableRow({ renewals, index, onClick, isLoading, onEdit, isJHPropertyDepartment, onDownload }: RenewalTableRowProps) {
-  const canEdit = !!isJHPropertyDepartment;
-  const canDownload = DOWNLOADABLE_STATES.includes(renewals?.workflow_state);
+function RenewalTableRow({ renewals, index, onClick, isLoading, onEdit, isJHPropertyDepartment, isGLTeam, onDownload }: RenewalTableRowProps) {
+  const canEdit = !!isJHPropertyDepartment && renewals?.workflow_state === "Draft";
+  const canDownload = (isJHPropertyDepartment || isGLTeam) &&  DOWNLOADABLE_STATES.includes(renewals?.workflow_state);
   const showActionsCell = canEdit || canDownload;
 
    const renewalPeriod = (() => {

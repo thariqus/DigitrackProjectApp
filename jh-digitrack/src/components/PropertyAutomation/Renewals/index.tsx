@@ -206,9 +206,8 @@ function Renewals() {
 
   const showActionsColumn = useMemo(
     () =>
-      isLicensingTeam ||
-      renewals.some((r) => DOWNLOADABLE_STATES.includes(r.workflow_state ?? "")),
-    [isLicensingTeam, renewals]
+      isJHPropertyDepartment || isGLTeam,
+    [isJHPropertyDepartment, isGLTeam]
   );
 
   const handleRowClick = (name: string) => {
@@ -318,6 +317,7 @@ function Renewals() {
                 onEdit={handleEditClick}
                 onDownload={handleDownload}
                 formatDate={formatDate}
+                isGLTeam={isGLTeam}
                 isJHPropertyDepartment={isJHPropertyDepartment}
               />
             ))}

@@ -349,7 +349,7 @@ function Properties() {
         )}
       </div>
 
-      <div className="flex items-center justify-between">
+      <div className="flex gap-1 items-center justify-between">
         <FilterButtons
         filters={[
           {

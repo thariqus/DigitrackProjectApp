@@ -103,6 +103,13 @@ export const usePropertyTypes = () =>
     staleTime: 30 * 60 * 1000,
   });
 
+export const usePaymentScheduleOptions = () =>
+  useQuery({
+    queryKey: ["PaymentScheduleOptions"],
+    queryFn: propertyApi.getPaymentScheduleOptions,
+    staleTime: 30 * 60 * 1000,
+  });
+
 export const useDivisionsByBusiness = (business?: string | null) =>
   useQuery({
     queryKey: ["DivisionsByBusiness", business ?? ""],

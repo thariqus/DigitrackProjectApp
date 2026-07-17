@@ -7,7 +7,7 @@ const filters = [
     description: "Overview of property and renewal insights",
     disabled: false 
   },
-  { label: "Propeties", 
+  { label: "Properties", 
     value: "properties", 
     description: "All properties",
     disabled: false },

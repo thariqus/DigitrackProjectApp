@@ -124,7 +124,7 @@ function RenewalPipeline() {
 
   return (
     <div>
-      <h2 className="text-lg font-bold text-primary py-4">Renewal Pipeline</h2>
+      <h2 className="text-lg font-bold text-primary py-4">Renewal Work Flow</h2>
       <div className="flex items-center gap-2 py-2 overflow-x-auto">
         {allStages.map((stage, index) => {
           const isApproversCard = stage === null;
