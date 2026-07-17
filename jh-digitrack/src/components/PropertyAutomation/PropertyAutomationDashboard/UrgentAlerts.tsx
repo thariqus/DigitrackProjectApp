@@ -42,8 +42,8 @@ export function UrgentAlerts({
     return (
 
       <div className="pb-10">
-         <div className="flex flex-col gap-1 items-center">
-            <h2 className="text-lg font-bold text-primary">Required Attention</h2>
+         <div className="flex flex-col gap-1 items-start">
+            <h2 className="text-lg text-left font-bold text-primary">Required Attention</h2>
           </div>
           <div className="flex items-center gap-3 rounded-xl border border-green-200 bg-green-50 p-4 mt-4">
             <CheckCircle className="text-green-600 text-xs" />
