@@ -1027,7 +1027,7 @@ console.log("updatedParticulars",updatedParticulars);
  
             <h2 className="text-lg font-semibold">Renewal Details</h2>
             <div
-              className={`grid items-start gap-2 py-1 ${
+              className={`grid items-start gap-3 py-1 ${
                 isView
                   ? "grid-cols-1 lg:grid-cols-3 items-center"
                   : "grid-cols-1 md:grid-cols-3 items-center"
