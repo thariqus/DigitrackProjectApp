@@ -206,8 +206,13 @@ function Renewals() {
 
   const showActionsColumn = useMemo(
     () =>
-      isJHPropertyDepartment || isGLTeam,
-    [isJHPropertyDepartment, isGLTeam]
+      renewals.some(
+        (r) =>
+          (isJHPropertyDepartment && r.workflow_state === "Draft") ||
+          ((isJHPropertyDepartment || isGLTeam) &&
+            DOWNLOADABLE_STATES.includes(r.workflow_state ?? ""))
+      ),
+    [renewals, isJHPropertyDepartment, isGLTeam]
   );
 
   const handleRowClick = (name: string) => {
@@ -237,6 +242,7 @@ function Renewals() {
       "0"
     )}-${d.getFullYear()}`;
   };
+
 
 
   return (
