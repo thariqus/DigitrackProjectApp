@@ -319,7 +319,7 @@ function Properties() {
     roles.includes("JH Property Department") || roles.includes("JH Digitrack Admin");
 
   const canStartRenewal = 
-    roles.includes("JH Licensing Team") || roles.includes("JH Property Department");
+    roles.includes("JH Property Department");
 
   return (
     
