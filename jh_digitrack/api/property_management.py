@@ -866,6 +866,16 @@ def get_renewal_list(
             end_date = current_date.replace(month=12, day=31)
             filters["renewal_from"] = ["between", [start_date, end_date]]
 
+    # Completed renewals are only visible to the JH Property Department and Licensing Team.
+    if not (ctx["is_admin"] or ctx["has_property_dept"] or ctx["is_licensing"]):
+        existing_state_filter = filters.get("workflow_state")
+        if isinstance(existing_state_filter, list) and existing_state_filter[0] == "in":
+            filters["workflow_state"] = [
+                "in", [s for s in existing_state_filter[1] if s != "Completed"]
+            ]
+        elif existing_state_filter is None:
+            filters["workflow_state"] = ["!=", "Completed"]
+
     limit = cint(limit)
     page = cint(page)
     start = (page - 1) * limit
