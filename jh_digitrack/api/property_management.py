@@ -1708,8 +1708,6 @@ def _validate_stage_fields(renewal):
     elif state == "Pending Property PO":
         if not renewal.po_number:
             frappe.throw(_("PO Number is required."))
-        if not renewal.renewed_contract_document:
-            frappe.throw(_("Renewed Contract Document is required."))
 
     elif state == "Pending MIRO":
         miro_rows = renewal.get("table_gfwd") or []
@@ -1722,8 +1720,7 @@ def save_renewal_progress(
     renewal_id: str,
     cheque_details=None,
     po_number: str = None,
-    miro_numbers=None,    
-    renewed_contract_document: str = None,
+    miro_numbers=None,
 ):
     if not renewal_id:
         frappe.throw(_("renewal_id is required"))
@@ -1766,8 +1763,6 @@ def save_renewal_progress(
 
     if current_state == "Pending Property PO":
         renewal.po_number = po_number or ""
-        if renewed_contract_document is not None:
-            renewal.renewed_contract_document = renewed_contract_document or ""
 
     if current_state == "Pending MIRO":
         import json as _json
@@ -1798,7 +1793,6 @@ def save_renewal_progress(
         "modified":                 renewal.modified,
         "po_number":                renewal.po_number,
         "miro_numbers":             [row.miro_number for row in renewal.get("table_gfwd", [])],
-        "renewed_contract_document": renewal.renewed_contract_document,
     }
 
 
