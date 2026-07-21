@@ -79,7 +79,7 @@ export default function RenewalSheet({
   isGLTeam,
 }: RenewalSheetProps) {
   const [supportingFiles, setSupportingFiles] = useState<File[]>([]);
-  const [contractFiles, setContractFiles] = useState<File[]>([]);
+  // const [contractFiles, setContractFiles] = useState<File[]>([]);
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
   const [isSendBackModalOpen, setIsSendBackModalOpen] = useState(false);
   const [pendingWithdrawalId, setPendingWithdrawalId] = useState<string | null>(null);
@@ -369,11 +369,11 @@ useEffect(() => {
       toast.error("Enter valid PO Number");
       return false;
     }
-     const hasContractDoc = contractFiles.length > 0 || !!renewalDoc?.renewed_contract_document;
-    if (!hasContractDoc) {
-      toast.error("Renewed Contract Document is required before confirming");
-      return false;
-    }
+    //  const hasContractDoc = contractFiles.length > 0 || !!renewalDoc?.renewed_contract_document;
+    // if (!hasContractDoc) {
+    //   toast.error("Renewed Contract Document is required before confirming");
+    //   return false;
+    // }
   }
  
   // GL Team → MIRO
@@ -495,13 +495,13 @@ useEffect(() => {
     }
  
     if (currentState === "Pending Property PO") {
-          const contractDocUrl =
-        contractFiles.length > 0
-          ? (await Promise.all(contractFiles.map(uploadFile)))[0]
-          : latestDoc.renewed_contract_document || "";
+        //   const contractDocUrl =
+        // contractFiles.length > 0
+        //   ? (await Promise.all(contractFiles.map(uploadFile)))[0]
+        //   : latestDoc.renewed_contract_document || "";
  
       payload.po_number = data.po_number || "";
-      payload.renewed_contract_document = contractDocUrl;
+      // payload.renewed_contract_document = contractDocUrl;
     }
 
     if (currentState === "Pending MIRO") {
@@ -515,9 +515,9 @@ useEffect(() => {
     }
  
     const savedDoc = await propertyApi.saveRenewalProgress(payload);
-    if (currentState === "Pending Property PO") {
-      setContractFiles([]);
-    }
+    // if (currentState === "Pending Property PO") {
+    //   setContractFiles([]);
+    // }
     setLocalModified(savedDoc?.modified || latestDoc.modified || "");
  
     return { latestDoc, savedDoc };
@@ -745,7 +745,7 @@ const renderDelegationBadge = () => {
         onOpenChange(false);
         reset();
         setSupportingFiles([]);
-        setContractFiles([]);
+        // setContractFiles([]);
         return;
       }
  
@@ -771,10 +771,10 @@ const renderDelegationBadge = () => {
           ? (await Promise.all(supportingFiles.map(uploadFile)))[0]
           : latestDoc.supporting_documents;
  
-      const contractDocUrl =
-        contractFiles.length > 0
-          ? (await Promise.all(contractFiles.map(uploadFile)))[0]
-          : latestDoc.renewed_contract_document;
+      // const contractDocUrl =
+      //   contractFiles.length > 0
+      //     ? (await Promise.all(contractFiles.map(uploadFile)))[0]
+      //     : latestDoc.renewed_contract_document;
  
       const rentPercent = Number(rentChangePercentState) || 0;
       const rentChangeAmount = Math.round(Number(data.proposed_rent || 0) - Number(latestDoc.current_rent || 0));
@@ -832,7 +832,7 @@ console.log("updatedParticulars",updatedParticulars);
         property: latestDoc.property,
         current_rent: latestDoc.current_rent,
         supporting_documents: supportingDocUrl,
-        renewed_contract_document: contractDocUrl,
+        // renewed_contract_document: contractDocUrl,
         cheque_details: updatedChequeDetails,
         table_xqmr: updatedParticulars,
         flags: {
@@ -859,7 +859,7 @@ console.log("updatedParticulars",updatedParticulars);
       onOpenChange(false);
       reset();
       setSupportingFiles([]);
-      setContractFiles([]);
+      // setContractFiles([]);
     } catch (error: unknown) {
       console.error("Submit ERROR:", error);
       const message = getErrorMessage(error, "Save failed");
@@ -1485,7 +1485,7 @@ console.log("updatedParticulars",updatedParticulars);
                   {renderRenewalRoleField("PO Number", "po_number", renewalDoc?.po_number || "")}
                 </div>
 
-                 <div className="pb-10">
+                 {/* <div className="pb-10">
                   <h3 className="text-sm text-gray-600 mb-2 font-semibold">Renewed Contract Document</h3>
                   {renewalDoc?.renewed_contract_document ? (
                     <div className="flex items-center gap-2 px-3 py-1 bg-gray-100 rounded">
@@ -1506,7 +1506,7 @@ console.log("updatedParticulars",updatedParticulars);
                     <p className="text-sm">No document</p>
                   )}
                   <FileAttachment files={contractFiles} setFiles={setContractFiles} />
-                </div>
+                </div> */}
               </>
             )}
  
