@@ -19,7 +19,7 @@ function PropertyAutomationDashboard() {
   );
 
   const alerts: AlertItem[] = [
-   userAccess?.has_property_access && attention?.overdue_no_renewal
+   userAccess?.has_property_dept_role && attention?.overdue_no_renewal
       ? {
           message: `${attention.overdue_no_renewal} properties are overdue with no renewal started`,
           subText: "Immediate attention required",
@@ -164,7 +164,7 @@ function PropertyAutomationDashboard() {
           )}
 
              {/* row2 */}
-            <RenewalPipeline/>
+            {userAccess?.has_property_dept_role && <RenewalPipeline/>}
             <UrgentAlerts alerts={alerts} navigate={navigate} isLoading={isLoading} />
             
         </div>
