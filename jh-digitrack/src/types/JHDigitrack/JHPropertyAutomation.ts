@@ -25,6 +25,8 @@ export interface PropertyMaster {
   // ownership: string;
   booked_under: string;
   profit_center: string;
+  // cost_center: string;
+  // per_sqft_rate:number;
 
   number_of_units: number;
   number_of_premises: number;
