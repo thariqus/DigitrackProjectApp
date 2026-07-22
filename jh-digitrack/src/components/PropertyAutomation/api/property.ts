@@ -267,6 +267,14 @@ export const propertyApi = {
     return (data.message as { payment_schedule_options: string[] }).payment_schedule_options ?? [];
   },
 
+  // getLeaseTypeOptions: async (): Promise<string[]> => {
+  //   const res = await fetch(`${API_BASE}.get_lease_type_options`, {
+  //     credentials: "include",
+  //   });
+  //   const data = await res.json();
+  //   return (data.message as { lease_type_options: string[] }).lease_type_options ?? [];
+  // },
+
   getDivisionsByBusiness: async (business?: string): Promise<{ name: string; division_name: string; business: string }[]> => {
     const query = business ? `?business=${encodeURIComponent(business)}` : "";
     const res = await fetch(`${API_BASE}.get_divisions_by_business${query}`, {
