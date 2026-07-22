@@ -30,6 +30,7 @@
   "rent_change",
   "po_details_section",
   "po_number",
+  "renewed_contract_document",
   "miro_details_section",
   "table_gfwd",
   "property_information_section",
@@ -136,6 +137,13 @@
    "fieldname": "po_number",
    "fieldtype": "Data",
    "label": "PO Number",
+   "permlevel": 2
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "renewed_contract_document",
+   "fieldtype": "Attach",
+   "label": "Renewed Contract Document",
    "permlevel": 2
   },
   {
