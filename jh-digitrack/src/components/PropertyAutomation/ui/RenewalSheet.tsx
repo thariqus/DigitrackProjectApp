@@ -23,7 +23,7 @@ import { PropertyMaster, RentalRenewal } from "@/types/JHDigitrack/JHPropertyAut
 import { usePropertyDoc, useRenewalDoc, useRenewalRole, useChequeTypes, usePaymentScheduleOptions } from "../hooks/useProperty";
 import { propertyApi, type RenewalProgressPayload } from "../api/property";
 import { useApplyWorkflowAction } from "../hooks/useApplyWorkflowAction";
-import { useCreateDelegation, useDocumentDelegation, useRevokeDelegation } from "../hooks/useDelegation";
+import { useCreateDelegation, useDocumentDelegation } from "../hooks/useDelegation";
 import { RenewalDelegationModal } from "./RenewalDelegationModal";
 import ApprovalCommentModal from "./ApprovalCommentModal";
 import { AdditionalChargeEntry } from "./StartRenewalModal";
@@ -79,7 +79,7 @@ export default function RenewalSheet({
   isGLTeam,
 }: RenewalSheetProps) {
   const [supportingFiles, setSupportingFiles] = useState<File[]>([]);
-  // const [contractFiles, setContractFiles] = useState<File[]>([]);
+  const [contractFiles, setContractFiles] = useState<File[]>([]);
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
   const [isSendBackModalOpen, setIsSendBackModalOpen] = useState(false);
   const [pendingWithdrawalId, setPendingWithdrawalId] = useState<string | null>(null);
@@ -129,15 +129,6 @@ export default function RenewalSheet({
     onClose: () => setIsDelegateModalOpen(false),
   });
  
-  const revokeDelegationMutation = useRevokeDelegation({
-    onSuccess: () => {
-      refetchDelegation();
-      refetchRenewal();
-      queryClient.invalidateQueries({ queryKey: ["RenewalList"] });
-      queryClient.invalidateQueries({ queryKey: ["PendingRenewals"] });
-    },
-  });
- 
   const { data: renewalData, isLoading: renewalLoading, refetch: refetchRenewal } =
     useRenewalDoc(propertyId || undefined);
  
@@ -149,9 +140,10 @@ export default function RenewalSheet({
   const effectiveIsGLTeam = effectiveRole === "gl_team";
   const allowedWorkflowActions = renewalRoleData?.actions ?? [];
   const canSubmitWorkflow = allowedWorkflowActions.includes("submit");
-  const canApproveWorkflow = allowedWorkflowActions.includes("approve");
-  const canSendBackWorkflow = allowedWorkflowActions.includes("sendback");
-  const canWithdrawWorkflow = allowedWorkflowActions.includes("withdraw");
+  const hasDelegatedAway = !!activeDelegation;
+  const canApproveWorkflow = allowedWorkflowActions.includes("approve") && !hasDelegatedAway;
+  const canSendBackWorkflow = allowedWorkflowActions.includes("sendback") && !hasDelegatedAway;
+  const canWithdrawWorkflow = allowedWorkflowActions.includes("withdraw") && !hasDelegatedAway;
  
   const renewalDoc = renewalData?.doc as RentalRenewal | undefined;
  
@@ -495,13 +487,13 @@ useEffect(() => {
     }
  
     if (currentState === "Pending Property PO") {
-        //   const contractDocUrl =
-        // contractFiles.length > 0
-        //   ? (await Promise.all(contractFiles.map(uploadFile)))[0]
-        //   : latestDoc.renewed_contract_document || "";
+          const contractDocUrl =
+        contractFiles.length > 0
+          ? (await Promise.all(contractFiles.map(uploadFile)))[0]
+          : latestDoc.renewed_contract_document || "";
  
       payload.po_number = data.po_number || "";
-      // payload.renewed_contract_document = contractDocUrl;
+      payload.renewed_contract_document = contractDocUrl;
     }
 
     if (currentState === "Pending MIRO") {
@@ -692,32 +684,16 @@ const renderDelegationBadge = () => {
   );
 };
  
-  const handleRevoke = () => {
-    if (!activeDelegation?.name) return;
-    revokeDelegationMutation.mutate(activeDelegation.name);
-  };
- 
   const renderDelegationActionButton = () => {
-    if (isActingAsDelegate) return null;
- 
-    if (activeDelegation) {
-      return (
-        <Button
-          className="w-full bg-gray-100 text-gray-700 hover:bg-gray-200"
-          type="button"
-          disabled={revokeDelegationMutation.isPending}
-          onClick={handleRevoke}
-        >
-          {revokeDelegationMutation.isPending ? "Revoking..." : "Revoke"}
-        </Button>
-      );
-    }
- 
+    // if (isActingAsDelegate) return null;
+
+    // if (activeDelegation) return null;
+
     return (
       <Button
         className="w-full bg-gray-200 text-gray-700 hover:bg-gray-300"
         type="button"
-        disabled={isDelegationLoading}
+        // disabled={isDelegationLoading}
         onClick={() => setIsDelegateModalOpen(true)}
       >
         Delegate
@@ -771,10 +747,10 @@ const renderDelegationBadge = () => {
           ? (await Promise.all(supportingFiles.map(uploadFile)))[0]
           : latestDoc.supporting_documents;
  
-      // const contractDocUrl =
-      //   contractFiles.length > 0
-      //     ? (await Promise.all(contractFiles.map(uploadFile)))[0]
-      //     : latestDoc.renewed_contract_document;
+      const contractDocUrl =
+        contractFiles.length > 0
+          ? (await Promise.all(contractFiles.map(uploadFile)))[0]
+          : latestDoc.renewed_contract_document;
  
       const rentPercent = Number(rentChangePercentState) || 0;
       const rentChangeAmount = Math.round(Number(data.proposed_rent || 0) - Number(latestDoc.current_rent || 0));
@@ -832,7 +808,7 @@ console.log("updatedParticulars",updatedParticulars);
         property: latestDoc.property,
         current_rent: latestDoc.current_rent,
         supporting_documents: supportingDocUrl,
-        // renewed_contract_document: contractDocUrl,
+        renewed_contract_document: contractDocUrl,
         cheque_details: updatedChequeDetails,
         table_xqmr: updatedParticulars,
         flags: {
@@ -969,7 +945,7 @@ console.log("updatedParticulars",updatedParticulars);
  
   if (renewalLoading) {
     return (
-      <Sheet open={open} onOpenChange={onOpenChange}>
+      <Sheet open={open} >
         <SheetContent>
           <SheetHeader>
             <SheetTitle>Renewal Details</SheetTitle>
@@ -984,7 +960,7 @@ console.log("updatedParticulars",updatedParticulars);
   }
  
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
+    <Sheet open={open} >
       <SheetContent className="sm:max-w-5xl px-5 pb-30">
         <SheetHeader className="flex-row text-2xl justify-between items-center px-0 py-2">
           <div className="flex items-center gap-3">
@@ -1485,7 +1461,7 @@ console.log("updatedParticulars",updatedParticulars);
                   {renderRenewalRoleField("PO Number", "po_number", renewalDoc?.po_number || "")}
                 </div>
 
-                 {/* <div className="pb-10">
+                 <div className="pb-10">
                   <h3 className="text-sm text-gray-600 mb-2 font-semibold">Renewed Contract Document</h3>
                   {renewalDoc?.renewed_contract_document ? (
                     <div className="flex items-center gap-2 px-3 py-1 bg-gray-100 rounded">
@@ -1506,7 +1482,7 @@ console.log("updatedParticulars",updatedParticulars);
                     <p className="text-sm">No document</p>
                   )}
                   <FileAttachment files={contractFiles} setFiles={setContractFiles} />
-                </div> */}
+                </div>
               </>
             )}
  
@@ -1582,14 +1558,14 @@ console.log("updatedParticulars",updatedParticulars);
           <div className="flex w-full gap-2 items-center">
             {(isView && canSubmitWorkflow && renewalDoc?.workflow_state === "Draft") ? (
               <div className="flex gap-3 w-full">
-                  <Button
+                  {/* <Button
                     variant="outline"
                     className="w-full"
                     type="button"
                     onClick={() => onOpenChange(false)}
                   >
                     Close
-                  </Button>
+                  </Button> */}
                   {renderDelegationActionButton()}
                   <Button
                     className="w-full bg-primary text-white"
@@ -1642,9 +1618,9 @@ console.log("updatedParticulars",updatedParticulars);
   />
 ) : (canApproveWorkflow && renewalDoc?.workflow_state === "Pending Cheque Details" && isView) ? (
               <div className="flex gap-3 w-full">
-                  <Button variant="outline" className="w-full" type="button" onClick={() => onOpenChange(false)}>
+                  {/* <Button variant="outline" className="w-full" type="button" onClick={() => onOpenChange(false)}>
                     Close
-                  </Button>
+                  </Button> */}
                   <Button
                     className="w-full bg-rose-200 hover:bg-rose-100 text-gray-400"
                     type="submit"
@@ -1673,9 +1649,9 @@ console.log("updatedParticulars",updatedParticulars);
                 </div>
             ) : (canApproveWorkflow && renewalDoc?.workflow_state === "Pending Property PO" && isView) ? (
               <div className="flex gap-3 w-full">
-                  <Button variant="outline" className="w-full" type="button" onClick={() => onOpenChange(false)}>
+                  {/* <Button variant="outline" className="w-full" type="button" onClick={() => onOpenChange(false)}>
                     Close
-                  </Button>
+                  </Button> */}
                   <Button
                     className="w-full bg-rose-200 hover:bg-rose-100 text-gray-400"
                     type="submit"
@@ -1704,9 +1680,9 @@ console.log("updatedParticulars",updatedParticulars);
                 </div>
             ) : (canApproveWorkflow && renewalDoc?.workflow_state === "Pending MIRO" && isView) ? (
               <div className="flex gap-3 w-full">
-                  <Button variant="outline" className="w-full" type="button" onClick={() => onOpenChange(false)}>
+                  {/* <Button variant="outline" className="w-full" type="button" onClick={() => onOpenChange(false)}>
                     Close
-                  </Button>
+                  </Button> */}
                   <Button
                     className="w-full bg-rose-200 hover:bg-rose-100 text-gray-400"
                     type="submit"
@@ -1735,9 +1711,9 @@ console.log("updatedParticulars",updatedParticulars);
                 </div>
             ) : !isView &&
               <>
-                <Button variant="outline" className="w-full" type="button" onClick={() => onOpenChange(false)}>
+                {/* <Button variant="outline" className="w-full" type="button" onClick={() => onOpenChange(false)}>
                   Close
-                </Button>
+                </Button> */}
                 <Button
                   type="submit"
                   form={formId}
