@@ -110,6 +110,13 @@ export const usePaymentScheduleOptions = () =>
     staleTime: 30 * 60 * 1000,
   });
 
+// export const useLeaseTypeOptions = () =>
+//   useQuery({
+//     queryKey: ["LeaseTypeOptions"],
+//     queryFn: propertyApi.getLeaseTypeOptions,
+//     staleTime: 30 * 60 * 1000,
+//   });
+
 export const useDivisionsByBusiness = (business?: string | null) =>
   useQuery({
     queryKey: ["DivisionsByBusiness", business ?? ""],
