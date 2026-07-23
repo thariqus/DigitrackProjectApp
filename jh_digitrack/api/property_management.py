@@ -326,6 +326,42 @@ def _get_active_delegators(user, delegation_types=None):
         ignore_permissions=True,
     )
 
+def _get_role_match_candidates(user, document=None):
+    """
+    Returns users to check for an underlying frappe role: `user`'s direct active
+    delegators, plus - when a document is given - every earlier link in an Ad-Hoc
+    re-delegation chain (A -> B -> C: when checking C, also consider A, since A may
+    hold the role while B, a mid-chain delegatee, does not).
+    """
+    candidates = list(_get_active_delegators(user))
+ 
+    if document:
+        seen = set(candidates) | {user}
+        frontier = list(candidates)
+        depth = 0
+        while frontier and depth < 10:
+            next_frontier = []
+            for delegatee in frontier:
+                prior_delegators = frappe.get_all(
+                    "JH Delegation",
+                    filters={
+                        "delegate": delegatee,
+                        "delegation_type": "Ad-Hoc",
+                        "reference_doctype": document.doctype,
+                        "reference_name": document.name,
+                    },
+                    pluck="delegator",
+                    ignore_permissions=True,
+                )
+                for prior_delegator in prior_delegators:
+                    if prior_delegator not in seen:
+                        seen.add(prior_delegator)
+                        candidates.append(prior_delegator)
+                        next_frontier.append(prior_delegator)
+            frontier = next_frontier
+            depth += 1
+ 
+    return candidates
 
 def _get_standing_delegators(user):
     """Returns delegators whose Temporary/Permanent delegation grants standing authority."""
@@ -1212,7 +1248,7 @@ def _get_effective_roles(user, renewal=None):
         if frappe_role in user_roles:
             matches.add(workflow_role)
             return
-        for delegator in _get_active_delegators(user):
+        for delegator in _get_role_match_candidates(user, renewal):
             if frappe_role not in set(frappe.get_roles(delegator)):
                 continue
             if resolve_effective_user(delegate=user, delegator=delegator, document=renewal):
