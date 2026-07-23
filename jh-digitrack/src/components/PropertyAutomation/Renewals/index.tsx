@@ -85,9 +85,7 @@ function Renewals() {
 
   const listParams = useMemo(
     () => ({
-      workflow_states: isMD
-        ? JSON.stringify(["Pending MD"])
-        : selectedWorkflowStage.length
+      workflow_states: selectedWorkflowStage.length
         ? JSON.stringify(selectedWorkflowStage)
         : undefined,
       divisions: selectedDivision.length ? JSON.stringify(selectedDivision) : undefined,
@@ -99,7 +97,6 @@ function Renewals() {
       page: currentPage,
     }),
     [
-      isMD,
       selectedWorkflowStage,
       selectedDivision,
       selectedRenewalDateRange,
@@ -262,10 +259,13 @@ function Renewals() {
             options: workflowOptions,
             selected: selectedWorkflowStage,
             onChange: (value) => {
-              setSelectedWorkflowStage((prev) =>
-                prev.includes(value) ? prev.filter((item) => item !== value) : [...prev, value]
-              );
-              setPendingMyAction(false);
+              setSelectedWorkflowStage((prev) => {
+                const next = prev.includes(value)
+                  ? prev.filter((item) => item !== value)
+                  : [...prev, value];
+                setPendingMyAction(next.length === 0);
+                return next;
+              });
               setCurrentPage(1);
             },
           },
