@@ -81,6 +81,39 @@ def _adhoc_chain_traces_back(current_delegator: str, target_delegator: str, docu
         for prior_delegator in prior_delegators
     )
 
+def get_effective_adhoc_delegation(user: str, document):
+    """
+    Returns the currently Active Ad-Hoc delegation for a document if `user` is
+    its direct delegator, or if `user` is an earlier link in the re-delegation
+    chain that led to it (A -> B -> C: once B hands off to C, A's original
+    delegation row is Expired, but A should still see C as the active delegate
+    and stay blocked from acting).
+    """
+    active = frappe.get_all(
+        "JH Delegation",
+        filters={
+            "delegation_type": "Ad-Hoc",
+            "status": "Active",
+            "reference_doctype": document.doctype,
+            "reference_name": document.name,
+        },
+        fields=["name", "delegator", "delegate", "delegate_name", "comment", "status"],
+        limit=1,
+        ignore_permissions=True,
+    )
+ 
+    if not active:
+        return None
+ 
+    delegation = active[0]
+ 
+    if delegation.delegator == user:
+        return delegation
+ 
+    if _adhoc_chain_traces_back(delegation.delegator, user, document):
+        return delegation
+ 
+    return None
 
 def has_outgoing_adhoc(user: str, document) -> bool:
     """
