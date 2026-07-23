@@ -88,6 +88,13 @@ def get_effective_adhoc_delegation(user: str, document):
     chain that led to it (A -> B -> C: once B hands off to C, A's original
     delegation row is Expired, but A should still see C as the active delegate
     and stay blocked from acting).
+    The current holder of the Active row (its `delegate`) is always exempt,
+    even if they also appear earlier in the chain's history. This matters for
+    a re-delegation that cycles back (A -> B -> A): the ancestor walk below
+    ignores row status, so it would otherwise find A as an "ancestor" of B
+    through the now-Expired A -> B row and wrongly conclude A delegated this
+    away, even though A is the delegate on the current Active row and holds
+    the authority right now.
     """
     active = frappe.get_all(
         "JH Delegation",
@@ -106,6 +113,9 @@ def get_effective_adhoc_delegation(user: str, document):
         return None
  
     delegation = active[0]
+
+    if delegation.delegate == user:
+        return None
  
     if delegation.delegator == user:
         return delegation
