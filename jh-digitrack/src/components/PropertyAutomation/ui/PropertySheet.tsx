@@ -3,6 +3,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+// import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { XIcon, ChevronDown } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
@@ -14,14 +15,14 @@ import * as z from "zod";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import FileAttachment from "./FileAttachment";
-import MultiValueInput from "./MultiValueInput";
+// import MultiValueInput from "./MultiValueInput";
 import { useDocs, useSaveDoc, useUpdateDoc } from "@/hooks/doc";
 import {
   usePropertyDoc,
   useRenewalList,
   useUserAccess,
   usePropertyTypes,
-  usePropertyDivisions,
+  usePropertyDivisions,useLeaseTypeOptions,
 } from "../hooks/useProperty";
 import { PropertyMaster, JHPropertyElectricityConnection, JHPropertyLandline, ChequeDetail, RentalRenewal } from "@/types/JHDigitrack/JHPropertyAutomation";
 import { X } from "lucide-react";
@@ -29,6 +30,7 @@ import { queryClient } from "@/utils/query-client";
 import frappe from "@/utils/frappe-client";
 import RenewalTimeline from "./RenewalTimeline";
 import { useChequeTypes } from "../hooks/useProperty";
+import { Textarea } from "@/components/ui/textarea";
  
 type PropertySheetProps = {
   open: boolean;
@@ -136,11 +138,15 @@ const propertySchema = z.object({
   number_of_premises: numericOnlyField,
   // premise_number: z.string().nullable().optional(),
   staff_allocated: numericOnlyField,
-  // per_staff_rent : numericOnlyField,
-  // remark: z.string().nullable().optional(),
-  // ownership: z.string().nullable().optional(),
-  // address:z.string().nullable().optional(),
-  // lease_type:z.string().nullable().optional(),
+
+  per_sq_ft_rate : numericOnlyField,
+  per_staff_rent : numericOnlyField,
+  remark: z.string().nullable().optional(),
+  ownership: z.string().nullable().optional(),
+  address:z.string().nullable().optional(),
+  lease_type:z.string().nullable().optional(),
+  cost_center: z.string().nullable().optional(),
+
   location: z.string().nullable().optional(),
   emirate: z.string().nullable().optional(),
   country: z.string().default("UAE").optional(),
@@ -283,6 +289,7 @@ export default function PropertySheet({
 const renewalsData = renewalsListData?.renewals ?? [];
   const { data: chequeTypes = [] } = useChequeTypes();
   const { data: propertyTypeOptions = [] } = usePropertyTypes();
+  const { data: leaseTypeOptions = [] } = useLeaseTypeOptions();
  
   const doc = propertyData?.doc as PropertyMaster | undefined;
 
@@ -663,15 +670,24 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
           <Controller
             name={name}
             control={control}
-            render={({ field }) => (
-              <Input
-                type={type}
-                {...field}
-                value={field.value ?? ""}
-                disabled={disabled}
-                className={cn(errors[name] ? "border-red-500" : "", disabled ? "bg-muted cursor-not-allowed opacity-60" : "")}
-              />
-            )}
+            render={({ field }) =>
+              type === "textarea" ? (
+                <Textarea
+                  {...field}
+                  value={field.value ?? ""}
+                  disabled={disabled}
+                  className={cn(errors[name] ? "border-red-500" : "", disabled ? "bg-muted cursor-not-allowed opacity-60" : "")}
+                />
+              ) : (
+                <Input
+                  type={type}
+                  {...field}
+                  value={field.value ?? ""}
+                  disabled={disabled}
+                  className={cn(errors[name] ? "border-red-500" : "", disabled ? "bg-muted cursor-not-allowed opacity-60" : "")}
+                />
+               )
+            }
           />
         )}
  
@@ -1512,7 +1528,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
   const viewEmirateFieldLabel = emirateLabelByCountry[doc?.country ?? ""] ?? "Emirate/Region";
  
   return (
-    <Sheet open={open} onOpenChange={handleSheetOpenChange}>
+    <Sheet open={open} >
       <SheetContent className="sm:max-w-5xl px-5 pb-30">
         <SheetHeader className="flex-row text-2xl justify-between items-center px-0 py-2">
           <div className="flex items-center gap-5">
@@ -1659,15 +1675,47 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
 
               {renderField("Co Code", "co_code", doc?.co_code)}
               {renderField("Area (Sqft/Mtr)", "area_sqftmtr", doc?.area_sqftmtr)}
-              {/* {renderField("Address", "address", doc?.address)}
+              {renderField("Per Sqft Rate", "per_sq_ft_rate", doc?.per_sq_ft_rate)}
               {renderField("Ownership", "ownership", doc?.ownership)}
-              {renderField("Remarks", "remark", doc?.remark)} */}
-              {/* {renderField("Per Staff Rent", "per_staff_rent", doc?.per_staff_rent)} */}
+
+              <div className="flex flex-col gap-1">
+                {!isView && <Label className="text-sm text-gray-600">Lease Type</Label>}
+                {isView ? (
+                  <div className="flex items-center gap-2 py-1 text-sm">
+                    <span className="font-medium text-gray-600">Lease Type:</span>
+                    <span>{doc?.lease_type || "-"}</span>
+                  </div>
+                ) : (
+                  <Controller
+                    name="lease_type"
+                    control={control}
+                    render={({ field }) => (
+                      <Select value={field.value ?? ""} onValueChange={field.onChange}>
+                        <SelectTrigger className="text-sm h-9">
+                          <SelectValue placeholder="Select Lease Type" />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-60 overflow-y-auto">
+                          {leaseTypeOptions.map((opt) => (
+                            <SelectItem key={opt} value={opt}>
+                              {opt}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                )}
+              </div>
+
+              {renderField("Staff Allocated", "staff_allocated", doc?.staff_allocated)}
+              {renderField("Per Staff Rent", "per_staff_rent", doc?.per_staff_rent)} 
               {renderField("Booked Under", "booked_under", doc?.booked_under)}
               {renderField("Profit Center/Site", "profit_center", doc?.profit_center)}
-              {renderField("Staff Allocated", "staff_allocated", doc?.staff_allocated)}
+             {renderField("Cost Center", "cost_center", doc?.cost_center)}
+             
               {renderField("Number of Units", "number_of_units", doc?.number_of_units)}
               {renderField("Number of Premises", "number_of_premises", doc?.number_of_premises)}
+              {renderField("Remarks", "remark", doc?.remark, "textarea")}
               {renderApproversTable()}
             </div>
  
@@ -1676,6 +1724,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
             <h2 className="text-lg font-semibold">Location</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
               {renderField("Location", "location", doc?.location)}
+              {renderField("Address", "address", doc?.address)}
               <div className="flex flex-col gap-1">
                 {!isView && <Label className="text-sm text-gray-600">Country</Label>}
                 {isView ? (

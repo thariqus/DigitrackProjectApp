@@ -18,13 +18,15 @@ export interface PropertyMaster {
 
   division_used: string;
   approvers?: { order: number; approver: string }[];
-  // lease_type: string;
-  // per_staff_rent: number;
-  // remark: string;
-  // address:string;
-  // ownership: string;
+  lease_type: string;
+  per_staff_rent: number;
+  remark: string;
+  address:string;
+  ownership: string;
   booked_under: string;
   profit_center: string;
+  cost_center: string;
+  per_sq_ft_rate:number;
 
   number_of_units: number;
   number_of_premises: number;

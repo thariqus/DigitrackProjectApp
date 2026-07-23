@@ -23,7 +23,7 @@ import { PropertyMaster, RentalRenewal } from "@/types/JHDigitrack/JHPropertyAut
 import { usePropertyDoc, useRenewalDoc, useRenewalRole, useChequeTypes, usePaymentScheduleOptions } from "../hooks/useProperty";
 import { propertyApi, type RenewalProgressPayload } from "../api/property";
 import { useApplyWorkflowAction } from "../hooks/useApplyWorkflowAction";
-import { useCreateDelegation, useDocumentDelegation, useRevokeDelegation } from "../hooks/useDelegation";
+import { useCreateDelegation, useDocumentDelegation } from "../hooks/useDelegation";
 import { RenewalDelegationModal } from "./RenewalDelegationModal";
 import ApprovalCommentModal from "./ApprovalCommentModal";
 import { AdditionalChargeEntry } from "./StartRenewalModal";
@@ -129,15 +129,6 @@ export default function RenewalSheet({
     onClose: () => setIsDelegateModalOpen(false),
   });
  
-  const revokeDelegationMutation = useRevokeDelegation({
-    onSuccess: () => {
-      refetchDelegation();
-      refetchRenewal();
-      queryClient.invalidateQueries({ queryKey: ["RenewalList"] });
-      queryClient.invalidateQueries({ queryKey: ["PendingRenewals"] });
-    },
-  });
- 
   const { data: renewalData, isLoading: renewalLoading, refetch: refetchRenewal } =
     useRenewalDoc(propertyId || undefined);
  
@@ -148,10 +139,11 @@ export default function RenewalSheet({
   const effectiveIsPropertyDept = effectiveRole === "property_dept";
   const effectiveIsGLTeam = effectiveRole === "gl_team";
   const allowedWorkflowActions = renewalRoleData?.actions ?? [];
-  const canSubmitWorkflow = allowedWorkflowActions.includes("submit");
-  const canApproveWorkflow = allowedWorkflowActions.includes("approve");
-  const canSendBackWorkflow = allowedWorkflowActions.includes("sendback");
-  const canWithdrawWorkflow = allowedWorkflowActions.includes("withdraw");
+  const hasDelegatedAway = !!activeDelegation;
+  const canSubmitWorkflow = allowedWorkflowActions.includes("submit") && !hasDelegatedAway;
+  const canApproveWorkflow = allowedWorkflowActions.includes("approve") && !hasDelegatedAway;
+  const canSendBackWorkflow = allowedWorkflowActions.includes("sendback") && !hasDelegatedAway;
+  const canWithdrawWorkflow = allowedWorkflowActions.includes("withdraw") && !hasDelegatedAway;
  
   const renewalDoc = renewalData?.doc as RentalRenewal | undefined;
  
@@ -369,11 +361,11 @@ useEffect(() => {
       toast.error("Enter valid PO Number");
       return false;
     }
-     const hasContractDoc = contractFiles.length > 0 || !!renewalDoc?.renewed_contract_document;
-    if (!hasContractDoc) {
-      toast.error("Renewed Contract Document is required before confirming");
-      return false;
-    }
+    //  const hasContractDoc = contractFiles.length > 0 || !!renewalDoc?.renewed_contract_document;
+    // if (!hasContractDoc) {
+    //   toast.error("Renewed Contract Document is required before confirming");
+    //   return false;
+    // }
   }
  
   // GL Team → MIRO
@@ -515,9 +507,9 @@ useEffect(() => {
     }
  
     const savedDoc = await propertyApi.saveRenewalProgress(payload);
-    if (currentState === "Pending Property PO") {
-      setContractFiles([]);
-    }
+    // if (currentState === "Pending Property PO") {
+    //   setContractFiles([]);
+    // }
     setLocalModified(savedDoc?.modified || latestDoc.modified || "");
  
     return { latestDoc, savedDoc };
@@ -681,10 +673,10 @@ useEffect(() => {
     </Badge>
   );
 };
- 
+
 const renderDelegationBadge = () => {
   if (isDelegationLoading || !activeDelegation) return null;
- 
+
   return (
     <Badge variant="secondary" className="bg-amber-100 text-amber-800 hover:bg-amber-100">
       Delegation Active: {activeDelegation.delegate_name || activeDelegation.delegate}
@@ -692,32 +684,16 @@ const renderDelegationBadge = () => {
   );
 };
  
-  const handleRevoke = () => {
-    if (!activeDelegation?.name) return;
-    revokeDelegationMutation.mutate(activeDelegation.name);
-  };
- 
   const renderDelegationActionButton = () => {
-    if (isActingAsDelegate) return null;
- 
-    if (activeDelegation) {
-      return (
-        <Button
-          className="w-full bg-gray-100 text-gray-700 hover:bg-gray-200"
-          type="button"
-          disabled={revokeDelegationMutation.isPending}
-          onClick={handleRevoke}
-        >
-          {revokeDelegationMutation.isPending ? "Revoking..." : "Revoke"}
-        </Button>
-      );
-    }
- 
+    // if (isActingAsDelegate) return null;
+
+    // if (activeDelegation) return null;
+
     return (
       <Button
         className="w-full bg-gray-200 text-gray-700 hover:bg-gray-300"
         type="button"
-        disabled={isDelegationLoading}
+        // disabled={isDelegationLoading}
         onClick={() => setIsDelegateModalOpen(true)}
       >
         Delegate
@@ -745,7 +721,7 @@ const renderDelegationBadge = () => {
         onOpenChange(false);
         reset();
         setSupportingFiles([]);
-        setContractFiles([]);
+        // setContractFiles([]);
         return;
       }
  
@@ -859,7 +835,7 @@ console.log("updatedParticulars",updatedParticulars);
       onOpenChange(false);
       reset();
       setSupportingFiles([]);
-      setContractFiles([]);
+      // setContractFiles([]);
     } catch (error: unknown) {
       console.error("Submit ERROR:", error);
       const message = getErrorMessage(error, "Save failed");
@@ -969,7 +945,7 @@ console.log("updatedParticulars",updatedParticulars);
  
   if (renewalLoading) {
     return (
-      <Sheet open={open} onOpenChange={onOpenChange}>
+      <Sheet open={open} >
         <SheetContent>
           <SheetHeader>
             <SheetTitle>Renewal Details</SheetTitle>
@@ -984,7 +960,7 @@ console.log("updatedParticulars",updatedParticulars);
   }
  
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
+    <Sheet open={open} >
       <SheetContent className="sm:max-w-5xl px-5 pb-30">
         <SheetHeader className="flex-row text-2xl justify-between items-center px-0 py-2">
           <div className="flex items-center gap-3">
@@ -1582,14 +1558,14 @@ console.log("updatedParticulars",updatedParticulars);
           <div className="flex w-full gap-2 items-center">
             {(isView && canSubmitWorkflow && renewalDoc?.workflow_state === "Draft") ? (
               <div className="flex gap-3 w-full">
-                  <Button
+                  {/* <Button
                     variant="outline"
                     className="w-full"
                     type="button"
                     onClick={() => onOpenChange(false)}
                   >
                     Close
-                  </Button>
+                  </Button> */}
                   {renderDelegationActionButton()}
                   <Button
                     className="w-full bg-primary text-white"
@@ -1642,9 +1618,9 @@ console.log("updatedParticulars",updatedParticulars);
   />
 ) : (canApproveWorkflow && renewalDoc?.workflow_state === "Pending Cheque Details" && isView) ? (
               <div className="flex gap-3 w-full">
-                  <Button variant="outline" className="w-full" type="button" onClick={() => onOpenChange(false)}>
+                  {/* <Button variant="outline" className="w-full" type="button" onClick={() => onOpenChange(false)}>
                     Close
-                  </Button>
+                  </Button> */}
                   <Button
                     className="w-full bg-rose-200 hover:bg-rose-100 text-gray-400"
                     type="submit"
@@ -1673,9 +1649,9 @@ console.log("updatedParticulars",updatedParticulars);
                 </div>
             ) : (canApproveWorkflow && renewalDoc?.workflow_state === "Pending Property PO" && isView) ? (
               <div className="flex gap-3 w-full">
-                  <Button variant="outline" className="w-full" type="button" onClick={() => onOpenChange(false)}>
+                  {/* <Button variant="outline" className="w-full" type="button" onClick={() => onOpenChange(false)}>
                     Close
-                  </Button>
+                  </Button> */}
                   <Button
                     className="w-full bg-rose-200 hover:bg-rose-100 text-gray-400"
                     type="submit"
@@ -1704,9 +1680,9 @@ console.log("updatedParticulars",updatedParticulars);
                 </div>
             ) : (canApproveWorkflow && renewalDoc?.workflow_state === "Pending MIRO" && isView) ? (
               <div className="flex gap-3 w-full">
-                  <Button variant="outline" className="w-full" type="button" onClick={() => onOpenChange(false)}>
+                  {/* <Button variant="outline" className="w-full" type="button" onClick={() => onOpenChange(false)}>
                     Close
-                  </Button>
+                  </Button> */}
                   <Button
                     className="w-full bg-rose-200 hover:bg-rose-100 text-gray-400"
                     type="submit"
@@ -1735,9 +1711,9 @@ console.log("updatedParticulars",updatedParticulars);
                 </div>
             ) : !isView &&
               <>
-                <Button variant="outline" className="w-full" type="button" onClick={() => onOpenChange(false)}>
+                {/* <Button variant="outline" className="w-full" type="button" onClick={() => onOpenChange(false)}>
                   Close
-                </Button>
+                </Button> */}
                 <Button
                   type="submit"
                   form={formId}

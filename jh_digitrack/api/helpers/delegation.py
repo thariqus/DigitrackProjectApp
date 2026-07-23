@@ -11,16 +11,22 @@ def resolve_effective_user(delegate: str, delegator: str, document=None) -> bool
     if not delegate or not delegator or delegate == delegator:
         return False
 
-    # 1. Ad-Hoc — only when a document is provided
+    # 1. Ad-Hoc — only when a document is provided. A delegate may re-delegate
+    # further (A -> B -> C), which expires the A->B row and leaves only B->C
+    # Active, so a direct-match lookup would miss C. Instead, find whoever
+    # currently holds the Active Ad-Hoc delegation for this document and walk
+    # backwards through the re-delegation chain to see if it originated from
+    # `delegator`.
     if document:
-        if frappe.db.exists("JH Delegation", {
-            "delegator": delegator,
+        active_delegator = frappe.db.get_value("JH Delegation", {
             "delegate": delegate,
             "delegation_type": "Ad-Hoc",
             "status": "Active",
             "reference_doctype": document.doctype,
             "reference_name": document.name,
-        }):
+        }, "delegator")
+
+        if active_delegator and _adhoc_chain_traces_back(active_delegator, delegator, document):
             return True
 
     # 2. Temporary — active date range
@@ -46,6 +52,78 @@ def resolve_effective_user(delegate: str, delegator: str, document=None) -> bool
 
     return False
 
+def _adhoc_chain_traces_back(current_delegator: str, target_delegator: str, document, _depth: int = 0) -> bool:
+    """
+    Walks an Ad-Hoc re-delegation chain backwards from `current_delegator`
+    (whoever handed off the currently Active delegation) to see whether
+    `target_delegator` originated it, directly or through one or more
+    re-delegation hops. Depth is capped as a cycle guard.
+    """
+    if current_delegator == target_delegator:
+        return True
+    if _depth >= 10:
+        return False
+ 
+    prior_delegators = frappe.get_all(
+        "JH Delegation",
+        filters={
+            "delegate": current_delegator,
+            "delegation_type": "Ad-Hoc",
+            "reference_doctype": document.doctype,
+            "reference_name": document.name,
+        },
+        pluck="delegator",
+        ignore_permissions=True,
+    )
+ 
+    return any(
+        _adhoc_chain_traces_back(prior_delegator, target_delegator, document, _depth + 1)
+        for prior_delegator in prior_delegators
+    )
+
+def get_effective_adhoc_delegation(user: str, document):
+    """
+    Returns the currently Active Ad-Hoc delegation for a document if `user` is
+    its direct delegator, or if `user` is an earlier link in the re-delegation
+    chain that led to it (A -> B -> C: once B hands off to C, A's original
+    delegation row is Expired, but A should still see C as the active delegate
+    and stay blocked from acting).
+    The current holder of the Active row (its `delegate`) is always exempt,
+    even if they also appear earlier in the chain's history. This matters for
+    a re-delegation that cycles back (A -> B -> A): the ancestor walk below
+    ignores row status, so it would otherwise find A as an "ancestor" of B
+    through the now-Expired A -> B row and wrongly conclude A delegated this
+    away, even though A is the delegate on the current Active row and holds
+    the authority right now.
+    """
+    active = frappe.get_all(
+        "JH Delegation",
+        filters={
+            "delegation_type": "Ad-Hoc",
+            "status": "Active",
+            "reference_doctype": document.doctype,
+            "reference_name": document.name,
+        },
+        fields=["name", "delegator", "delegate", "delegate_name", "comment", "status"],
+        limit=1,
+        ignore_permissions=True,
+    )
+ 
+    if not active:
+        return None
+ 
+    delegation = active[0]
+
+    if delegation.delegate == user:
+        return None
+ 
+    if delegation.delegator == user:
+        return delegation
+ 
+    if _adhoc_chain_traces_back(delegation.delegator, user, document):
+        return delegation
+ 
+    return None
 
 def has_outgoing_adhoc(user: str, document) -> bool:
     """

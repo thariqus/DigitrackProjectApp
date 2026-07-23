@@ -28,6 +28,12 @@ interface FilterButtonsProps {
     label: string;
     active: boolean;
     onToggle: () => void;
+    /**
+     * Whether the current `active` state counts as a deviation from the
+     * quick filter's default state (and should therefore show "Clear filter").
+     * Defaults to `active` — correct when the quick filter defaults to off.
+     */
+    nonDefault?: boolean;
   };
   extraActive?: boolean;
   onClear: () => void;
@@ -41,7 +47,7 @@ export default function FilterButtons({
 }: FilterButtonsProps) {
   const hasActiveFilters =
     filters.some((f) => f.selected.length > 0) ||
-    quickFilter?.active ||
+    (quickFilter?.nonDefault ?? quickFilter?.active) ||
     extraActive;
 
   return (

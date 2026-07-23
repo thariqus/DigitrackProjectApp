@@ -16,7 +16,8 @@
   "booked_under",
   "area_sqftmtr",
   "lease_type",
-  "address",
+  "per_sq_ft_rate",
+  "cost_center",
   "column_break_rpia",
   "profit_center",
   "number_of_units",
@@ -32,6 +33,7 @@
   "location",
   "emirate",
   "country",
+  "address",
   "column_break_muaf",
   "makani_number",
   "po_box_number",
@@ -354,12 +356,22 @@
    "fieldname": "ownership",
    "fieldtype": "Data",
    "label": "Ownership"
+  },
+  {
+   "fieldname": "per_sq_ft_rate",
+   "fieldtype": "Data",
+   "label": "Per Sq Ft Rate"
+  },
+  {
+   "fieldname": "cost_center",
+   "fieldtype": "Data",
+   "label": "Cost Center"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-07-15 18:12:04.121762",
+ "modified": "2026-07-23 13:10:49.591406",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Property Master",

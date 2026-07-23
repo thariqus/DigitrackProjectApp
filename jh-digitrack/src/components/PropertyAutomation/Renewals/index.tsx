@@ -25,7 +25,7 @@ function Renewals() {
   const [selectedWorkflowStage, setSelectedWorkflowStage] = useState<string[]>([]);
   const [selectedRenewalDateRange, setSelectedRenewalDateRange] = useState<string[]>([]);
   const [selectedDivision, setSelectedDivision] = useState<string[]>([]);
-  const [pendingMyAction, setPendingMyAction] = useState(false);
+  const [pendingMyAction, setPendingMyAction] = useState(true);
   const [selectedRenewal, setSelectedRenewal] = useState<string | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
@@ -44,7 +44,8 @@ function Renewals() {
 
   useEffect(() => {
     const workflowStates = searchParams.get("workflow_states");
-    const pendingAction = searchParams.get("pending_my_action") === "1";
+    const pendingParam = searchParams.get("pending_my_action");
+    const attentionFilterParam = searchParams.get("attention_filter");
 
     if (workflowStates) {
       try {
@@ -59,7 +60,14 @@ function Renewals() {
       setSelectedWorkflowStage([]);
     }
 
-    setPendingMyAction(pendingAction);
+    if (pendingParam !== null) {
+      setPendingMyAction(pendingParam === "1");
+    } else if (attentionFilterParam || workflowStates) {
+      setPendingMyAction(false);
+    } else {
+      setPendingMyAction(true);
+    }
+
     setCurrentPage(1);
   }, [searchParamKey]);
 
@@ -77,9 +85,7 @@ function Renewals() {
 
   const listParams = useMemo(
     () => ({
-      workflow_states: isMD
-        ? JSON.stringify(["Pending MD"])
-        : selectedWorkflowStage.length
+      workflow_states: selectedWorkflowStage.length
         ? JSON.stringify(selectedWorkflowStage)
         : undefined,
       divisions: selectedDivision.length ? JSON.stringify(selectedDivision) : undefined,
@@ -91,7 +97,6 @@ function Renewals() {
       page: currentPage,
     }),
     [
-      isMD,
       selectedWorkflowStage,
       selectedDivision,
       selectedRenewalDateRange,
@@ -206,8 +211,13 @@ function Renewals() {
 
   const showActionsColumn = useMemo(
     () =>
-      isJHPropertyDepartment || isGLTeam,
-    [isJHPropertyDepartment, isGLTeam]
+      renewals.some(
+        (r) =>
+          (isJHPropertyDepartment && r.workflow_state === "Draft") ||
+          ((isJHPropertyDepartment || isGLTeam) &&
+            DOWNLOADABLE_STATES.includes(r.workflow_state ?? ""))
+      ),
+    [renewals, isJHPropertyDepartment, isGLTeam]
   );
 
   const handleRowClick = (name: string) => {
@@ -239,6 +249,7 @@ function Renewals() {
   };
 
 
+
   return (
     <div className="w-full space-y-4">
       <FilterButtons
@@ -248,9 +259,13 @@ function Renewals() {
             options: workflowOptions,
             selected: selectedWorkflowStage,
             onChange: (value) => {
-              setSelectedWorkflowStage((prev) =>
-                prev.includes(value) ? prev.filter((item) => item !== value) : [...prev, value]
-              );
+              setSelectedWorkflowStage((prev) => {
+                const next = prev.includes(value)
+                  ? prev.filter((item) => item !== value)
+                  : [...prev, value];
+                setPendingMyAction(next.length === 0);
+                return next;
+              });
               setCurrentPage(1);
             },
           },
@@ -277,23 +292,24 @@ function Renewals() {
             },
           },
         ]}
-        quickFilter={{
-          label: "Pending My Action",
-          active: pendingMyAction,
-          onToggle: () => {
-            setPendingMyAction((prev) => !prev);
-            const newParams = new URLSearchParams(searchParams);
-            newParams.delete("pending_my_action");
-            newParams.delete("attention_filter");
-            setSearchParams(newParams, { replace: true });
-            setCurrentPage(1);
-          },
-        }}
+        // quickFilter={{
+        //   label: "Pending My Action",
+        //   active: pendingMyAction,
+        //   nonDefault: !pendingMyAction,
+        //   onToggle: () => {
+        //     setPendingMyAction((prev) => !prev);
+        //     const newParams = new URLSearchParams(searchParams);
+        //     newParams.delete("pending_my_action");
+        //     newParams.delete("attention_filter");
+        //     setSearchParams(newParams, { replace: true });
+        //     setCurrentPage(1);
+        //   },
+        // }}
         onClear={() => {
           setSelectedWorkflowStage([]);
           setSelectedRenewalDateRange([]);
           setSelectedDivision([]);
-          setPendingMyAction(false);
+          setPendingMyAction(true);
           setSearchParams({}, { replace: true });
           setCurrentPage(1);
         }}

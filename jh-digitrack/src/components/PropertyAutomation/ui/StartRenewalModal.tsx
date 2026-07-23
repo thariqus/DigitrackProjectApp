@@ -274,7 +274,9 @@ export default function StartRenewalModal({
       setAdditionalCharges([]);
       toast.success("Renewal created successfully!");
       await queryClient.invalidateQueries({ queryKey: ["RenewalList"], exact: false });
+      await queryClient.invalidateQueries({ queryKey: ["PendingRenewals"], exact: false });
       await queryClient.invalidateQueries({ queryKey: ["PropertyList"], exact: false });
+      await queryClient.invalidateQueries({ queryKey: ["PropertyDoc", propertyId], exact: false });
       await queryClient.invalidateQueries({ queryKey: ["PropertyDashboardCounts"] });
       await queryClient.invalidateQueries({ queryKey: ["RenewalPipelineCounts"] });
     } catch (error: unknown) {

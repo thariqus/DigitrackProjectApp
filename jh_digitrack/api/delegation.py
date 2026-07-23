@@ -1,7 +1,12 @@
 import frappe
 from frappe import _
-from jh_digitrack.api.helpers.delegation import get_delegations_for_user
-
+ 
+from jh_digitrack.api.helpers.delegation import (
+    expire_adhoc_delegations_for_document,
+    get_delegations_for_user,
+    get_effective_adhoc_delegation,
+)
+ 
 
 @frappe.whitelist(methods=["POST"])
 def create_delegation(
@@ -18,6 +23,15 @@ def create_delegation(
     Validation and notification are handled by the DocType controller.
     """
     delegator = frappe.session.user
+ 
+    if delegation_type == "Ad-Hoc" and reference_doctype and reference_name:
+        # Only one Ad-Hoc delegation may be Active per document at a time,
+        # regardless of direction. Otherwise a reverse delegation (B back to A)
+        # coexists with the original, and both users end up blocked by their
+        # own outgoing delegation simultaneously.
+        expire_adhoc_delegations_for_document(
+            frappe._dict(doctype=reference_doctype, name=reference_name)
+        )
 
     doc = frappe.get_doc({
         "doctype": "JH Delegation",
@@ -79,24 +93,15 @@ def list_delegations():
 @frappe.whitelist(methods=["GET"])
 def get_document_delegation(reference_doctype: str, reference_name: str):
     """
-    Returns the current user's active Ad-Hoc delegation for a specific document.
+    Returns the currently Active Ad-Hoc delegation for a specific document if
+    the current user delegated it away, directly or through an earlier hop in
+    a re-delegation chain (A -> B -> C).
     """
     if not reference_doctype or not reference_name:
         frappe.throw(_("reference_doctype and reference_name are required"))
  
     user = frappe.session.user
-    delegation = frappe.get_all(
-        "JH Delegation",
-        filters={
-            "delegator": user,
-            "delegation_type": "Ad-Hoc",
-            "status": "Active",
-            "reference_doctype": reference_doctype,
-            "reference_name": reference_name,
-        },
-        fields=["name", "delegate", "delegate_name", "comment", "status"],
-        limit=1,
-        ignore_permissions=True,
-    )
+    document = frappe._dict(doctype=reference_doctype, name=reference_name)
+    delegation = get_effective_adhoc_delegation(user, document)
  
-    return {"delegation": delegation[0] if delegation else None}
+    return {"delegation": delegation}

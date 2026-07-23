@@ -20,7 +20,7 @@ type RenewalTableRowProps = {
   isLoading?: boolean;
   onEdit: (name: string) => void;
   isJHPropertyDepartment?: boolean;
-  isGLTeam ?: n
+  isGLTeam ?: boolean
   onDownload: (name: string) => void;
 };
 
