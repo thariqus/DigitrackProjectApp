@@ -22,8 +22,7 @@ import {
   useRenewalList,
   useUserAccess,
   usePropertyTypes,
-  usePropertyDivisions,
-  // useLeaseTypeOptions,
+  usePropertyDivisions,useLeaseTypeOptions,
 } from "../hooks/useProperty";
 import { PropertyMaster, JHPropertyElectricityConnection, JHPropertyLandline, ChequeDetail, RentalRenewal } from "@/types/JHDigitrack/JHPropertyAutomation";
 import { X } from "lucide-react";
@@ -31,6 +30,7 @@ import { queryClient } from "@/utils/query-client";
 import frappe from "@/utils/frappe-client";
 import RenewalTimeline from "./RenewalTimeline";
 import { useChequeTypes } from "../hooks/useProperty";
+import { Textarea } from "@/components/ui/textarea";
  
 type PropertySheetProps = {
   open: boolean;
@@ -139,13 +139,13 @@ const propertySchema = z.object({
   // premise_number: z.string().nullable().optional(),
   staff_allocated: numericOnlyField,
 
-  // per_sqft_rate : numericOnlyField,
-  // per_staff_rent : numericOnlyField,
-  // remark: z.string().nullable().optional(),
-  // ownership: z.string().nullable().optional(),
-  // address:z.string().nullable().optional(),
-  // lease_type:z.string().nullable().optional(),
-  // cost_center: z.string().nullable().optional(),
+  per_sq_ft_rate : numericOnlyField,
+  per_staff_rent : numericOnlyField,
+  remark: z.string().nullable().optional(),
+  ownership: z.string().nullable().optional(),
+  address:z.string().nullable().optional(),
+  lease_type:z.string().nullable().optional(),
+  cost_center: z.string().nullable().optional(),
 
   location: z.string().nullable().optional(),
   emirate: z.string().nullable().optional(),
@@ -289,7 +289,7 @@ export default function PropertySheet({
 const renewalsData = renewalsListData?.renewals ?? [];
   const { data: chequeTypes = [] } = useChequeTypes();
   const { data: propertyTypeOptions = [] } = usePropertyTypes();
-  // const { data: leaseTypeOptions = [] } = useLeaseTypeOptions();
+  const { data: leaseTypeOptions = [] } = useLeaseTypeOptions();
  
   const doc = propertyData?.doc as PropertyMaster | undefined;
 
@@ -671,14 +671,14 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
             name={name}
             control={control}
             render={({ field }) =>
-              // type === "textarea" ? (
-              //   <Textarea
-              //     {...field}
-              //     value={field.value ?? ""}
-              //     disabled={disabled}
-              //     className={cn(errors[name] ? "border-red-500" : "", disabled ? "bg-muted cursor-not-allowed opacity-60" : "")}
-              //   />
-              // ) : (
+              type === "textarea" ? (
+                <Textarea
+                  {...field}
+                  value={field.value ?? ""}
+                  disabled={disabled}
+                  className={cn(errors[name] ? "border-red-500" : "", disabled ? "bg-muted cursor-not-allowed opacity-60" : "")}
+                />
+              ) : (
                 <Input
                   type={type}
                   {...field}
@@ -686,7 +686,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                   disabled={disabled}
                   className={cn(errors[name] ? "border-red-500" : "", disabled ? "bg-muted cursor-not-allowed opacity-60" : "")}
                 />
-              // )
+               )
             }
           />
         )}
@@ -1675,11 +1675,10 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
 
               {renderField("Co Code", "co_code", doc?.co_code)}
               {renderField("Area (Sqft/Mtr)", "area_sqftmtr", doc?.area_sqftmtr)}
-               {/* {renderField("Per Sqft Rate", "per_sqft_rate", doc?.per_sqft_rate)}
-              {renderField("Address", "address", doc?.address)} */}
-              {/* {renderField("Ownership", "ownership", doc?.ownership)} */}
+              {renderField("Per Sqft Rate", "per_sq_ft_rate", doc?.per_sq_ft_rate)}
+              {renderField("Ownership", "ownership", doc?.ownership)}
 
-              {/* <div className="flex flex-col gap-1">
+              <div className="flex flex-col gap-1">
                 {!isView && <Label className="text-sm text-gray-600">Lease Type</Label>}
                 {isView ? (
                   <div className="flex items-center gap-2 py-1 text-sm">
@@ -1706,17 +1705,17 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                     )}
                   />
                 )}
-              </div> */}
+              </div>
 
               {renderField("Staff Allocated", "staff_allocated", doc?.staff_allocated)}
-              {/* {renderField("Per Staff Rent", "per_staff_rent", doc?.per_staff_rent)} */}
+              {renderField("Per Staff Rent", "per_staff_rent", doc?.per_staff_rent)} 
               {renderField("Booked Under", "booked_under", doc?.booked_under)}
               {renderField("Profit Center/Site", "profit_center", doc?.profit_center)}
-              {/* {renderField("Cost Center", "cost_center", doc?.cost_center)} */}
+             {renderField("Cost Center", "cost_center", doc?.cost_center)}
              
               {renderField("Number of Units", "number_of_units", doc?.number_of_units)}
               {renderField("Number of Premises", "number_of_premises", doc?.number_of_premises)}
-              {/* {renderField("Remarks", "remark", doc?.remark, "textarea")} */}
+              {renderField("Remarks", "remark", doc?.remark, "textarea")}
               {renderApproversTable()}
             </div>
  
@@ -1725,6 +1724,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
             <h2 className="text-lg font-semibold">Location</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
               {renderField("Location", "location", doc?.location)}
+              {renderField("Address", "address", doc?.address)}
               <div className="flex flex-col gap-1">
                 {!isView && <Label className="text-sm text-gray-600">Country</Label>}
                 {isView ? (
