@@ -139,8 +139,8 @@ export default function RenewalSheet({
   const effectiveIsPropertyDept = effectiveRole === "property_dept";
   const effectiveIsGLTeam = effectiveRole === "gl_team";
   const allowedWorkflowActions = renewalRoleData?.actions ?? [];
-  const canSubmitWorkflow = allowedWorkflowActions.includes("submit");
   const hasDelegatedAway = !!activeDelegation;
+  const canSubmitWorkflow = allowedWorkflowActions.includes("submit") && !hasDelegatedAway;
   const canApproveWorkflow = allowedWorkflowActions.includes("approve") && !hasDelegatedAway;
   const canSendBackWorkflow = allowedWorkflowActions.includes("sendback") && !hasDelegatedAway;
   const canWithdrawWorkflow = allowedWorkflowActions.includes("withdraw") && !hasDelegatedAway;
@@ -673,10 +673,10 @@ useEffect(() => {
     </Badge>
   );
 };
- 
+
 const renderDelegationBadge = () => {
   if (isDelegationLoading || !activeDelegation) return null;
- 
+
   return (
     <Badge variant="secondary" className="bg-amber-100 text-amber-800 hover:bg-amber-100">
       Delegation Active: {activeDelegation.delegate_name || activeDelegation.delegate}
