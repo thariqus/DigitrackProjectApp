@@ -866,16 +866,6 @@ def get_renewal_list(
             end_date = current_date.replace(month=12, day=31)
             filters["renewal_from"] = ["between", [start_date, end_date]]
 
-    # Completed renewals are only visible to the JH Property Department and Licensing Team.
-    if not (ctx["is_admin"] or ctx["has_property_dept"] or ctx["is_licensing"]):
-        existing_state_filter = filters.get("workflow_state")
-        if isinstance(existing_state_filter, list) and existing_state_filter[0] == "in":
-            filters["workflow_state"] = [
-                "in", [s for s in existing_state_filter[1] if s != "Completed"]
-            ]
-        elif existing_state_filter is None:
-            filters["workflow_state"] = ["!=", "Completed"]
-
     limit = cint(limit)
     page = cint(page)
     start = (page - 1) * limit
@@ -1721,6 +1711,7 @@ def save_renewal_progress(
     cheque_details=None,
     po_number: str = None,
     miro_numbers=None,
+    renewed_contract_document: str = None,
 ):
     if not renewal_id:
         frappe.throw(_("renewal_id is required"))
@@ -1763,6 +1754,8 @@ def save_renewal_progress(
 
     if current_state == "Pending Property PO":
         renewal.po_number = po_number or ""
+        if renewed_contract_document:
+            renewal.renewed_contract_document = renewed_contract_document
 
     if current_state == "Pending MIRO":
         import json as _json
@@ -1793,6 +1786,7 @@ def save_renewal_progress(
         "modified":                 renewal.modified,
         "po_number":                renewal.po_number,
         "miro_numbers":             [row.miro_number for row in renewal.get("table_gfwd", [])],
+        "renewed_contract_document": renewal.renewed_contract_document,
     }
 
 

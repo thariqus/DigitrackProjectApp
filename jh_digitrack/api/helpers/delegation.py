@@ -11,16 +11,22 @@ def resolve_effective_user(delegate: str, delegator: str, document=None) -> bool
     if not delegate or not delegator or delegate == delegator:
         return False
 
-    # 1. Ad-Hoc — only when a document is provided
+    # 1. Ad-Hoc — only when a document is provided. A delegate may re-delegate
+    # further (A -> B -> C), which expires the A->B row and leaves only B->C
+    # Active, so a direct-match lookup would miss C. Instead, find whoever
+    # currently holds the Active Ad-Hoc delegation for this document and walk
+    # backwards through the re-delegation chain to see if it originated from
+    # `delegator`.
     if document:
-        if frappe.db.exists("JH Delegation", {
-            "delegator": delegator,
+        active_delegator = frappe.db.get_value("JH Delegation", {
             "delegate": delegate,
             "delegation_type": "Ad-Hoc",
             "status": "Active",
             "reference_doctype": document.doctype,
             "reference_name": document.name,
-        }):
+        }, "delegator")
+
+        if active_delegator and _adhoc_chain_traces_back(active_delegator, delegator, document):
             return True
 
     # 2. Temporary — active date range
@@ -45,6 +51,35 @@ def resolve_effective_user(delegate: str, delegator: str, document=None) -> bool
         return True
 
     return False
+
+def _adhoc_chain_traces_back(current_delegator: str, target_delegator: str, document, _depth: int = 0) -> bool:
+    """
+    Walks an Ad-Hoc re-delegation chain backwards from `current_delegator`
+    (whoever handed off the currently Active delegation) to see whether
+    `target_delegator` originated it, directly or through one or more
+    re-delegation hops. Depth is capped as a cycle guard.
+    """
+    if current_delegator == target_delegator:
+        return True
+    if _depth >= 10:
+        return False
+ 
+    prior_delegators = frappe.get_all(
+        "JH Delegation",
+        filters={
+            "delegate": current_delegator,
+            "delegation_type": "Ad-Hoc",
+            "reference_doctype": document.doctype,
+            "reference_name": document.name,
+        },
+        pluck="delegator",
+        ignore_permissions=True,
+    )
+ 
+    return any(
+        _adhoc_chain_traces_back(prior_delegator, target_delegator, document, _depth + 1)
+        for prior_delegator in prior_delegators
+    )
 
 
 def has_outgoing_adhoc(user: str, document) -> bool:

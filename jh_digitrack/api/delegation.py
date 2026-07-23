@@ -1,7 +1,11 @@
 import frappe
 from frappe import _
-from jh_digitrack.api.helpers.delegation import get_delegations_for_user
-
+ 
+from jh_digitrack.api.helpers.delegation import (
+    expire_adhoc_delegations_for_document,
+    get_delegations_for_user,
+)
+ 
 
 @frappe.whitelist(methods=["POST"])
 def create_delegation(
@@ -18,6 +22,15 @@ def create_delegation(
     Validation and notification are handled by the DocType controller.
     """
     delegator = frappe.session.user
+ 
+    if delegation_type == "Ad-Hoc" and reference_doctype and reference_name:
+        # Only one Ad-Hoc delegation may be Active per document at a time,
+        # regardless of direction. Otherwise a reverse delegation (B back to A)
+        # coexists with the original, and both users end up blocked by their
+        # own outgoing delegation simultaneously.
+        expire_adhoc_delegations_for_document(
+            frappe._dict(doctype=reference_doctype, name=reference_name)
+        )
 
     doc = frappe.get_doc({
         "doctype": "JH Delegation",
