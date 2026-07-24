@@ -859,12 +859,24 @@ def get_renewal_list(
 
     approver_props = []
     adhoc_renewals = []
+    adhoc_props = set()
 
     if not has_full_access:
         approver_props = _get_approver_properties(user)
         adhoc_renewals = _get_visible_adhoc_renewals(user)
-        if not approver_props and not adhoc_renewals:
+        adhoc_props = set(_get_visible_adhoc_properties(user))
+        if not approver_props and not adhoc_renewals and not adhoc_props:
             frappe.throw(_("Not permitted"), frappe.PermissionError)
+ 
+        if property:
+            # A specific property was requested (e.g. the Property Sheet fetching
+            # this property's own renewal history) - scope-check it directly instead
+            # of falling through to the broader approver/adhoc filters below, which
+            # would otherwise replace it with an unrelated set of properties and
+            # surface another property's renewal status.
+            property_scope = _get_row_scoped_properties(approver_props, adhoc_props)
+            if property not in property_scope:
+                frappe.throw(_("Not permitted"), frappe.PermissionError)
 
     filters = {}
 
@@ -911,7 +923,7 @@ def get_renewal_list(
         "renewal_from", "renewal_to", "division", "workflow_state", "modified", "step_entered_on",
     ]
 
-    if not has_full_access:
+    if not has_full_access and not property:
         if approver_props and adhoc_renewals:
             seen = set()
             results = []
