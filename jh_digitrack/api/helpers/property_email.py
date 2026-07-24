@@ -38,6 +38,16 @@ TEMPLATE_STR = """
 """
 
 
+def get_workflow_assigned_label(renewal, business_used=None):
+    """One-line 'Retail rent renewal 01.01.2026-31.12.2026' summary used in the subject."""
+    business_used = business_used or ""
+    property_type = renewal.property_type or ""
+    label = " ".join(part for part in (business_used, property_type) if part)
+    renewal_from = frappe.utils.getdate(renewal.renewal_from).strftime("%d.%m.%Y") if renewal.renewal_from else ""
+    renewal_to = frappe.utils.getdate(renewal.renewal_to).strftime("%d.%m.%Y") if renewal.renewal_to else ""
+    return f"{label} rent renewal {renewal_from}-{renewal_to}".strip()
+
+
 def generate_property_notification_email(type, context):
     """
     Generate an HTML email for property automation notifications.
@@ -91,14 +101,26 @@ def generate_property_notification_email(type, context):
         ]
 
     elif type == "workflow_assigned":
-        # Bare one-line body — no greeting/table/footer wrapper, just the summary line.
         renewal = context["renewal"]
+        actor = context.get("actor") or "—"
+        action = context.get("action") or "updated"
         business_used = context.get("business_used") or ""
-        property_type = renewal.property_type or ""
-        label = " ".join(part for part in (business_used, property_type) if part)
-        renewal_from = frappe.utils.getdate(renewal.renewal_from).strftime("%d.%m.%Y") if renewal.renewal_from else ""
-        renewal_to = frappe.utils.getdate(renewal.renewal_to).strftime("%d.%m.%Y") if renewal.renewal_to else ""
-        return f"{label} rent renewal {renewal_from}-{renewal_to}".strip()
+        label = " ".join(part for part in (business_used, renewal.property_type or "") if part)
+        renewal_from = frappe.utils.getdate(renewal.renewal_from).strftime("%d.%m.%Y") if renewal.renewal_from else "—"
+        renewal_to = frappe.utils.getdate(renewal.renewal_to).strftime("%d.%m.%Y") if renewal.renewal_to else "—"
+        header = (
+            f"Renewal <strong>{renewal.name}</strong> has been {action}d by <strong>{actor}</strong> "
+            f"and is now awaiting your action."
+        )
+        rows = [
+            ("Renewal", renewal.name),
+            ("Property", renewal.property or "—"),
+            ("Type", label or "—"),
+            ("Renewal Period", f"{renewal_from} - {renewal_to}"),
+            ("Current Rent", frappe.utils.fmt_money(renewal.current_rent) if renewal.current_rent else "—"),
+            ("Proposed Rent", frappe.utils.fmt_money(renewal.proposed_rent) if renewal.proposed_rent else "—"),
+            ("Current Step", renewal.workflow_state),
+        ]
 
     elif type == "tat_escalation":
         renewal = context["renewal"]
