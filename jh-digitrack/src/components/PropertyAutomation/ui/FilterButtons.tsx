@@ -15,6 +15,12 @@ import {
 import { Check, Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+const decodeHtml = (str: string) => {
+  const el = document.createElement("div");
+  el.innerHTML = str;
+  return el.innerText;
+};
+
 type FilterOption = {
   label: string;
   options: string[];
@@ -83,7 +89,7 @@ export default function FilterButtons({
                               : "opacity-0"
                           )}
                         />
-                        {option}
+                           {decodeHtml(option)}
                       </CommandItem>
                     ))}
                   </CommandGroup>
