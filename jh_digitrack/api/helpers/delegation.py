@@ -52,34 +52,52 @@ def resolve_effective_user(delegate: str, delegator: str, document=None) -> bool
 
     return False
 
-def _adhoc_chain_traces_back(current_delegator: str, target_delegator: str, document, _depth: int = 0) -> bool:
+def _adhoc_chain_traces_back(current_delegator: str, target_delegator: str, document) -> bool:
     """
     Walks an Ad-Hoc re-delegation chain backwards from `current_delegator`
     (whoever handed off the currently Active delegation) to see whether
     `target_delegator` originated it, directly or through one or more
-    re-delegation hops. Depth is capped as a cycle guard.
+    re-delegation hops.
+
+    Uses a visited set (BFS) rather than unmemoized recursion: a document
+    that's been re-delegated back and forth (A -> B -> C -> A -> ...) builds
+    up multiple historical rows sharing the same `delegate`, and re-exploring
+    each one on every hop made the lookup progressively slower the more a
+    document's delegation history grew. The visited set bounds the walk to
+    one query per distinct user ever in that document's history, regardless
+    of how convoluted the chain is, without changing which users are found
+    reachable.
     """
     if current_delegator == target_delegator:
         return True
-    if _depth >= 10:
-        return False
- 
-    prior_delegators = frappe.get_all(
-        "JH Delegation",
-        filters={
-            "delegate": current_delegator,
-            "delegation_type": "Ad-Hoc",
-            "reference_doctype": document.doctype,
-            "reference_name": document.name,
-        },
-        pluck="delegator",
-        ignore_permissions=True,
-    )
- 
-    return any(
-        _adhoc_chain_traces_back(prior_delegator, target_delegator, document, _depth + 1)
-        for prior_delegator in prior_delegators
-    )
+
+    seen = {current_delegator}
+    frontier = [current_delegator]
+
+    while frontier:
+        prior_delegators = frappe.get_all(
+            "JH Delegation",
+            filters={
+                "delegate": ["in", frontier],
+                "delegation_type": "Ad-Hoc",
+                "reference_doctype": document.doctype,
+                "reference_name": document.name,
+            },
+            pluck="delegator",
+            ignore_permissions=True,
+        )
+
+        next_frontier = []
+        for prior_delegator in prior_delegators:
+            if prior_delegator == target_delegator:
+                return True
+            if prior_delegator not in seen:
+                seen.add(prior_delegator)
+                next_frontier.append(prior_delegator)
+
+        frontier = next_frontier
+
+    return False
 
 def get_effective_adhoc_delegation(user: str, document):
     """
