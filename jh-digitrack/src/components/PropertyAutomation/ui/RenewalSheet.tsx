@@ -1438,13 +1438,17 @@ console.log("updatedParticulars",updatedParticulars);
                     <p className="text-sm text-muted-foreground">No cheque details added.</p>
                   )}
 
-                  {/* {(renewalDoc?.po_number || renewalDoc?.workflow_state === "Pending Property PO") && (
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-2 pt-2">
-                      {renderReadonlyField("PO Number", renewalDoc?.po_number || "Pending")}
+                  {renewalDoc?.po_number && (
+                    <>
+                     <Separator />
+                     <h2 className="text-lg font-semibold">Po Details</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+                      {renderReadonlyField("PO Number", renewalDoc.po_number)}
                     </div>
+                    </>
                   )}
 
-                  {(renewalDoc?.miro_number || renewalDoc?.workflow_state === "Pending MIRO") && (
+                  {/* {(renewalDoc?.miro_number || renewalDoc?.workflow_state === "Pending MIRO") && (
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-2 pt-2 pb-10">
                       {renderReadonlyField("MIRO Number", renewalDoc?.miro_number || "Pending")}
                     </div>
