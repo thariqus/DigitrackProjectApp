@@ -1,0 +1,410 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "RNW-.YYYY.-.#####",
+ "creation": "2026-04-08 15:56:33.818342",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_ljpf",
+  "property",
+  "current_rent",
+  "proposed_rent",
+  "include_vat",
+  "additional_charges",
+  "rent_change_percent",
+  "renewal_from",
+  "renewal_to",
+  "column_break_umpo",
+  "payment_schedule",
+  "remarks",
+  "supporting_documents",
+  "pariculars_section",
+  "table_xqmr",
+  "particular_total",
+  "cheque_details_section",
+  "cheque_details",
+  "cheque_total",
+  "percent_calculation_section",
+  "data_gisi",
+  "rent_change",
+  "po_details_section",
+  "po_number",
+  "renewed_contract_document",
+  "miro_details_section",
+  "table_gfwd",
+  "property_information_section",
+  "division",
+  "location",
+  "emirate",
+  "landlord",
+  "column_break_c4dw",
+  "property_type",
+  "number_of_units",
+  "tenancy_period",
+  "section_break_kpz9",
+  "workflow_state",
+  "audit_section",
+  "audit_trail",
+  "step_entered_on",
+  "last_tat_notification",
+  "enable_escalation_notifications",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_ljpf",
+   "fieldtype": "Section Break",
+   "label": "Core Details"
+  },
+  {
+   "fieldname": "property",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Property",
+   "options": "JH Property Master",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "property.current_rent",
+   "fetch_if_empty": 1,
+   "fieldname": "current_rent",
+   "fieldtype": "Currency",
+   "label": "Current Rent",
+   "read_only": 1
+  },
+  {
+   "fieldname": "proposed_rent",
+   "fieldtype": "Currency",
+   "label": "Proposed Rent",
+   "reqd": 1
+  },
+  {
+   "fieldname": "additional_charges",
+   "fieldtype": "Currency",
+   "label": "Additional Charges"
+  },
+  {
+   "fieldname": "renewal_from",
+   "fieldtype": "Date",
+   "label": "Renewal From",
+   "reqd": 1
+  },
+  {
+   "fieldname": "renewal_to",
+   "fieldtype": "Date",
+   "label": "Renewal To",
+   "reqd": 1
+  },
+  {
+   "fieldname": "payment_schedule",
+   "fieldtype": "Select",
+   "label": "Payment Schedule",
+   "options": "Monthly\nQuarterly\nHalf Yearly\nYearly"
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
+  },
+  {
+   "fieldname": "supporting_documents",
+   "fieldtype": "Attach",
+   "label": "Supporting Documents"
+  },
+  {
+   "fieldname": "rent_change_percent",
+   "fieldtype": "Percent",
+   "label": "Rent Change (%)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_umpo",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "cheque_details_section",
+   "fieldtype": "Section Break",
+   "label": "Cheque Details"
+  },
+  {
+   "fieldname": "po_details_section",
+   "fieldtype": "Section Break",
+   "label": "PO Details"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "po_number",
+   "fieldtype": "Data",
+   "label": "PO Number",
+   "permlevel": 2
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "renewed_contract_document",
+   "fieldtype": "Attach",
+   "label": "Renewed Contract Document",
+   "permlevel": 2
+  },
+  {
+   "fieldname": "miro_details_section",
+   "fieldtype": "Section Break",
+   "label": "MIRO Details"
+  },
+  {
+   "fieldname": "property_information_section",
+   "fieldtype": "Section Break",
+   "label": "Property Information"
+  },
+  {
+   "fetch_from": "property.division_used",
+   "fieldname": "division",
+   "fieldtype": "Data",
+   "label": "Division",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "property.location",
+   "fieldname": "location",
+   "fieldtype": "Data",
+   "label": "Location",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "property.emirate",
+   "fieldname": "emirate",
+   "fieldtype": "Data",
+   "label": "Emirate",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "property.landlord",
+   "fieldname": "landlord",
+   "fieldtype": "Data",
+   "label": "Landlord",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "property.type_of_property",
+   "fieldname": "property_type",
+   "fieldtype": "Data",
+   "label": "Property Type",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "property.number_of_units",
+   "fieldname": "number_of_units",
+   "fieldtype": "Int",
+   "label": "Number of Units",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "property.tenancy_period",
+   "fieldname": "tenancy_period",
+   "fieldtype": "Data",
+   "label": "Tenancy Period",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_c4dw",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_kpz9",
+   "fieldtype": "Section Break",
+   "label": "Work Flow"
+  },
+  {
+   "default": "Draft",
+   "fieldname": "workflow_state",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Workflow State",
+   "options": "Draft\nPending Approver 1\nPending Approver 2\nPending Approver 3\nPending Approver 4\nPending Approver 5\nPending Approver 6\nPending Cheque Details\nPending Admin HOD\nPending FC\nPending CFO\nPending MD\nPending Property PO\nPending MIRO\nCompleted\nWithdrawn",
+   "read_only": 1
+  },
+  {
+   "fieldname": "percent_calculation_section",
+   "fieldtype": "Section Break",
+   "label": "Calculation"
+  },
+  {
+   "fieldname": "data_gisi",
+   "fieldtype": "Percent",
+   "label": "Percent Calculation",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "cheque_details",
+   "fieldtype": "Table",
+   "label": "Cheque Details",
+   "options": "JH Property Cheque Detail",
+   "permlevel": 2
+  },
+  {
+   "fieldname": "audit_section",
+   "fieldtype": "Section Break",
+   "label": "Audit"
+  },
+  {
+   "fieldname": "audit_trail",
+   "fieldtype": "Table",
+   "label": "Audit Trail",
+   "options": "JH Property Renewal Audit"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "JH Property Rental Renewal",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "step_entered_on",
+   "fieldtype": "Datetime",
+   "hidden": 1,
+   "label": "Step Entered On\t",
+   "read_only": 1
+  },
+  {
+   "fieldname": "last_tat_notification",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Last TAT Notification\t",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "enable_escalation_notifications",
+   "fieldtype": "Check",
+   "label": "Enable Escalation Notifications"
+  },
+  {
+   "fieldname": "table_gfwd",
+   "fieldtype": "Table",
+   "options": "JH Property MIRO Number"
+  },
+  {
+   "fieldname": "pariculars_section",
+   "fieldtype": "Section Break",
+   "label": "Pariculars"
+  },
+  {
+   "fieldname": "table_xqmr",
+   "fieldtype": "Table",
+   "options": "JH Property Particulars"
+  },
+  {
+   "fieldname": "rent_change",
+   "fieldtype": "Int",
+   "label": "Rent Change Amount",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "include_vat",
+   "fieldtype": "Check",
+   "label": "Include VAT"
+  },
+  {
+   "fieldname": "particular_total",
+   "fieldtype": "Int",
+   "label": "Particulars Total"
+  },
+  {
+   "fieldname": "cheque_total",
+   "fieldtype": "Int",
+   "label": "Cheque Total"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-07-21 16:49:37.202858",
+ "modified_by": "Administrator",
+ "module": "JH Digitrack",
+ "name": "JH Property Rental Renewal",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "JH Digitrack Admin",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "JH Property Department",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "permlevel": 3,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "JH GL Team",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "JH GL Team",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "JH Licensing Team",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "permlevel": 2,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "JH Property Department",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

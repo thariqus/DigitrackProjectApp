@@ -37,6 +37,28 @@ export const useUserScrapItems = (
 };
 
 
+export const useAllScrapItems = (
+  page: number = 1,
+  page_size: number = 10,
+  search_query?: string,
+  status?: string
+) => {
+  return useQuery({
+    queryKey: ["all-scrap-items", page, page_size, search_query, status],
+    queryFn: async () => {
+      const response = await frappeClient.api.get<{
+        message: { data: JHScrapItem[]; total: number };
+      }>("jh_digitrack.api.scrapitem_search.search_all_scrap_items", {
+        page,
+        page_size,
+        search_query,
+        status,
+      });
+      return response.message;
+    },
+  });
+};
+
 import { useMutation } from "@tanstack/react-query";
 import { parse, format } from "date-fns";
 

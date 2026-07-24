@@ -41,3 +41,20 @@ export const useHasJrcPermission = () => {
     enabled: !!currentJhUser?.email,
   });
 };
+
+
+export const useHasPropertyAccess = () => {
+  return useQuery({
+    queryKey: ["property-access"],
+    queryFn: async () => {
+      const res = await frappe.api.get<{
+        message: { has_access: boolean };
+      }>("jh_digitrack.api.property_management.has_property_automation_role");
+
+      return { message: res.message };
+    },
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+  });
+};

@@ -197,6 +197,7 @@ def has_pms_role(email=None):
     has_access = result[0]["COUNT(*)"] > 0 if result else False
 
     return {"message": {"has_access": has_access}}
+    
 
 
 @frappe.whitelist(methods=["GET"])
@@ -1897,6 +1898,25 @@ def run_post_hrms_sync():
                 JH.business = HR.entity_name     
         """)
 
+        # 3a. Sync updated name fields from JH User Master to Frappe User
+        frappe.db.sql("""
+            UPDATE `tabUser` U
+            JOIN `tabJH User Master` JH
+              ON U.name = JH.email
+            JOIN `tabHRMS Users` HR
+              ON JH.employee_code = HR.employee_code
+            SET
+                U.first_name = JH.first_name,
+                U.middle_name = JH.middle_name,
+                U.last_name  = JH.last_name,
+                U.full_name  = TRIM(CONCAT_WS(' ',
+                    NULLIF(JH.first_name, ''),
+                    NULLIF(JH.middle_name, ''),
+                    NULLIF(JH.last_name, '')
+                ))
+            WHERE IFNULL(JH.email, '') <> ''
+        """)
+
         # 4. Insert missing JH users
         frappe.db.sql("""
             INSERT INTO `tabJH User Master` (
@@ -1925,6 +1945,21 @@ def run_post_hrms_sync():
             title="STEP 3-4: Sync & Insert JH User Master",
             message="Updated tabJH User Master from tabHRMS Users (email, location, designation, department, name, etc.); inserted new employees missing from JH User Master"
         )
+        # 4a. Create Frappe User accounts for newly inserted JH User Master records
+        new_jh_users = frappe.db.sql("""
+            SELECT name, email
+            FROM `tabJH User Master`
+            WHERE (user IS NULL OR user = '')
+              AND IFNULL(email, '') <> ''
+        """, as_dict=True)
+
+        for jh_user in new_jh_users:
+            try:
+                from jh_digitrack.jh_digitrack.doctype.jh_user_master.jh_user_master import attach_user
+                attach_user(jh_user.get("name"), jh_user.get("email"))
+            except Exception:
+                frappe.log_error(frappe.get_traceback(), f"attach_user failed for {jh_user.get('name')}")
+
         # 5. Update PMS Employees
         frappe.db.sql("""
             UPDATE `tabPMS Employees` PMS

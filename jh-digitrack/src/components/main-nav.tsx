@@ -11,8 +11,9 @@ import {
   Gauge,
   Users,
   LineChart,
+  Warehouse
 } from "lucide-react";
-import { Link, useLocation } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import JHLogo from "@/assets/digitrack-logo.png";
 import {
   DropdownMenu,
@@ -25,22 +26,35 @@ import { useCurrentJhUser, useLogout } from "@/hooks/auth";
 import { useAppVersion } from "@/hooks/system";
 import { JHDigitrackSettings } from "@/types/JHDigitrack/JHDigitrackSettings";
 import { useDocDetail } from "@/hooks/doc";
-import { useHasPmsAccess } from "@/hooks/userrole";
+import { useHasPmsAccess, useHasPropertyAccess } from "@/hooks/userrole";
+import { useDelegationPanel } from "@/context/DelegationPanelContext";
 
 export function MainNav() {
   const { pathname } = useLocation();
   const { data: currentJhUser } = useCurrentJhUser();
   const { data: appVersion } = useAppVersion();
   const { mutate: logout } = useLogout();
+  const navigate = useNavigate()
+  const { setOpen } = useDelegationPanel();
+ 
+ 
+
+  const segments = pathname.split("/");
+  const isPropertyActive = segments.includes("property");
 
   const className = (path: string[]) => {
     return cn(
       "flex items-center gap-2 hover:text-primary",
-      path?.some((p) => p === pathname.split("/").pop())
+      !isPropertyActive && path?.some((p) => p === segments[segments.length - 1])
         ? "font-medium text-primary"
         : "text-gray-600"
     );
   };
+
+  const propertyClassName = cn(
+    "flex items-center gap-2 hover:text-primary",
+    isPropertyActive ? "font-medium text-primary" : "text-gray-600"
+  );
 
   const { data: attachmentDetailed } = useDocDetail<JHDigitrackSettings>({
     doctype: "JH Digitrack Settings",
@@ -49,6 +63,7 @@ export function MainNav() {
 
   const attachment = attachmentDetailed?.docs[0];
   const { data: pmsRole } = useHasPmsAccess();
+  const { data: propertyRole, isLoading: isPropertyRoleLoading, isFetching: isPropertyRoleFetching } = useHasPropertyAccess();
 
   return (
     <header className="border-b">
@@ -63,8 +78,9 @@ export function MainNav() {
           />
         </Link>
 
-        <nav className="ml-auto flex items-center gap-4 md:gap-6">
-          <Link to="dashboard" className={className(["dashboard"])}>
+        <nav className="ml-auto  flex items-center gap-3 md:gap-6">
+          <div className="ml-auto flex items-center gap-3 md:gap-3 overflow-y-auto text-nowrap">
+              <Link to="dashboard" className={className(["dashboard"])}>
             <LayoutDashboard  className="h-5 w-5" />
             <span>Dashboard</span>
           </Link>
@@ -116,6 +132,25 @@ export function MainNav() {
             <LineChart className="h-5 w-5" />
             <span>PMS Lite</span>
           </button>
+
+          <button
+            onClick={() => {
+              if (isPropertyRoleLoading || isPropertyRoleFetching) {
+                return;
+              }
+
+              if (!propertyRole?.message?.has_access) {
+                alert("You have no access to Property Automation. Please contact admin.");
+                return;
+              }
+              navigate("property")
+            }}
+            className={propertyClassName}
+          >
+            <Warehouse className="h-5 w-5" />
+            <span>Property Automation</span>
+          </button>
+        </div>
 
           {/* Divider */}
           <span className="border h-10 border-gray-200"></span>
@@ -177,6 +212,19 @@ export function MainNav() {
                   <span>User Manual</span>
                 </DropdownMenuItem>
               )}
+
+              <DropdownMenuItem
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    requestAnimationFrame(() => {
+                      setOpen(true);
+                    });
+                  }}
+                >
+                  <span>Manage Delegation</span>
+                </DropdownMenuItem>
 
               <DropdownMenuItem
                 className="w-full"

@@ -5,11 +5,24 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
+  "general_tab",
   "send_scheduled_emails",
   "send_welcome_emails",
   "user_manual",
   "maintenance_from",
-  "maintenance_to"
+  "maintenance_to",
+  "organization_roles_section",
+  "cfo_user",
+  "md_user",
+  "fc_user",
+  "admin_hod_user",
+  "property_automation_tab",
+  "property_automation_section",
+  "enable_property_renewal_reminders",
+  "property_renewal_reminders",
+  "section_break_od92",
+  "enable_workflow_tat",
+  "property_workflow_tat"
  ],
  "fields": [
   {
@@ -38,12 +51,84 @@
    "fieldname": "maintenance_to",
    "fieldtype": "Datetime",
    "label": "Maintenance To"
+  },
+  {
+   "fieldname": "organization_roles_section",
+   "fieldtype": "Section Break",
+   "label": "Organization Roles"
+  },
+  {
+   "fieldname": "cfo_user",
+   "fieldtype": "Link",
+   "label": "CFO",
+   "options": "User"
+  },
+  {
+   "fieldname": "md_user",
+   "fieldtype": "Link",
+   "label": "MD",
+   "options": "User"
+  },
+  {
+   "fieldname": "general_tab",
+   "fieldtype": "Tab Break",
+   "label": "General"
+  },
+  {
+   "fieldname": "property_automation_tab",
+   "fieldtype": "Tab Break",
+   "label": "Property Automation"
+  },
+  {
+   "fieldname": "property_automation_section",
+   "fieldtype": "Section Break",
+   "label": "Property Automation\t"
+  },
+  {
+   "default": "0",
+   "fieldname": "enable_property_renewal_reminders",
+   "fieldtype": "Check",
+   "label": "Enable Property Renewal Reminders\t"
+  },
+  {
+   "fieldname": "property_renewal_reminders",
+   "fieldtype": "Table",
+   "label": "Property Renewal Reminders\t",
+   "options": "JH Property Renewal Reminder"
+  },
+  {
+   "fieldname": "section_break_od92",
+   "fieldtype": "Section Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "enable_workflow_tat",
+   "fieldtype": "Check",
+   "label": "Enable Workflow TAT"
+  },
+  {
+   "fieldname": "property_workflow_tat",
+   "fieldtype": "Table",
+   "label": "Property Workflow TAT\t",
+   "options": "JH Property Workflow TAT"
+  },
+  {
+   "fieldname": "fc_user",
+   "fieldtype": "Link",
+   "label": "FC",
+   "options": "User"
+  },
+  {
+   "fieldname": "admin_hod_user",
+   "fieldtype": "Link",
+   "label": "Admin HOD",
+   "options": "User"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-08-18 14:02:28.101775",
+ "modified": "2026-06-15 13:12:28.260724",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Digitrack Settings",
@@ -80,6 +165,7 @@
   }
  ],
  "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],

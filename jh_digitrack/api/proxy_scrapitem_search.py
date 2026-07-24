@@ -18,12 +18,14 @@ def proxy_scrapitem_search(search=None, item_name=None):
     elif item_name:
         prod_url = f"{base_url}/api/method/jh_digitrack.api.scrapitem_search.get_item_details?item_name={item_name}"
     else:
-        prod_url = f"{base_url}/api/method/jh_digitrack.api.scrapitem_search.get_all_scrapitems"
+        prod_url = f"{base_url}/api/method/jh_digitrack.api.scrapitem_search.search_scrapitem?search="
+        # prod_url = f"{base_url}/api/method/jh_digitrack.api.scrapitem_search.get_all_scrapitems"
 
     try:
         headers = {
             "Authorization": f"token {api_key}:{api_secret}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "Expect": ""
         }
 
         resp = requests.get(prod_url, headers=headers, timeout=10, verify=False)

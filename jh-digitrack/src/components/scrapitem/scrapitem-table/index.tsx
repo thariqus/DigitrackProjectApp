@@ -1,5 +1,7 @@
 import { useState, useCallback, useMemo } from "react";
 import { Table, TableBody, TableFooter } from "@/components/ui/table";
+import ScrapDetailSheet from "../ui/ScrapDetailSheet";
+import { JHScrapItem } from "@/types/JHDigitrack/JHScrapItem";
 import { toast } from "sonner";
 import SearchBar from "../ui/SearchBar";
 import EmptyState from "@/components/meetings/ui/EmptyState";
@@ -78,6 +80,13 @@ export const ScrapTable = () => {
   }, []);
 
 const [selectedScrap, setSelectedScrap] = useState<any | undefined>(undefined);
+const [viewItem, setViewItem] = useState<JHScrapItem | null>(null);
+const [isDetailOpen, setIsDetailOpen] = useState(false);
+
+const handleViewScrap = useCallback((item: JHScrapItem) => {
+  setViewItem(item);
+  setIsDetailOpen(true);
+}, []);
 
 const handleCreateScrap = useCallback(() => {
   setSelectedScrap(undefined);
@@ -143,6 +152,7 @@ const handleDeleteScrap = useCallback(
                   onRowClick={handleRowClick}
                   onEdit={handleEditScrap}
                   onDelete={handleDeleteScrap}
+                  onView={handleViewScrap}
                 />
               ))}
             </TableBody>
@@ -167,8 +177,14 @@ const handleDeleteScrap = useCallback(
       <ScrapItemSheet
         open={isSheetOpen}
         onOpenChange={setIsSheetOpen}
-        initialData={selectedScrap}  
+        initialData={selectedScrap}
         refetch={refetch}
+      />
+
+      <ScrapDetailSheet
+        open={isDetailOpen}
+        onOpenChange={setIsDetailOpen}
+        item={viewItem}
       />
     </div>
   );

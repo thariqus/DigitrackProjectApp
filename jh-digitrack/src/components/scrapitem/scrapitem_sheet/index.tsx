@@ -245,10 +245,15 @@ return (
                 formData.append("file", file, file.name);
                 formData.append("is_private", "0");
                 formData.append("optimize", "1");
+                // Frappe rejects POST upload without CSRF token; read from global boot/session.
+                const csrfToken =
+                  (window as any)?.frappe?.csrf_token || (window as any)?.csrf_token || "";
 
                 const res = await fetch("/api/method/upload_file", {
                   method: "POST",
                   body: formData,
+                  credentials: "include",
+                  headers: csrfToken ? { "X-Frappe-CSRF-Token": csrfToken } : undefined,
                 });
 
                 const data = await res.json();
@@ -298,10 +303,15 @@ return (
                 const formData = new FormData();
                 formData.append("file", file, file.name);
                 formData.append("is_private", "0");
+                // Frappe rejects POST upload without CSRF token; read from global boot/session.
+                const csrfToken =
+                  (window as any)?.frappe?.csrf_token || (window as any)?.csrf_token || "";
 
                 const res = await fetch("/api/method/upload_file", {
                   method: "POST",
                   body: formData,
+                  credentials: "include",
+                  headers: csrfToken ? { "X-Frappe-CSRF-Token": csrfToken } : undefined,
                 });
 
                 const data = await res.json();
@@ -351,10 +361,15 @@ return (
                 const formData = new FormData();
                 formData.append("file", file, file.name);
                 formData.append("is_private", "0");
+                // Frappe rejects POST upload without CSRF token; read from global boot/session.
+                const csrfToken =
+                  (window as any)?.frappe?.csrf_token || (window as any)?.csrf_token || "";
 
                 const res = await fetch("/api/method/upload_file", {
                   method: "POST",
                   body: formData,
+                  credentials: "include",
+                  headers: csrfToken ? { "X-Frappe-CSRF-Token": csrfToken } : undefined,
                 });
 
                 const data = await res.json();
