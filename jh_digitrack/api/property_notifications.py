@@ -120,7 +120,7 @@ def _send_pre_renewal_notification(prop, rule, recipients, days_until_renewal):
         return False
 
     urgency = "Urgent: " if rule.include_escalation else ""
-    subject = f"DigiTrack: {urgency}Property Renewal Due in {days_until_renewal} Days - {prop.property_name or prop.name}"
+    subject = f"{urgency}Property Renewal Due in {days_until_renewal} Days - {prop.property_name or prop.name}"
     message = generate_property_notification_email(
         type="pre_renewal",
         context={
@@ -275,7 +275,7 @@ def _send_tat_notification(renewal, assignee, notification_type, config):
 
     recipients = assignee if isinstance(assignee, list) else [assignee]
     label = "Reminder" if notification_type == "reminder" else "Deadline"
-    subject = f"DigiTrack: TAT {label} - {renewal.name}"
+    subject = f"TAT {label} - {renewal.name}"
     message = generate_property_notification_email(
         type=f"tat_{notification_type}",
         context={"renewal": renewal, "config": config},
@@ -301,7 +301,7 @@ def _send_tat_escalation(renewal, assignee, config, days_in_step):
 
     recipients = escalation_recipient if isinstance(escalation_recipient, list) else [escalation_recipient]
     assignee_display = ", ".join(assignee) if isinstance(assignee, list) else (assignee or "—")
-    subject = f"DigiTrack: TAT Escalation - {renewal.name}"
+    subject = f"TAT Escalation - {renewal.name}"
     message = generate_property_notification_email(
         type="tat_escalation",
         context={

@@ -1454,6 +1454,7 @@ def notify_md(renewal):
             recipients=[settings.md_user],
             subject="Rental Renewal Approved (No MD Approval Required)",
             message=f"""
+            Dear Sir,<br><br>
             Rental Renewal <b>{frappe.utils.escape_html(renewal.name)}</b> has been approved by CFO.<br>
             Rent change is ≤ 5%, so MD approval is not required.<br>
             This is for your information.
@@ -1465,7 +1466,7 @@ def notify_md(renewal):
 
 def _notify_step_assignee(renewal, action, actor):
     """Email whoever is responsible for the renewal's new workflow_state right away."""
-    from jh_digitrack.api.helpers.property_email import generate_property_notification_email
+    from jh_digitrack.api.helpers.property_email import generate_property_notification_email, get_workflow_assigned_label
     from jh_digitrack.api.property_notifications import _resolve_step_assignee
 
     assignee = _resolve_step_assignee(renewal)
@@ -1478,7 +1479,7 @@ def _notify_step_assignee(renewal, action, actor):
         frappe.db.get_value("JH Property Master", renewal.property, "business_used")
         if renewal.property else None
     )
-    subject = f"DigiTrack: Action Required - {renewal.name} ({renewal.workflow_state})"
+    subject = get_workflow_assigned_label(renewal, business_used)
     message = generate_property_notification_email(
         type="workflow_assigned",
         context={"renewal": renewal, "actor": actor_name, "action": action, "business_used": business_used},
