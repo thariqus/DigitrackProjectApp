@@ -701,8 +701,6 @@ const renderDelegationBadge = () => {
     );
   };
  
-  console.log("charges",additionalCharges);
- 
   const onSubmit = async (data: RenewalFormValues) => {
     if (!propertyId) return;
  
@@ -789,7 +787,6 @@ const renderDelegationBadge = () => {
 
   return rows;
 });
-console.log("updatedParticulars",updatedParticulars);
  
       const payload = {
         doctype: "JH Property Rental Renewal",
@@ -815,8 +812,6 @@ console.log("updatedParticulars",updatedParticulars);
           ignore_validate_update_after_submit: true,
         },
       };
-
-      console.log(payload.table_xqmr);
  
       await updateDoc.mutateAsync({
         doctype: "JH Property Rental Renewal",

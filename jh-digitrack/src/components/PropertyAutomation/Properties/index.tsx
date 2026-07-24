@@ -88,9 +88,18 @@ function Properties() {
       message?.is_approver_1 ||
       message?.is_approver_2 ||
       message?.is_approver_3 ||
+      message?.is_approver_4 ||
+      message?.is_approver_5 ||
+      message?.is_approver_7 ||
+      message?.is_admin ||
       message?.is_cfo ||
       message?.is_md ||
-      message?.has_gl_team_role  
+      message?.has_gl_team_role || 
+      message?.has_adhoc_delegation || 
+      message?.is_admin_hod ||
+      message?.is_fc ||
+      message?.has_standing_delegation || 
+      message?.has_visible_adhoc_renewal
     );
 
   const { data: pageResult, isLoading } = usePropertyList(listParams);
