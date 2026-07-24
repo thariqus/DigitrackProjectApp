@@ -1925,10 +1925,10 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
  
             {hasPermisssionToViewRenewalHistory && propertyId && mode === "view" && (
               <>
-                <Separator />
+                {/* <Separator /> */}
                 {/* <h2 className="text-lg font-semibold">Renewal History</h2> */}
                 
-                  <div className="pb-20">
+                  {/* <div className="pb-20">
                     {(renewalsData as RentalRenewal[])
                       .slice()
                       .sort((a, b) => new Date(b.modified).getTime() - new Date(a.modified).getTime())
@@ -1941,7 +1941,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                         />
                       ))
                     }
-                  </div>
+                  </div> */}
               
               </>
             )}
