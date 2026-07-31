@@ -16,6 +16,8 @@
   "md_user",
   "fc_user",
   "admin_hod_user",
+  "email_application_section",
+  "password",
   "property_automation_tab",
   "property_automation_section",
   "enable_property_renewal_reminders",
@@ -123,12 +125,22 @@
    "fieldtype": "Link",
    "label": "Admin HOD",
    "options": "User"
+  },
+  {
+   "fieldname": "email_application_section",
+   "fieldtype": "Section Break",
+   "label": "Email application"
+  },
+  {
+   "fieldname": "password",
+   "fieldtype": "Password",
+   "label": "Password"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-06-15 13:12:28.260724",
+ "modified": "2026-07-27 15:58:53.497265",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Digitrack Settings",
