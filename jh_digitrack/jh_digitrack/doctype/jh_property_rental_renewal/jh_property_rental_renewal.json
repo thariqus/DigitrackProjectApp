@@ -109,8 +109,9 @@
   },
   {
    "fieldname": "supporting_documents",
-   "fieldtype": "Attach",
-   "label": "Supporting Documents"
+   "fieldtype": "Table",
+   "label": "Supporting Documents",
+   "options": "JH Property Document"
   },
   {
    "fieldname": "rent_change_percent",
@@ -325,7 +326,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-07-21 16:49:37.202858",
+ "modified": "2026-08-05 11:23:46.249822",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Property Rental Renewal",
