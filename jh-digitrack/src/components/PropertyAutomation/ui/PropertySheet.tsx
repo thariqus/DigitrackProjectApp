@@ -362,6 +362,15 @@ const renewalsData = renewalsListData?.renewals ?? [];
     return Array.from(new Set(values)).sort((a, b) => a.localeCompare(b));
   }, [propertyDivisionsData, businessWatch]);
 
+  const areaSqftWatch = useWatch({ control, name: "area_sqftmtr" });
+  const currentRentWatch = useWatch({ control, name: "current_rent" });
+
+  useEffect(() => {
+    const area = Number(areaSqftWatch);
+    const rent = Number(currentRentWatch);
+    setValue("per_sq_ft_rate", area > 0 && !Number.isNaN(rent) ? Math.round((rent / area) * 100) / 100 : undefined);
+  }, [areaSqftWatch, currentRentWatch, setValue]);
+
   const numberOfPremisesWatch = useWatch({ control, name: "number_of_premises" });
   // const premiseNumberWatch = useWatch({ control, name: "premise_number" });
   // const electricityAccountsWatch = useWatch({ control, name: "electricity_accounts" });
@@ -1674,8 +1683,9 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
               </div>
 
               {renderField("Co Code", "co_code", doc?.co_code)}
-              {renderField("Area (Sqft/Mtr)", "area_sqftmtr", doc?.area_sqftmtr)}
-              {renderField("Per Sqft Rate", "per_sq_ft_rate", doc?.per_sq_ft_rate)}
+              {renderField("Current Rent", "current_rent", doc?.current_rent)}
+              {renderField("Area (Sqft)", "area_sqftmtr", doc?.area_sqftmtr)}
+              {renderField("Per Sqft Rate", "per_sq_ft_rate", doc?.per_sq_ft_rate, "text", true)}
               {renderField("Ownership", "ownership", doc?.ownership)}
 
               <div className="flex flex-col gap-1">
@@ -1815,7 +1825,6 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                 renderField("Renewal Date", "renewal_date", doc?.renewal_date, "date")
               )}
 
-               {renderField("Current Rent", "current_rent", doc?.current_rent)}
             </div>
 
             <Separator />
