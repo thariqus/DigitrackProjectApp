@@ -740,10 +740,17 @@ const renderDelegationBadge = () => {
  
       setLocalModified(latestDoc.modified);
  
-      const supportingDocUrl =
+      const newSupportingDocuments =
         supportingFiles.length > 0
-          ? (await Promise.all(supportingFiles.map(uploadFile)))[0]
-          : latestDoc.supporting_documents;
+          ? (await Promise.all(supportingFiles.map(uploadFile))).map((url) => ({
+              attachment: url,
+            }))
+          : [];
+
+      const supportingDocuments = [
+        ...(latestDoc.supporting_documents || []),
+        ...newSupportingDocuments,
+      ];
  
       const contractDocUrl =
         contractFiles.length > 0
@@ -804,7 +811,7 @@ const renderDelegationBadge = () => {
         rent_change_percent: rentPercent,
         property: latestDoc.property,
         current_rent: latestDoc.current_rent,
-        supporting_documents: supportingDocUrl,
+        supporting_documents: supportingDocuments,
         renewed_contract_document: contractDocUrl,
         cheque_details: updatedChequeDetails,
         table_xqmr: updatedParticulars,
@@ -1258,46 +1265,54 @@ const renderDelegationBadge = () => {
  
   {isView ? (
     <div className="space-y-2 mb-10">
-      {renewalDoc?.supporting_documents ? (
-        <div className="flex items-center gap-2 px-3">
-          <span className="text-sm text-gray-700">
-            {getFileName(renewalDoc.supporting_documents)}
-          </span>
-          <a
-            href={renewalDoc.supporting_documents}
-            {...(isImageFile(renewalDoc.supporting_documents)
-              ? { download: getFileName(renewalDoc.supporting_documents) }
-              : { target: "_blank", rel: "noopener noreferrer" })}
-            className="text-blue-600 text-sm underline"
-          >
-            View
-          </a>
-        </div>
+      {renewalDoc?.supporting_documents?.length ? (
+        renewalDoc.supporting_documents.map((doc, index) =>
+          doc.attachment ? (
+            <div key={doc.name ?? index} className="flex items-center gap-2 px-3">
+              <span className="text-sm text-gray-700">
+                {getFileName(doc.attachment)}
+              </span>
+              <a
+                href={doc.attachment}
+                {...(isImageFile(doc.attachment)
+                  ? { download: getFileName(doc.attachment) }
+                  : { target: "_blank", rel: "noopener noreferrer" })}
+                className="text-blue-600 text-sm underline"
+              >
+                View
+              </a>
+            </div>
+          ) : null
+        )
       ) : (
         <p className="text-sm text-gray-500">No documents available</p>
       )}
     </div>
   ) : (
     <>
-      {renewalDoc?.supporting_documents && (
+      {renewalDoc?.supporting_documents?.length ? (
         <div className="space-y-2 mb-4">
-          <p className="text-sm font-medium text-gray-600">Existing File</p>
-          <div className="flex items-center gap-2 px-3">
-            <span className="text-sm text-gray-700">
-              {getFileName(renewalDoc.supporting_documents)}
-            </span>
-            <a
-              href={renewalDoc.supporting_documents}
-              {...(isImageFile(renewalDoc.supporting_documents)
-                ? { download: getFileName(renewalDoc.supporting_documents) }
-                : { target: "_blank", rel: "noopener noreferrer" })}
-              className="text-blue-600 text-sm underline"
-            >
-              View
-            </a>
-          </div>
+          <p className="text-sm font-medium text-gray-600">Existing Files</p>
+          {renewalDoc.supporting_documents.map((doc, index) =>
+            doc.attachment ? (
+              <div key={doc.name ?? index} className="flex items-center gap-2 px-3">
+                <span className="text-sm text-gray-700">
+                  {getFileName(doc.attachment)}
+                </span>
+                <a
+                  href={doc.attachment}
+                  {...(isImageFile(doc.attachment)
+                    ? { download: getFileName(doc.attachment) }
+                    : { target: "_blank", rel: "noopener noreferrer" })}
+                  className="text-blue-600 text-sm underline"
+                >
+                  View
+                </a>
+              </div>
+            ) : null
+          )}
         </div>
-      )}
+      ) : null}
  
       <FileAttachment
         files={supportingFiles}
