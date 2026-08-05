@@ -101,6 +101,12 @@ export interface PropertyParticular {
   amount?: number;
 }
 
+export interface SupportingDocument {
+  name?: string;
+  document_type?: string;
+  attachment?: string;
+}
+
 export interface RentalRenewal {
   name: string;
   property: string;
@@ -116,7 +122,7 @@ export interface RentalRenewal {
   payment_schedule?: string;
   new_security_deposit?: number;
   remarks?: string;
-  supporting_documents?: string;
+  supporting_documents?: SupportingDocument[];
   renewed_contract_document?: string;
 
   // Child Table
