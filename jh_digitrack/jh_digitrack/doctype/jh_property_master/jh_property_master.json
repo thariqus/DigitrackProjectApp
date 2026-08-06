@@ -18,6 +18,7 @@
   "lease_type",
   "per_sq_ft_rate",
   "cost_center",
+  "property_status",
   "column_break_rpia",
   "profit_center",
   "number_of_units",
@@ -397,12 +398,18 @@
    "fieldname": "electricity_deposit_attach",
    "fieldtype": "Attach",
    "label": "Electricity Deposit Attach"
+  },
+  {
+   "fieldname": "property_status",
+   "fieldtype": "Select",
+   "label": "Property Status",
+   "options": "Active\nClosed\nVacated"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-08-05 15:52:03.068338",
+ "modified": "2026-08-06 11:57:56.645387",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH Property Master",
