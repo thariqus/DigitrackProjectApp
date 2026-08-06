@@ -642,7 +642,7 @@ def get_property_list(
     start = (page - 1) * limit
 
     fields = [
-        "name", "property_name", "type_of_property", "division_used", "business_used",
+        "name", "property_name", "type_of_property", "division_used", "business_used","property_status", 
         "booked_under", "profit_center",
         "number_of_units", "number_of_premises", "premise_number",
         "staff_allocated", "location", "emirate", "country",
@@ -1227,6 +1227,17 @@ def get_lease_type_options():
         return {"lease_type_options": []}
     return {"lease_type_options": [opt for opt in field.options.split("\n") if opt.strip()]}
 
+
+@frappe.whitelist(methods=["GET"])
+def get_property_status_options():
+    meta = frappe.get_meta("JH Property Master")
+    field = next((f for f in meta.fields if f.fieldname == "property_status"), None)
+    if not field or not field.options:
+        return {"property_status_options": []}
+    return {"property_status_options": [opt for opt in field.options.split("\n") if opt.strip()]}
+ 
+ 
+ 
 
 @frappe.whitelist(methods=["GET"])
 def get_payment_schedule_options():
