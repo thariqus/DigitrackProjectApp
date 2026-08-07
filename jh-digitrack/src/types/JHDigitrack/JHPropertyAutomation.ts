@@ -26,6 +26,7 @@ export interface PropertyMaster {
   approvers?: { order: number; approver: string }[];
   lease_type: string;
   per_staff_rent: number;
+  property_status?: "Active" | "Closed" | "Vacated";
   remark: string;
   address:string;
   ownership: string;
