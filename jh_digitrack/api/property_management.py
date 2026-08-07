@@ -1475,6 +1475,39 @@ def notify_md(renewal):
         frappe.logger().error(f"Failed to send MD notification: {str(e)}")
 
 
+def _notify_renewal_completed(renewal):
+    """Email the Property Department once GL Team completes MIRO and the renewal is fully closed."""
+    from jh_digitrack.api.helpers.property_email import generate_property_notification_email
+
+    recipients = frappe.get_all(
+        "Has Role",
+        filters={"role": "JH Property Department", "parenttype": "User"},
+        pluck="parent",
+    )
+    if not recipients:
+        return
+
+    property_name = (
+        frappe.db.get_value("JH Property Master", renewal.property, "property_name")
+        if renewal.property else None
+    ) or renewal.property or "—"
+
+    message = generate_property_notification_email(
+        type="renewal_completed",
+        context={"renewal": renewal, "property_name": property_name},
+    )
+
+    try:
+        frappe.sendmail(
+            expose_recipients="header",
+            recipients=recipients,
+            subject=f"Property Renewed - {property_name} ({renewal.name})",
+            message=message,
+        )
+    except Exception:
+        frappe.logger().error(frappe.get_traceback())
+
+
 def _notify_step_assignee(renewal, action, actor):
     """Email whoever is responsible for the renewal's new workflow_state right away."""
     from jh_digitrack.api.helpers.property_email import generate_property_notification_email, get_workflow_assigned_label
@@ -1957,7 +1990,10 @@ def apply_workflow_action(
     renewal.last_tat_notification = None
     renewal.save(ignore_permissions=True)
     update_property_master_renewal_date(renewal)
-    _notify_step_assignee(renewal, action, frappe.session.user)
+    if current_state == "Pending MIRO" and next_state == "Completed":
+        _notify_renewal_completed(renewal)
+    else:
+        _notify_step_assignee(renewal, action, frappe.session.user)
 
     from jh_digitrack.api.helpers.delegation import expire_adhoc_delegations_for_document
     expire_adhoc_delegations_for_document(renewal)
