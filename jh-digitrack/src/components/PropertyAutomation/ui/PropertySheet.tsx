@@ -24,6 +24,7 @@ import {
   useUserAccess,
   usePropertyTypes,
   usePropertyDivisions,useLeaseTypeOptions,
+  usePropertyStatusOptions,
 } from "../hooks/useProperty";
 import { PropertyMaster, JHPropertyElectricityConnection, JHPropertyLandline, JHPropertySewerageAccount, ChequeDetail, RentalRenewal } from "@/types/JHDigitrack/JHPropertyAutomation";
 import { X } from "lucide-react";
@@ -142,6 +143,7 @@ const propertySchema = z.object({
 
   per_sq_ft_rate : numericOnlyField,
   per_staff_rent : numericOnlyField,
+  property_status: z.string().nullable().optional(),
   remark: z.string().nullable().optional(),
   ownership: z.string().nullable().optional(),
   address:z.string().nullable().optional(),
@@ -192,7 +194,7 @@ const propertySchema = z.object({
   landline_accounts: numericOnlyField,
   sewerage_accounts: z.array(z.object({
     location: z.string().nullable().optional(),
-    account_number: z.string().nullable().optional(),
+    account_number: numericOnlyField,
   })).optional(),
   internet_connection: numericOnlyField,
   cdc_expiry: z.string().optional(),
@@ -231,6 +233,7 @@ type PropertyFormValues = z.infer<typeof propertySchema> & {
   real_estate: "",
   current_rent: undefined,
   renewal_date: "",
+  property_status: "Active",
   landlord_security_deposit: undefined,
   security_deposit_cheques: [],
   tenancy_period: "",
@@ -303,6 +306,7 @@ const renewalsData = renewalsListData?.renewals ?? [];
   const { data: chequeTypes = [] } = useChequeTypes();
   const { data: propertyTypeOptions = [] } = usePropertyTypes();
   const { data: leaseTypeOptions = [] } = useLeaseTypeOptions();
+  const { data: propertyStatusOptions = [] } = usePropertyStatusOptions();
  
   const doc = propertyData?.doc as PropertyMaster | undefined;
 
@@ -1878,6 +1882,36 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
              
               {renderField("Number of Units", "number_of_units", doc?.number_of_units)}
               {renderField("Number of Premises", "number_of_premises", doc?.number_of_premises)}
+
+              <div className="flex flex-col gap-1">
+                {!isView && <Label className="text-sm text-gray-600">Property Status</Label>}
+                {isView ? (
+                  <div className="flex items-center gap-2 py-1 text-sm">
+                    <span className="font-medium text-gray-600">Property Status:</span>
+                    <span>{doc?.property_status || "-"}</span>
+                  </div>
+                ) : (
+                  <Controller
+                    name="property_status"
+                    control={control}
+                    render={({ field }) => (
+                      <Select value={field.value ?? "Active"} onValueChange={field.onChange}>
+                        <SelectTrigger className="text-sm h-9">
+                          <SelectValue placeholder="Select Property Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {propertyStatusOptions.map((opt) => (
+                            <SelectItem key={opt} value={opt}>
+                              {opt}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                )}
+              </div>
+
               {renderField("Remarks", "remark", doc?.remark, "textarea")}
               {renderApproversTable()}
             </div>
