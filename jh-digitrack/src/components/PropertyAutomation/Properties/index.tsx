@@ -294,7 +294,9 @@ function Properties() {
     return "text-black-400";
   };
 
-  const getRenewalStatus = (date?: string): string => {
+  const getRenewalStatus = (date?: string, propertyStatus?: string): string => {
+  if (propertyStatus === "Vacated" || propertyStatus === "Closed") return propertyStatus;
+
   if (!date) return "Unknown";
 
   const today = new Date();

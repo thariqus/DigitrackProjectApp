@@ -5,6 +5,12 @@ export interface JHPropertyLandline {
   line_type?: "Fixed" | "Fax";
 }
 
+export interface JHPropertySewerageAccount {
+  name?: string;
+  location?: string;
+  account_number?: number;
+}
+
 export interface PropertyMaster {
   name: string;
   property_name: string;
@@ -20,6 +26,7 @@ export interface PropertyMaster {
   approvers?: { order: number; approver: string }[];
   lease_type: string;
   per_staff_rent: number;
+  property_status?: "Active" | "Closed" | "Vacated";
   remark: string;
   address:string;
   ownership: string;
@@ -60,13 +67,17 @@ export interface PropertyMaster {
   landline_connections?: JHPropertyLandline[];
   landline_accounts?: number;
   landline_numbers?: string; // legacy
+  sewerage_accounts?: JHPropertySewerageAccount[];
   internet_connection: number;
 
   cdc_expiry: string;
   hassantuk_expiry: string;
+  cdc_certificate_document?: string;
+  compliance_remarks?: string;
   has_active_renewal?: boolean;
 
   documents?: {
+    document_type?: string;
     attachment?: string;
   }[];
 }
