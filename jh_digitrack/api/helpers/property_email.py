@@ -22,6 +22,7 @@ TEMPLATE_STR = """
     <p>Dear Team,</p>
     <p>{{ header }}</p>
 
+    <h3>{{ table_heading }}</h3>
     <table>
         {% for row in rows %}
         <tr>
@@ -38,10 +39,10 @@ TEMPLATE_STR = """
 """
 
 
-def get_workflow_assigned_label(renewal, business_used=None):
+def get_workflow_assigned_label(renewal, business_used=None, property_type=None):
     """One-line 'Retail rent renewal 01.01.2026-31.12.2026' summary used in the subject."""
     business_used = business_used or ""
-    property_type = renewal.property_type or ""
+    property_type = property_type if property_type is not None else (renewal.property_type or "")
     label = " ".join(part for part in (business_used, property_type) if part)
     renewal_from = frappe.utils.getdate(renewal.renewal_from).strftime("%d.%m.%Y") if renewal.renewal_from else ""
     renewal_to = frappe.utils.getdate(renewal.renewal_to).strftime("%d.%m.%Y") if renewal.renewal_to else ""
@@ -62,8 +63,10 @@ def generate_property_notification_email(type, context):
     url = frappe.utils.get_url()
     header = ""
     rows = []
+    table_heading = "Details"
 
     if type == "pre_renewal":
+        table_heading = "Property Details"
         prop = context["prop"]
         days_until_renewal = context["days_until_renewal"]
         urgency = "Urgent: " if context.get("include_escalation") else ""
@@ -81,6 +84,7 @@ def generate_property_notification_email(type, context):
         ]
 
     elif type in ("tat_reminder", "tat_deadline"):
+        table_heading = "Renewal Details"
         renewal = context["renewal"]
         config = context["config"]
         if type == "tat_reminder":
@@ -101,11 +105,14 @@ def generate_property_notification_email(type, context):
         ]
 
     elif type == "workflow_assigned":
+        table_heading = "Renewal Details"
         renewal = context["renewal"]
         actor = context.get("actor") or "—"
         action = context.get("action") or "updated"
         business_used = context.get("business_used") or ""
-        label = " ".join(part for part in (business_used, renewal.property_type or "") if part)
+        property_type_label = context.get("property_type_label") or renewal.property_type or ""
+        property_name = context.get("property_name") or renewal.property or "—"
+        label = " ".join(part for part in (business_used, property_type_label) if part)
         renewal_from = frappe.utils.getdate(renewal.renewal_from).strftime("%d.%m.%Y") if renewal.renewal_from else "—"
         renewal_to = frappe.utils.getdate(renewal.renewal_to).strftime("%d.%m.%Y") if renewal.renewal_to else "—"
         header = (
@@ -114,15 +121,15 @@ def generate_property_notification_email(type, context):
         )
         rows = [
             ("Renewal", renewal.name),
-            ("Property", renewal.property or "—"),
+            ("Property", property_name),
             ("Type", label or "—"),
             ("Renewal Period", f"{renewal_from} - {renewal_to}"),
             ("Current Rent", frappe.utils.fmt_money(renewal.current_rent) if renewal.current_rent else "—"),
             ("Proposed Rent", frappe.utils.fmt_money(renewal.proposed_rent) if renewal.proposed_rent else "—"),
-            ("Current Step", renewal.workflow_state),
         ]
 
     elif type == "renewal_completed":
+        table_heading = "Renewal Details"
         renewal = context["renewal"]
         property_name = context.get("property_name") or renewal.property or "—"
         renewal_from = frappe.utils.getdate(renewal.renewal_from).strftime("%d.%m.%Y") if renewal.renewal_from else "—"
@@ -180,6 +187,7 @@ def generate_property_notification_email(type, context):
             ))
 
     elif type == "tat_escalation":
+        table_heading = "Renewal Details"
         renewal = context["renewal"]
         config = context["config"]
         assignee_display = context.get("assignee_display", "—")
@@ -197,4 +205,4 @@ def generate_property_notification_email(type, context):
             ("Days Overdue", str(days_overdue)),
         ]
 
-    return Template(TEMPLATE_STR).render(header=header, rows=rows, url=url)
+    return Template(TEMPLATE_STR).render(header=header, rows=rows, url=url, table_heading=table_heading)

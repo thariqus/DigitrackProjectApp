@@ -1519,14 +1519,32 @@ def _notify_step_assignee(renewal, action, actor):
 
     recipients = assignee if isinstance(assignee, list) else [assignee]
     actor_name = frappe.db.get_value("User", actor, "full_name") or actor
-    business_used = (
-        frappe.db.get_value("JH Property Master", renewal.property, "business_used")
-        if renewal.property else None
+
+    property_info = frappe._dict()
+    if renewal.property:
+        property_info = frappe.db.get_value(
+            "JH Property Master", renewal.property,
+            ["property_name", "business_used", "type_of_property", "other_property_type"],
+            as_dict=True,
+        ) or frappe._dict()
+
+    property_type_label = (
+        property_info.other_property_type
+        if property_info.type_of_property == "Other" and property_info.other_property_type
+        else property_info.type_of_property
     )
-    subject = get_workflow_assigned_label(renewal, business_used)
+
+    subject = get_workflow_assigned_label(renewal, property_info.business_used, property_type_label)
     message = generate_property_notification_email(
         type="workflow_assigned",
-        context={"renewal": renewal, "actor": actor_name, "action": action, "business_used": business_used},
+        context={
+            "renewal": renewal,
+            "actor": actor_name,
+            "action": action,
+            "business_used": property_info.business_used,
+            "property_name": property_info.property_name,
+            "property_type_label": property_type_label,
+        },
     )
 
     try:
