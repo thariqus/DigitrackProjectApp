@@ -2,6 +2,9 @@ import frappe from "@/utils/frappe-client";
 
 const API_BASE = "/api/method/jh_digitrack.api.property_management";
 
+export const getRenewalAttachmentUrl = (renewal: string, fileUrl: string) =>
+  `${API_BASE}.get_renewal_attachment?renewal=${encodeURIComponent(renewal)}&file_url=${encodeURIComponent(fileUrl)}`;
+
 export type RenewalProgressPayload = {
   renewal_id: string;
   cheque_details?: ChequeDetailPayload[];
@@ -273,6 +276,14 @@ export const propertyApi = {
     });
     const data = await res.json();
     return (data.message as { lease_type_options: string[] }).lease_type_options ?? [];
+  },
+
+  getPropertyStatusOptions: async (): Promise<string[]> => {
+    const res = await fetch(`${API_BASE}.get_property_status_options`, {
+      credentials: "include",
+    });
+    const data = await res.json();
+    return (data.message as { property_status_options: string[] }).property_status_options ?? [];
   },
 
   getDivisionsByBusiness: async (business?: string): Promise<{ name: string; division_name: string; business: string }[]> => {

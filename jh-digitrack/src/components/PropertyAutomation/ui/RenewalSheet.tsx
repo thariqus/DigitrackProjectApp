@@ -3,6 +3,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import RenewalTimeline from "./RenewalTimeline";
 import WithdrawCommentModal from "./WithdrawCommentModal";
 import SendBackModal from "./SendBackModal";
+import PullBackCommentModal from "./PullBackCommentModal";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -21,7 +22,7 @@ import { useCurrentUser } from "@/hooks/auth";
 import { Fragment, useEffect, useState } from "react";
 import { PropertyMaster, RentalRenewal } from "@/types/JHDigitrack/JHPropertyAutomation";
 import { usePropertyDoc, useRenewalDoc, useRenewalRole, useChequeTypes, usePaymentScheduleOptions } from "../hooks/useProperty";
-import { propertyApi, type RenewalProgressPayload } from "../api/property";
+import { getRenewalAttachmentUrl, propertyApi, type RenewalProgressPayload } from "../api/property";
 import { useApplyWorkflowAction } from "../hooks/useApplyWorkflowAction";
 import { useCreateDelegation, useDocumentDelegation } from "../hooks/useDelegation";
 import { RenewalDelegationModal } from "./RenewalDelegationModal";
@@ -69,6 +70,23 @@ const renewalSchema = z.object({
 });
  
 type RenewalFormValues = z.infer<typeof renewalSchema>;
+
+// Approver levels the property department can pull a renewal back from,
+// straight to Draft. Excludes the property department's own levels
+// (Draft, Pending Cheque Details, Pending Property PO).
+const PULLBACK_ELIGIBLE_STATES = [
+  "Pending Approver 1",
+  "Pending Approver 2",
+  "Pending Approver 3",
+  "Pending Approver 4",
+  "Pending Approver 5",
+  "Pending Approver 6",
+  "Pending Admin HOD",
+  "Pending FC",
+  "Pending CFO",
+  "Pending MD",
+  "Pending MIRO",
+];
  
 export default function RenewalSheet({
   open,
@@ -82,8 +100,10 @@ export default function RenewalSheet({
   const [contractFiles, setContractFiles] = useState<File[]>([]);
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
   const [isSendBackModalOpen, setIsSendBackModalOpen] = useState(false);
+  const [isPullBackModalOpen, setIsPullBackModalOpen] = useState(false);
   const [pendingWithdrawalId, setPendingWithdrawalId] = useState<string | null>(null);
   const [pendingSendBackId, setPendingSendBackId] = useState<string | null>(null);
+  const [pendingPullBackId, setPendingPullBackId] = useState<string | null>(null);
   const [sendbackOptions, setSendbackOptions] = useState<string[]>([]);
   const [rentChangePercentState, setRentChangePercentState] = useState("0");
   const [localModified, setLocalModified] = useState<string>("");
@@ -144,6 +164,7 @@ export default function RenewalSheet({
   const canApproveWorkflow = allowedWorkflowActions.includes("approve") && !hasDelegatedAway;
   const canSendBackWorkflow = allowedWorkflowActions.includes("sendback") && !hasDelegatedAway;
   const canWithdrawWorkflow = allowedWorkflowActions.includes("withdraw") && !hasDelegatedAway;
+  const canPullBackWorkflow = allowedWorkflowActions.includes("pullback") && !hasDelegatedAway;
  
   const renewalDoc = renewalData?.doc as RentalRenewal | undefined;
  
@@ -537,6 +558,11 @@ useEffect(() => {
     setPendingWithdrawalId(id);
     setIsWithdrawModalOpen(true);
   };
+
+  const handleOpenPullBackModal = (id: string) => {
+    setPendingPullBackId(id);
+    setIsPullBackModalOpen(true);
+  };
  
   const handleOpenSendBackModal = async (id: string) => {
     try {
@@ -594,6 +620,31 @@ useEffect(() => {
           toast.success("Renewal withdrawn successfully");
           setIsWithdrawModalOpen(false);
           setPendingWithdrawalId(null);
+          onOpenChange(false);
+        },
+      }
+    );
+  };
+
+  const handlePullBackSubmit = (comment: string) => {
+    if (!pendingPullBackId) return;
+
+    applyAction(
+      {
+        renewal_id: pendingPullBackId,
+        action: "pullback",
+        comment,
+        expected_state: renewalDoc?.workflow_state,
+      },
+      {
+        onSuccess: async () => {
+          await queryClient.invalidateQueries({ queryKey: ["RenewalDoc", pendingPullBackId] });
+          await queryClient.invalidateQueries({ queryKey: ["RenewalList"] });
+          await queryClient.invalidateQueries({ queryKey: ["PendingRenewals"] });
+          await refetchRenewal();
+          toast.success("Renewal pulled back to Draft successfully");
+          setIsPullBackModalOpen(false);
+          setPendingPullBackId(null);
           onOpenChange(false);
         },
       }
@@ -740,10 +791,17 @@ const renderDelegationBadge = () => {
  
       setLocalModified(latestDoc.modified);
  
-      const supportingDocUrl =
+      const newSupportingDocuments =
         supportingFiles.length > 0
-          ? (await Promise.all(supportingFiles.map(uploadFile)))[0]
-          : latestDoc.supporting_documents;
+          ? (await Promise.all(supportingFiles.map(uploadFile))).map((url) => ({
+              attachment: url,
+            }))
+          : [];
+
+      const supportingDocuments = [
+        ...(latestDoc.supporting_documents || []),
+        ...newSupportingDocuments,
+      ];
  
       const contractDocUrl =
         contractFiles.length > 0
@@ -804,7 +862,7 @@ const renderDelegationBadge = () => {
         rent_change_percent: rentPercent,
         property: latestDoc.property,
         current_rent: latestDoc.current_rent,
-        supporting_documents: supportingDocUrl,
+        supporting_documents: supportingDocuments,
         renewed_contract_document: contractDocUrl,
         cheque_details: updatedChequeDetails,
         table_xqmr: updatedParticulars,
@@ -847,7 +905,7 @@ const renderDelegationBadge = () => {
 
   const getFileName = (url: string) => url.split("/").pop() || "";
 
-  const isImageFile = (url: string) => /\.(png|jpg|jpeg)$/i.test(url);
+  // const isImageFile = (url: string) => /\.(png|jpg|jpeg)$/i.test(url);
  
   const renderReadonlyField = (
     label: string,
@@ -1258,46 +1316,52 @@ const renderDelegationBadge = () => {
  
   {isView ? (
     <div className="space-y-2 mb-10">
-      {renewalDoc?.supporting_documents ? (
-        <div className="flex items-center gap-2 px-3">
-          <span className="text-sm text-gray-700">
-            {getFileName(renewalDoc.supporting_documents)}
-          </span>
-          <a
-            href={renewalDoc.supporting_documents}
-            {...(isImageFile(renewalDoc.supporting_documents)
-              ? { download: getFileName(renewalDoc.supporting_documents) }
-              : { target: "_blank", rel: "noopener noreferrer" })}
-            className="text-blue-600 text-sm underline"
-          >
-            View
-          </a>
-        </div>
+      {renewalDoc?.supporting_documents?.length ? (
+        renewalDoc.supporting_documents.map((doc, index) =>
+          doc.attachment ? (
+            <div key={doc.name ?? index} className="flex items-center gap-2 px-3">
+              <span className="text-sm text-gray-700">
+                {getFileName(doc.attachment)}
+              </span>
+              <a
+               href={getRenewalAttachmentUrl(renewalDoc?.name ?? "", doc.attachment)}
+               target = "_blank"
+               rel = "noopener noreferrer" 
+                className="text-blue-600 text-sm underline"
+              >
+                View
+              </a>
+            </div>
+          ) : null
+        )
       ) : (
         <p className="text-sm text-gray-500">No documents available</p>
       )}
     </div>
   ) : (
     <>
-      {renewalDoc?.supporting_documents && (
+      {renewalDoc?.supporting_documents?.length ? (
         <div className="space-y-2 mb-4">
-          <p className="text-sm font-medium text-gray-600">Existing File</p>
-          <div className="flex items-center gap-2 px-3">
-            <span className="text-sm text-gray-700">
-              {getFileName(renewalDoc.supporting_documents)}
-            </span>
-            <a
-              href={renewalDoc.supporting_documents}
-              {...(isImageFile(renewalDoc.supporting_documents)
-                ? { download: getFileName(renewalDoc.supporting_documents) }
-                : { target: "_blank", rel: "noopener noreferrer" })}
-              className="text-blue-600 text-sm underline"
-            >
-              View
-            </a>
-          </div>
+          <p className="text-sm font-medium text-gray-600">Existing Files</p>
+          {renewalDoc.supporting_documents.map((doc, index) =>
+            doc.attachment ? (
+              <div key={doc.name ?? index} className="flex items-center gap-2 px-3">
+                <span className="text-sm text-gray-700">
+                  {getFileName(doc.attachment)}
+                </span>
+                <a
+                 href={getRenewalAttachmentUrl(renewalDoc?.name ?? "", doc.attachment)}
+                 target = "_blank"
+                  rel = "noopener noreferrer" 
+                  className="text-blue-600 text-sm underline"
+                >
+                  View
+                </a>
+              </div>
+            ) : null
+          )}
         </div>
-      )}
+      ) : null}
  
       <FileAttachment
         files={supportingFiles}
@@ -1468,10 +1532,9 @@ const renderDelegationBadge = () => {
                         {getFileName(renewalDoc.renewed_contract_document)}
                       </span>
                       <a
-                        href={renewalDoc.renewed_contract_document}
-                        {...(isImageFile(renewalDoc.renewed_contract_document)
-                          ? { download: getFileName(renewalDoc.renewed_contract_document) }
-                          : { target: "_blank", rel: "noopener noreferrer" })}
+                        href={getRenewalAttachmentUrl(renewalDoc?.name ?? "", renewalDoc.renewed_contract_document)}
+                        target = "_blank"
+                        rel = "noopener noreferrer"
                         className="text-blue-600 underline text-sm"
                       >
                         View
@@ -1555,6 +1618,16 @@ const renderDelegationBadge = () => {
  
       <SheetFooter className="absolute bottom-0 w-full pr-10 bg-white">
           <div className="flex w-full gap-2 items-center">
+            {/* {isView && canPullBackWorkflow && PULLBACK_ELIGIBLE_STATES.includes(renewalDoc?.workflow_state || "") && (
+              <Button
+                className="w-full bg-rose-200 hover:bg-rose-100 text-gray-500 shrink-0"
+                type="button"
+                title="Recall this renewal from its current approval level back to Draft."
+                onClick={() => propertyId && handleOpenPullBackModal(propertyId)}
+              >
+                Pull Back
+              </Button>
+            )} */}
             {(isView && canSubmitWorkflow && renewalDoc?.workflow_state === "Draft") ? (
               <div className="flex gap-3 w-full">
                   {/* <Button
@@ -1733,7 +1806,14 @@ const renderDelegationBadge = () => {
         onWithdraw={handleWithdrawSubmit}
         propertyId={pendingWithdrawalId}
       />
- 
+
+      <PullBackCommentModal
+        open={isPullBackModalOpen}
+        onOpenChange={setIsPullBackModalOpen}
+        onPullBack={handlePullBackSubmit}
+        propertyId={pendingPullBackId}
+      />
+
       <SendBackModal
         open={isSendBackModalOpen}
         onOpenChange={setIsSendBackModalOpen}

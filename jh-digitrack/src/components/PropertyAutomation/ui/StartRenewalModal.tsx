@@ -221,10 +221,12 @@ export default function StartRenewalModal({
       const rentPercent =
         current > 0 ? ((proposedRentNum - current) / current) * 100 : 0;
  
-      const supportingDocUrl =
+      const supportingDocuments =
         supportingFiles.length > 0
-          ? (await Promise.all(supportingFiles.map(uploadFile)))[0]
-          : undefined;
+          ? (await Promise.all(supportingFiles.map(uploadFile))).map((url) => ({
+              attachment: url,
+            }))
+          : [];
  
      const particulars = additionalCharges.flatMap((entry) => {
   if (!entry.label.trim()) return [];
@@ -262,7 +264,7 @@ export default function StartRenewalModal({
         payment_schedule: data.payment_schedule || "",
         new_security_deposit: Number(data.new_security_deposit || 0),
         remarks: data.remarks || "",
-        supporting_documents: supportingDocUrl,
+        supporting_documents: supportingDocuments,
         workflow_state: "Draft",
         table_xqmr: particulars,
       };

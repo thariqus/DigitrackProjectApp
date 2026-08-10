@@ -117,6 +117,13 @@ export const useLeaseTypeOptions = () =>
     staleTime: 30 * 60 * 1000,
   });
 
+export const usePropertyStatusOptions = () =>
+  useQuery({
+    queryKey: ["PropertyStatusOptions"],
+    queryFn: propertyApi.getPropertyStatusOptions,
+    staleTime: 30 * 60 * 1000,
+  });
+
 export const useDivisionsByBusiness = (business?: string | null) =>
   useQuery({
     queryKey: ["DivisionsByBusiness", business ?? ""],
