@@ -1618,7 +1618,7 @@ const renderDelegationBadge = () => {
  
       <SheetFooter className="absolute bottom-0 w-full pr-10 bg-white">
           <div className="flex w-full gap-2 items-center">
-            {isView && canPullBackWorkflow && PULLBACK_ELIGIBLE_STATES.includes(renewalDoc?.workflow_state || "") && (
+            {/* {isView && canPullBackWorkflow && PULLBACK_ELIGIBLE_STATES.includes(renewalDoc?.workflow_state || "") && (
               <Button
                 className="w-full bg-rose-200 hover:bg-rose-100 text-gray-500 shrink-0"
                 type="button"
@@ -1627,7 +1627,7 @@ const renderDelegationBadge = () => {
               >
                 Pull Back
               </Button>
-            )}
+            )} */}
             {(isView && canSubmitWorkflow && renewalDoc?.workflow_state === "Draft") ? (
               <div className="flex gap-3 w-full">
                   {/* <Button
