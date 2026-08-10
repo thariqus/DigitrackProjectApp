@@ -1623,10 +1623,21 @@ def update_property_master_renewal_date(renewal):
     if renewal.workflow_state != "Completed" or not renewal.property or not renewal.renewal_to:
         return
 
-    frappe.db.set_value("JH Property Master", renewal.property, {
+    area, staff = frappe.db.get_value(
+        "JH Property Master", renewal.property, ["area_sqftmtr", "staff_allocated"]
+    )
+    proposed_rent = flt(renewal.proposed_rent)
+    area = flt(area)
+    staff = flt(staff)
+
+    updates = {
         "renewal_date": renewal.renewal_to,
         "current_rent": renewal.proposed_rent,
-    })
+        "per_sq_ft_rate": round(proposed_rent / area, 2) if area > 0 else None,
+        "per_staff_rent": round(proposed_rent / 12 / staff, 2) if staff > 0 else None,
+    }
+
+    frappe.db.set_value("JH Property Master", renewal.property, updates)
 
 
 @frappe.whitelist(methods=["GET"])
