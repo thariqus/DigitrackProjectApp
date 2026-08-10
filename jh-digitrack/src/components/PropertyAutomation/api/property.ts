@@ -2,6 +2,9 @@ import frappe from "@/utils/frappe-client";
 
 const API_BASE = "/api/method/jh_digitrack.api.property_management";
 
+export const getRenewalAttachmentUrl = (renewal: string, fileUrl: string) =>
+  `${API_BASE}.get_renewal_attachment?renewal=${encodeURIComponent(renewal)}&file_url=${encodeURIComponent(fileUrl)}`;
+
 export type RenewalProgressPayload = {
   renewal_id: string;
   cheque_details?: ChequeDetailPayload[];
