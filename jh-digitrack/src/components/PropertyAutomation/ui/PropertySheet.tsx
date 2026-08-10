@@ -704,7 +704,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
  
   const getFileName = (url: string) => url.split("/").pop() || "";
 
-  const isImageFile = (url: string) => /\.(png|jpg|jpeg)$/i.test(url);
+  // const isImageFile = (url: string) => /\.(png|jpg|jpeg)$/i.test(url);
 
   const securityDepositDocument = doc?.documents?.find((d) => d.document_type === "Security Deposit");
   const electricityDepositDocument = doc?.documents?.find((d) => d.document_type === "Electricity Deposit");
@@ -2030,9 +2030,8 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                       <span className="text-gray-700">{getFileName(securityDepositDocument.attachment)}</span>
                       <a
                         href={securityDepositDocument.attachment}
-                        {...(isImageFile(securityDepositDocument.attachment)
-                          ? { download: getFileName(securityDepositDocument.attachment) }
-                          : { target: "_blank", rel: "noopener noreferrer" })}
+                        target = "_blank"
+                        rel = "noopener noreferrer" 
                         className="text-blue-600 underline"
                       >
                         View
@@ -2060,9 +2059,8 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                       <span className="text-gray-700">{getFileName(electricityDepositDocument.attachment)}</span>
                       <a
                         href={electricityDepositDocument.attachment}
-                        {...(isImageFile(electricityDepositDocument.attachment)
-                          ? { download: getFileName(electricityDepositDocument.attachment) }
-                          : { target: "_blank", rel: "noopener noreferrer" })}
+                        target = "_blank"
+                        rel = "noopener noreferrer" 
                         className="text-blue-600 underline"
                       >
                         View
@@ -2114,9 +2112,8 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                     <span className="text-gray-700">{getFileName(doc.cdc_certificate_document)}</span>
                     <a
                       href={doc.cdc_certificate_document}
-                      {...(isImageFile(doc.cdc_certificate_document)
-                        ? { download: getFileName(doc.cdc_certificate_document) }
-                        : { target: "_blank", rel: "noopener noreferrer" })}
+                     target = "_blank"
+                     rel = "noopener noreferrer" 
                       className="text-blue-600 underline"
                     >
                       View
@@ -2163,9 +2160,8 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                       <span className="text-sm text-gray-700">{getFileName(file.attachment)}</span>
                       <a
                         href={file.attachment}
-                        {...(isImageFile(file.attachment)
-                          ? { download: getFileName(file.attachment) }
-                          : { target: "_blank", rel: "noopener noreferrer" })}
+                       target = "_blank"
+                       rel = "noopener noreferrer" 
                         className="text-blue-600 text-sm underline"
                       >
                         View
@@ -2186,9 +2182,8 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                         <span className="text-sm text-gray-700">{getFileName(file.attachment)}</span>
                         <a
                           href={file.attachment}
-                          {...(isImageFile(file.attachment)
-                            ? { download: getFileName(file.attachment) }
-                            : { target: "_blank", rel: "noopener noreferrer" })}
+                          target = "_blank"
+                          rel = "noopener noreferrer" 
                           className="text-blue-600 text-sm underline"
                         >
                           View
