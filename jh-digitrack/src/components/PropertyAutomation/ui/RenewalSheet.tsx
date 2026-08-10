@@ -22,7 +22,7 @@ import { useCurrentUser } from "@/hooks/auth";
 import { Fragment, useEffect, useState } from "react";
 import { PropertyMaster, RentalRenewal } from "@/types/JHDigitrack/JHPropertyAutomation";
 import { usePropertyDoc, useRenewalDoc, useRenewalRole, useChequeTypes, usePaymentScheduleOptions } from "../hooks/useProperty";
-import { propertyApi, type RenewalProgressPayload } from "../api/property";
+import { getRenewalAttachmentUrl, propertyApi, type RenewalProgressPayload } from "../api/property";
 import { useApplyWorkflowAction } from "../hooks/useApplyWorkflowAction";
 import { useCreateDelegation, useDocumentDelegation } from "../hooks/useDelegation";
 import { RenewalDelegationModal } from "./RenewalDelegationModal";
@@ -905,7 +905,7 @@ const renderDelegationBadge = () => {
 
   const getFileName = (url: string) => url.split("/").pop() || "";
 
-  const isImageFile = (url: string) => /\.(png|jpg|jpeg)$/i.test(url);
+  // const isImageFile = (url: string) => /\.(png|jpg|jpeg)$/i.test(url);
  
   const renderReadonlyField = (
     label: string,
@@ -1324,10 +1324,9 @@ const renderDelegationBadge = () => {
                 {getFileName(doc.attachment)}
               </span>
               <a
-                href={doc.attachment}
-                {...(isImageFile(doc.attachment)
-                  ? { download: getFileName(doc.attachment) }
-                  : { target: "_blank", rel: "noopener noreferrer" })}
+               href={getRenewalAttachmentUrl(renewalDoc?.name ?? "", doc.attachment)}
+               target = "_blank"
+               rel = "noopener noreferrer" 
                 className="text-blue-600 text-sm underline"
               >
                 View
@@ -1351,10 +1350,9 @@ const renderDelegationBadge = () => {
                   {getFileName(doc.attachment)}
                 </span>
                 <a
-                  href={doc.attachment}
-                  {...(isImageFile(doc.attachment)
-                    ? { download: getFileName(doc.attachment) }
-                    : { target: "_blank", rel: "noopener noreferrer" })}
+                 href={getRenewalAttachmentUrl(renewalDoc?.name ?? "", doc.attachment)}
+                 target = "_blank"
+                  rel = "noopener noreferrer" 
                   className="text-blue-600 text-sm underline"
                 >
                   View
@@ -1534,10 +1532,9 @@ const renderDelegationBadge = () => {
                         {getFileName(renewalDoc.renewed_contract_document)}
                       </span>
                       <a
-                        href={renewalDoc.renewed_contract_document}
-                        {...(isImageFile(renewalDoc.renewed_contract_document)
-                          ? { download: getFileName(renewalDoc.renewed_contract_document) }
-                          : { target: "_blank", rel: "noopener noreferrer" })}
+                        href={getRenewalAttachmentUrl(renewalDoc?.name ?? "", renewalDoc.renewed_contract_document)}
+                        target = "_blank"
+                        rel = "noopener noreferrer"
                         className="text-blue-600 underline text-sm"
                       >
                         View
