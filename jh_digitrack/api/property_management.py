@@ -997,13 +997,47 @@ def get_property_doc(name: str):
     return {"doc": doc.as_dict()}
 
 
+def _user_can_view_renewal(user, renewal):
+    """
+    Central read-authorization check for a renewal doc, shared by
+    get_renewal_doc and get_renewal_attachment.
+
+    Deliberately independent of Frappe's own DocType permission system:
+    approvers are authorized per-property via the JH Property Approver
+    child table, not via a Frappe Role, so there's no baseline DocType
+    permission for them to hold in the first place.
+    """
+    ctx = _get_property_user_context()
+    has_full_access = (
+        ctx["is_admin"] or ctx["is_md"] or ctx["is_cfo"]
+        or ctx["is_admin_hod"] or ctx["is_fc"]
+        or ctx["has_property_dept"] or ctx["has_gl_team"] or ctx["is_licensing"]
+    )
+    if has_full_access:
+        return True
+
+    if renewal.name in _get_visible_adhoc_renewals(user):
+        return True
+
+    if renewal.property:
+        approver_users = _get_property_approvers_list(renewal.property)
+        if user in approver_users:
+            return True
+
+        from jh_digitrack.api.helpers.delegation import resolve_effective_user
+        for approver_user in approver_users:
+            if resolve_effective_user(delegate=user, delegator=approver_user, document=renewal):
+                return True
+
+    return False
+
+
 @frappe.whitelist(methods=["GET"])
 def get_renewal_doc(name: str):
     if not name:
         frappe.throw(_("name is required"))
 
-    ctx = _get_property_user_context()
-    user = ctx["user"]
+    user = frappe.session.user
 
     frappe.flags.ignore_permissions = True
     try:
@@ -1011,28 +1045,55 @@ def get_renewal_doc(name: str):
     finally:
         frappe.flags.ignore_permissions = False
 
-    has_full_access = (
-        ctx["is_admin"] or ctx["is_md"] or ctx["is_cfo"]
-        or ctx["is_admin_hod"] or ctx["is_fc"]
-        or ctx["has_property_dept"] or ctx["has_gl_team"] or ctx["is_licensing"]
-    )
-
-    if not has_full_access:
-        is_approver = renewal.name in _get_visible_adhoc_renewals(user)
-        if renewal.property and not is_approver:
-            approver_users = _get_property_approvers_list(renewal.property)
-            if user in approver_users:
-                is_approver = True
-            if not is_approver:
-                from jh_digitrack.api.helpers.delegation import resolve_effective_user
-                for approver_user in approver_users:
-                    if resolve_effective_user(delegate=user, delegator=approver_user, document=renewal):
-                        is_approver = True
-                        break
-        if not is_approver:
-            frappe.throw(_("Not permitted"), frappe.PermissionError)
+    if not _user_can_view_renewal(user, renewal):
+        frappe.throw(_("Not permitted"), frappe.PermissionError)
 
     return {"doc": renewal.as_dict()}
+
+
+@frappe.whitelist(methods=["GET"])
+def get_renewal_attachment(renewal: str, file_url: str):
+    """
+    Stream one of a renewal's private supporting documents / contract file.
+
+    Frappe's native file permission check delegates to the attached doc's
+    own has_permission("read") - but controllers can only ever narrow down
+    access from the DocType's baseline Role Permission grant, never add to
+    it (see frappe.permissions.has_controller_permissions). Renewal
+    approvers hold no baseline DocType-level read on
+    "JH Property Rental Renewal" at all (they're authorized per-property,
+    not via a Role), so /private/files/... 403s for them even once the
+    File is correctly attached. Re-run this app's own authorization check
+    instead and stream the bytes back directly.
+    """
+    if not renewal or not file_url:
+        frappe.throw(_("renewal and file_url are required"))
+
+    frappe.flags.ignore_permissions = True
+    try:
+        doc = frappe.get_doc("JH Property Rental Renewal", renewal)
+    finally:
+        frappe.flags.ignore_permissions = False
+
+    if not _user_can_view_renewal(frappe.session.user, doc):
+        raise frappe.PermissionError(_("Not permitted"))
+
+    allowed_urls = {row.attachment for row in doc.get("supporting_documents", []) if row.attachment}
+    if doc.renewed_contract_document:
+        allowed_urls.add(doc.renewed_contract_document)
+
+    if file_url not in allowed_urls:
+        raise frappe.PermissionError(_("Not permitted"))
+
+    file_name = frappe.db.get_value("File", {"file_url": file_url}, "name")
+    if not file_name:
+        frappe.throw(_("File not found"), frappe.DoesNotExistError)
+
+    file_doc = frappe.get_doc("File", file_name)
+    frappe.local.response.filename = file_doc.file_name or file_url.rsplit("/", 1)[-1]
+    frappe.local.response.filecontent = file_doc.get_content()
+    frappe.local.response.type = "download"
+    frappe.local.response.display_content_as = "inline"
 
 
 @frappe.whitelist(methods=["GET"])
