@@ -451,7 +451,7 @@ def _get_row_scoped_properties(approver_props, adhoc_props):
     all properties in the approver's divisions (row-level access for users
     without full/admin-level access).
     """
-    scoped_names = set(adhoc_props)
+    scoped_names = set(adhoc_props) | set(approver_props)
 
     if approver_props:
         raw_divisions = frappe.db.get_all(
@@ -469,8 +469,6 @@ def _get_row_scoped_properties(approver_props, adhoc_props):
                 ignore_permissions=True,
             )
             scoped_names.update(division_props)
-        else:
-            scoped_names.update(approver_props)
 
     return scoped_names
 
