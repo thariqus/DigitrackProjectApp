@@ -6,6 +6,7 @@ import RenewalIcon from "../../../../public/icon2.png"
 function PropertyTableRow({ property, index, onClick,isLoading,onEdit,renewalColorHighlight,getRenewalStatus,formatDate,canCreateOrEditProperty, canStartRenewal,onStartRenewal,isSelected,onSelect}: any) {
 
 const isRenewalInProgress = !!property.has_active_renewal;
+const isPropertyInactive = property.property_status === "Vacated" || property.property_status === "Closed";
 
   if(isLoading){
     return (
@@ -46,7 +47,7 @@ const isRenewalInProgress = !!property.has_active_renewal;
       </TableCell>
       <TableCell className="text-center">
         <div className="flex justify-center">
-          <StatusBadge status={getRenewalStatus(property.renewal_date)} />
+          <StatusBadge status={getRenewalStatus(property.renewal_date, property.property_status)} />
         </div>
       </TableCell>
 
@@ -65,7 +66,7 @@ const isRenewalInProgress = !!property.has_active_renewal;
             </div>
           )}
 
-          {canStartRenewal && !isRenewalInProgress && (
+          {canStartRenewal && !isRenewalInProgress && !isPropertyInactive && (
             <div
               title="Initiate Renewal"
               onClick={(e) => {

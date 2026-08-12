@@ -15,6 +15,7 @@ import * as z from "zod";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import FileAttachment from "./FileAttachment";
+import SingleFileUpload from "./SingleFileUpload";
 // import MultiValueInput from "./MultiValueInput";
 import { useDocs, useSaveDoc, useUpdateDoc } from "@/hooks/doc";
 import {
@@ -23,8 +24,9 @@ import {
   useUserAccess,
   usePropertyTypes,
   usePropertyDivisions,useLeaseTypeOptions,
+  usePropertyStatusOptions,
 } from "../hooks/useProperty";
-import { PropertyMaster, JHPropertyElectricityConnection, JHPropertyLandline, ChequeDetail, RentalRenewal } from "@/types/JHDigitrack/JHPropertyAutomation";
+import { PropertyMaster, JHPropertyElectricityConnection, JHPropertyLandline, JHPropertySewerageAccount, ChequeDetail, RentalRenewal } from "@/types/JHDigitrack/JHPropertyAutomation";
 import { X } from "lucide-react";
 import { queryClient } from "@/utils/query-client";
 import frappe from "@/utils/frappe-client";
@@ -141,6 +143,7 @@ const propertySchema = z.object({
 
   per_sq_ft_rate : numericOnlyField,
   per_staff_rent : numericOnlyField,
+  property_status: z.string().nullable().optional(),
   remark: z.string().nullable().optional(),
   ownership: z.string().nullable().optional(),
   address:z.string().nullable().optional(),
@@ -189,14 +192,20 @@ const propertySchema = z.object({
     line_type: z.enum(["Fixed", "Fax"]).nullable().optional(),
   })).optional(),
   landline_accounts: numericOnlyField,
+  sewerage_accounts: z.array(z.object({
+    location: z.string().nullable().optional(),
+    account_number: numericOnlyField,
+  })).optional(),
   internet_connection: numericOnlyField,
   cdc_expiry: z.string().optional(),
   hassantuk_expiry: z.string().optional(),
+  compliance_remarks: z.string().nullable().optional(),
 });
 
 type PropertyFormValues = z.infer<typeof propertySchema> & {
   electricity_connections: JHPropertyElectricityConnection[];
   landline_connections: JHPropertyLandline[];
+  sewerage_accounts: JHPropertySewerageAccount[];
   security_deposit_cheques: ChequeDetail[];
 };
 
@@ -224,6 +233,7 @@ type PropertyFormValues = z.infer<typeof propertySchema> & {
   real_estate: "",
   current_rent: undefined,
   renewal_date: "",
+  property_status: "Active",
   landlord_security_deposit: undefined,
   security_deposit_cheques: [],
   tenancy_period: "",
@@ -234,9 +244,11 @@ type PropertyFormValues = z.infer<typeof propertySchema> & {
   electricity_water_security_deposit: undefined,
   landline_connections: [],
   landline_accounts: undefined,
+  sewerage_accounts: [],
   internet_connection: "",
   cdc_expiry: "",
   hassantuk_expiry: "",
+  compliance_remarks: "",
 });
 
 const getMultiValueItems = (value?: string | null) =>
@@ -256,9 +268,13 @@ export default function PropertySheet({
 }: PropertySheetProps) {
  
   const [files, setFiles] = useState<File[]>([]);
+  const [securityDepositFile, setSecurityDepositFile] = useState<File | null>(null);
+  const [electricityDepositFile, setElectricityDepositFile] = useState<File | null>(null);
+  const [cdcCertificateFile, setCdcCertificateFile] = useState<File | null>(null);
   const [approvers, setApprovers] = useState<{ order: number; approver: string }[]>([]);
   const [connections, setConnections] = useState<JHPropertyElectricityConnection[]>([]);
   const [landlineConnections, setLandlineConnections] = useState<JHPropertyLandline[]>([]);
+  const [sewerageAccounts, setSewerageAccounts] = useState<JHPropertySewerageAccount[]>([]);
   const [securityDepositCheques, setSecurityDepositCheques] = useState<ChequeDetail[]>([]);
   const [landlineErrors, setLandlineErrors] = useState<Record<number, string>>({});
   const lastAutoFilledDivisionRef = useRef<string | null>(null);
@@ -290,6 +306,7 @@ const renewalsData = renewalsListData?.renewals ?? [];
   const { data: chequeTypes = [] } = useChequeTypes();
   const { data: propertyTypeOptions = [] } = usePropertyTypes();
   const { data: leaseTypeOptions = [] } = useLeaseTypeOptions();
+  const { data: propertyStatusOptions = [] } = usePropertyStatusOptions();
  
   const doc = propertyData?.doc as PropertyMaster | undefined;
 
@@ -362,6 +379,22 @@ const renewalsData = renewalsListData?.renewals ?? [];
     return Array.from(new Set(values)).sort((a, b) => a.localeCompare(b));
   }, [propertyDivisionsData, businessWatch]);
 
+  const areaSqftWatch = useWatch({ control, name: "area_sqftmtr" });
+  const currentRentWatch = useWatch({ control, name: "current_rent" });
+  const staffAllocatedWatch = useWatch({ control, name: "staff_allocated" });
+
+  useEffect(() => {
+    const area = Number(areaSqftWatch);
+    const rent = Number(currentRentWatch);
+    setValue("per_sq_ft_rate", area > 0 && !Number.isNaN(rent) ? Math.round((rent / area) * 100) / 100 : undefined);
+  }, [areaSqftWatch, currentRentWatch, setValue]);
+
+  useEffect(() => {
+    const rent = Number(currentRentWatch);
+    const staff = Number(staffAllocatedWatch);
+    setValue("per_staff_rent", staff > 0 && !Number.isNaN(rent) ? Math.round((rent / 12 / staff) * 100) / 100 : undefined);
+  }, [currentRentWatch, staffAllocatedWatch, setValue]);
+
   const numberOfPremisesWatch = useWatch({ control, name: "number_of_premises" });
   // const premiseNumberWatch = useWatch({ control, name: "premise_number" });
   // const electricityAccountsWatch = useWatch({ control, name: "electricity_accounts" });
@@ -392,10 +425,14 @@ const renewalsData = renewalsListData?.renewals ?? [];
 
 const resetSheetState = useCallback((values: PropertyFormValues = getEmptyPropertyFormValues(), docApprovers?: { order: number; approver: string }[]) => {
     setFiles([]);
+    setSecurityDepositFile(null);
+    setElectricityDepositFile(null);
+    setCdcCertificateFile(null);
     setApprovers(docApprovers ?? []);
     reset(values);
     setConnections(values.electricity_connections || []);
     setLandlineConnections(values.landline_connections || []);
+    setSewerageAccounts(values.sewerage_accounts || []);
     setSecurityDepositCheques(values.security_deposit_cheques || []);
     setLandlineErrors({});
   }, [reset]);
@@ -422,6 +459,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
       lastAutoFilledDivisionRef.current = doc.division_used ?? null;
       setConnections(doc.electricity_connections || []);
       setLandlineConnections(doc.landline_connections || []);
+      setSewerageAccounts(doc.sewerage_accounts || []);
       setSecurityDepositCheques(doc.security_deposit_cheques || []);
       const docApprovers = doc.approver
         ? [...doc.approver].sort((a, b) => a.order - b.order)
@@ -434,6 +472,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
         staff_allocated: doc.staff_allocated ? Number(doc.staff_allocated) : undefined,
         electricity_connections: doc.electricity_connections || [],
         landline_connections: doc.landline_connections || [],
+        sewerage_accounts: doc.sewerage_accounts || [],
         security_deposit_cheques: doc.security_deposit_cheques || [],
         renewal_date: doc.renewal_date?.split("T")[0],
         lease_start_date: doc.lease_start_date?.split("T")[0],
@@ -537,6 +576,11 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
         ...conn,
         idx: index + 1,
       })),
+      sewerage_accounts: sewerageAccounts.map((acc, index) => ({
+        doctype: "JH Property Sewerage Accounts",
+        ...acc,
+        idx: index + 1,
+      })),
       security_deposit_cheques: securityDepositCheques.map((cheque, index) => ({
         doctype: "JH Property Cheque Detail",
         ...cheque,
@@ -595,12 +639,30 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
     try {
       const uploadedFiles =
         files.length > 0 ? await Promise.all(files.map((file) => uploadFile(file))) : [];
- 
-      const documents = [
-        ...(doc?.documents || []),
+
+      let documents = [...(doc?.documents || [])];
+
+      if (securityDepositFile) {
+        documents = documents.filter((d) => d.document_type !== "Security Deposit");
+        const url = await uploadFile(securityDepositFile);
+        documents.push({ document_type: "Security Deposit", attachment: url });
+      }
+
+      if (electricityDepositFile) {
+        documents = documents.filter((d) => d.document_type !== "Electricity Deposit");
+        const url = await uploadFile(electricityDepositFile);
+        documents.push({ document_type: "Electricity Deposit", attachment: url });
+      }
+
+      documents = [
+        ...documents,
         ...uploadedFiles.map((url) => ({ attachment: url })),
       ];
- 
+
+      const cdcCertificateDocument = cdcCertificateFile
+        ? await uploadFile(cdcCertificateFile)
+        : doc?.cdc_certificate_document;
+
       const payload = {
         ...formData,
         name: propertyId,
@@ -608,6 +670,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
         po_box_renewal_date: formatDateForAPI(data.po_box_renewal_date),
         cdc_expiry: formatDateForAPI(data.cdc_expiry),
         hassantuk_expiry: formatDateForAPI(data.hassantuk_expiry),
+        cdc_certificate_document: cdcCertificateDocument,
         doctype: "JH Property Master",
         documents,
       };
@@ -641,8 +704,11 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
  
   const getFileName = (url: string) => url.split("/").pop() || "";
 
-  const isImageFile = (url: string) => /\.(png|jpg|jpeg)$/i.test(url);
- 
+  // const isImageFile = (url: string) => /\.(png|jpg|jpeg)$/i.test(url);
+
+  const securityDepositDocument = doc?.documents?.find((d) => d.document_type === "Security Deposit");
+  const electricityDepositDocument = doc?.documents?.find((d) => d.document_type === "Electricity Deposit");
+
   const renderField = (
     label: string,
     name: keyof z.infer<typeof propertySchema>,
@@ -1110,6 +1176,106 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
         <span className="text-red-500 text-xs">
           {errors.landline_accounts.message}
         </span>
+      )}
+    </div>
+  );
+};
+
+  const renderSewerageAccounts = (
+  isViewMode: boolean,
+  accountsData?: JHPropertySewerageAccount[]
+) => {
+  const data = isViewMode ? (accountsData || []) : sewerageAccounts;
+  const isLoading = isViewMode && isPropertyFetching;
+
+  return (
+    <div className="flex flex-col gap-1">
+      <Label className="text-sm text-gray-600">Sewerage Accounts:</Label>
+
+      {isLoading ? (
+        <div className="flex items-center justify-center p-8">
+          <Skeleton className="h-32 w-full" />
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {data.map((acc, index) => (
+              <div
+                key={acc.name || index}
+                className="flex gap-2 items-end bg-muted p-3 rounded-lg"
+              >
+                <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-2">
+                  <div className={`${isView ? "flex items-center gap-1": "flex  flex-col gap-1"}`}>
+                    <Label className="text-xs">Account Number:</Label>
+                    {isViewMode ? (
+                      <span className="text-sm font-medium">
+                        {acc.account_number ?? "-"}
+                      </span>
+                    ) : (
+                      <Input
+                        type="number"
+                        value={acc.account_number ?? ""}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          const newAccounts = [...sewerageAccounts];
+                          newAccounts[index] = {
+                            ...newAccounts[index],
+                            account_number: val === "" ? undefined : Number(val),
+                          };
+                          setSewerageAccounts(newAccounts);
+                        }}
+                        className="text-sm"
+                      />
+                    )}
+                  </div>
+
+                  <div className={`${isView ? "flex items-center gap-1": "flex  flex-col gap-1"}`}>
+                    <Label className="text-xs">Location:</Label>
+                    {isViewMode ? (
+                      <span className="text-sm">{acc.location || "-"}</span>
+                    ) : (
+                      <Input
+                        value={acc.location || ""}
+                        onChange={(e) => {
+                          const newAccounts = [...sewerageAccounts];
+                          newAccounts[index] = { ...newAccounts[index], location: e.target.value };
+                          setSewerageAccounts(newAccounts);
+                        }}
+                        className="text-sm"
+                      />
+                    )}
+                  </div>
+                </div>
+
+                {!isViewMode && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 p-0 -mr-2"
+                    onClick={() => {
+                      setSewerageAccounts(sewerageAccounts.filter((_, i) => i !== index));
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            ))
+          }
+
+          {!isViewMode && (
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full text-gray-500 border-2 border-dashed h-10 text-sm mt-1"
+              onClick={() => {
+                setSewerageAccounts([...sewerageAccounts, { location: "", account_number: undefined }]);
+              }}
+            >
+              + Add Sewerage Account
+            </Button>
+          )}
+        </div>
       )}
     </div>
   );
@@ -1674,8 +1840,9 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
               </div>
 
               {renderField("Co Code", "co_code", doc?.co_code)}
-              {renderField("Area (Sqft/Mtr)", "area_sqftmtr", doc?.area_sqftmtr)}
-              {renderField("Per Sqft Rate", "per_sq_ft_rate", doc?.per_sq_ft_rate)}
+              {renderField("Current Rent", "current_rent", doc?.current_rent)}
+              {renderField("Area (Sqft)", "area_sqftmtr", doc?.area_sqftmtr)}
+              {renderField("Per Sqft Rate", "per_sq_ft_rate", doc?.per_sq_ft_rate, "text", true)}
               {renderField("Ownership", "ownership", doc?.ownership)}
 
               <div className="flex flex-col gap-1">
@@ -1708,13 +1875,43 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
               </div>
 
               {renderField("Staff Allocated", "staff_allocated", doc?.staff_allocated)}
-              {renderField("Per Staff Rent", "per_staff_rent", doc?.per_staff_rent)} 
+              {renderField("Per Staff Rent", "per_staff_rent", doc?.per_staff_rent, "text", true)}
               {renderField("Booked Under", "booked_under", doc?.booked_under)}
               {renderField("Profit Center/Site", "profit_center", doc?.profit_center)}
              {renderField("Cost Center", "cost_center", doc?.cost_center)}
              
               {renderField("Number of Units", "number_of_units", doc?.number_of_units)}
               {renderField("Number of Premises", "number_of_premises", doc?.number_of_premises)}
+
+              <div className="flex flex-col gap-1">
+                {!isView && <Label className="text-sm text-gray-600">Property Status</Label>}
+                {isView ? (
+                  <div className="flex items-center gap-2 py-1 text-sm">
+                    <span className="font-medium text-gray-600">Property Status:</span>
+                    <span>{doc?.property_status || "-"}</span>
+                  </div>
+                ) : (
+                  <Controller
+                    name="property_status"
+                    control={control}
+                    render={({ field }) => (
+                      <Select value={field.value ?? "Active"} onValueChange={field.onChange}>
+                        <SelectTrigger className="text-sm h-9">
+                          <SelectValue placeholder="Select Property Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {propertyStatusOptions.map((opt) => (
+                            <SelectItem key={opt} value={opt}>
+                              {opt}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                )}
+              </div>
+
               {renderField("Remarks", "remark", doc?.remark, "textarea")}
               {renderApproversTable()}
             </div>
@@ -1815,18 +2012,70 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                 renderField("Renewal Date", "renewal_date", doc?.renewal_date, "date")
               )}
 
-               {renderField("Current Rent", "current_rent", doc?.current_rent)}
             </div>
 
             <Separator />
 
             <h2 className="text-lg font-semibold">Security Deposit</h2>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
-              {renderField(
-                "Deposit Amount",
-                "landlord_security_deposit",
-                doc?.landlord_security_deposit
-              )}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              <div className="flex flex-col gap-1">
+                {renderField(
+                  "Deposit Amount",
+                  "landlord_security_deposit",
+                  doc?.landlord_security_deposit
+                )}
+                {isView ? (
+                  securityDepositDocument?.attachment && (
+                    <div className="flex items-center gap-2 text-sm mb-2">
+                      <span className="text-gray-700">{getFileName(securityDepositDocument.attachment)}</span>
+                      <a
+                        href={securityDepositDocument.attachment}
+                        target = "_blank"
+                        rel = "noopener noreferrer" 
+                        className="text-blue-600 underline"
+                      >
+                        View
+                      </a>
+                    </div>
+                  )
+                ) : (
+                  <SingleFileUpload
+                    file={securityDepositFile}
+                    setFile={setSecurityDepositFile}
+                    existingUrl={securityDepositDocument?.attachment}
+                    label="Upload document"
+                  />
+                )}
+              </div>
+              <div className="flex flex-col gap-1">
+                {renderField(
+                  "Electricity Security Deposit",
+                  "electricity_water_security_deposit",
+                  doc?.electricity_water_security_deposit
+                )}
+                {isView ? (
+                  electricityDepositDocument?.attachment && (
+                    <div className="flex items-center gap-2 mb-2 text-sm">
+                      <span className="text-gray-700">{getFileName(electricityDepositDocument.attachment)}</span>
+                      <a
+                        href={electricityDepositDocument.attachment}
+                        target = "_blank"
+                        rel = "noopener noreferrer" 
+                        className="text-blue-600 underline"
+                      >
+                        View
+                      </a>
+                    </div>
+                  )
+                ) : (
+                  <SingleFileUpload
+                    file={electricityDepositFile}
+                    setFile={setElectricityDepositFile}
+                    existingUrl={electricityDepositDocument?.attachment}
+                    label="Upload document"
+                  />
+                )}
+              </div>
               {renderChequeDetails(isView, doc?.security_deposit_cheques)}
             </div>
  
@@ -1835,20 +2084,16 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
             <h2 className="text-lg font-semibold">Utilities</h2>
             <div className={`grid grid-cols-1 ${isView ? "md:grid-cols-3" : "md:grid-cols-4"} gap-2`}>
               {renderField("Electricity Accounts", "electricity_accounts", doc?.electricity_accounts, "text", true)}
-              {renderField(
-                "Electricity / Water Security Deposit",
-                "electricity_water_security_deposit",
-                doc?.electricity_water_security_deposit
-              )}
               {renderField("Landline Accounts", "landline_accounts", doc?.landline_accounts, "text", true)}
               {renderField("Internet Connection", "internet_connection", doc?.internet_connection)}
             </div>
-            {renderLandlineConnections(isView, doc?.landline_connections)}
             {renderElectricityConnections(isView, doc?.electricity_connections)}
+            {renderLandlineConnections(isView, doc?.landline_connections)}
+            {renderSewerageAccounts(isView, doc?.sewerage_accounts)}
  
  
             <h2 className="text-lg font-semibold">Compliance</h2>
-            <div className="grid grid-cols-1 w-110 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {isView ? (
                 <div className="flex items-center gap-2 py-1 text-sm">
                   <span className="font-medium text-gray-600">CDC Expiry:</span>
@@ -1859,7 +2104,34 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
               ) : (
                 renderField("CDC Expiry", "cdc_expiry", doc?.cdc_expiry, "date")
               )}
- 
+
+              {isView ? (
+                doc?.cdc_certificate_document && (
+                  <div className="flex items-center gap-2 py-1 text-sm">
+                    <span className="font-medium text-gray-600">CDC Certificate:</span>
+                    <span className="text-gray-700">{getFileName(doc.cdc_certificate_document)}</span>
+                    <a
+                      href={doc.cdc_certificate_document}
+                     target = "_blank"
+                     rel = "noopener noreferrer" 
+                      className="text-blue-600 underline"
+                    >
+                      View
+                    </a>
+                  </div>
+                )
+              ) : (
+                <div className="flex flex-col gap-1">
+                  <Label className="text-sm text-gray-600">CDC Certificate</Label>
+                  <SingleFileUpload
+                    file={cdcCertificateFile}
+                    setFile={setCdcCertificateFile}
+                    existingUrl={doc?.cdc_certificate_document}
+                    label="CDC Certificate"
+                  />
+                </div>
+              )}
+
               {isView ? (
                 <div className="flex items-center gap-2 py-1 text-sm">
                   <span className="font-medium text-gray-600">Hassantuk Expiry:</span>
@@ -1870,10 +2142,14 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
               ) : (
                 renderField("Hassantuk Expiry", "hassantuk_expiry", doc?.hassantuk_expiry, "date")
               )}
+
+              <div className="md:col-span-2">
+                {renderField("Compliance Remarks", "compliance_remarks", doc?.compliance_remarks, "textarea")}
+              </div>
             </div>
- 
+
             <Separator />
- 
+
             <h2 className="text-lg font-semibold">Documents</h2>
  
             {isView ? (
@@ -1884,9 +2160,8 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                       <span className="text-sm text-gray-700">{getFileName(file.attachment)}</span>
                       <a
                         href={file.attachment}
-                        {...(isImageFile(file.attachment)
-                          ? { download: getFileName(file.attachment) }
-                          : { target: "_blank", rel: "noopener noreferrer" })}
+                       target = "_blank"
+                       rel = "noopener noreferrer" 
                         className="text-blue-600 text-sm underline"
                       >
                         View
@@ -1907,9 +2182,8 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                         <span className="text-sm text-gray-700">{getFileName(file.attachment)}</span>
                         <a
                           href={file.attachment}
-                          {...(isImageFile(file.attachment)
-                            ? { download: getFileName(file.attachment) }
-                            : { target: "_blank", rel: "noopener noreferrer" })}
+                          target = "_blank"
+                          rel = "noopener noreferrer" 
                           className="text-blue-600 text-sm underline"
                         >
                           View

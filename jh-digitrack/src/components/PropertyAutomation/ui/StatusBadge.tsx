@@ -41,6 +41,10 @@ export const StatusBadge = ({ status, approverName }: StatusBadgeProps) => {
         return "bg-red-100 text-red-800 hover:bg-red-100";
       case "expiring soon":
         return "bg-yellow-100 text-yellow-800 hover:bg-yellow-100";
+      case "vacated":
+        return "bg-slate-200 text-slate-700 hover:bg-slate-200";
+      case "closed":
+        return "bg-gray-300 text-gray-800 hover:bg-gray-300";
       case "unknown":
         return "bg-gray-100 text-gray-500 hover:bg-gray-100";
       default:

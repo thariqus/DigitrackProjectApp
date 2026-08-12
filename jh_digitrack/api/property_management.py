@@ -451,7 +451,7 @@ def _get_row_scoped_properties(approver_props, adhoc_props):
     all properties in the approver's divisions (row-level access for users
     without full/admin-level access).
     """
-    scoped_names = set(adhoc_props)
+    scoped_names = set(adhoc_props) | set(approver_props)
 
     if approver_props:
         raw_divisions = frappe.db.get_all(
@@ -469,8 +469,6 @@ def _get_row_scoped_properties(approver_props, adhoc_props):
                 ignore_permissions=True,
             )
             scoped_names.update(division_props)
-        else:
-            scoped_names.update(approver_props)
 
     return scoped_names
 
@@ -642,7 +640,7 @@ def get_property_list(
     start = (page - 1) * limit
 
     fields = [
-        "name", "property_name", "type_of_property", "division_used", "business_used",
+        "name", "property_name", "type_of_property", "division_used", "business_used","property_status", 
         "booked_under", "profit_center",
         "number_of_units", "number_of_premises", "premise_number",
         "staff_allocated", "location", "emirate", "country",
@@ -997,13 +995,47 @@ def get_property_doc(name: str):
     return {"doc": doc.as_dict()}
 
 
+def _user_can_view_renewal(user, renewal):
+    """
+    Central read-authorization check for a renewal doc, shared by
+    get_renewal_doc and get_renewal_attachment.
+
+    Deliberately independent of Frappe's own DocType permission system:
+    approvers are authorized per-property via the JH Property Approver
+    child table, not via a Frappe Role, so there's no baseline DocType
+    permission for them to hold in the first place.
+    """
+    ctx = _get_property_user_context()
+    has_full_access = (
+        ctx["is_admin"] or ctx["is_md"] or ctx["is_cfo"]
+        or ctx["is_admin_hod"] or ctx["is_fc"]
+        or ctx["has_property_dept"] or ctx["has_gl_team"] or ctx["is_licensing"]
+    )
+    if has_full_access:
+        return True
+
+    if renewal.name in _get_visible_adhoc_renewals(user):
+        return True
+
+    if renewal.property:
+        approver_users = _get_property_approvers_list(renewal.property)
+        if user in approver_users:
+            return True
+
+        from jh_digitrack.api.helpers.delegation import resolve_effective_user
+        for approver_user in approver_users:
+            if resolve_effective_user(delegate=user, delegator=approver_user, document=renewal):
+                return True
+
+    return False
+
+
 @frappe.whitelist(methods=["GET"])
 def get_renewal_doc(name: str):
     if not name:
         frappe.throw(_("name is required"))
 
-    ctx = _get_property_user_context()
-    user = ctx["user"]
+    user = frappe.session.user
 
     frappe.flags.ignore_permissions = True
     try:
@@ -1011,28 +1043,55 @@ def get_renewal_doc(name: str):
     finally:
         frappe.flags.ignore_permissions = False
 
-    has_full_access = (
-        ctx["is_admin"] or ctx["is_md"] or ctx["is_cfo"]
-        or ctx["is_admin_hod"] or ctx["is_fc"]
-        or ctx["has_property_dept"] or ctx["has_gl_team"] or ctx["is_licensing"]
-    )
-
-    if not has_full_access:
-        is_approver = renewal.name in _get_visible_adhoc_renewals(user)
-        if renewal.property and not is_approver:
-            approver_users = _get_property_approvers_list(renewal.property)
-            if user in approver_users:
-                is_approver = True
-            if not is_approver:
-                from jh_digitrack.api.helpers.delegation import resolve_effective_user
-                for approver_user in approver_users:
-                    if resolve_effective_user(delegate=user, delegator=approver_user, document=renewal):
-                        is_approver = True
-                        break
-        if not is_approver:
-            frappe.throw(_("Not permitted"), frappe.PermissionError)
+    if not _user_can_view_renewal(user, renewal):
+        frappe.throw(_("Not permitted"), frappe.PermissionError)
 
     return {"doc": renewal.as_dict()}
+
+
+@frappe.whitelist(methods=["GET"])
+def get_renewal_attachment(renewal: str, file_url: str):
+    """
+    Stream one of a renewal's private supporting documents / contract file.
+
+    Frappe's native file permission check delegates to the attached doc's
+    own has_permission("read") - but controllers can only ever narrow down
+    access from the DocType's baseline Role Permission grant, never add to
+    it (see frappe.permissions.has_controller_permissions). Renewal
+    approvers hold no baseline DocType-level read on
+    "JH Property Rental Renewal" at all (they're authorized per-property,
+    not via a Role), so /private/files/... 403s for them even once the
+    File is correctly attached. Re-run this app's own authorization check
+    instead and stream the bytes back directly.
+    """
+    if not renewal or not file_url:
+        frappe.throw(_("renewal and file_url are required"))
+
+    frappe.flags.ignore_permissions = True
+    try:
+        doc = frappe.get_doc("JH Property Rental Renewal", renewal)
+    finally:
+        frappe.flags.ignore_permissions = False
+
+    if not _user_can_view_renewal(frappe.session.user, doc):
+        raise frappe.PermissionError(_("Not permitted"))
+
+    allowed_urls = {row.attachment for row in doc.get("supporting_documents", []) if row.attachment}
+    if doc.renewed_contract_document:
+        allowed_urls.add(doc.renewed_contract_document)
+
+    if file_url not in allowed_urls:
+        raise frappe.PermissionError(_("Not permitted"))
+
+    file_name = frappe.db.get_value("File", {"file_url": file_url}, "name")
+    if not file_name:
+        frappe.throw(_("File not found"), frappe.DoesNotExistError)
+
+    file_doc = frappe.get_doc("File", file_name)
+    frappe.local.response.filename = file_doc.file_name or file_url.rsplit("/", 1)[-1]
+    frappe.local.response.filecontent = file_doc.get_content()
+    frappe.local.response.type = "download"
+    frappe.local.response.display_content_as = "inline"
 
 
 @frappe.whitelist(methods=["GET"])
@@ -1227,6 +1286,17 @@ def get_lease_type_options():
         return {"lease_type_options": []}
     return {"lease_type_options": [opt for opt in field.options.split("\n") if opt.strip()]}
 
+
+@frappe.whitelist(methods=["GET"])
+def get_property_status_options():
+    meta = frappe.get_meta("JH Property Master")
+    field = next((f for f in meta.fields if f.fieldname == "property_status"), None)
+    if not field or not field.options:
+        return {"property_status_options": []}
+    return {"property_status_options": [opt for opt in field.options.split("\n") if opt.strip()]}
+ 
+ 
+ 
 
 @frappe.whitelist(methods=["GET"])
 def get_payment_schedule_options():
@@ -1464,6 +1534,39 @@ def notify_md(renewal):
         frappe.logger().error(f"Failed to send MD notification: {str(e)}")
 
 
+def _notify_renewal_completed(renewal):
+    """Email the Property Department once GL Team completes MIRO and the renewal is fully closed."""
+    from jh_digitrack.api.helpers.property_email import generate_property_notification_email
+
+    recipients = frappe.get_all(
+        "Has Role",
+        filters={"role": "JH Property Department", "parenttype": "User"},
+        pluck="parent",
+    )
+    if not recipients:
+        return
+
+    property_name = (
+        frappe.db.get_value("JH Property Master", renewal.property, "property_name")
+        if renewal.property else None
+    ) or renewal.property or "—"
+
+    message = generate_property_notification_email(
+        type="renewal_completed",
+        context={"renewal": renewal, "property_name": property_name},
+    )
+
+    try:
+        frappe.sendmail(
+            expose_recipients="header",
+            recipients=recipients,
+            subject=f"Property Renewed - {property_name} ({renewal.name})",
+            message=message,
+        )
+    except Exception:
+        frappe.logger().error(frappe.get_traceback())
+
+
 def _notify_step_assignee(renewal, action, actor):
     """Email whoever is responsible for the renewal's new workflow_state right away."""
     from jh_digitrack.api.helpers.property_email import generate_property_notification_email, get_workflow_assigned_label
@@ -1475,14 +1578,32 @@ def _notify_step_assignee(renewal, action, actor):
 
     recipients = assignee if isinstance(assignee, list) else [assignee]
     actor_name = frappe.db.get_value("User", actor, "full_name") or actor
-    business_used = (
-        frappe.db.get_value("JH Property Master", renewal.property, "business_used")
-        if renewal.property else None
+
+    property_info = frappe._dict()
+    if renewal.property:
+        property_info = frappe.db.get_value(
+            "JH Property Master", renewal.property,
+            ["property_name", "business_used", "type_of_property", "other_property_type"],
+            as_dict=True,
+        ) or frappe._dict()
+
+    property_type_label = (
+        property_info.other_property_type
+        if property_info.type_of_property == "Other" and property_info.other_property_type
+        else property_info.type_of_property
     )
-    subject = get_workflow_assigned_label(renewal, business_used)
+
+    subject = get_workflow_assigned_label(renewal, property_info.business_used, property_type_label)
     message = generate_property_notification_email(
         type="workflow_assigned",
-        context={"renewal": renewal, "actor": actor_name, "action": action, "business_used": business_used},
+        context={
+            "renewal": renewal,
+            "actor": actor_name,
+            "action": action,
+            "business_used": property_info.business_used,
+            "property_name": property_info.property_name,
+            "property_type_label": property_type_label,
+        },
     )
 
     try:
@@ -1500,10 +1621,21 @@ def update_property_master_renewal_date(renewal):
     if renewal.workflow_state != "Completed" or not renewal.property or not renewal.renewal_to:
         return
 
-    frappe.db.set_value("JH Property Master", renewal.property, {
+    area, staff = frappe.db.get_value(
+        "JH Property Master", renewal.property, ["area_sqftmtr", "staff_allocated"]
+    )
+    proposed_rent = flt(renewal.proposed_rent)
+    area = flt(area)
+    staff = flt(staff)
+
+    updates = {
         "renewal_date": renewal.renewal_to,
         "current_rent": renewal.proposed_rent,
-    })
+        "per_sq_ft_rate": round(proposed_rent / area, 2) if area > 0 else None,
+        "per_staff_rent": round(proposed_rent / 12 / staff, 2) if staff > 0 else None,
+    }
+
+    frappe.db.set_value("JH Property Master", renewal.property, updates)
 
 
 @frappe.whitelist(methods=["GET"])
@@ -1946,7 +2078,10 @@ def apply_workflow_action(
     renewal.last_tat_notification = None
     renewal.save(ignore_permissions=True)
     update_property_master_renewal_date(renewal)
-    _notify_step_assignee(renewal, action, frappe.session.user)
+    if current_state == "Pending MIRO" and next_state == "Completed":
+        _notify_renewal_completed(renewal)
+    else:
+        _notify_step_assignee(renewal, action, frappe.session.user)
 
     from jh_digitrack.api.helpers.delegation import expire_adhoc_delegations_for_document
     expire_adhoc_delegations_for_document(renewal)
