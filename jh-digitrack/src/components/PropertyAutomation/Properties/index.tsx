@@ -8,7 +8,13 @@ import { PropertyTableHeader } from "../ui/PropertyTableHeader";
 import PropertyTableRow from "../ui/PropertyTableRow";
 import PropertySheet from "../ui/PropertySheet";
 import FilterButtons from "../ui/FilterButtons";
-import { PropertyMaster } from "@/types/JHDigitrack/JHPropertyAutomation";
+import {
+  PropertyMaster,
+  JHPropertyElectricityConnection,
+  JHPropertyLandline,
+  JHPropertySewerageAccount,
+  ChequeDetail,
+} from "@/types/JHDigitrack/JHPropertyAutomation";
 import { PaginationControls } from "../ui/PaginationControls";
 import SearchBar from "../ui/SearchBar";
 import { usePropertyList, useUserAccess } from "../hooks/useProperty";
@@ -189,93 +195,183 @@ function Properties() {
 
       const wb = XLSX.utils.book_new();
 
-      // Sheet 1: Main property details
-      const mainRows = docs.map((p) => ({
-        "Property Name": p.property_name ?? "",
-        "Type": p.type_of_property ?? "",
-        "Business Used": p.business_used ?? "",
-        "Division Used": p.division_used ?? "",
-        "Booked Under": p.booked_under ?? "",
-        "Profit Center": p.profit_center ?? "",
-        "Number of Units": p.number_of_units ?? "",
-        "Number of Premises": p.number_of_premises ?? "",
-        // "Premise Number": p.premise_number ?? "",
-        "Staff Allocated": p.staff_allocated ?? "",
-        "Location": p.location ?? "",
-        "Emirate": p.emirate ?? "",
-        "Country": p.country ?? "",
-        "Makani Number": p.makani_number ?? "",
-        "PO Box Number": p.po_box_number ?? "",
-        "PO Box Renewal Date": formatDate(p.po_box_renewal_date),
-        "Landlord": p.landlord ?? "",
-        "Real Estate": p.real_estate ?? "",
-        "Lease Start Date": formatDate(p.lease_start_date),
-        "Tenancy Period": p.tenancy_period ?? "",
-        "Renewal Date": formatDate(p.renewal_date),
-        "Current Rent": p.current_rent ?? "",
-        // "Property Status": getRenewalStatus(p.renewal_date),
-        "Security Deposit Amount": p.landlord_security_deposit ?? "",
-        "Electricity Accounts": p.electricity_accounts ?? "",
-        "Electricity/Water Security Deposit": p.electricity_water_security_deposit ?? "",
-        "Landline Accounts": p.landline_accounts ?? "",
-        "Internet Connection": p.internet_connection ?? "",
-        "CDC Expiry": formatDate(p.cdc_expiry),
-        "Hassantuk Expiry": formatDate(p.hassantuk_expiry),
-      }));
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(mainRows), "Properties");
+      const mainFieldDefs: { label: string; get: (p: PropertyMaster) => string | number }[] = [
+        { label: "Property Name", get: (p) => p.property_name ?? "" },
+        { label: "Type", get: (p) => (p.type_of_property === "Other" ? (p.other_property_type || "Other") : (p.type_of_property ?? "")) },
+        { label: "Business Used", get: (p) => p.business_used ?? "" },
+        { label: "Division Used", get: (p) => p.division_used ?? "" },
+        { label: "Co Code", get: (p) => p.co_code ?? "" },
+        { label: "Current Rent", get: (p) => p.current_rent ?? "" },
+        { label: "Area (Sqft)", get: (p) => p.area_sqftmtr ?? "" },
+        { label: "Per Sqft Rate", get: (p) => p.per_sq_ft_rate ?? "" },
+        { label: "Ownership", get: (p) => p.ownership ?? "" },
+        { label: "Lease Type", get: (p) => p.lease_type ?? "" },
+        { label: "Staff Allocated", get: (p) => p.staff_allocated ?? "" },
+        { label: "Per Staff Rent", get: (p) => p.per_staff_rent ?? "" },
+        { label: "Booked Under", get: (p) => p.booked_under ?? "" },
+        { label: "Profit Center", get: (p) => p.profit_center ?? "" },
+        { label: "Cost Center", get: (p) => p.cost_center ?? "" },
+        { label: "Number of Units", get: (p) => p.number_of_units ?? "" },
+        { label: "Number of Premises", get: (p) => p.number_of_premises ?? "" },
+        { label: "Premise Number", get: (p) => p.premise_number ?? "" },
+        { label: "Property Status", get: (p) => p.property_status ?? "" },
+        { label: "Remarks", get: (p) => p.remark ?? "" },
+        { label: "Location", get: (p) => p.location ?? "" },
+        { label: "Address", get: (p) => p.address ?? "" },
+        { label: "Emirate", get: (p) => p.emirate ?? "" },
+        { label: "Country", get: (p) => p.country ?? "" },
+        { label: "Makani Number", get: (p) => p.makani_number ?? "" },
+        { label: "PO Box Number", get: (p) => p.po_box_number ?? "" },
+        { label: "PO Box Renewal Date", get: (p) => formatDate(p.po_box_renewal_date) },
+        { label: "Landlord", get: (p) => p.landlord ?? "" },
+        { label: "Real Estate", get: (p) => p.real_estate ?? "" },
+        { label: "Lease Start Date", get: (p) => formatDate(p.lease_start_date) },
+        { label: "Tenancy Period", get: (p) => p.tenancy_period ?? "" },
+        { label: "Renewal Date", get: (p) => formatDate(p.renewal_date) },
+        { label: "Security Deposit Amount", get: (p) => p.landlord_security_deposit ?? "" },
+        { label: "Security Deposit Document", get: (p) => p.documents?.find((d) => d.document_type === "Security Deposit")?.attachment ?? "" },
+        { label: "Electricity Accounts", get: (p) => p.electricity_accounts ?? "" },
+        { label: "Electricity/Water Security Deposit", get: (p) => p.electricity_water_security_deposit ?? "" },
+        { label: "Electricity Deposit Document", get: (p) => p.documents?.find((d) => d.document_type === "Electricity Deposit")?.attachment ?? "" },
+        { label: "Landline Accounts", get: (p) => p.landline_accounts ?? "" },
+        { label: "Internet Connection", get: (p) => p.internet_connection ?? "" },
+        { label: "CDC Expiry", get: (p) => formatDate(p.cdc_expiry) },
+        { label: "Hassantuk Expiry", get: (p) => formatDate(p.hassantuk_expiry) },
+        { label: "CDC Certificate Document", get: (p) => p.cdc_certificate_document ?? "" },
+        { label: "Compliance Remarks", get: (p) => p.compliance_remarks ?? "" },
+      ];
 
-      // Sheet 2: Electricity Connections
-      const elecRows = docs.flatMap((p) =>
-        (p.electricity_connections ?? []).map((conn) => ({
-          "Property Name": p.property_name,
-          "Premise Number": conn.premise_number ?? "",
-          "Meter ID": conn.meter_id ?? "",
-          "Account Number": conn.account_number ?? "",
-          "Connection Type": conn.connection_type ?? "",
-        }))
-      );
-      if (elecRows.length > 0) {
-        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(elecRows), "Electricity Connections");
-      }
+      type GroupDef = {
+        title: string;
+        fields: { label: string; get: (item: unknown) => string | number }[];
+        getItems: (p: PropertyMaster) => unknown[];
+      };
 
-      // Sheet 3: Landline Connections
-      const landlineRows = docs.flatMap((p) =>
-        (p.landline_connections ?? []).map((conn) => ({
-          "Property Name": p.property_name,
-          "Landline Number": conn.landline_number ?? "",
-          "Provider": conn.provider ?? "",
-          "Line Type": conn.line_type ?? "",
-        }))
-      );
-      if (landlineRows.length > 0) {
-        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(landlineRows), "Landline Connections");
-      }
+      const groupDefs: GroupDef[] = [
+        {
+          title: "Approvers",
+          fields: [
+            { label: "Order", get: (item) => (item as { order: number }).order ?? "" },
+            { label: "Approver", get: (item) => (item as { approver: string }).approver ?? "" },
+          ],
+          getItems: (p) => [...(p.approver ?? [])].sort((a, b) => a.order - b.order),
+        },
+        {
+          title: "Electricity Connections",
+          fields: [
+            { label: "Premise Number", get: (item) => (item as JHPropertyElectricityConnection).premise_number ?? "" },
+            { label: "Meter ID", get: (item) => (item as JHPropertyElectricityConnection).meter_id ?? "" },
+            { label: "Account Number", get: (item) => (item as JHPropertyElectricityConnection).account_number ?? "" },
+            { label: "Connection Type", get: (item) => (item as JHPropertyElectricityConnection).connection_type ?? "" },
+          ],
+          getItems: (p) => p.electricity_connections ?? [],
+        },
+        {
+          title: "Landline Connections",
+          fields: [
+            { label: "Landline Number", get: (item) => (item as JHPropertyLandline).landline_number ?? "" },
+            { label: "Provider", get: (item) => (item as JHPropertyLandline).provider ?? "" },
+            { label: "Line Type", get: (item) => (item as JHPropertyLandline).line_type ?? "" },
+          ],
+          getItems: (p) => p.landline_connections ?? [],
+        },
+        {
+          title: "Sewerage Accounts",
+          fields: [
+            { label: "Account Number", get: (item) => (item as JHPropertySewerageAccount).account_number ?? "" },
+            { label: "Location", get: (item) => (item as JHPropertySewerageAccount).location ?? "" },
+          ],
+          getItems: (p) => p.sewerage_accounts ?? [],
+        },
+        {
+          title: "Security Deposit Cheques",
+          fields: [
+            { label: "Cheque Type", get: (item) => (item as ChequeDetail).cheque_type ?? "" },
+            { label: "Amount", get: (item) => (item as ChequeDetail).cheque_amount ?? "" },
+            { label: "Date", get: (item) => formatDate((item as ChequeDetail).cheque_date) },
+            { label: "Payee", get: (item) => (item as ChequeDetail).payee ?? "" },
+          ],
+          getItems: (p) => p.security_deposit_cheques ?? [],
+        },
+        {
+          title: "Documents",
+          fields: [
+            { label: "Documents", get: (item) => (item as { attachment?: string }).attachment ?? "" },
+          ],
+          getItems: (p) => (p.documents ?? []).filter(
+            (d) => d.document_type !== "Security Deposit" && d.document_type !== "Electricity Deposit"
+          ),
+        },
+      ];
 
-      // Sheet 4: Security Deposit Cheques
-      const chequeRows = docs.flatMap((p) =>
-        (p.security_deposit_cheques ?? []).map((c) => ({
-          "Property Name": p.property_name,
-          "Cheque Type": c.cheque_type ?? "",
-          "Amount": c.cheque_amount ?? "",
-          "Date": formatDate(c.cheque_date),
-          "Payee": c.payee ?? "",
-        }))
-      );
-      if (chequeRows.length > 0) {
-        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(chequeRows), "Cheque Details");
-      }
+      const totalCols = mainFieldDefs.length + groupDefs.reduce((sum, g) => sum + g.fields.length, 0);
+      const groupHeaderRow: (string | number)[] = new Array(totalCols).fill("");
+      const fieldHeaderRow: (string | number)[] = new Array(totalCols).fill("");
+      const merges: XLSX.Range[] = [];
 
-      // Sheet 5: Approvers
-      const approverRows = docs.flatMap((p) =>
-        [...(p.approvers ?? [])].sort((a, b) => a.order - b.order).map((a) => ({
-          "Property Name": p.property_name,
-          "Order": a.order,
-          "Approver": a.approver,
-        }))
-      );
-      if (approverRows.length > 0) {
-        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(approverRows), "Approvers");
-      }
+      mainFieldDefs.forEach((f, i) => {
+        groupHeaderRow[i] = f.label;
+        merges.push({ s: { r: 0, c: i }, e: { r: 1, c: i } });
+      });
+
+      let colOffset = mainFieldDefs.length;
+      groupDefs.forEach((g) => {
+        groupHeaderRow[colOffset] = g.title;
+        if (g.fields.length > 1) {
+          merges.push({ s: { r: 0, c: colOffset }, e: { r: 0, c: colOffset + g.fields.length - 1 } });
+          g.fields.forEach((f, i) => { fieldHeaderRow[colOffset + i] = f.label; });
+        } else {
+          merges.push({ s: { r: 0, c: colOffset }, e: { r: 1, c: colOffset } });
+        }
+        colOffset += g.fields.length;
+      });
+
+      const dataRows: (string | number)[][] = [];
+      docs.forEach((p) => {
+        const itemsPerGroup = groupDefs.map((g) => g.getItems(p));
+        const maxRows = Math.max(1, ...itemsPerGroup.map((items) => items.length));
+        const blockStart = 2 + dataRows.length;
+
+        for (let r = 0; r < maxRows; r++) {
+          const row: (string | number)[] = [];
+          if (r === 0) {
+            mainFieldDefs.forEach((f) => row.push(f.get(p)));
+          } else {
+            mainFieldDefs.forEach(() => row.push(""));
+          }
+          groupDefs.forEach((g, gi) => {
+            const item = itemsPerGroup[gi][r];
+            if (item) {
+              g.fields.forEach((f) => row.push(f.get(item)));
+            } else {
+              g.fields.forEach(() => row.push(""));
+            }
+          });
+          dataRows.push(row);
+        }
+
+        if (maxRows > 1) {
+          for (let c = 0; c < mainFieldDefs.length; c++) {
+            merges.push({ s: { r: blockStart, c }, e: { r: blockStart + maxRows - 1, c } });
+          }
+        }
+      });
+
+      const ws = XLSX.utils.aoa_to_sheet([groupHeaderRow, fieldHeaderRow, ...dataRows]);
+      ws["!merges"] = merges;
+
+      const colWidths = fieldHeaderRow.map((label, c) => {
+        let maxLen = Math.max(String(label).length, String(groupHeaderRow[c] ?? "").length);
+        dataRows.forEach((row) => {
+          const len = String(row[c] ?? "").length;
+          if (len > maxLen) maxLen = len;
+        });
+        return { wch: Math.min(Math.max(maxLen + 2, 10), 40) };
+      });
+      ws["!cols"] = colWidths;
+      ws["!rows"] = [{ hpx: 22 }, { hpx: 20 }];
+
+      XLSX.utils.book_append_sheet(wb, ws, "Properties");
 
       XLSX.writeFile(wb, `properties_${new Date().toISOString().split("T")[0]}.xlsx`);
     } catch (error) {
@@ -295,7 +391,7 @@ function Properties() {
   };
 
   const getRenewalStatus = (date?: string, propertyStatus?: string): string => {
-  if (propertyStatus === "Vacated" || propertyStatus === "Closed") return propertyStatus;
+  if (propertyStatus === "Vacated" || propertyStatus === "Closed" || propertyStatus === "Withdrawn") return propertyStatus;
 
   if (!date) return "Unknown";
 
