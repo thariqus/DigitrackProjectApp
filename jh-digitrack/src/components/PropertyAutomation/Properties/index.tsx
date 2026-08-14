@@ -231,7 +231,7 @@ function Properties() {
         { label: "Security Deposit Amount", get: (p) => p.landlord_security_deposit ?? "" },
         { label: "Security Deposit Document", get: (p) => p.documents?.find((d) => d.document_type === "Security Deposit")?.attachment ?? "" },
         { label: "Electricity Accounts", get: (p) => p.electricity_accounts ?? "" },
-        { label: "Electricity/Water Security Deposit", get: (p) => p.electricity_water_security_deposit ?? "" },
+        { label: "Electricity Security Deposit", get: (p) => p.electricity_water_security_deposit ?? "" },
         { label: "Electricity Deposit Document", get: (p) => p.documents?.find((d) => d.document_type === "Electricity Deposit")?.attachment ?? "" },
         { label: "Landline Accounts", get: (p) => p.landline_accounts ?? "" },
         { label: "Internet Connection", get: (p) => p.internet_connection ?? "" },
