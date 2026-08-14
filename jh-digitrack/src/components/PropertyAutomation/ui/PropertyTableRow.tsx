@@ -39,8 +39,8 @@ const isPropertyInactive = property.property_status === "Vacated" || property.pr
       <TableCell>{property.property_name}</TableCell>
       <TableCell>{property.type_of_property}</TableCell>
       <TableCell>{property.division_used} </TableCell>
-      <TableCell>{property.emirate}</TableCell>
-      <TableCell>{property.current_rent}</TableCell>
+      <TableCell >{property.emirate}</TableCell>
+      <TableCell className="text-center">{property.current_rent}</TableCell>
       {/* Renewal urgency */}
       <TableCell className={`${renewalColorHighlight(property.renewal_date)} text-center`}>
         {formatDate(property.renewal_date)}
