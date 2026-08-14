@@ -730,7 +730,9 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
         {isView ? (
           <div className="flex items-start gap-2 py-1 text-sm">
             <span className="font-medium text-gray-600">{label}:</span>
-            <span>{value !== undefined && value !== null && value !== "" ? value : "-"}</span>
+            <span className={type === "textarea" ? "whitespace-pre-wrap" : ""}>
+              {value !== undefined && value !== null && value !== "" ? value : "-"}
+            </span>
           </div>
         ) : (
           <Controller
