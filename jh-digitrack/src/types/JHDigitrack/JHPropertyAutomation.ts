@@ -23,10 +23,10 @@ export interface PropertyMaster {
   business_used?: string;
 
   division_used: string;
-  approvers?: { order: number; approver: string }[];
+  approver?: { order: number; approver: string }[];
   lease_type: string;
   per_staff_rent: number;
-  property_status?: "Active" | "Closed" | "Vacated";
+  property_status?: "Active" | "Closed" | "Vacated" | "Withdrawn";
   remark: string;
   address:string;
   ownership: string;
@@ -37,7 +37,7 @@ export interface PropertyMaster {
 
   number_of_units: number;
   number_of_premises: number;
-  // premise_number: string;
+  premise_number?: string;
 
   staff_allocated: string;
   location: string;
@@ -75,6 +75,8 @@ export interface PropertyMaster {
   cdc_certificate_document?: string;
   compliance_remarks?: string;
   has_active_renewal?: boolean;
+  security_deposit_attachment?: string;
+  electricity_deposit_attach?: string;
 
   documents?: {
     document_type?: string;
