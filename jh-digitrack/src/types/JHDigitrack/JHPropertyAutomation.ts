@@ -75,6 +75,7 @@ export interface PropertyMaster {
   cdc_certificate_document?: string;
   compliance_remarks?: string;
   has_active_renewal?: boolean;
+  latest_renewal_workflow_state?: string;
   security_deposit_attachment?: string;
   electricity_deposit_attach?: string;
 
