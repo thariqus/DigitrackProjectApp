@@ -47,7 +47,7 @@ const isPropertyInactive = property.property_status === "Vacated" || property.pr
       </TableCell>
       <TableCell className="text-center">
         <div className="flex justify-center">
-          <StatusBadge status={getRenewalStatus(property.renewal_date, property.latest_renewal_workflow_state === "Withdrawn" ? "Withdrawn" : property.property_status)} />
+          <StatusBadge status={getRenewalStatus(property.renewal_date, property.latest_renewal_workflow_state === "Withdrawn" && property.property_status === "Active" ? "Withdrawn" : property.property_status)} />
         </div>
       </TableCell>
 
