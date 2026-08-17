@@ -1891,7 +1891,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                 {isView ? (
                   <div className="flex items-center gap-2 py-1 text-sm">
                     <span className="font-medium text-gray-600">Property Status:</span>
-                    <span>{activeRenewal?.workflow_state === "Withdrawn" ? "Withdrawn" : doc?.property_status || "-"}</span>
+                    <span>{activeRenewal?.workflow_state === "Withdrawn" && doc?.property_status === "Active" ? "Withdrawn" : doc?.property_status || "-"}</span>
                   </div>
                 ) : (
                   <Controller
