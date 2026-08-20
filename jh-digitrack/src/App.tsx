@@ -30,6 +30,14 @@ import Renewals from "./components/PropertyAutomation/Renewals";
 import PropertyAutomationDashboard from "./components/PropertyAutomation/PropertyAutomationDashboard";
 import { DelegationPanelProvider } from "@/context/DelegationPanelContext";
 import DelegationSheet from "@/components/DelegationSheet";
+
+const SampleShell = lazy(() => import("./components/custregistration"));
+const RegisterCustomer = lazy(() => import("./components/custregistration/RegisterCustomer"));
+const ActivateCustomer = lazy(() => import("./components/custregistration/ActivateCustomer"));
+const CustomerSearch = lazy(() => import("./components/custregistration/CustomerSearch"));
+const CustomerList = lazy(() => import("./components/custregistration/CustomerList"));
+const SapResponse = lazy(() => import("./components/custregistration/SapResponse"));
+
 const PropertyAutomation = lazy(()=> import("./components/PropertyAutomation"));
 
 function AppWrapper() {
@@ -87,12 +95,21 @@ function AppWrapper() {
                 <Route path="projects" element={<Projects />} />
                 <Route path="idle-assets" element={<Scrapitems />} />
                 <Route path="jrc-permission" element={<JRCPermission />} />
-                <Route path="email" element={<EmailDashboard />} />
+                
+                <Route path="sample" element={<SampleShell />}>
+                  <Route index element={<Navigate to="register-customer" replace />} />
+                  <Route path="register-customer" element={<RegisterCustomer />} />
+                  <Route path="activate-customer" element={<ActivateCustomer />} />
+                  <Route path="customer-search" element={<CustomerSearch />} />
+                  <Route path="customer-list" element={<CustomerList />} />
+                  <Route path="sap-response" element={<SapResponse />} />
+                </Route>
+
                 <Route path="property" element={<PropertyAutomation />} >
                    <Route index element={<Navigate to="dashboard" replace />} />  
                    <Route path="dashboard" element={<PropertyAutomationDashboard/>} />
                    <Route path="properties" element={<Properties />} />
-                   <Route path="renewals" element={<Renewals/>} />
+                <Route path="renewals" element={<Renewals/>} />
                 </Route>
                 <Route path="meetings" element={<Meetings />} />
                 <Route path="meetings/:meetingId" element={<MeetingTasks />} />
