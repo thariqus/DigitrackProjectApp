@@ -403,7 +403,7 @@ function RegisterCustomer() {
                                 ...customerGroups.map(
                                   (group) => ({
                                     value: group.name,
-                                    label: `${group.custom_customer_group_title} - ${group.parent_customer_group}`,
+                                    label: `${group.customer_group_name} - ${group.customer_group_title}`,
                                   })
                                 ),
                               ]

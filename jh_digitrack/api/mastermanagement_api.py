@@ -131,44 +131,22 @@ def get_sales_districts(search=None):
 
 @frappe.whitelist(methods=["GET"])
 def get_customer_groups(search=None):
-    """
-    Fetch all Customer Group master records.
-
-    Optional Parameters
-    -------------------
-    search : str – Filter by group name or custom title (partial match,
-    case-insensitive)
-
-    Returns
-    -------
-    {
-        "status_code": 200,
-        "message": "success",
-        "count": <int>,
-        "data": [
-            {
-                "name": "...",
-                "customer_group_name": "...",
-                "custom_customer_group_title": "...",
-                "parent_customer_group": "..."
-            },
-            ...
-        ]
-    }
-    """
     try:
-        or_filters = {}
+        filters = {
+            "customer_group_title": ["is", "set"]
+        }
 
         if search:
-            or_filters = {
-                "customer_group_name": ["like", f"%{search}%"],
-                "custom_customer_group_title": ["like", f"%{search}%"],
-            }
+            filters["customer_group_name"] = ["like", f"%{search}%"]
 
         data = frappe.db.get_all(
             "Customer Group",
-            or_filters=or_filters,
-            fields=["name", "customer_group_name", "custom_customer_group_title", "parent_customer_group"],
+            filters=filters,
+            fields=[
+                "name",
+                "customer_group_name",
+                "customer_group_title"
+            ],
             order_by="customer_group_name asc",
         )
 
@@ -180,8 +158,13 @@ def get_customer_groups(search=None):
         }
 
     except Exception:
-        frappe.log_error(frappe.get_traceback(), "Get Customer Groups Error")
+        frappe.log_error(
+            frappe.get_traceback(),
+            "Get Customer Groups Error"
+        )
+
         frappe.local.response["http_status_code"] = 500
+
         return {
             "status_code": 500,
             "message": "Internal Server Error. Please contact Administrator.",

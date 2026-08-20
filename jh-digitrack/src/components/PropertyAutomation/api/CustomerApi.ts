@@ -29,8 +29,7 @@ export interface TransportationZone {
 export interface CustomerGroup {
   name: string;
   customer_group_name: string;
-  custom_customer_group_title: string;
-  parent_customer_group: string;
+  customer_group_title: string;
 }
 
 export interface SalesDistrict {
