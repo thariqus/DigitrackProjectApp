@@ -648,6 +648,12 @@ function SapResponse() {
   const location = useLocation();
 
   const customer = location.state?.customer;
+  const result = location.state?.result;
+
+  // Coming from Activate Customer: show the real (mocked-for-now) SAP match result.
+  // Coming from the Customer List "SAP Response" button: show the static demo payload.
+  const hasActivationResult = Boolean(result);
+  const payload = hasActivationResult ? result.data ?? {} : SAP_SUCCESS_RESPONSE;
 
   useEffect(() => {
     setHeaderConfig({
@@ -660,12 +666,26 @@ function SapResponse() {
       <div className="flex items-center justify-between mb-3">
         <div>
           <h2 className="text-md font-semibold" style={{ color: "#A61F24" }}>
-            Expected SAP Success Response
+            {hasActivationResult
+              ? result.matched
+                ? "SAP Success Response"
+                : "SAP Response"
+              : "Expected SAP Success Response"}
           </h2>
 
           {customer?.customer_name && (
             <p className="text-xs text-gray-500 mt-0.5">
               For customer: {customer.customer_name}
+            </p>
+          )}
+
+          {hasActivationResult && result.message && (
+            <p
+              className={`text-xs mt-0.5 ${
+                result.matched ? "text-green-600" : "text-red-600"
+              }`}
+            >
+              {result.message}
             </p>
           )}
         </div>
@@ -681,7 +701,7 @@ function SapResponse() {
 
       <div className="bg-white rounded-xl border border-gray-200 shadow-md p-4 overflow-auto max-h-[75vh]">
         <pre className="text-xs text-gray-700 font-mono whitespace-pre">
-          {JSON.stringify(SAP_SUCCESS_RESPONSE, null, 2)}
+          {JSON.stringify(payload, null, 2)}
         </pre>
       </div>
     </div>

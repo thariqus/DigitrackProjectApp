@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useOutletContext } from "react-router";
 import { IoSearchOutline } from "react-icons/io5";
 
+import { getCustomerList } from "../PropertyAutomation/api/CustomerApi";
+
 const PAGE_SIZE = 20;
 
 function CustomerSearch() {
@@ -36,14 +38,11 @@ function CustomerSearch() {
       setCustomer(null);
       setSearched(false);
 
-      const response = await fetch(
-        `/api/method/jh_digitrack.api.proxy_customer_master.get_customer_list?page=1&page_size=${PAGE_SIZE}&search=${encodeURIComponent(
-          searchValue
-        )}`
-      );
-
-      const result = await response.json();
-      const customers = result.message?.data || [];
+      // TODO: this searches the locally registered customers until SAP integration
+      // is wired in. Once available, also verify/enrich the match against SAP
+      // (same static-mock-now/real-later pattern as activate_customer).
+      const result = await getCustomerList(1, PAGE_SIZE, searchValue);
+      const customers = result?.data || [];
 
       // Find by TR Number OR Trade Licence Number
       const foundCustomer = customers.find(

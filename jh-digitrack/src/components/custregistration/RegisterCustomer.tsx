@@ -175,6 +175,10 @@ function RegisterCustomer() {
     outletContext.setHeaderConfig ?? (() => {});
 
   const [form, setForm] = useState(emptyForm);
+  const [successModal, setSuccessModal] = useState({
+    open: false,
+    message: "",
+  });
 
   const {
     mutate: createCustomer,
@@ -226,12 +230,15 @@ function RegisterCustomer() {
     if (editMode) {
       updateCustomer(form, {
         onSuccess: () => {
-          alert("Customer updated successfully.");
-
           setForm(emptyForm);
 
           navigate("/jh-digitrack/sample/register-customer", {
             replace: true,
+          });
+
+          setSuccessModal({
+            open: true,
+            message: "Customer updated successfully.",
           });
         },
       });
@@ -240,7 +247,10 @@ function RegisterCustomer() {
         onSuccess: () => {
           setForm(emptyForm);
 
-          alert("Customer created successfully.");
+          setSuccessModal({
+            open: true,
+            message: "Customer created successfully.",
+          });
         },
       });
     }
@@ -580,6 +590,80 @@ function RegisterCustomer() {
         </motion.form>
 
       </div>
+
+      {/* ===================================== */}
+      {/* SUCCESS MODAL */}
+      {/* ===================================== */}
+
+      <AnimatePresence>
+        {successModal.open && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+            onClick={() =>
+              setSuccessModal({ open: false, message: "" })
+            }
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.85, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 8 }}
+              transition={{ duration: 0.25, ease: "easeOut" }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-2xl shadow-xl px-8 py-8 flex flex-col items-center max-w-xs w-full mx-4"
+            >
+              <svg
+                viewBox="0 0 52 52"
+                className="w-16 h-16 mb-4"
+              >
+                <motion.circle
+                  cx="26"
+                  cy="26"
+                  r="24"
+                  fill="none"
+                  stroke="#22c55e"
+                  strokeWidth="2.5"
+                  initial={{ pathLength: 0 }}
+                  animate={{ pathLength: 1 }}
+                  transition={{ duration: 0.45, ease: "easeOut" }}
+                />
+
+                <motion.path
+                  d="M14.5 27l7 7 16-16"
+                  fill="none"
+                  stroke="#22c55e"
+                  strokeWidth="3.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  initial={{ pathLength: 0 }}
+                  animate={{ pathLength: 1 }}
+                  transition={{
+                    duration: 0.35,
+                    delay: 0.45,
+                    ease: "easeOut",
+                  }}
+                />
+              </svg>
+
+              <p className="text-sm font-semibold text-gray-800 text-center">
+                {successModal.message}
+              </p>
+
+              <button
+                type="button"
+                onClick={() =>
+                  setSuccessModal({ open: false, message: "" })
+                }
+                className="mt-5 px-6 py-2 rounded-lg bg-[#BD272C] hover:bg-[#A61F24] text-white text-xs font-semibold transition-colors"
+              >
+                OK
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

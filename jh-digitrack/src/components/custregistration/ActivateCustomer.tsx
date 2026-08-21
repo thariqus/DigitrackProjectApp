@@ -1,14 +1,24 @@
 import { useEffect, useState } from "react";
-import { useOutletContext } from "react-router";
+import { useOutletContext, useNavigate } from "react-router";
+import { motion, AnimatePresence } from "framer-motion";
 import { IoPersonAddOutline } from "react-icons/io5";
+
+import { useActivateCustomer } from "../PropertyAutomation/hooks/useCustomerApi";
 
 function ActivateCustomer() {
   const outletContext = useOutletContext() ?? {};
   const setHeaderConfig =
     outletContext.setHeaderConfig ?? (() => {});
+  const navigate = useNavigate();
 
   const [companyCode, setCompanyCode] = useState("");
   const [customerCode, setCustomerCode] = useState("");
+  const [errorModal, setErrorModal] = useState({
+    open: false,
+    message: "",
+  });
+
+  const { mutateAsync: activateCustomer, isPending } = useActivateCustomer();
 
   useEffect(() => {
     setHeaderConfig({
@@ -16,20 +26,43 @@ function ActivateCustomer() {
     });
   }, [setHeaderConfig]);
 
-  const handleActivate = (e) => {
+  const handleActivate = async (e) => {
     e.preventDefault();
 
     if (!companyCode.trim()) {
-      alert("Please enter Company Code");
+      setErrorModal({ open: true, message: "Please enter Company Code." });
       return;
     }
 
     if (!customerCode.trim()) {
-      alert("Please enter Customer Code");
+      setErrorModal({ open: true, message: "Please enter Customer Code." });
       return;
     }
 
-    // TODO: backend method not implemented yet — confirm the real path with the Frappe team.
+    try {
+      const result = await activateCustomer({
+        customerCode: customerCode.trim(),
+        companyCode: companyCode.trim(),
+      });
+
+      if (!result.matched) {
+        setErrorModal({ open: true, message: result.message });
+        return;
+      }
+
+      navigate("/jh-digitrack/sample/sap-response", {
+        state: {
+          customer: { customer_name: result.data?.customer_name },
+          result,
+        },
+      });
+    } catch (error) {
+      console.error("Activate Customer Error:", error);
+      setErrorModal({
+        open: true,
+        message: "Unable to activate customer. Please try again.",
+      });
+    }
   };
 
   const handleReset = () => {
@@ -121,10 +154,11 @@ function ActivateCustomer() {
               {/* Activate */}
               <button
                 type="submit"
-                className="flex items-center gap-2 bg-[#BD272C] hover:bg-[#A61F24] text-white px-5 py-2 rounded-md text-xs font-semibold shadow transition"
+                disabled={isPending}
+                className="flex items-center gap-2 bg-[#BD272C] hover:bg-[#A61F24] disabled:opacity-50 disabled:cursor-not-allowed text-white px-5 py-2 rounded-md text-xs font-semibold shadow transition"
               >
                 <IoPersonAddOutline />
-                Activate Customer
+                {isPending ? "Activating..." : "Activate Customer"}
               </button>
 
               {/* Reset */}
@@ -142,6 +176,79 @@ function ActivateCustomer() {
 
         </form>
       </div>
+
+      {/* ===================================== */}
+      {/* ERROR MODAL */}
+      {/* ===================================== */}
+
+      <AnimatePresence>
+        {errorModal.open && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+            onClick={() => setErrorModal({ open: false, message: "" })}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.85, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 8 }}
+              transition={{ duration: 0.25, ease: "easeOut" }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-2xl shadow-xl px-8 py-8 flex flex-col items-center max-w-xs w-full mx-4"
+            >
+              <svg viewBox="0 0 52 52" className="w-16 h-16 mb-4">
+                <motion.circle
+                  cx="26"
+                  cy="26"
+                  r="24"
+                  fill="none"
+                  stroke="#BD272C"
+                  strokeWidth="2.5"
+                  initial={{ pathLength: 0 }}
+                  animate={{ pathLength: 1 }}
+                  transition={{ duration: 0.45, ease: "easeOut" }}
+                />
+
+                <motion.path
+                  d="M18 18l16 16"
+                  fill="none"
+                  stroke="#BD272C"
+                  strokeWidth="3.5"
+                  strokeLinecap="round"
+                  initial={{ pathLength: 0 }}
+                  animate={{ pathLength: 1 }}
+                  transition={{ duration: 0.25, delay: 0.45, ease: "easeOut" }}
+                />
+
+                <motion.path
+                  d="M34 18l-16 16"
+                  fill="none"
+                  stroke="#BD272C"
+                  strokeWidth="3.5"
+                  strokeLinecap="round"
+                  initial={{ pathLength: 0 }}
+                  animate={{ pathLength: 1 }}
+                  transition={{ duration: 0.25, delay: 0.7, ease: "easeOut" }}
+                />
+              </svg>
+
+              <p className="text-sm font-semibold text-gray-800 text-center">
+                {errorModal.message}
+              </p>
+
+              <button
+                type="button"
+                onClick={() => setErrorModal({ open: false, message: "" })}
+                className="mt-5 px-6 py-2 rounded-lg bg-[#BD272C] hover:bg-[#A61F24] text-white text-xs font-semibold transition-colors"
+              >
+                OK
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
