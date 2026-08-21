@@ -22,7 +22,7 @@ function ActivateCustomer() {
 
   useEffect(() => {
     setHeaderConfig({
-      title: "Activate Customer",
+      title: "",
     });
   }, [setHeaderConfig]);
 

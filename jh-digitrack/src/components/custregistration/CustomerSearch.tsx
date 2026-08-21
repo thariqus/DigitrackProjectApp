@@ -18,7 +18,7 @@ function CustomerSearch() {
 
   useEffect(() => {
     setHeaderConfig({
-      title: "Customer Search",
+      title: "",
     });
   }, [setHeaderConfig]);
 
