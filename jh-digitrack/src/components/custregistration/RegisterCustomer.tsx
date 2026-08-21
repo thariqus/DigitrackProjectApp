@@ -207,7 +207,7 @@ function RegisterCustomer() {
   // ---------------------------------------
   useEffect(() => {
     setHeaderConfig({
-      title: editMode ? "Edit Customer" : "Register as New Customer",
+      title: editMode ? "Edit Customer" : "New Customer Registration",
     });
   }, [setHeaderConfig, editMode]);
 
@@ -287,13 +287,13 @@ function RegisterCustomer() {
               <h1 className="text-base font-bold font-display tracking-tight">
                 {editMode
                   ? "Edit Customer"
-                  : "Register as New Customer"}
+                  : "New Customer Registration"}
               </h1>
 
               <p className="text-white/80 text-[11px] mt-0.5">
                 {editMode
                   ? "Update customer information."
-                  : "Create a new customer profile to start billing them."}
+                  : "Create a new customer profile."}
               </p>
             </div>
 
