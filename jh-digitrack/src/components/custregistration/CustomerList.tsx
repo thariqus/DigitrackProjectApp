@@ -22,7 +22,7 @@ function CustomerList() {
 
   useEffect(() => {
     setHeaderConfig({
-      title: "Registered Customers",
+      title: "",
     });
   }, [setHeaderConfig]);
 
