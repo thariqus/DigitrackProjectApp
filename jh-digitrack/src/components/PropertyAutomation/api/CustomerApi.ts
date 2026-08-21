@@ -18,6 +18,15 @@ export interface CustomerPayload {
   customer_group?: string;
   sales_district?: string;
   sales_office?: string;
+  customer_code?: string;
+  company_code?: string;
+}
+
+export interface ActivateCustomerResponse {
+  status_code: number;
+  message: string;
+  matched: boolean;
+  data?: Record<string, unknown>;
 }
 
 export interface TransportationZone {
@@ -86,4 +95,15 @@ export const getSalesDistricts = async (search: string = ""): Promise<SalesDistr
     { search }
   );
   return res.message?.data ?? [];
+};
+
+export const activateCustomer = async (
+  customerCode: string,
+  companyCode: string
+): Promise<ActivateCustomerResponse> => {
+  const res = await frappe.api.post(
+    `${MASTER_MANAGEMENT_API}.activate_customer`,
+    { customer_code: customerCode, company_code: companyCode }
+  );
+  return res.message;
 };

@@ -6,6 +6,7 @@ import {
   getTransportationZones,
   getCustomerGroups,
   getSalesDistricts,
+  activateCustomer,
   CustomerPayload,
 } from "../api/CustomerApi";
 
@@ -41,4 +42,10 @@ export const useSalesDistricts = (search: string = "") =>
   useQuery({
     queryKey: ["salesDistricts", search],
     queryFn: () => getSalesDistricts(search),
+  });
+
+export const useActivateCustomer = () =>
+  useMutation({
+    mutationFn: ({ customerCode, companyCode }: { customerCode: string; companyCode: string }) =>
+      activateCustomer(customerCode, companyCode),
   });

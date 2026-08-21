@@ -21,7 +21,10 @@
   "transportation_zone",
   "customer_group",
   "sales_district",
-  "sales_office"
+  "sales_office",
+  "custom_customer_code",
+  "custom_company_code",
+  "custom_activation_status"
  ],
  "fields": [
   {
@@ -110,12 +113,31 @@
    "fieldname": "sales_office",
    "fieldtype": "Data",
    "label": "Sales Office"
+  },
+  {
+   "fieldname": "custom_customer_code",
+   "fieldtype": "Data",
+   "label": "Customer Code"
+  },
+  {
+   "fieldname": "custom_company_code",
+   "fieldtype": "Data",
+   "label": "Company Code"
+  },
+  {
+   "default": "Pending",
+   "fieldname": "custom_activation_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Activation Status",
+   "options": "Pending\nActive",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-08-17 15:52:38.620833",
+ "modified": "2026-08-21 11:30:23.433027",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "Customer Registration",

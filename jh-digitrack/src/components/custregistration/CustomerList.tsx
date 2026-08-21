@@ -7,8 +7,6 @@ import {
   IoChevronForwardOutline,
 } from "react-icons/io5";
 
-import axios from "axios";
-
 import { useGetCustomerList } from "../PropertyAutomation/hooks/useCustomerApi";
 
 const PAGE_SIZE = 20;
@@ -18,46 +16,6 @@ function CustomerList() {
   const setHeaderConfig = outletContext.setHeaderConfig ?? (() => {});
   const navigate = useNavigate();
 
-  // Function to handle SAP response
-
-//   const handleSAPResponse = async (customer: any) => {
-//   try {
-//     console.log("Sending customer to SAP:", customer);
-
-//     const response = await axios.post(
-//       "/api/method/jh_digitrack.jh_digitrack.api.mastermanagement_api.create_update_customer_master",
-//       customer,
-//       {
-//         headers: {
-//           "Content-Type": "application/json",
-//         },
-//       }
-//     );
-
-//     console.log("SAP API Response:", response.data);
-
-//     navigate("/jh-digitrack/sample/sap-response", {
-//       state: {
-//         customer: customer,
-//         sapResponse: response.data,
-//       },
-//     });
-//   } catch (error: unknown) {
-//     console.error("SAP API Error:", error);
-
-//     if (axios.isAxiosError(error)) {
-//       console.error("SAP Error Response:", error.response?.data);
-
-//       alert(
-//         error.response?.data?.message ||
-//           "SAP API request failed"
-//       );
-//     } else {
-//       alert("Unable to connect to SAP API");
-//     }
-//   }
-// };
-// function end 
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -199,14 +157,6 @@ function CustomerList() {
                         >
                           Edit
                         </button>
-{/* 
-                        <button
-                        onClick={() => handleSAPResponse(customer)}
-                        className="bg-[#BD272C] hover:bg-[#A61F24] text-white px-3 py-1 rounded-md text-xs"
-                      >
-                        SAP Response
-                      </button> */}
-
 
                         <button
                           onClick={() =>
@@ -220,8 +170,6 @@ function CustomerList() {
                         >
                           SAP Response
                         </button>
-
-
                       </div>
                     </td>
                   </tr>
