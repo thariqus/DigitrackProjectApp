@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import { LuUserPlus } from "react-icons/lu";
-import DigitrackLogo from "@/assets/digitrack-logo.png";
-import JHIcon from "@/assets/jh-logo.png";
+// import DigitrackLogo from "@/assets/digitrack-logo.png";
+// import JHIcon from "@/assets/jh-logo.png";
+import CashIcon from "@/assets/Jaleel Cash and Carry Logo 1.png"
+import JHlogo from "@/assets/JH.png"
+
 
 const navItems = [
   {
@@ -73,9 +76,9 @@ function Sidebar() {
       {/* Logo */}
       <div className={`relative flex items-center ${isCollapsed ? "w-full justify-center" : "justify-between"}`}>
         {isCollapsed ? (
-          <img src={JHIcon} alt="JH" className="h-8 w-8 object-contain" />
+          <img src={JHlogo} alt="JH" className="h-8 w-8 object-contain" />
         ) : (
-          <img src={DigitrackLogo} alt="JH DigiTrack" className="h-12 w-auto object-contain" />
+          <img src={CashIcon} alt="JH DigiTrack" className="h-12 w-auto object-contain" />
         )}
 
         <button
