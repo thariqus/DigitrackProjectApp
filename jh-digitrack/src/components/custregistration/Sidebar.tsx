@@ -13,16 +13,15 @@ const navItems = [
     name: "Register",
     color: "#972E26",
     subItems: [
-      { name: "Register as New Customer", path: "/jh-digitrack/sample/register-customer" },
+      { name: "Customer Registration", path: "/jh-digitrack/sample/register-customer" },
       { name: "Activate Customer", path: "/jh-digitrack/sample/activate-customer" },
       { name: "Customer Search", path: "/jh-digitrack/sample/customer-search" },
-      { name: "View Registered Customer", path: "/jh-digitrack/sample/customer-list" },
+      { name: "Registration List", path: "/jh-digitrack/sample/customer-list" },
     ],
   },
 ];
 
 function Sidebar() {
-  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [isCollapsed, setIsCollapsed] = useState(true);
   const [showExpandedContent, setShowExpandedContent] = useState(false);
   const expandTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -34,26 +33,22 @@ function Sidebar() {
     }
   };
 
-  const openSidebar = (nextDropdown: string | null = null) => {
+  const openSidebar = () => {
     clearExpandTimer();
     setIsCollapsed(false);
     setShowExpandedContent(false);
 
     expandTimerRef.current = setTimeout(() => {
       setShowExpandedContent(true);
-      if (nextDropdown) setOpenDropdown(nextDropdown);
     }, 220);
   };
 
   useEffect(() => clearExpandTimer, []);
 
-  const toggleDropdown = (name: string) => {
+  const handleMenuClick = () => {
     if (isCollapsed) {
-      openSidebar(name);
-      return;
+      openSidebar();
     }
-
-    setOpenDropdown((prev) => (prev === name ? null : name));
   };
 
   const toggleApplicationMenu = () => {
@@ -104,7 +99,7 @@ function Sidebar() {
           <li key={menu.name} className={`relative group ${isCollapsed ? "flex w-full justify-center" : "w-full"}`}>
             <button
               type="button"
-              onClick={() => toggleDropdown(menu.name)}
+              onClick={handleMenuClick}
               className={`sidebar-menu-button rounded-lg transition hover:bg-gray-100 ${
                 isCollapsed ? "flex h-7 w-7 items-center justify-center" : "flex w-full items-center gap-3 px-3 py-2 text-left"
               }`}
@@ -120,7 +115,7 @@ function Sidebar() {
               )}
             </button>
 
-            {menu.subItems && openDropdown === menu.name && showExpandedContent && (
+            {menu.subItems && showExpandedContent && (
               <ul className="sidebar-submenu mt-2 flex w-full flex-col gap-3 rounded-lg border-l border-gray-300 py-2 pl-6">
                 {menu.subItems.map((sub) => (
                   <li key={sub.path}>
