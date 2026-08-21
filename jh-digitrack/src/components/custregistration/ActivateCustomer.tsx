@@ -29,16 +29,6 @@ function ActivateCustomer() {
   const handleActivate = async (e) => {
     e.preventDefault();
 
-    if (!companyCode.trim()) {
-      setErrorModal({ open: true, message: "Please enter Company Code." });
-      return;
-    }
-
-    if (!customerCode.trim()) {
-      setErrorModal({ open: true, message: "Please enter Customer Code." });
-      return;
-    }
-
     try {
       const result = await activateCustomer({
         customerCode: customerCode.trim(),
@@ -123,6 +113,7 @@ function ActivateCustomer() {
 
                 <input
                   type="text"
+                  required
                   value={companyCode}
                   onChange={(e) => setCompanyCode(e.target.value)}
                   placeholder="e.g. JALEEL01"
@@ -139,6 +130,7 @@ function ActivateCustomer() {
 
                 <input
                   type="text"
+                  required
                   value={customerCode}
                   onChange={(e) => setCustomerCode(e.target.value)}
                   placeholder="e.g. CUST001"

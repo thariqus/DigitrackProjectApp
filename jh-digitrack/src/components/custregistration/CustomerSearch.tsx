@@ -76,13 +76,7 @@ function CustomerSearch() {
     <div className="w-full h-full min-h-[calc(100vh-100px)] flex flex-col">
 
       {/* Search Area */}
-      <div
-        className={`flex flex-col items-center ${
-          customer || searched
-            ? "pt-8"
-            : "flex-1 justify-center"
-        }`}
-      >
+      <div className="flex flex-col items-center pt-8">
 
         {/* Title */}
         <h1 className="text-5xl font-semibold tracking-tight mb-8">
@@ -138,14 +132,6 @@ function CustomerSearch() {
               className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-md text-sm text-gray-700 transition disabled:opacity-50"
             >
               {loading ? "Searching..." : "Customer Search"}
-            </button>
-
-            <button
-              type="button"
-              onClick={handleClear}
-              className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-md text-sm text-gray-700 transition"
-            >
-              Clear
             </button>
 
           </div>
