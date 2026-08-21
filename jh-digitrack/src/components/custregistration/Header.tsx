@@ -36,10 +36,6 @@ function Header({ title, status }: HeaderProps) {
         {status && <span className="text-xs text-gray-500">{status}</span>}
       </div>
 
-      <div className="flex items-center gap-3">
-        <span className="text-xs text-gray-500 font-medium">UAE Time: {uaeTime}</span>
-        {currentUser && <span className="text-xs text-gray-500">{currentUser}</span>}
-      </div>
     </div>
   );
 }

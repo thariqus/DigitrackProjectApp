@@ -419,7 +419,7 @@ function RegisterCustomer() {
                                   (district) => ({
                                     value:
                                       district.sales_district_code,
-                                    label: `${district.sales_district_title}${district.sales_district_code} - ${district.sales_district_title}`,
+                                    label: `${district.sales_district_code} - ${district.sales_district_title}`,
                                   })
                                 ),
                               ]
