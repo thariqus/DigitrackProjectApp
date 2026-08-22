@@ -96,7 +96,7 @@ function AppWrapper() {
                 <Route path="idle-assets" element={<Scrapitems />} />
                 <Route path="jrc-permission" element={<JRCPermission />} />
                 
-                <Route path="sample" element={<SampleShell />}>
+                <Route path="customer-registration" element={<SampleShell />}>
                   <Route index element={<Navigate to="register-customer" replace />} />
                   <Route path="register-customer" element={<RegisterCustomer />} />
                   <Route path="activate-customer" element={<ActivateCustomer />} />
