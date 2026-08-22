@@ -78,10 +78,10 @@ function CustomerList() {
         <button
           onClick={() =>
             navigate(
-              "/jh-digitrack/custregistration/register-customer"
+              "/jh-digitrack/customer-registration/register-customer"
             )
           }
-          className="bg-[##9A3025] hover:bg-[##7A251F] text-white px-2.5 py-1.5 rounded-md flex items-center gap-1.5 shadow transition text-[11px]"
+          className="bg-[#9A3025] hover:bg-[#7A251F] text-white px-2.5 py-1.5 rounded-md flex items-center gap-1.5 shadow transition text-[11px]"
         >
           <IoAdd className="text-sm" />
 
@@ -477,7 +477,7 @@ function CustomerList() {
                       <button
                         onClick={() =>
                           navigate(
-                            "/jh-digitrack/custregistration/register-customer",
+                            "/jh-digitrack/customer-registration/register-customer",
                             {
                               state: {
                                 editMode: true,
@@ -502,7 +502,7 @@ function CustomerList() {
                       <button
                         onClick={() =>
                           navigate(
-                            "/jh-digitrack/custregistration/SapResponse",
+                            "/jh-digitrack/customer-registration/sap-response",
                             {
                               state: {
                                 customer,

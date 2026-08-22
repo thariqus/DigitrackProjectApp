@@ -1,10 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import { LuUserPlus } from "react-icons/lu";
-// import DigitrackLogo from "@/assets/digitrack-logo.png";
-// import JHIcon from "@/assets/jh-logo.png";
-import CashIcon from "@/assets/Jaleel Cash and Carry Logo 1.png"
-import JHlogo from "@/assets/JH.png"
+import { IoChevronBack, IoChevronForward } from "react-icons/io5";
 
 
 const navItems = [
@@ -72,25 +69,21 @@ function Sidebar() {
         isCollapsed ? "w-18 items-center px-2" : "w-54 px-4"
       }`}
     >
-      {/* Logo */}
-      <div className={`relative flex items-center ${isCollapsed ? "w-full justify-center" : "justify-between"}`}>
-        {isCollapsed ? (
-          <img src={JHlogo} alt="JH" className="h-8 w-8 object-contain" />
-        ) : (
-          <img src={CashIcon} alt="JH DigiTrack" className="h-12 w-auto object-contain" />
-        )}
-
+      {/* Sidebar toggle */}
+      <div className={`relative flex items-center ${isCollapsed ? "w-full justify-center" : "justify-end"}`}>
         <button
           type="button"
           aria-label={isCollapsed ? "Open sidebar" : "Collapse sidebar"}
-          className={`absolute z-10 cursor-pointer rounded-full p-1 text-gray-700 ${isCollapsed ? "top-2" : "top-3"}`}
+          className={`absolute z-10 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full text-white shadow-md transition hover:brightness-110 ${
+            isCollapsed ? "top-2" : "top-3"
+          }`}
           style={{
-            right: isCollapsed ? "-12px" : "-21px",
-            background: "rgba(231, 231, 231, 0.9)",
+            right: "-14px",
+            background: "#9A3025",
           }}
           onClick={toggleApplicationMenu}
         >
-          {isCollapsed ? "›" : "‹"}
+          {isCollapsed ? <IoChevronForward size={14} /> : <IoChevronBack size={14} />}
         </button>
       </div>
 
