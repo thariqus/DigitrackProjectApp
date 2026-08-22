@@ -232,7 +232,7 @@ function RegisterCustomer() {
         onSuccess: () => {
           setForm(emptyForm);
 
-          navigate("/jh-digitrack/sample/register-customer", {
+          navigate("/jh-digitrack/custregistration/register-customer", {
             replace: true,
           });
 
@@ -271,7 +271,7 @@ function RegisterCustomer() {
             duration: 0.5,
             ease: "easeOut",
           }}
-          className="relative overflow-hidden rounded-lg bg-[#BD272C] px-4 py-3 text-white shadow-md mb-3"
+          className="relative overflow-hidden rounded-lg bg-[#9A3025] px-4 py-3 text-white shadow-md mb-3"
         >
           <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-white/10" />
 
@@ -357,7 +357,7 @@ function RegisterCustomer() {
                     {field.label}
 
                     {field.required && (
-                      <span className="text-[#BD272C] ml-1">
+                      <span className="text-[#9A3025] ml-1">
                         *
                       </span>
                     )}
@@ -656,7 +656,7 @@ function RegisterCustomer() {
                 onClick={() =>
                   setSuccessModal({ open: false, message: "" })
                 }
-                className="mt-5 px-6 py-2 rounded-lg bg-[#BD272C] hover:bg-[#A61F24] text-white text-xs font-semibold transition-colors"
+                className="mt-5 px-6 py-2 rounded-lg bg-[#9A3025] hover:bg-[#7A251F] text-white text-xs font-semibold transition-colors"
               >
                 OK
               </button>

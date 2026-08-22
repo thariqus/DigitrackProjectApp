@@ -243,69 +243,94 @@ def create_customer(**kwargs):
         }
 
 
+
+
 @frappe.whitelist(methods=["GET"])
 def get_customer_list(page=1, page_size=20, search=None):
     try:
         page = int(page)
         page_size = int(page_size)
+
+        if page < 1:
+            page = 1
+
+        if page_size < 1:
+            page_size = 20
+
         offset = (page - 1) * page_size
 
-        or_filters = {}
+        filters = {}
+        or_filters = []
 
         if search:
-            like_search = ["like", f"%{search}%"]
-            or_filters = {
-                "customer_name": like_search,
-                "business_name": like_search,
-                "trade_licence_number": like_search,
-                "tr_number": like_search,
-                "street": like_search,
-                "area": like_search,
-                "emirate_region": like_search,
-                "city": like_search,
-                "email_id": like_search,
-                "po_box": like_search,
-                "transportation_zone": like_search,
-                "customer_group": like_search,
-                "sales_district": like_search,
-                "sales_office": like_search,
-            }
+            search = search.strip()
 
-        fields = [
-            "name",
-            "customer_name",
-            "business_name",
-            "tr_number",
-            "trade_licence_number as custom_trade_license_no",
-            "street as custom_street",
-            "area as custom_area",
-            "emirate_region as custom_region",
-            "city as custom_city",
-            "email_id",
-            "po_box",
-            "transportation_zone",
-            "customer_group",
-            "sales_district",
-            "sales_office",
-            "custom_customer_code as customer_code",
-            "custom_company_code as company_code",
-            "custom_activation_status as status",
-        ]
+            if search:
+                like_search = f"%{search}%"
 
-        data = frappe.db.get_all(
+                or_filters = [
+                    ["customer_name", "like", like_search],
+                    ["business_name", "like", like_search],
+                    ["trade_licence_number", "like", like_search],
+                    ["tr_number", "like", like_search],
+                    ["street", "like", like_search],
+                    ["area", "like", like_search],
+                    ["emirate_region", "like", like_search],
+                    ["city", "like", like_search],
+                    ["email_id", "like", like_search],
+                    ["po_box", "like", like_search],
+                    ["transportation_zone", "like", like_search],
+                    ["customer_group", "like", like_search],
+                    ["sales_district", "like", like_search],
+                    ["sales_office", "like", like_search],
+                ]
+
+        # ---------------------------------------------------------
+        # Fetch customer data
+        # ---------------------------------------------------------
+
+        data = frappe.get_all(
             "Customer Registration",
+            filters=filters,
             or_filters=or_filters,
-            fields=fields,
+            fields=[
+                "name",
+                "customer_name",
+                "business_name",
+                "tr_number",
+                "trade_licence_number",
+                "street",
+                "area",
+                "emirate_region",
+                "city",
+                "email_id",
+                "po_box",
+                "transportation_zone",
+                "customer_group",
+                "sales_district",
+                "sales_office",
+            ],
             order_by="creation desc",
-            limit_page_length=page_size,
             limit_start=offset,
+            limit_page_length=page_size,
         )
 
-        total = frappe.db.get_all(
+        # ---------------------------------------------------------
+        # Count
+        # ---------------------------------------------------------
+
+        all_data = frappe.get_all(
             "Customer Registration",
+            filters=filters,
             or_filters=or_filters,
-            fields=["count(name) as total"],
-        )[0]["total"]
+            fields=["name"],
+        )
+
+        total = len(all_data)
+
+        # ---------------------------------------------------------
+        # Response
+        # ---------------------------------------------------------
 
         return {
             "status_code": 200,
@@ -319,14 +344,23 @@ def get_customer_list(page=1, page_size=20, search=None):
         }
 
     except Exception:
-        frappe.log_error(frappe.get_traceback(), "Get Customer List Error")
+        error = frappe.get_traceback()
+
+        frappe.log_error(
+            error,
+            "Get Customer List Error"
+        )
+
         frappe.local.response["http_status_code"] = 500
+
         return {
             "status_code": 500,
-            "message": "Internal Server Error. Please contact Administrator.",
+            "message": str(error),
             "count": 0,
             "data": [],
         }
+
+
 
 
 @frappe.whitelist(methods=["POST"])
