@@ -232,7 +232,7 @@ function RegisterCustomer() {
         onSuccess: () => {
           setForm(emptyForm);
 
-          navigate("/jh-digitrack/custregistration/register-customer", {
+          navigate("/jh-digitrack/customer-registration/register-customer", {
             replace: true,
           });
 
