@@ -798,16 +798,45 @@ function RegisterCustomer() {
   // =========================================================
  
   useEffect(() => {
+  if (editMode && customer) {
+    setForm({
+      ...emptyForm,
 
-    if (editMode && customer) {
+      name: customer.name || "",
 
-      setForm(customer);
+      customer_name: customer.customer_name || "",
+      customer_type: customer.customer_type || "",
+      business_name: customer.business_name || "",
+      tr_number: customer.tr_number || "",
 
-      resetCreateCustomer();
+      custom_trade_license_no:
+        customer.trade_licence_number || "",
 
-    }
+      address: customer.address || "",
 
-  }, [editMode, customer, resetCreateCustomer]);
+      custom_street:
+        customer.street || "",
+
+      custom_area:
+        customer.area || "",
+
+      custom_region:
+        customer.emirate_region || "",
+
+      custom_city:
+        customer.city || "",
+
+      email_id: customer.email_id || "",
+      po_box: customer.po_box || "",
+      transportation_zone: customer.transportation_zone || "",
+      customer_group: customer.customer_group || "",
+      sales_district: customer.sales_district || "",
+      sales_office: customer.sales_office || "",
+    });
+
+    resetCreateCustomer();
+  }
+}, [editMode, customer, resetCreateCustomer]);
  
   // =========================================================
 
@@ -939,7 +968,7 @@ function RegisterCustomer() {
  
         navigate(
 
-          "/jh-digitrack/custregistration/register-customer",
+          "/jh-digitrack/customer-registration/register-customer",
 
           {
 
