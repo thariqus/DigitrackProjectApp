@@ -351,8 +351,8 @@ function CustomerList() {
                     </td>
 
                     <td className="px-1.5 py-1.5 text-[10px] break-words">
-  {customer.customer_type}
-</td>
+                      {customer.customer_type}
+                    </td>
 
 
                     {/* =================================================

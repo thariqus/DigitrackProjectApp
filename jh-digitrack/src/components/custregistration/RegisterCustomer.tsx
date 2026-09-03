@@ -190,11 +190,55 @@ function RegisterCustomer() {
   } = useCreateCustomer();
 
   useEffect(() => {
+<<<<<<< HEAD
     if (editMode && customer) {
       setForm(customer);
       resetCreateCustomer();
     }
   }, [editMode, customer, resetCreateCustomer]);
+=======
+  if (editMode && customer) {
+    setForm({
+      ...emptyForm,
+
+      name: customer.name || "",
+
+      customer_name: customer.customer_name || "",
+      customer_type: customer.customer_type || "",
+      business_name: customer.business_name || "",
+      tr_number: customer.tr_number || "",
+
+      custom_trade_license_no:
+        customer.trade_licence_number || "",
+
+      address: customer.address || "",
+
+      custom_street:
+        customer.street || "",
+
+      custom_area:
+        customer.area || "",
+
+      custom_region:
+        customer.emirate_region || "",
+
+      custom_city:
+        customer.city || "",
+
+      email_id: customer.email_id || "",
+      po_box: customer.po_box || "",
+      transportation_zone: customer.transportation_zone || "",
+      customer_group: customer.customer_group || "",
+      sales_district: customer.sales_district || "",
+      sales_office: customer.sales_office || "",
+    });
+
+    resetCreateCustomer();
+  }
+}, [editMode, customer, resetCreateCustomer]);
+ 
+  // =========================================================
+>>>>>>> 570b1ed (update changes)
 
   const { mutate: updateCustomer } = useUpdateCustomer();
 
@@ -227,10 +271,66 @@ function RegisterCustomer() {
   const handleSubmit = (e) => {
     e.preventDefault();
 
+<<<<<<< HEAD
     if (editMode) {
       updateCustomer(form, {
         onSuccess: () => {
           setForm(emptyForm);
+=======
+  e.preventDefault();
+ 
+  // =========================================================
+
+  // B2B VALIDATION
+
+  // TR Number OR Trade Licence is mandatory
+
+  // =========================================================
+ 
+  if (form.customer_type === "B2B") {
+
+    const trNumber = form.tr_number?.trim();
+
+    const tradeLicense = form.custom_trade_license_no?.trim();
+ 
+    if (!trNumber && !tradeLicense) {
+
+      setErrorModal({
+
+        open: true,
+
+        message:
+
+          "For B2B customers, either TR Number or Trade Licence Number is required.",
+
+      });
+
+      return;
+
+    }
+
+  }
+ 
+  // =========================================================
+
+  // UPDATE CUSTOMER
+
+  // =========================================================
+ 
+  if (editMode) {
+
+    updateCustomer(form, {
+
+      onSuccess: () => {
+
+        setForm(emptyForm);
+ 
+        navigate(
+
+          "/jh-digitrack/customer-registration/register-customer",
+
+          {
+>>>>>>> 570b1ed (update changes)
 
           navigate("/jh-digitrack/customer-registration/register-customer", {
             replace: true,
