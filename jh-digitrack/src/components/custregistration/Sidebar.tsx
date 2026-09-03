@@ -17,6 +17,10 @@ const navItems = [
       { name: "Activate Customer", path: "/jh-digitrack/customer-registration/activate-customer" },
       { name: "Customer Search", path: "/jh-digitrack/customer-registration/customer-search" },
       { name: "Registration List", path: "/jh-digitrack/customer-registration/customer-list" },
+      {
+  name: "Customer with Site code",
+  path: "/jh-digitrack/customer-registration/customer-with-site-code",
+},
     ],
   },
 ];

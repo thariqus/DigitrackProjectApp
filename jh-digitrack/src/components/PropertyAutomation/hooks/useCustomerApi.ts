@@ -8,6 +8,7 @@ import {
   getSalesDistricts,
   activateCustomer,
   CustomerPayload,
+  getEmirates,
 } from "../api/CustomerApi";
 
 export const useCreateCustomer = () =>
@@ -48,4 +49,10 @@ export const useActivateCustomer = () =>
   useMutation({
     mutationFn: ({ customerCode, companyCode }: { customerCode: string; companyCode: string }) =>
       activateCustomer(customerCode, companyCode),
+  });
+
+export const useEmirates = (search: string = "") =>
+  useQuery({
+    queryKey: ["emirates", search],
+    queryFn: () => getEmirates(search),
   });

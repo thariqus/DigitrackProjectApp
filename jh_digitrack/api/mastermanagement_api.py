@@ -9,6 +9,287 @@ import frappe
 # ---------------------------------------------------------------------------
 
 
+import requests
+
+
+
+SAP_CUSTOMER_URL = "http://devapi.jaleelholdings.com/RESTAdapter/sap/customer/create"
+
+
+def create_sap_customer(data):
+    """
+    Send customer details to SAP.
+    """
+
+    payload = {
+        "customer_name": data.get("customer_name"),
+        "customer_type": data.get("customer_type"),
+        "business_name": data.get("business_name"),
+        "tr_number": data.get("tr_number"),
+        "trade_license_number": data.get("custom_trade_license_no"),
+        "street": data.get("custom_street"),
+        "area": data.get("custom_area"),
+        "emirate": data.get("custom_region"),
+        "city": data.get("custom_city"),
+        "email": data.get("email_id"),
+        "po_box": data.get("po_box"),
+        "transportation_zone": data.get("transportation_zone"),
+        "customer_group": data.get("customer_group"),
+        "sales_district": data.get("sales_district"),
+        "sales_office": data.get("sales_office"),
+    }
+    print("the payload *****:", payload)
+
+    try:
+        response = requests.post(
+            SAP_CUSTOMER_URL,
+            json=payload,
+            headers={
+                "Content-Type": "application/json"
+            },
+            timeout=30
+        )
+
+        try:
+            sap_data = response.json()
+        except ValueError:
+            sap_data = {
+                "raw_response": response.text
+            }
+
+        return {
+            "success": response.ok,
+            "status_code": response.status_code,
+            "data": sap_data
+        }
+
+    except requests.exceptions.RequestException as e:
+        frappe.log_error(
+            frappe.get_traceback(),
+            "SAP Customer Create API Error"
+        )
+
+        return {
+            "success": False,
+            "status_code": 500,
+            "data": {
+                "error": str(e)
+            }
+        }
+
+
+
+# =========================================================
+# SAP CUSTOMER ACTIVATION
+# =========================================================
+
+SAP_CUSTOMER_ACTIVATION_URL = (
+    "http://devapi.jaleelholdings.com/RESTAdapter/sap/customer/activation"
+)
+
+
+def send_customer_activation_to_sap(customer_code, company_code):
+    """
+    Send customer activation data to SAP.
+
+    SAP response does NOT control whether the Frappe
+    Activate Customer API succeeds.
+    """
+
+    payload = {
+        "customer_code": customer_code,
+        "company_code": company_code,
+    }
+    print("the payload  of activate customer*****:", payload)
+
+    try:
+        print("SAP ACTIVATION PAYLOAD:", payload)
+
+        response = requests.post(
+            SAP_CUSTOMER_ACTIVATION_URL,
+            json=payload,
+            headers={
+                "Content-Type": "application/json"
+            },
+            timeout=30,
+        )
+
+        print("SAP ACTIVATION STATUS:", response.status_code)
+        print("SAP ACTIVATION RESPONSE:", response.text)
+
+        try:
+            sap_data = response.json()
+        except ValueError:
+            sap_data = {
+                "raw_response": response.text
+            }
+
+        return {
+            "success": response.ok,
+            "status_code": response.status_code,
+            "data": sap_data,
+        }
+
+    except Exception as e:
+        # IMPORTANT:
+        # SAP failure should NOT stop the customer from
+        # being saved in the Activate Customer DocType.
+
+        frappe.log_error(
+            frappe.get_traceback(),
+            "SAP Customer Activation Error"
+        )
+
+        return {
+            "success": False,
+            "status_code": 500,
+            "data": {
+                "error": str(e)
+            },
+        }
+
+
+
+SAP_CUSTOMER_DETAILS_URL = (
+    "http://devapi.jaleelholdings.com/RESTAdapter/sap/customer/customerdetails"
+)
+
+
+def send_customer_details_to_sap(customer):
+    payload = {
+        "customer_name": customer.get("customer_name"),
+        "customer_type": customer.get("customer_type"),
+        "business_name": customer.get("business_name"),
+        "tr_number": customer.get("tr_number"),
+        "trade_license_number": customer.get("trade_licence_number"),
+        "street": customer.get("street"),
+        "area": customer.get("area"),
+        "emirate": customer.get("emirate_region"),
+        "city": customer.get("city"),
+        "email": customer.get("email_id"),
+        "po_box": customer.get("po_box"),
+        "transportation_zone": customer.get("transportation_zone"),
+        "customer_group": customer.get("customer_group"),
+        "sales_district": customer.get("sales_district"),
+        "sales_office": customer.get("sales_office"),
+    }
+
+    print(
+        "the payload of send_customer_details_to_sap*****:",
+        payload
+    )
+
+    try:
+        response = requests.post(
+            SAP_CUSTOMER_DETAILS_URL,
+            json=payload,
+            headers={
+                "Content-Type": "application/json"
+            },
+            timeout=30,
+        )
+
+        print(
+            "SAP CUSTOMER DETAILS STATUS*****:",
+            response.status_code
+        )
+
+        print(
+            "SAP CUSTOMER DETAILS RESPONSE*****:",
+            response.text
+        )
+
+        return response
+
+    except Exception:
+        frappe.log_error(
+            frappe.get_traceback(),
+            "SAP Customer Details Error"
+        )
+
+        return None
+# =========================================================
+# ACTIVATE CUSTOMER
+# =========================================================
+
+@frappe.whitelist(methods=["POST"])
+def activate_customer(customer_code, company_code):
+    try:
+
+        # =====================================================
+        # CLEAN INPUT
+        # =====================================================
+
+        customer_code = (customer_code or "").strip()
+        company_code = (company_code or "").strip()
+
+        # =====================================================
+        # VALIDATION
+        # =====================================================
+
+        if not customer_code or not company_code:
+
+            frappe.local.response["http_status_code"] = 400
+
+            return {
+                "status_code": 400,
+                "message": "Customer Code and Company Code are required.",
+            }
+
+        # =====================================================
+        # SAVE TO ACTIVATE CUSTOMER DOCTYPE
+        # =====================================================
+
+        doc = frappe.get_doc({
+            "doctype": "Activate Customer",
+            "customer_code": customer_code,
+            "company_code": company_code,
+        })
+
+        doc.insert(ignore_permissions=True)
+
+        frappe.db.commit()
+
+        print("ACTIVATE CUSTOMER SAVED:", doc.name)
+
+        # =====================================================
+        # SEND TO SAP
+        # =====================================================
+
+        sap_response = send_customer_activation_to_sap(
+            customer_code,
+            company_code,
+        )
+
+        # =====================================================
+        # RETURN SUCCESS
+        # =====================================================
+
+        return {
+            "status_code": 200,
+            "message": "Customer activation submitted successfully.",
+            "data": {
+                "name": doc.name,
+                "customer_code": customer_code,
+                "company_code": company_code,
+            },
+            "sap_response": sap_response,
+        }
+
+    except Exception:
+        frappe.log_error(
+            frappe.get_traceback(),
+            "Activate Customer Error"
+        )
+
+        frappe.local.response["http_status_code"] = 500
+
+        return {
+            "status_code": 500,
+            "message": "Unable to save customer activation.",
+        }
+
+
 @frappe.whitelist(methods=["GET"])
 def get_transportation_zones(search=None):
     """
@@ -176,6 +457,7 @@ def get_customer_groups(search=None):
 # Customer Registration
 # ---------------------------------------------------------------------------
 
+
 @frappe.whitelist(methods=["POST"])
 def create_customer(**kwargs):
     try:
@@ -183,6 +465,7 @@ def create_customer(**kwargs):
             "Customer Registration",
             {
                 "customer_name": kwargs.get("customer_name"),
+                "customer_type": kwargs.get("customer_type"),
                 "business_name": kwargs.get("business_name"),
                 "tr_number": kwargs.get("tr_number"),
                 "trade_licence_number": kwargs.get("custom_trade_license_no"),
@@ -199,14 +482,20 @@ def create_customer(**kwargs):
 
         if duplicate:
             frappe.local.response["http_status_code"] = 409
+
             return {
                 "status_code": 409,
                 "message": "Customer already exists.",
             }
 
+        # =====================================================
+        # CREATE CUSTOMER DOCUMENT
+        # =====================================================
+
         doc = frappe.get_doc({
             "doctype": "Customer Registration",
             "customer_name": kwargs.get("customer_name"),
+            "customer_type": kwargs.get("customer_type"),
             "business_name": kwargs.get("business_name"),
             "tr_number": kwargs.get("tr_number"),
             "trade_licence_number": kwargs.get("custom_trade_license_no"),
@@ -228,21 +517,35 @@ def create_customer(**kwargs):
         doc.insert(ignore_permissions=True)
         frappe.db.commit()
 
+        # =====================================================
+        # SEND CUSTOMER DATA TO SAP
+        # =====================================================
+
+        sap_response = create_sap_customer(kwargs)
+
+        # =====================================================
+        # RETURN RESPONSE
+        # =====================================================
+
         return {
             "status_code": 200,
             "message": "Customer Created Successfully",
             "name": doc.name,
+            "sap_response": sap_response,
         }
 
     except Exception:
-        frappe.log_error(frappe.get_traceback(), "Customer Creation Error")
+        frappe.log_error(
+            frappe.get_traceback(),
+            "Customer Creation Error"
+        )
+
         frappe.local.response["http_status_code"] = 500
+
         return {
             "status_code": 500,
             "message": "Internal Server Error. Please contact Administrator.",
         }
-
-
 
 
 @frappe.whitelist(methods=["GET"])
@@ -270,6 +573,7 @@ def get_customer_list(page=1, page_size=20, search=None):
 
                 or_filters = [
                     ["customer_name", "like", like_search],
+                    ["customer_type", "like", like_search],
                     ["business_name", "like", like_search],
                     ["trade_licence_number", "like", like_search],
                     ["tr_number", "like", like_search],
@@ -296,6 +600,7 @@ def get_customer_list(page=1, page_size=20, search=None):
             fields=[
                 "name",
                 "customer_name",
+                "customer_type",
                 "business_name",
                 "tr_number",
                 "trade_licence_number",
@@ -327,6 +632,20 @@ def get_customer_list(page=1, page_size=20, search=None):
         )
 
         total = len(all_data)
+
+
+                # =====================================================
+        # SEND FOUND CUSTOMER DETAILS TO SAP
+        # =====================================================
+
+        if data:
+            send_customer_details_to_sap(data[0])
+
+        # =====================================================
+        # RETURN EXISTING RESPONSE
+        # =====================================================
+
+
 
         # ---------------------------------------------------------
         # Response
@@ -408,698 +727,71 @@ def update_customer(**kwargs):
 # Customer Activation (SAP)
 # ---------------------------------------------------------------------------
 
-def _get_sap_customer_response():
-    """
-    Static stand-in for the real SAP customer master lookup.
+# Emirate Master API
+# ---------------------------------------------------------------------------
 
-    TODO: replace this function's body with the actual SAP API call once
-    integration is available. activate_customer() below only depends on
-    the response shape (a "data" list of customer records, each with
-    custom_customer_code and a custom_customer_company list carrying
-    company_code), so nothing else needs to change when this is swapped.
+@frappe.whitelist(methods=["GET"])
+def get_emirates(search=None):
     """
-    return {
+    Fetch all Emirate master records.
+
+    Optional Parameters
+    -------------------
+    search : str
+        Filter emirates by name.
+
+    Returns
+    -------
+    {
+        "status_code": 200,
+        "message": "success",
+        "count": <int>,
         "data": [
             {
-                "loyalty_program_tier": "",
-                "customer_group": "Default",
-                "custom_cuisine": "",
-                "custom_customer_code": 1046515,
-                "custom_account_group": "DOCU",
-                "customer_type": "Company",
-                "customer_name": "Azhr Al Madina Supermarket LLC",
-                "custom_customer_name_a": "Azhr Al Madina Supermarket LLC",
-                "custom_customer_name_b": "",
-                "customer_name_in_arabic": "",
-                "custom_customer_name_arabic_a": "",
-                "custom_customer_name_arabic_b": "",
-                "custom_vat_reg_no": 100363947100003,
-                "account_manager": "",
-                "custom_reference1_code": "Al Qouz",
-                "custom_reference1_desc": "",
-                "custom_reference2_code": "",
-                "custom_reference2_desc": "",
-                "default_currency": "AED",
-                "custom_central_block": 0,
-                "custom_comments": "",
-                "default_price_list": "",
-                "language": "",
-                "customer_primary_address": "",
-                "primary_address": "",
-                "customer_primary_contact": "",
-                "mobile_no": "",
-                "email_id": "",
-                "tax_id": "",
-                "tax_category": "",
-                "payment_terms": "",
-                "loyalty_program": "",
-                "default_commission_rate": "",
-                "so_required": "",
-                "dn_required": "",
-                "is_frozen": "",
-                "disabled": "",
-                "custom_trade_license_no": 1144102,
-                "trade_license_expiry": 20150907,
-                "nationality": "English",
-                "custom_jh_classification_1_code": "01",
-                "custom_jh_classification_1_desc": "Modern Trade",
-                "custom_jh_classification_2_code": 12,
-                "custom_jh_classification_2_desc": "Hyper Market",
-                "custom_jh_classification_3_code": "",
-                "custom_jh_classification_3_desc": "",
-                "custom_jh_classification_4_code": 18,
-                "custom_jh_classification_4_desc": "Al Madina - Dubai",
-                "custom_jh_classification_5_code": "",
-                "custom_jh_classification_5_desc": "",
-                "custom_jh_classification_6_code": "",
-                "custom_jh_classification_6_desc": "",
-                "custom_jh_classification_7_code": "",
-                "custom_jh_classification_7_desc": "",
-                "custom_jh_classification_8_code": "",
-                "custom_jh_classification_8_desc": "",
-                "custom_jh_classification_9_code": "",
-                "custom_jh_classification_9_desc": "",
-                "custom_jh_classification_10_code": "",
-                "custom_jh_classification_10_desc": "",
-                "custom_condition_group_1": "",
-                "custom_condition_group_1_name": "",
-                "custom_condition_group_2": "",
-                "custom_condition_group_2_name": "",
-                "custom_condition_group_3": "",
-                "custom_condition_group_3_name": "",
-                "custom_condition_group_4": "",
-                "custom_condition_group_4_name": "",
-                "custom_condition_group_5": "",
-                "custom_condition_group_5_name": "",
-                "custom_condition_group_6": "",
-                "custom_condition_group_6_name": "",
-                "custom_condition_group_7": "",
-                "custom_condition_group_7_name": "",
-                "custom_condition_group_8": "",
-                "custom_condition_group_8_name": "",
-                "custom_condition_group_9": "",
-                "custom_condition_group_9_name": "",
-                "custom_condition_group_10": "",
-                "custom_condition_group_10_name": "",
-                "custom_industry_code_1": "0001",
-                "custom_industry_code_1_desc": "Industry code 01",
-                "custom_industry_code_2": "",
-                "custom_industry_code_2_desc": "",
-                "custom_industry_code_3": "",
-                "custom_industry_code_3_desc": "",
-                "custom_industry_code_4": "",
-                "custom_industry_code_4_desc": "",
-                "custom_industry_code_5": "",
-                "custom_industry_code_5_desc": "",
-                "credit_limits": [
-                    {
-                        "company": "",
-                        "credit_limit": "",
-                        "bypass_credit_limit_check": "",
-                    },
-                ],
-                "custom_customer_company": [
-                    {
-                        "company_code": 2100,
-                        "reconaccount_code": "0013080001",
-                        "reconaccount_title": "Accounts Receivable - Trade",
-                        "head_office": "",
-                        "sort_key": "Z41",
-                        "previous_account_no": "",
-                        "personnel_no": "00000000",
-                        "buying_group": "",
-                        "paymentterm_code": "J091",
-                        "paymentterm_title": "Pay by Cash",
-                        "validity_to": "00000000",
-                        "payment_method": "F",
-                        "payment_method_desc": "",
-                        "credit_limit": "",
-                        "payment_block": 0,
-                        "payment_block_desc": "Free for payment",
-                        "vendor_code": "",
-                        "clerkinternet": "",
-                        "account_customer": "",
-                        "customer_insurance_no": "",
-                        "block_all": 0,
-                        "block_selected": 0,
-                        "deletion_flag": 0,
-                        "deletion_block": 0,
-                        "stock_reservation_required": "",
-                        "delivery_area_code": "",
-                        "delivery_area_desc": "",
-                        "customer_text": "",
-                        "customer_type": "",
-                        "reference1_code": "",
-                        "reference1_desc": "",
-                        "reference2_code": "",
-                        "reference2_desc": "",
-                        "customer_type_desc": "",
-                    },
-                ],
-                "custom_distribution_channel": [
-                    {
-                        "dccode": "02",
-                        "salesorganization": 2100,
-                        "division": "00",
-                        "salesdistrictcode": "000036",
-                        "salesdistricttitle": "Al Qouz",
-                        "sales_office": 2120,
-                        "salesofficename": "AL Quoz",
-                        "salesgroup": "",
-                        "salesgroupname": "",
-                        "account_at_customer": "",
-                        "abc_class": "",
-                        "currency": "AED",
-                        "pricegroup": "",
-                        "pricegroupname": "",
-                        "customerpricing_procedure": 1,
-                        "customerpricing_procedure_name": "Standard",
-                        "pricelist": "",
-                        "pricelistname": "",
-                        "customerstatisticgroup": "",
-                        "customerstatisticgroupname": "",
-                        "authorization_group": "",
-                        "customergroupcode": "02",
-                        "customergrouptitle": "Restaurant",
-                        "deliveryplant": 2120,
-                        "deliverypriority": "02",
-                        "deliveryprioritydesc": "Normal item",
-                        "shipping_condition_code": "01",
-                        "shipping_condition_name": "standard",
-                        "rebate": 1,
-                        "pricing": 1,
-                        "subinvoice": 1,
-                        "accountassignmentgroupcode": "01",
-                        "accountassignmentgrouptitle": "Domestic Revenues",
-                        "tax_indicator": 1,
-                        "salespersoncode": "",
-                        "salesemployee": "",
-                        "emprespcode": "",
-                        "empresponsible": "",
-                        "merchandiserrespcode": "",
-                        "merchandiserresponsible": "",
-                        "checkrespcode": "",
-                        "checkresponsible": "",
-                        "country3": "AE",
-                        "taxcategory": "MWST",
-                        "taxclassification": 1,
-                        "customergroup1": "002",
-                        "customergroup1name": "B2B Horeca",
-                        "customergroup2": "012",
-                        "customergroup2name": "Horeca",
-                        "customergroup3": "059",
-                        "customergroup3name": "Restaurant",
-                        "customergroup4": "",
-                        "customergroup4name": "",
-                        "customergroup5": "",
-                        "customergroup5name": "",
-                        "customergroup6": "",
-                        "customergroup6name": "",
-                        "customergroup7": "",
-                        "customergroup7name": "",
-                        "customergroup8": "",
-                        "customergroup9name": "",
-                        "customergroup10": "",
-                        "customergroup10name": "",
-                        "sales_order_block_all": 0,
-                        "sales_order_block_selected": 0,
-                        "delivery_block_all": 0,
-                        "delivery_block_selected": 0,
-                        "billing_block_all": 0,
-                        "billing_block_selected": 0,
-                        "reference1code": "",
-                        "reference1desc": "",
-                        "reference2code": "",
-                        "reference2desc": "",
-                        "customerheirarchycode": "",
-                        "customerheirarchytitle": "",
-                        "validityfrom": "",
-                        "validityto": "",
-                    },
-                    {
-                        "dccode": "03",
-                        "salesorganization": 2100,
-                        "division": "00",
-                        "salesdistrictcode": "000036",
-                        "salesdistricttitle": "Al Qouz",
-                        "sales_office": 2120,
-                        "salesofficename": "AL Quoz",
-                        "salesgroup": "",
-                        "salesgroupname": "",
-                        "account_at_customer": "",
-                        "abc_class": "",
-                        "currency": "AED",
-                        "pricegroup": "",
-                        "pricegroupname": "",
-                        "customerpricing_procedure": 1,
-                        "customerpricing_procedure_name": "Standard",
-                        "pricelist": "",
-                        "pricelistname": "",
-                        "customerstatisticgroup": "",
-                        "customerstatisticgroupname": "",
-                        "authorization_group": "",
-                        "customergroupcode": "02",
-                        "customergrouptitle": "Restaurant",
-                        "deliveryplant": 2120,
-                        "deliverypriority": "02",
-                        "deliveryprioritydesc": "Normal item",
-                        "shipping_condition_code": "01",
-                        "shipping_condition_name": "standard",
-                        "rebate": 1,
-                        "pricing": 1,
-                        "subinvoice": 1,
-                        "accountassignmentgroupcode": "01",
-                        "accountassignmentgrouptitle": "Domestic Revenues",
-                        "tax_indicator": 1,
-                        "salespersoncode": "",
-                        "salesemployee": "",
-                        "emprespcode": "",
-                        "empresponsible": "",
-                        "merchandiserrespcode": "",
-                        "merchandiserresponsible": "",
-                        "checkrespcode": "",
-                        "checkresponsible": "",
-                        "country3": "AE",
-                        "taxcategory": "MWST",
-                        "taxclassification": 1,
-                        "customergroup1": "002",
-                        "customergroup1name": "B2B Horeca",
-                        "customergroup2": "012",
-                        "customergroup2name": "Horeca",
-                        "customergroup3": "059",
-                        "customergroup3name": "Restaurant",
-                        "customergroup4": "",
-                        "customergroup4name": "",
-                        "customergroup5": "",
-                        "customergroup5name": "",
-                        "customergroup6": "",
-                        "customergroup6name": "",
-                        "customergroup7": "",
-                        "customergroup7name": "",
-                        "customergroup8": "",
-                        "customergroup9name": "",
-                        "customergroup10": "",
-                        "customergroup10name": "",
-                        "sales_order_block_all": 0,
-                        "sales_order_block_selected": 0,
-                        "delivery_block_all": 0,
-                        "delivery_block_selected": 0,
-                        "billing_block_all": 0,
-                        "billing_block_selected": 0,
-                        "reference1code": "",
-                        "reference1desc": "",
-                        "reference2code": "",
-                        "reference2desc": "",
-                        "customerheirarchycode": "",
-                        "customerheirarchytitle": "",
-                        "validityfrom": "",
-                        "validityto": "",
-                    },
-                    {
-                        "dccode": "07",
-                        "salesorganization": 2100,
-                        "division": "00",
-                        "salesdistrictcode": "000036",
-                        "salesdistricttitle": "Al Qouz",
-                        "sales_office": 2120,
-                        "salesofficename": "AL Quoz",
-                        "salesgroup": "",
-                        "salesgroupname": "",
-                        "account_at_customer": "",
-                        "abc_class": "",
-                        "currency": "AED",
-                        "pricegroup": "",
-                        "pricegroupname": "",
-                        "customerpricing_procedure": 1,
-                        "customerpricing_procedure_name": "Standard",
-                        "pricelist": "",
-                        "pricelistname": "",
-                        "customerstatisticgroup": "",
-                        "customerstatisticgroupname": "",
-                        "authorization_group": "",
-                        "customergroupcode": "02",
-                        "customergrouptitle": "Restaurant",
-                        "deliveryplant": 2120,
-                        "deliverypriority": "02",
-                        "deliveryprioritydesc": "Normal item",
-                        "shipping_condition_code": "01",
-                        "shipping_condition_name": "standard",
-                        "rebate": 1,
-                        "pricing": 1,
-                        "subinvoice": 1,
-                        "accountassignmentgroupcode": "01",
-                        "accountassignmentgrouptitle": "Domestic Revenues",
-                        "tax_indicator": 1,
-                        "salespersoncode": "",
-                        "salesemployee": "",
-                        "emprespcode": "",
-                        "empresponsible": "",
-                        "merchandiserrespcode": "",
-                        "merchandiserresponsible": "",
-                        "checkrespcode": "",
-                        "checkresponsible": "",
-                        "country3": "AE",
-                        "taxcategory": "MWST",
-                        "taxclassification": 1,
-                        "customergroup1": "002",
-                        "customergroup1name": "B2B Horeca",
-                        "customergroup2": "012",
-                        "customergroup2name": "Horeca",
-                        "customergroup3": "059",
-                        "customergroup3name": "Restaurant",
-                        "customergroup4": "",
-                        "customergroup4name": "",
-                        "customergroup5": "",
-                        "customergroup5name": "",
-                        "customergroup6": "",
-                        "customergroup6name": "",
-                        "customergroup7": "",
-                        "customergroup7name": "",
-                        "customergroup8": "",
-                        "customergroup9name": "",
-                        "customergroup10": "",
-                        "customergroup10name": "",
-                        "sales_order_block_all": 0,
-                        "sales_order_block_selected": 0,
-                        "delivery_block_all": 0,
-                        "delivery_block_selected": 0,
-                        "billing_block_all": 0,
-                        "billing_block_selected": 0,
-                        "reference1code": "",
-                        "reference1desc": "",
-                        "reference2code": "",
-                        "reference2desc": "",
-                        "customerheirarchycode": "",
-                        "customerheirarchytitle": "",
-                        "validityfrom": "",
-                        "validityto": "",
-                    },
-                    {
-                        "dccode": 11,
-                        "salesorganization": 2100,
-                        "division": "00",
-                        "salesdistrictcode": "000036",
-                        "salesdistricttitle": "Al Qouz",
-                        "sales_office": 2120,
-                        "salesofficename": "AL Quoz",
-                        "salesgroup": "",
-                        "salesgroupname": "",
-                        "account_at_customer": "",
-                        "abc_class": "",
-                        "currency": "AED",
-                        "pricegroup": "",
-                        "pricegroupname": "",
-                        "customerpricing_procedure": 1,
-                        "customerpricing_procedure_name": "Standard",
-                        "pricelist": "",
-                        "pricelistname": "",
-                        "customerstatisticgroup": "",
-                        "customerstatisticgroupname": "",
-                        "authorization_group": "",
-                        "customergroupcode": "02",
-                        "customergrouptitle": "Restaurant",
-                        "deliveryplant": 2120,
-                        "deliverypriority": "02",
-                        "deliveryprioritydesc": "Normal item",
-                        "shipping_condition_code": "01",
-                        "shipping_condition_name": "standard",
-                        "rebate": 1,
-                        "pricing": 1,
-                        "subinvoice": 1,
-                        "accountassignmentgroupcode": "01",
-                        "accountassignmentgrouptitle": "Domestic Revenues",
-                        "tax_indicator": 1,
-                        "salespersoncode": "",
-                        "salesemployee": "",
-                        "emprespcode": "",
-                        "empresponsible": "",
-                        "merchandiserrespcode": "",
-                        "merchandiserresponsible": "",
-                        "checkrespcode": "",
-                        "checkresponsible": "",
-                        "country3": "AE",
-                        "taxcategory": "MWST",
-                        "taxclassification": 1,
-                        "customergroup1": "002",
-                        "customergroup1name": "B2B Horeca",
-                        "customergroup2": "012",
-                        "customergroup2name": "Horeca",
-                        "customergroup3": "059",
-                        "customergroup3name": "Restaurant",
-                        "customergroup4": "",
-                        "customergroup4name": "",
-                        "customergroup5": "",
-                        "customergroup5name": "",
-                        "customergroup6": "",
-                        "customergroup6name": "",
-                        "customergroup7": "",
-                        "customergroup7name": "",
-                        "customergroup8": "",
-                        "customergroup9name": "",
-                        "customergroup10": "",
-                        "customergroup10name": "",
-                        "sales_order_block_all": 0,
-                        "sales_order_block_selected": 0,
-                        "delivery_block_all": 0,
-                        "delivery_block_selected": 0,
-                        "billing_block_all": 0,
-                        "billing_block_selected": 0,
-                        "reference1code": "",
-                        "reference1desc": "",
-                        "reference2code": "",
-                        "reference2desc": "",
-                        "customerheirarchycode": "",
-                        "customerheirarchytitle": "",
-                        "validityfrom": "",
-                        "validityto": "",
-                    },
-                    {
-                        "dccode": 12,
-                        "salesorganization": 2100,
-                        "division": "00",
-                        "salesdistrictcode": "000036",
-                        "salesdistricttitle": "Al Qouz",
-                        "sales_office": 2120,
-                        "salesofficename": "AL Quoz",
-                        "salesgroup": "",
-                        "salesgroupname": "",
-                        "account_at_customer": "",
-                        "abc_class": "",
-                        "currency": "AED",
-                        "pricegroup": "",
-                        "pricegroupname": "",
-                        "customerpricing_procedure": 1,
-                        "customerpricing_procedure_name": "Standard",
-                        "pricelist": "",
-                        "pricelistname": "",
-                        "customerstatisticgroup": "",
-                        "customerstatisticgroupname": "",
-                        "authorization_group": "",
-                        "customergroupcode": "02",
-                        "customergrouptitle": "Restaurant",
-                        "deliveryplant": 2120,
-                        "deliverypriority": "02",
-                        "deliveryprioritydesc": "Normal item",
-                        "shipping_condition_code": "01",
-                        "shipping_condition_name": "standard",
-                        "rebate": 1,
-                        "pricing": 1,
-                        "subinvoice": 1,
-                        "accountassignmentgroupcode": "01",
-                        "accountassignmentgrouptitle": "Domestic Revenues",
-                        "tax_indicator": 1,
-                        "salespersoncode": "",
-                        "salesemployee": "",
-                        "emprespcode": "",
-                        "empresponsible": "",
-                        "merchandiserrespcode": "",
-                        "merchandiserresponsible": "",
-                        "checkrespcode": "",
-                        "checkresponsible": "",
-                        "country3": "AE",
-                        "taxcategory": "MWST",
-                        "taxclassification": 1,
-                        "customergroup1": "002",
-                        "customergroup1name": "B2B Horeca",
-                        "customergroup2": "012",
-                        "customergroup2name": "Horeca",
-                        "customergroup3": "059",
-                        "customergroup3name": "Restaurant",
-                        "customergroup4": "",
-                        "customergroup4name": "",
-                        "customergroup5": "",
-                        "customergroup5name": "",
-                        "customergroup6": "",
-                        "customergroup6name": "",
-                        "customergroup7": "",
-                        "customergroup7name": "",
-                        "customergroup8": "",
-                        "customergroup9name": "",
-                        "customergroup10": "",
-                        "customergroup10name": "",
-                        "sales_order_block_all": 0,
-                        "sales_order_block_selected": 0,
-                        "delivery_block_all": 0,
-                        "delivery_block_selected": 0,
-                        "billing_block_all": 0,
-                        "billing_block_selected": 0,
-                        "reference1code": "",
-                        "reference1desc": "",
-                        "reference2code": "",
-                        "reference2desc": "",
-                        "customerheirarchycode": "",
-                        "customerheirarchytitle": "",
-                        "validityfrom": "",
-                        "validityto": "",
-                    },
-                ],
-                "addr_list": [
-                    {
-                        "custom_address_no": "0000433960",
-                        "address_title": "",
-                        "address_type": "",
-                        "address_line1": "Al Qouz",
-                        "address_line2": "Al Qouz",
-                        "custom_address_line1_arabic": "",
-                        "custom_address_line2_arabic": "",
-                        "city": "Al Qouz",
-                        "custom_city_arabic": "",
-                        "county": "",
-                        "custom_street": "Al Qouz",
-                        "custom_street_arabic": "",
-                        "custom_house_no": "",
-                        "custom_house_no_arabic": "",
-                        "state": "",
-                        "emirate": "",
-                        "country": "United Arab Emirates",
-                        "custom_country_name": "",
-                        "pincode": "",
-                        "custom_po_box_no": "",
-                        "custom_postal_code": "",
-                        "custom_region_code": "DXB",
-                        "custom_region_name": "",
-                        "custom_email_ids": [{"email_id": ""}],
-                        "custom_mobile_nos": [{"mobno": ""}],
-                        "custom_phone_nos": [{"phone": "97143327999"}],
-                        "email_id": "",
-                        "phone": "",
-                        "fax": "",
-                        "tax_category": "",
-                        "custom_transportation_zone_code": "0000000237",
-                        "custom_transportation_zone_title": "Dubai - 01",
-                        "is_primary_address": "",
-                        "is_shipping_address": "",
-                        "disabled": "",
-                        "is_your_company_address": "",
-                        "display": "",
-                    },
-                ],
-                "contact_list": [
-                    {
-                        "custom_contact_id": "0000049543",
-                        "first_name": "Ramzeer",
-                        "middle_name": "Ramzeer",
-                        "last_name": "Ramzeer",
-                        "full_name": "",
-                        "email_id": "",
-                        "user": "",
-                        "address": "",
-                        "sync_with_google_contacts": "",
-                        "status": "",
-                        "salutation": "",
-                        "designation": "",
-                        "gender": "",
-                        "phone": "",
-                        "mobile_no": "",
-                        "company_name": "",
-                        "image": "",
-                        "google_contacts": "",
-                        "google_contacts_id": "",
-                        "pulled_from_google_contacts": "",
-                        "is_primary_contact": "",
-                        "is_billing_contact": "",
-                        "department": "",
-                        "unsubscribed": "",
-                        "email_ids": [{"is_primary": "", "email_id": ""}],
-                        "phone_nos": [{"phone": "", "is_primary_phone": ""}],
-                        "mobile_nos": [{"mobile": "", "is_primary_mobile_no": ""}],
-                    },
-                ],
+                "name": "Dubai"
             },
-        ],
+            ...
+        ]
     }
-
-
-@frappe.whitelist(methods=["POST"])
-def activate_customer(customer_code, company_code):
     """
-    Check the given Customer Code / Company Code against the SAP customer
-    master. If a match is found, return the matched SAP record (and mark
-    any local Customer Registration with the same codes Active); otherwise
-    report no match.
-    """
+
     try:
-        customer_code = (customer_code or "").strip()
-        company_code = (company_code or "").strip()
+        filters = {}
 
-        if not customer_code or not company_code:
-            frappe.local.response["http_status_code"] = 400
-            return {
-                "status_code": 400,
-                "message": "Customer Code and Company Code are required.",
-                "matched": False,
+        if search:
+            filters = {
+                "name": ["like", f"%{search}%"]
             }
 
-        sap_response = _get_sap_customer_response()
-
-        matched_record = None
-        for record in sap_response.get("data", []):
-            if str(record.get("custom_customer_code")) != customer_code:
-                continue
-            companies = record.get("custom_customer_company", [])
-            if any(str(c.get("company_code")) == company_code for c in companies):
-                matched_record = record
-                break
-
-        if not matched_record:
-            return {
-                "status_code": 404,
-                "message": "No matching customer found in SAP for the given Customer Code and Company Code.",
-                "matched": False,
-            }
-
-        local_name = frappe.db.get_value(
-            "Customer Registration",
-            {
-                "custom_customer_code": customer_code,
-                "custom_company_code": company_code,
-            },
-            "name",
+        data = frappe.db.get_all(
+            "Emirate",
+            filters=filters,
+            fields=["name"],
+            order_by="name asc",
         )
-        if local_name:
-            frappe.db.set_value(
-                "Customer Registration",
-                local_name,
-                "custom_activation_status",
-                "Active",
-            )
-            frappe.db.commit()
 
         return {
             "status_code": 200,
-            "message": "Customer activated successfully.",
-            "matched": True,
-            "data": matched_record,
+            "message": "success",
+            "count": len(data),
+            "data": data,
         }
 
     except Exception:
-        frappe.log_error(frappe.get_traceback(), "Activate Customer Error")
+        frappe.log_error(
+            frappe.get_traceback(),
+            "Get Emirates Error"
+        )
+
         frappe.local.response["http_status_code"] = 500
+
         return {
             "status_code": 500,
             "message": "Internal Server Error. Please contact Administrator.",
-            "matched": False,
+            "count": 0,
+            "data": [],
         }
+
 
 
 
