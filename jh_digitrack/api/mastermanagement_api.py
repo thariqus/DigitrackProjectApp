@@ -505,6 +505,7 @@ def create_customer(**kwargs):
             "emirate_region": kwargs.get("custom_region"),
             "city": kwargs.get("custom_city"),
             "email_id": kwargs.get("email_id"),
+            "site_code": kwargs.get("site_code"),
             "po_box": kwargs.get("po_box"),
             "transportation_zone": kwargs.get("transportation_zone"),
             "customer_group": kwargs.get("customer_group"),
