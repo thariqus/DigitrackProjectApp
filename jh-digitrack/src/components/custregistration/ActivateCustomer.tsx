@@ -34,47 +34,42 @@ function ActivateCustomer() {
   // Activate Customer
   // ---------------------------------------------------------
   const handleActivate = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    try {
-      const result = await activateCustomer({
-        customerCode: customerCode.trim(),
-        companyCode: companyCode.trim(),
-      });
+  try {
+    const result = await activateCustomer({
+      customerCode: customerCode.trim(),
+      companyCode: companyCode.trim(),
+    });
 
-      if (!result.matched) {
-        setErrorModal({
-          open: true,
-          message: result.message,
-        });
+    console.log("Activate Customer Response:", result);
 
-        return;
-      }
-
-      navigate(
-        "/jh-digitrack/customer-registration/sap-response",
-        {
-          state: {
-            customer: {
-              customer_name: result.data?.customer_name,
-            },
-            result,
+    navigate(
+      "/jh-digitrack/customer-registration/sap-response",
+      {
+        state: {
+          customer: {
+            customer_code: customerCode.trim(),
+            company_code: companyCode.trim(),
           },
-        }
-      );
-    } catch (error) {
-      console.error(
-        "Activate Customer Error:",
-        error
-      );
+          result,
+        },
+      }
+    );
 
-      setErrorModal({
-        open: true,
-        message:
-          "Unable to activate customer. Please try again.",
-      });
-    }
-  };
+  } catch (error) {
+    console.error(
+      "Activate Customer Error:",
+      error
+    );
+
+    setErrorModal({
+      open: true,
+      message:
+        "Unable to activate customer. Please try again.",
+    });
+  }
+};
 
   // ---------------------------------------------------------
   // Reset

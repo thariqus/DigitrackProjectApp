@@ -35,7 +35,7 @@ function Header({ title, status }: HeaderProps) {
         {title && <span className="text-sm font-semibold text-gray-700">{title}</span>}
         {status && <span className="text-xs text-gray-500">{status}</span>}
       </div>
-
+    
     </div>
   );
 }

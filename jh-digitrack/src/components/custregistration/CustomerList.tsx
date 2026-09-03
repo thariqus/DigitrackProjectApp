@@ -142,6 +142,9 @@ function CustomerList() {
               {/* 1 */}
               <col className="w-[8%]" />
 
+              {/* Customer Type */}
+              <col className="w-[8%]" />
+
               {/* 2 */}
               <col className="w-[8%]" />
 
@@ -203,6 +206,12 @@ function CustomerList() {
                 {/* Customer Name */}
                 <th className="px-1.5 py-1.5 text-left text-[10px] font-semibold break-words">
                   Customer Name
+                </th>
+
+
+                {/* Customer type */}
+                <th className="px-1.5 py-1.5 text-left text-[10px] font-semibold break-words">
+                  Customer Type
                 </th>
 
 
@@ -340,6 +349,10 @@ function CustomerList() {
                     <td className="px-1.5 py-1.5 text-[10px] break-words">
                       {customer.customer_name}
                     </td>
+
+                    <td className="px-1.5 py-1.5 text-[10px] break-words">
+  {customer.customer_type}
+</td>
 
 
                     {/* =================================================
@@ -516,7 +529,7 @@ function CustomerList() {
                 <tr>
 
                   <td
-                    colSpan={17}
+                    colSpan={18}
                     className="text-center py-5 text-xs text-gray-500"
                   >
                     No customers found.
