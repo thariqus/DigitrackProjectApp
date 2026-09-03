@@ -216,8 +216,6 @@ const FIELDS = [
 
     type: "email",
 
-    required: true,
-
   },
  
   {
