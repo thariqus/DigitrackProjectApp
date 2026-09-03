@@ -742,6 +742,8 @@ function RegisterCustomer() {
   const location = useLocation();
 
   const navigate = useNavigate();
+
+  
  
   const editMode = location.state?.editMode || false;
 
@@ -958,39 +960,30 @@ function RegisterCustomer() {
 
   // =========================================================
  
-  if (editMode) {
+if (editMode) {
+  updateCustomer(form, {
+    onSuccess: () => {
+      setForm(emptyForm);
 
-    updateCustomer(form, {
+      // Show existing saved popup
+      setSuccessModal({
+        open: true,
+        message: "Customer updated successfully.",
+      });
+    },
 
-      onSuccess: () => {
+    onError: (err) => {
+      console.error("UPDATE CUSTOMER ERROR:", err);
 
-        setForm(emptyForm);
- 
-        navigate(
-
-          "/jh-digitrack/customer-registration/register-customer",
-
-          {
-
-            replace: true,
-
-          }
-
-        );
- 
-        setSuccessModal({
-
-          open: true,
-
-          message: "Customer updated successfully.",
-
-        });
-
-      },
-
-    });
-
-  } else {
+      setErrorModal({
+        open: true,
+        message:
+          err?.message ||
+          "Failed to update customer. Please try again.",
+      });
+    },
+  });
+}else {
 
     // =========================================================
 
@@ -1664,18 +1657,17 @@ function RegisterCustomer() {
 
         message={successModal.message}
 
-        onClose={() =>
+       onClose={() => {
+  setSuccessModal({
+    open: false,
+    message: "",
+  });
 
-          setSuccessModal({
-
-            open: false,
-
-            message: "",
-
-          })
-
-        }
-
+  if (editMode) {
+    window.location.href =
+      "/jh-digitrack/customer-registration/customer-list";
+  }
+}}
       />
  
       {/* ===================================== */}
