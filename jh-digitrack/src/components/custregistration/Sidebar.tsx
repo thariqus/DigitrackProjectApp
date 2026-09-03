@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import { LuUserPlus } from "react-icons/lu";
-// import DigitrackLogo from "@/assets/digitrack-logo.png";
-// import JHIcon from "@/assets/jh-logo.png";
+import { IoChevronBack, IoChevronForward } from "react-icons/io5";
 import CashIcon from "@/assets/Jaleel Cash and Carry Logo 1.png"
 import JHlogo from "@/assets/JH.png"
 
@@ -90,7 +89,7 @@ function Sidebar() {
           }}
           onClick={toggleApplicationMenu}
         >
-          {isCollapsed ? "›" : "‹"}
+          {isCollapsed ? <IoChevronForward size={14} /> : <IoChevronBack size={14} />}
         </button>
       </div>
 
