@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import { LuUserPlus } from "react-icons/lu";
-// import DigitrackLogo from "@/assets/digitrack-logo.png";
-// import JHIcon from "@/assets/jh-logo.png";
+import { IoChevronBack, IoChevronForward } from "react-icons/io5";
 import CashIcon from "@/assets/Jaleel Cash and Carry Logo 1.png"
 import JHlogo from "@/assets/JH.png"
 
@@ -11,12 +10,16 @@ const navItems = [
   {
     icon: <LuUserPlus />,
     name: "Register",
-    color: "#972E26",
+    color: "#9A3025",
     subItems: [
-      { name: "Customer Registration", path: "/jh-digitrack/sample/register-customer" },
-      { name: "Activate Customer", path: "/jh-digitrack/sample/activate-customer" },
-      { name: "Customer Search", path: "/jh-digitrack/sample/customer-search" },
-      { name: "Registration List", path: "/jh-digitrack/sample/customer-list" },
+      { name: "Customer Registration", path: "/jh-digitrack/customer-registration/register-customer" },
+      { name: "Activate Customer", path: "/jh-digitrack/customer-registration/activate-customer" },
+      { name: "Customer Search", path: "/jh-digitrack/customer-registration/customer-search" },
+      { name: "Registration List", path: "/jh-digitrack/customer-registration/customer-list" },
+      {
+  name: "Customer with Site code",
+  path: "/jh-digitrack/customer-registration/customer-with-site-code",
+},
     ],
   },
 ];
@@ -86,7 +89,7 @@ function Sidebar() {
           }}
           onClick={toggleApplicationMenu}
         >
-          {isCollapsed ? "›" : "‹"}
+          {isCollapsed ? <IoChevronForward size={14} /> : <IoChevronBack size={14} />}
         </button>
       </div>
 
