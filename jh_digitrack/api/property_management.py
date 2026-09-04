@@ -1,6 +1,7 @@
 import frappe
 from frappe import _
 from frappe.utils import cint, flt
+from jh_digitrack.api.helpers.email import send_notification_email
 
 ROLE_PRIORITY = [
     "module_admin",
@@ -972,6 +973,7 @@ def get_property_doc(name: str):
     ctx = _get_property_user_context()
     user = ctx["user"]
 
+    
     has_full_access = (
         ctx["is_admin"] or ctx["is_md"] or ctx["is_cfo"]
         or ctx["is_admin_hod"] or ctx["is_fc"]
@@ -1519,19 +1521,17 @@ def notify_md(renewal):
         frappe.logger().warning("MD user not set. Skipping email.")
         return
 
-    try:
-        frappe.sendmail(
-            recipients=[settings.md_user],
-            subject="Rental Renewal Approved (No MD Approval Required)",
-            message=f"""
-            Dear Sir,<br><br>
-            Rental Renewal <b>{frappe.utils.escape_html(renewal.name)}</b> has been approved by CFO.<br>
-            Rent change is ≤ 5%, so MD approval is not required.<br>
-            This is for your information.
-            """
-        )
-    except Exception as e:
-        frappe.logger().error(f"Failed to send MD notification: {str(e)}")
+    send_notification_email(
+        source_document="Property MD FYI Notification",
+        recipients=[settings.md_user],
+        subject="Rental Renewal Approved (No MD Approval Required)",
+        message=f"""
+        Dear Sir,<br><br>
+        Rental Renewal <b>{frappe.utils.escape_html(renewal.name)}</b> has been approved by CFO.<br>
+        Rent change is ≤ 5%, so MD approval is not required.<br>
+        This is for your information.
+        """
+    )
 
 
 def _notify_renewal_completed(renewal):
@@ -1556,15 +1556,12 @@ def _notify_renewal_completed(renewal):
         context={"renewal": renewal, "property_name": property_name},
     )
 
-    try:
-        frappe.sendmail(
-            expose_recipients="header",
-            recipients=recipients,
-            subject=f"Property Renewed - {property_name} ({renewal.name})",
-            message=message,
-        )
-    except Exception:
-        frappe.logger().error(frappe.get_traceback())
+    send_notification_email(
+        source_document="Property Renewal Completed Notification",
+        recipients=recipients,
+        subject=f"Property Renewed - {property_name} ({renewal.name})",
+        message=message,
+    )
 
 
 def _notify_step_assignee(renewal, action, actor):
@@ -1606,15 +1603,12 @@ def _notify_step_assignee(renewal, action, actor):
         },
     )
 
-    try:
-        frappe.sendmail(
-            expose_recipients="header",
-            recipients=recipients,
-            subject=subject,
-            message=message,
-        )
-    except Exception:
-        frappe.logger().error(frappe.get_traceback())
+    send_notification_email(
+        source_document="Property Workflow Next Step Notification",
+        recipients=recipients,
+        subject=subject,
+        message=message,
+    )
 
 
 def update_property_master_renewal_date(renewal):

@@ -2,6 +2,8 @@ import frappe
 from frappe import _
 from frappe.utils import getdate, today
 
+from jh_digitrack.api.helpers.email import send_notification_email
+
 
 def resolve_effective_user(delegate: str, delegator: str, document=None) -> bool:
     """
@@ -280,7 +282,8 @@ def _safe_send(fn, *args, **kwargs):
 
 def _send_temporary_created_notification(delegation):
     delegator_name = delegation.delegator_name or delegation.delegator
-    frappe.sendmail(
+    send_notification_email(
+        source_document="Delegation Temporary Created Notification",
         recipients=[delegation.delegate, delegation.delegator],
         subject=_("Delegation Created — Temporary Approval Authority"),
         message=_(
@@ -295,7 +298,8 @@ def _send_temporary_created_notification(delegation):
 
 def _send_permanent_created_notification(delegation):
     delegator_name = delegation.delegator_name or delegation.delegator
-    frappe.sendmail(
+    send_notification_email(
+        source_document="Delegation Permanent Created Notification",
         recipients=[delegation.delegate, delegation.delegator],
         subject=_("Delegation Created — Permanent Approval Authority"),
         message=_(
@@ -308,7 +312,8 @@ def _send_permanent_created_notification(delegation):
 
 def _send_adhoc_created_notification(delegation):
     delegator_name = delegation.delegator_name or delegation.delegator
-    frappe.sendmail(
+    send_notification_email(
+        source_document="Delegation Ad-Hoc Created Notification",
         recipients=[delegation.delegate],
         subject=_("Delegation Created — Document Approval Delegated"),
         message=_(
@@ -334,7 +339,8 @@ def _send_initiator_notification(delegation):
 
     delegator_name = delegation.delegator_name or delegation.delegator
     delegate_name = delegation.delegate_name or delegation.delegate
-    frappe.sendmail(
+    send_notification_email(
+        source_document="Delegation Initiator Notification",
         recipients=[initiator],
         subject=_("Approval Delegated — {0}").format(delegation.reference_name),
         message=_(
@@ -349,7 +355,8 @@ def _send_initiator_notification(delegation):
 
 def _send_permanent_revoked_notification(delegation):
     delegator_name = delegation.delegator_name or delegation.delegator
-    frappe.sendmail(
+    send_notification_email(
+        source_document="Delegation Permanent Revoked Notification",
         recipients=[delegation.delegate, delegation.delegator],
         subject=_("Delegation Revoked — Permanent Authority Removed"),
         message=_(
@@ -362,7 +369,8 @@ def _send_permanent_revoked_notification(delegation):
 
 def _send_adhoc_expired_notification(delegation):
     delegate_name = delegation.delegate_name or delegation.delegate
-    frappe.sendmail(
+    send_notification_email(
+        source_document="Delegation Ad-Hoc Resolved Notification",
         recipients=[delegation.delegator],
         subject=_("Delegation Resolved — {0}").format(delegation.reference_name or ""),
         message=_(
@@ -376,16 +384,14 @@ def _send_adhoc_expired_notification(delegation):
 
 def _send_expiry_notification(delegation):
     """Temporary delegation expired — sent by the daily scheduler job."""
-    try:
-        delegator_name = delegation.delegator_name or delegation.delegator
-        frappe.sendmail(
-            recipients=[delegation.delegator, delegation.delegate],
-            subject=_("Delegation Expired — Authority Reverted"),
-            message=_(
-                "Delegation period has ended. Approvals have reverted to {0}."
-            ).format(
-                frappe.utils.escape_html(delegator_name),
-            ),
-        )
-    except Exception:
-        frappe.logger().error(frappe.get_traceback())
+    delegator_name = delegation.delegator_name or delegation.delegator
+    send_notification_email(
+        source_document="Delegation Expiry Notification",
+        recipients=[delegation.delegator, delegation.delegate],
+        subject=_("Delegation Expired — Authority Reverted"),
+        message=_(
+            "Delegation period has ended. Approvals have reverted to {0}."
+        ).format(
+            frappe.utils.escape_html(delegator_name),
+        ),
+    )
