@@ -24,6 +24,7 @@ import AuditTasksShrink from "./components/tasks/task-table/audit-tasks-shrink";
 import Maintenance from "./components/Maintenance";
 import Dashboard from "./components/dashboard";
 import JRCPermission from "./components/jrc-permission";
+import EmailDashboard from "./components/email";
 import Properties from "./components/PropertyAutomation/Properties";
 import Renewals from "./components/PropertyAutomation/Renewals";
 import PropertyAutomationDashboard from "./components/PropertyAutomation/PropertyAutomationDashboard";
@@ -86,6 +87,7 @@ function AppWrapper() {
                 <Route path="projects" element={<Projects />} />
                 <Route path="idle-assets" element={<Scrapitems />} />
                 <Route path="jrc-permission" element={<JRCPermission />} />
+                <Route path="email" element={<EmailDashboard />} />
                 <Route path="property" element={<PropertyAutomation />} >
                    <Route index element={<Navigate to="dashboard" replace />} />  
                    <Route path="dashboard" element={<PropertyAutomationDashboard/>} />
