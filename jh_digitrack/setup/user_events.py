@@ -20,8 +20,6 @@ def update_password(new_password, logout_all_sessions=0, key=None, old_password=
     )
 
     if frappe.session.user and frappe.session.user != "Guest":
-        frappe.db.set_value(
-            "JH User Master", {"user": frappe.session.user}, "force_password_reset", 0
-        )
+        frappe.db.set_value("User", frappe.session.user, "custom_force_password_reset", 0)
 
     return result
