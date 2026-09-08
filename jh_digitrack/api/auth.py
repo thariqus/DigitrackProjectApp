@@ -37,7 +37,11 @@ def employee_login(employee_id, password):
 
 	if login_manager.force_user_to_reset_password():
 		doc = frappe.get_doc("User", login_manager.user)
-		frappe.local.response["redirect_to"] = doc.reset_password(
+		# Some frappe versions expose this as the private `_reset_password`
+		# instead of the public `reset_password` - support both so this
+		# doesn't break across environments pinned to different versions.
+		reset_password = getattr(doc, "reset_password", None) or doc._reset_password
+		frappe.local.response["redirect_to"] = reset_password(
 			send_email=False, password_expired=True
 		)
 		frappe.local.response["message"] = "Password Reset"
