@@ -26,7 +26,7 @@ import AuditTasksShrink from "./components/tasks/task-table/audit-tasks-shrink";
 import Maintenance from "./components/Maintenance";
 import Dashboard from "./components/dashboard";
 import JRCPermission from "./components/jrc-permission";
-
+import EmailDashboard from "./components/email";
 import Properties from "./components/PropertyAutomation/Properties";
 import Renewals from "./components/PropertyAutomation/Renewals";
 import PropertyAutomationDashboard from "./components/PropertyAutomation/PropertyAutomationDashboard";
@@ -236,146 +236,20 @@ function AppWrapper() {
                   ROOT
               ========================================= */}
 
-              <Route
-                path="/"
-                element={
-                  <Navigate
-                    to="/jh-digitrack/dashboard"
-                    replace
-                  />
-                }
-              />
-
-
-              {/* =========================================
-                  MAIN DIGITRACK LAYOUT
-              ========================================= */}
-
-              <Route
-                path="/jh-digitrack"
-                element={<Layout />}
-              >
-
-                <Route
-                  index
-                  element={<Dashboard />}
-                />
-
-                <Route
-                  path="dashboard"
-                  element={<Dashboard />}
-                />
-
-                <Route
-                  path="tasks"
-                  element={<Tasks />}
-                />
-
-                <Route
-                  path="projects"
-                  element={<Projects />}
-                />
-
-                <Route
-                  path="idle-assets"
-                  element={<Scrapitems />}
-                />
-
-                <Route
-                  path="jrc-permission"
-                  element={<JRCPermission />}
-                />
-
-
-                {/* =====================================
-                    CUSTOMER REGISTRATION
-                ===================================== */}
-
-                <Route
-                  path="customer-registration"
-                  element={<SampleShell />}
-                >
-
-                  <Route
-                    index
-                    element={
-                      <Navigate
-                        to="register-customer"
-                        replace
-                      />
-                    }
-                  />
-
-                  <Route
-                    path="register-customer"
-                    element={<RegisterCustomer />}
-                  />
-
-                  <Route
-                    path="activate-customer"
-                    element={<ActivateCustomer />}
-                  />
-
-                  <Route
-                    path="customer-search"
-                    element={<CustomerSearch />}
-                  />
-
-                  <Route
-                    path="customer-list"
-                    element={<CustomerList />}
-                  />
-
-                  <Route
-                    path="sap-response"
-                    element={<SapResponse />}
-                  />
-
-                  <Route
-                    path="customer-with-site-code"
-                    element={<CustomerWithsite />}
-                  />
-
-                </Route>
-                {/* END CUSTOMER REGISTRATION */}
-
-
-                {/* =====================================
-                    PROPERTY AUTOMATION
-                ===================================== */}
-
-                <Route
-                  path="property"
-                  element={<PropertyAutomation />}
-                >
-
-                  <Route
-                    index
-                    element={
-                      <Navigate
-                        to="dashboard"
-                        replace
-                      />
-                    }
-                  />
-
-                  <Route
-                    path="dashboard"
-                    element={
-                      <PropertyAutomationDashboard />
-                    }
-                  />
-
-                  <Route
-                    path="properties"
-                    element={<Properties />}
-                  />
-
-                  <Route
-                    path="renewals"
-                    element={<Renewals />}
-                  />
-
+              <Route path="/" element={<Navigate to="/jh-digitrack/dashboard" replace />} />
+              <Route path="/jh-digitrack" element={<Layout />}>
+                <Route index element={<Dashboard />} />
+                <Route path="dashboard" element={<Dashboard />} />
+                <Route path="tasks" element={<Tasks />} />
+                <Route path="projects" element={<Projects />} />
+                <Route path="idle-assets" element={<Scrapitems />} />
+                <Route path="jrc-permission" element={<JRCPermission />} />
+                <Route path="email" element={<EmailDashboard />} />
+                <Route path="property" element={<PropertyAutomation />} >
+                   <Route index element={<Navigate to="dashboard" replace />} />  
+                   <Route path="dashboard" element={<PropertyAutomationDashboard/>} />
+                   <Route path="properties" element={<Properties />} />
+                   <Route path="renewals" element={<Renewals/>} />
                 </Route>
                 {/* END PROPERTY AUTOMATION */}
 

@@ -7,6 +7,7 @@ import json
 import frappe
 from werkzeug.wrappers import Response
 from .helpers.email_html import generate_task_reminder_email
+from .helpers.email import send_notification_email
 from frappe.utils import cint
 import io
 from .helpers.wrap_text import wrap_text
@@ -140,18 +141,22 @@ def remind(task_id: str):
     task = task_list[0]
 
     if should_send_email(task.reminded_at) and should_send_email(task.escalated_at):
-        frappe.sendmail(
-            expose_recipients="header",
+        sent = send_notification_email(
+            source_document="JH Task Master",
             recipients=[task.assigned_to_email],
             cc=[task.creator_email],
             subject=f"DigiTrack : Reminder - {task.name} ",
             message=generate_task_reminder_email(
-                tasks=[task], 
-                type="reminder", 
-                initiator_name=current_jh_user.full_name, 
+                tasks=[task],
+                type="reminder",
+                initiator_name=current_jh_user.full_name,
                 recipient_name=task.assigned_to_name
             ),
         )
+        if not sent:
+            return Response(
+                response=json.dumps({"message": "Failed to send reminder email."}), status=500
+            )
     else:
         return Response(
             response=json.dumps({"message": "Email already sent today."}), status=400
@@ -199,8 +204,8 @@ def escalate(task_id: str):
     )
 
     if should_send_email(task.reminded_at) and should_send_email(task.escalated_at):
-        frappe.sendmail(
-            expose_recipients="header",
+        sent = send_notification_email(
+            source_document="JH Task Master",
             recipients=[task.assigned_to_email],
             cc=[task.creator_email, reporting_manager_email],
             subject=f"DigiTrack : Escalation - {task.name} ",
@@ -211,6 +216,10 @@ def escalate(task_id: str):
                 recipient_name=task.assigned_to_name,
             ),
         )
+        if not sent:
+            return Response(
+                response=json.dumps({"message": "Failed to send escalation email."}), status=500
+            )
     else:
         return Response(
             response=json.dumps({"message": "Email already sent today."}), status=400
@@ -253,10 +262,9 @@ def email_me(task_id: str):
     task = task_list[0]
 
     if should_send_email(task.email_me_at):
-        frappe.sendmail(
-            expose_recipients="header",
+        sent = send_notification_email(
+            source_document="JH Task Master",
             recipients=[current_jh_user.email],
-            # cc=[],
             subject=f"DigiTrack : Email Me - {task.name} ",
             message=generate_task_reminder_email(
                 tasks=[task],
@@ -265,6 +273,10 @@ def email_me(task_id: str):
                 recipient_name=current_jh_user.full_name,
             ),
         )
+        if not sent:
+            return Response(
+                response=json.dumps({"message": "Failed to send email."}), status=500
+            )
     else:
         return Response(
             response=json.dumps({"message": "Email already sent today."}), status=400
@@ -773,10 +785,11 @@ def remind_all_by_source(source_id: str):
     for assignee, assignee_tasks in tasks_by_assignee.items():
         if assignee_tasks:
             tasks = assignee_tasks.get("open", [])
+            sent = True
 
             if len(tasks) > 0:
-                frappe.sendmail(
-                    expose_recipients="header",
+                sent = send_notification_email(
+                    source_document="JH Task Master",
                     recipients=[tasks[0].assigned_to_email],
                     cc=[tasks[0].creator_email],
                     subject=f"DigiTrack: Reminder( {source_name} ) - Open / In Progress",
@@ -786,6 +799,9 @@ def remind_all_by_source(source_id: str):
                         initiator_name=initiator_name,
                         recipient_name=tasks[0].assigned_to_name),
                 )
+
+            if not sent:
+                continue
 
             for task in tasks:
                 try:
@@ -1207,6 +1223,7 @@ def send_emails(send_single_row=False, parent_docname=None, email_row_name=None)
 
         for email in emails_to_send:
             frappe.sendmail(
+                expose_recipients="header",
                 recipients=[email.to],
                 subject=email.subject,
                 message=email.body,

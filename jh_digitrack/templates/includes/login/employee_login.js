@@ -1,15 +1,8 @@
 // employee_login.js
-// Employee ID login tab: authenticates via a custom endpoint that stays
+// Employee ID login: authenticates via a custom endpoint that stays
 // available even when username/password login is disabled site-wide.
-
-function login_get_active_tab() {
-	var $tabs = $(".for-login .login-tabs");
-	if ($tabs.length) {
-		return $tabs.attr("data-active-tab") || "email";
-	}
-	// No tab switcher rendered means Employee ID is the only login option shown.
-	return "employee";
-}
+// Rendered as its own section (no tab switcher) below the email login
+// fields, so it does not touch the shared login button/text.
 
 function login_employee_invalid(message) {
 	$(".login-content.page-card").addClass("invalid-login");
@@ -17,7 +10,8 @@ function login_employee_invalid(message) {
 		$(".login-content.page-card").removeClass("invalid-login");
 	}, 500);
 
-	login.set_status(message, "red");
+	$(".for-login .employee-login-panel").addClass("invalid");
+	$(".for-login .btn-employee-login").text(message);
 	$("#login_employee_password").focus();
 }
 
@@ -29,7 +23,7 @@ function login_handle_employee_submit() {
 		return;
 	}
 
-	login.set_status({{ _("Verifying...") | tojson }}, "blue");
+	$(".for-login .btn-employee-login").text({{ _("Verifying...") | tojson }});
 	frappe.call({
 		type: "POST",
 		method: "jh_digitrack.api.auth.employee_login",
@@ -39,24 +33,19 @@ function login_handle_employee_submit() {
 	});
 }
 
-$(document).on("click", ".for-login .login-tab", function () {
-	var tab = $(this).data("tab");
-	$(".for-login .login-tab").removeClass("active");
-	$(this).addClass("active");
-	$(".for-login .login-tab-panel").addClass("hide");
-	$(".for-login .login-tab-panel[data-tab-panel='" + tab + "']").removeClass("hide");
-	$(".for-login .login-tabs").attr("data-active-tab", tab);
-	$(".login-content.page-card").removeClass("invalid-login");
-	login.set_status({{ _("Login") | tojson }}, "blue");
+$(document).on("click", ".for-login .btn-employee-login", function (event) {
+	event.preventDefault();
+	login_handle_employee_submit();
 });
 
-// Capture phase: runs before login.js's own submit handler so the
-// Employee ID tab can short-circuit the default email/password flow.
-document.querySelectorAll(".for-login form.form-login").forEach(function (form) {
-	form.addEventListener("submit", function (event) {
-		if (login_get_active_tab() !== "employee") return;
+$(document).on("keydown", "#login_employee_id, #login_employee_password", function (event) {
+	if (event.key === "Enter") {
 		event.preventDefault();
-		event.stopImmediatePropagation();
 		login_handle_employee_submit();
-	}, true);
+	}
+});
+
+$(document).on("focus", "#login_employee_id, #login_employee_password", function () {
+	$(".for-login .employee-login-panel").removeClass("invalid");
+	$(".for-login .btn-employee-login").text({{ _("Login") | tojson }});
 });

@@ -5,7 +5,7 @@ import { getTaskStatusCounts } from "@/hooks/task_status_count";
 import { TravelRequestCard } from "./TravelRequestCard";
 import { MeetingCard } from "./MeetingCard";
 import { AuditCard } from "./AuditCard";
-import { ProjectCard } from "./ProjectCard";
+import { EmailCard } from "./EmailCard";
 import { PropertyAutomationCard } from "./PropertyAutomationCard";
 import { usePropertyDashboardCounts } from "@/components/PropertyAutomation/hooks/useProperty";
 
@@ -93,9 +93,9 @@ export const TaskCardGrid = () => {
       node: <AuditCard key="audits" title="Audits" filterKey="dashboard" count={counts.audits?.open ?? 0} />,
     },
     {
-      key: "projects",
+      key: "email",
       total: 0,
-      node: <ProjectCard key="projects" title="Projects" filterKey="dashboard" />,
+      node: <EmailCard key="email" />,
     },
     ...(!propError ? [{
       key: "property",
