@@ -30,7 +30,8 @@
   "user",
   "active",
   "is_admin",
-  "is_head_of_department"
+  "is_head_of_department",
+  "force_password_reset"
  ],
  "fields": [
   {
@@ -165,11 +166,17 @@
   {
    "fieldname": "column_break_txyx",
    "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "force_password_reset",
+   "fieldtype": "Check",
+   "label": "Force Password Reset"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-01-22 15:15:02.824111",
+ "modified": "2026-09-08 14:37:19.312772",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH User Master",
