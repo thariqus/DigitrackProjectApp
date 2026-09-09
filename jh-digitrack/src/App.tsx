@@ -236,147 +236,54 @@ function AppWrapper() {
                   ROOT
               ========================================= */}
 
-              <Route
-                path="/"
-                element={
-                  <Navigate
-                    to="/jh-digitrack/dashboard"
-                    replace
-                  />
-                }
-              />
-
-
-              {/* =========================================
-                  MAIN DIGITRACK LAYOUT
-              ========================================= */}
-
-              <Route
-                path="/jh-digitrack"
-                element={<Layout />}
-              >
-
+              <Route path="/" element={<Navigate to="/jh-digitrack/dashboard" replace />} />
+              <Route path="/jh-digitrack" element={<Layout />}>
+                <Route index element={<Dashboard />} />
+                <Route path="dashboard" element={<Dashboard />} />
+                <Route path="tasks" element={<Tasks />} />
+                <Route path="projects" element={<Projects />} />
+                <Route path="idle-assets" element={<Scrapitems />} />
+                <Route path="jrc-permission" element={<JRCPermission />} />
+                <Route path="email" element={<EmailDashboard />} />
+                <Route path="customer-registration" element={<SampleShell />}>
                 <Route
                   index
-                  element={<Dashboard />}
+                  element={<Navigate to="register-customer" replace />}
                 />
 
                 <Route
-                  path="dashboard"
-                  element={<Dashboard />}
+                  path="register-customer"
+                  element={<RegisterCustomer />}
                 />
 
                 <Route
-                  path="tasks"
-                  element={<Tasks />}
+                  path="activate-customer"
+                  element={<ActivateCustomer />}
                 />
 
                 <Route
-                  path="projects"
-                  element={<Projects />}
+                  path="customer-search"
+                  element={<CustomerSearch />}
                 />
 
                 <Route
-                  path="idle-assets"
-                  element={<Scrapitems />}
+                  path="customer-list"
+                  element={<CustomerList />}
                 />
 
                 <Route
-                  path="jrc-permission"
-                  element={<JRCPermission />}
+                  path="customer-with-site-code"
+                  element={<CustomerWithsite />}
                 />
+              </Route>
 
-
-                {/* =====================================
-                    CUSTOMER REGISTRATION
-                ===================================== */}
-
-                <Route
-                  path="customer-registration"
-                  element={<SampleShell />}
-                >
-
-                  <Route
-                    index
-                    element={
-                      <Navigate
-                        to="register-customer"
-                        replace
-                      />
-                    }
-                  />
-
-                  <Route
-                    path="register-customer"
-                    element={<RegisterCustomer />}
-                  />
-
-                  <Route
-                    path="activate-customer"
-                    element={<ActivateCustomer />}
-                  />
-
-                  <Route
-                    path="customer-search"
-                    element={<CustomerSearch />}
-                  />
-
-                  <Route
-                    path="customer-list"
-                    element={<CustomerList />}
-                  />
-
-                  <Route
-                    path="sap-response"
-                    element={<SapResponse />}
-                  />
-
-                  <Route
-                    path="customer-with-site-code"
-                    element={<CustomerWithsite />}
-                  />
-
+                <Route path="property" element={<PropertyAutomation />}>
+                  <Route index element={<Navigate to="dashboard" replace />} />
+                  <Route path="dashboard" element={<PropertyAutomationDashboard />}/>
+                  <Route path="properties" element={<Properties />} />
+                  <Route path="renewals" element={<Renewals />} />
                 </Route>
-                {/* END CUSTOMER REGISTRATION */}
 
-
-                {/* =====================================
-                    PROPERTY AUTOMATION
-                ===================================== */}
-
-                <Route
-                  path="property"
-                  element={<PropertyAutomation />}
-                >
-
-                  <Route
-                    index
-                    element={
-                      <Navigate
-                        to="dashboard"
-                        replace
-                      />
-                    }
-                  />
-
-                  <Route
-                    path="dashboard"
-                    element={
-                      <PropertyAutomationDashboard />
-                    }
-                  />
-
-                  <Route
-                    path="properties"
-                    element={<Properties />}
-                  />
-
-                  <Route
-                    path="renewals"
-                    element={<Renewals />}
-                  />
-
-                </Route>
                 {/* END PROPERTY AUTOMATION */}
 
 
