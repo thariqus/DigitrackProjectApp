@@ -245,12 +245,45 @@ function AppWrapper() {
                 <Route path="idle-assets" element={<Scrapitems />} />
                 <Route path="jrc-permission" element={<JRCPermission />} />
                 <Route path="email" element={<EmailDashboard />} />
-                <Route path="property" element={<PropertyAutomation />} >
-                   <Route index element={<Navigate to="dashboard" replace />} />  
-                   <Route path="dashboard" element={<PropertyAutomationDashboard/>} />
-                   <Route path="properties" element={<Properties />} />
-                   <Route path="renewals" element={<Renewals/>} />
+                <Route path="customer-registration" element={<SampleShell />}>
+                <Route
+                  index
+                  element={<Navigate to="register-customer" replace />}
+                />
+
+                <Route
+                  path="register-customer"
+                  element={<RegisterCustomer />}
+                />
+
+                <Route
+                  path="activate-customer"
+                  element={<ActivateCustomer />}
+                />
+
+                <Route
+                  path="customer-search"
+                  element={<CustomerSearch />}
+                />
+
+                <Route
+                  path="customer-list"
+                  element={<CustomerList />}
+                />
+
+                <Route
+                  path="customer-with-site-code"
+                  element={<CustomerWithsite />}
+                />
+              </Route>
+
+                <Route path="property" element={<PropertyAutomation />}>
+                  <Route index element={<Navigate to="dashboard" replace />} />
+                  <Route path="dashboard" element={<PropertyAutomationDashboard />}/>
+                  <Route path="properties" element={<Properties />} />
+                  <Route path="renewals" element={<Renewals />} />
                 </Route>
+
                 {/* END PROPERTY AUTOMATION */}
 
 

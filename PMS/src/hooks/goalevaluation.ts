@@ -11,6 +11,19 @@ export interface GoalAssessment {
   grade?: string;
   status: string;
   total_score?: number;
+  rating?: number;
+  comment?: string;
+  eligible_for_increment?: number;
+  training_requirement_identified?: number;
+  eligible_for_promotion?: number;
+  attachments?: GoalDocumentAttachment[];
+}
+
+export interface GoalDocumentAttachment {
+  row_name?: string;
+  file_name: string;
+  file_url: string;
+  document_type?: string;
 }
 
 export interface GoalDetail {
@@ -283,5 +296,41 @@ export function useDeleteGoalAttachment() {
   };
 
   return { deleteGoalAttachment, loading };
+}
+
+/* ─────────────────────────────────────────────── */
+/*    Add Goal Document (table_mwyo child table)    */
+/* ─────────────────────────────────────────────── */
+export function useAddGoalDocument() {
+  const [loading, setLoading] = useState(false);
+
+  const addGoalDocument = async (
+    employeeCode: string,
+    year: string,
+    fileUrl: string,
+    documentType?: string
+  ) => {
+    try {
+      setLoading(true);
+
+      const res = await frappeClient.api.post(
+        "jh_digitrack.api.goal_evaluation.add_goal_document",
+        {
+          employee_code: employeeCode,
+          year,
+          file_url: fileUrl,
+          document_type: documentType || "",
+        }
+      );
+
+      return res.message || {};
+    } catch (error: any) {
+      return { error: error.message };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { addGoalDocument, loading };
 }
 

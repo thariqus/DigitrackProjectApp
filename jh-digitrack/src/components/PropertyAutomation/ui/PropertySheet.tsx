@@ -302,7 +302,7 @@ export default function PropertySheet({
   },
   !!propertyId
 );
-const renewalsData = renewalsListData?.renewals ?? [];
+  const renewalsData = renewalsListData?.renewals ?? [];
   const { data: chequeTypes = [] } = useChequeTypes();
   const { data: propertyTypeOptions = [] } = usePropertyTypes();
   const { data: leaseTypeOptions = [] } = useLeaseTypeOptions();
@@ -322,6 +322,7 @@ const renewalsData = renewalsListData?.renewals ?? [];
     !isCreate &&
     !!activeRenewal &&
     activeRenewal.workflow_state !== "Draft" &&
+    activeRenewal.workflow_state !== "Withdrawn" &&
     activeRenewal.workflow_state !== "Completed";
 
   const { data: propertyDivisionsData, refetch: refetchPropertyDivisions } = usePropertyDivisions();
@@ -730,7 +731,9 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
         {isView ? (
           <div className="flex items-start gap-2 py-1 text-sm">
             <span className="font-medium text-gray-600">{label}:</span>
-            <span>{value !== undefined && value !== null && value !== "" ? value : "-"}</span>
+            <span className={type === "textarea" ? "whitespace-pre-wrap" : ""}>
+              {value !== undefined && value !== null && value !== "" ? value : "-"}
+            </span>
           </div>
         ) : (
           <Controller
@@ -1888,7 +1891,7 @@ const resetSheetState = useCallback((values: PropertyFormValues = getEmptyProper
                 {isView ? (
                   <div className="flex items-center gap-2 py-1 text-sm">
                     <span className="font-medium text-gray-600">Property Status:</span>
-                    <span>{doc?.property_status || "-"}</span>
+                    <span>{activeRenewal?.workflow_state === "Withdrawn" && doc?.property_status === "Active" ? "Withdrawn" : doc?.property_status || "-"}</span>
                   </div>
                 ) : (
                   <Controller
