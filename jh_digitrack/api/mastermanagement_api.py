@@ -46,9 +46,9 @@ def create_sap_customer(data):
             json=payload,
             headers={
                 "Content-Type": "application/json",
-                "username": "JHPIPODEV",
-                "password": "Jhpod!nt@1972#"
+                "Accept": "application/json"
             },
+            auth=("JHPIPODEV", "Jhpod!nt@1972#"),
             timeout=30
         )
 
