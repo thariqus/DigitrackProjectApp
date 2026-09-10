@@ -112,6 +112,8 @@ def send_customer_activation_to_sap(customer_code, company_code):
             json=payload,
             headers={
                 "Content-Type": "application/json"
+                "Username": "JHPIPODEV",
+                "PWD": "Jhpod!nt@1972#"
             },
             timeout=30,
         )
@@ -186,7 +188,9 @@ def send_customer_details_to_sap(customer):
             SAP_CUSTOMER_DETAILS_URL,
             json=payload,
             headers={
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
+                "Username": "JHPIPODEV",
+                "PWD": "Jhpod!nt@1972#"
             },
             timeout=30,
         )
