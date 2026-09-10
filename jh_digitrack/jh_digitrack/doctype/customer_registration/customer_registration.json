@@ -15,6 +15,7 @@
   "street",
   "area",
   "site_code",
+  "customer_details",
   "column_break_ukbc",
   "emirate_region",
   "city",
@@ -124,12 +125,17 @@
    "fieldtype": "Select",
    "label": "Customer Type",
    "options": "B2B\nB2C"
+  },
+  {
+   "fieldname": "customer_details",
+   "fieldtype": "Text Editor",
+   "label": "Customer Details"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-09-03 12:32:51.256391",
+ "modified": "2026-09-10 16:26:26.299764",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "Customer Registration",

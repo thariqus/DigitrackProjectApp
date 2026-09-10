@@ -768,6 +768,11 @@ function RegisterCustomer() {
     message: "",
 
   });
+
+  // Store the actual SAP response returned for the customer.
+  // The response can vary between customers, so it is rendered dynamically.
+  const [sapResponse, setSapResponse] = useState<unknown | null>(null);
+
  
   // =========================================================
 
@@ -834,7 +839,9 @@ function RegisterCustomer() {
       sales_office: customer.sales_office || "",
     });
 
-    resetCreateCustomer();
+    
+    setSapResponse(null);
+resetCreateCustomer();
   }
 }, [editMode, customer, resetCreateCustomer]);
  
@@ -992,19 +999,25 @@ if (editMode) {
     createCustomer(form, {
 
       onSuccess: (res) => {
+        console.log("SAP Response:", res);
 
-        console.log("Sap Response:",res.sap_response);
+        // Keep the actual SAP response for the response viewer.
+        // Support the common response wrapper levels used by the API.
+        const actualSapResponse =
+          res?.sap_response ??
+          res?.message?.sap_response ??
+          res?.data?.sap_response ??
+          res?.data?.message?.sap_response ??
+          res;
+
+        setSapResponse(actualSapResponse);
 
         setForm(emptyForm);
- 
+
         setSuccessModal({
-
           open: true,
-
-          message: "Customer created successfully.",
-
+          message: "Customer created successfully" 
         });
-
       },
 
     });
@@ -1527,43 +1540,32 @@ if (editMode) {
                 className="mt-3"
 >
  
-                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-50 border border-green-100 text-green-600 text-[11px]">
- 
-                  <LuCircleCheckBig className="flex-shrink-0" />
- 
-                  Customer details saved and ready to save next customer.
- 
+                {sapResponse && (
+                  <div className="mt-2 bg-white rounded-lg border border-gray-200 overflow-hidden">
+
+                  <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100 bg-gray-50">
+
+                    <span className="text-[10px] font-semibold text-gray-600 uppercase tracking-wide">
+                      SAP Response
+                    </span>
+
+                    <span className="text-[9px] text-gray-400">
+                      Scroll to view full response
+                    </span>
+
+                  </div>
+
+                  <div className="max-h-64 overflow-y-auto overflow-x-auto p-3">
+                    <pre className="text-[10px] leading-5 text-gray-700 font-mono whitespace-pre-wrap break-words">
+                      {JSON.stringify(sapResponse, null, 2)}
+                    </pre>
+                  </div>
+
                 </div>
  
-                {/* TODO: static example payload until the real SAP sync call is wired into create_customer. */}
- 
-                <div className="mt-2 bg-white rounded-lg border border-gray-200 p-3">
- 
-                  <pre className="text-[11px] text-gray-700 font-mono whitespace-pre">
- 
-                    {JSON.stringify(
+                                )}
 
-                      {
-
-                        status: "success",
-
-                        "Customer code": 400,
-
-                        Details: [],
-
-                      },
-
-                      null,
-
-                      2
-
-                    )}
- 
-                  </pre>
- 
-                </div>
- 
-              </motion.div>
+</motion.div>
 
             )}
  
@@ -1622,7 +1624,10 @@ if (editMode) {
 
               type="button"
 
-              onClick={() => setForm(emptyForm)}
+              onClick={() => {
+                setForm(emptyForm);
+                setSapResponse(null);
+              }}
 
               className="flex items-center gap-1.5 border border-gray-200 text-gray-600 px-4 py-2 rounded-lg text-xs font-medium hover:bg-gray-50 hover:border-gray-300 transition-all duration-200"
 >

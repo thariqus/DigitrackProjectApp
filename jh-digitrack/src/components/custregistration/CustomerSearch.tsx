@@ -2,20 +2,35 @@ import { useEffect, useState } from "react";
 import { useOutletContext } from "react-router";
 import { IoSearchOutline } from "react-icons/io5";
 
-import { getCustomerList } from "../PropertyAutomation/api/CustomerApi";
-
-const PAGE_SIZE = 20;
-
 function CustomerSearch() {
   const outletContext = useOutletContext() ?? {};
 
   const setHeaderConfig =
     outletContext.setHeaderConfig ?? (() => {});
 
-  const [search, setSearch] = useState("");
-  const [customer, setCustomer] = useState(null);
+  // =========================================================
+  // FORM STATE
+  // =========================================================
+
+  const [form, setForm] = useState({
+    customerName: "",
+    customercode: "",
+    trNumber: "",
+    tradeLicense: "",
+  });
+
+  // =========================================================
+  // SEARCH STATE
+  // =========================================================
+
+  const [sapResponse, setSapResponse] = useState<any>(null);
   const [searched, setSearched] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  // =========================================================
+  // HEADER
+  // =========================================================
 
   useEffect(() => {
     setHeaderConfig({
@@ -23,57 +38,190 @@ function CustomerSearch() {
     });
   }, [setHeaderConfig]);
 
-
   // =========================================================
-  // SEARCH CUSTOMER
+  // SEARCH CUSTOMER IN SAP
   // =========================================================
 
-  const handleSearch = async (e) => {
+  const handleSearch = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    const searchValue = search.trim();
+    // Clear previous result
+    setSearched(false);
+    setSapResponse(null);
+    setError("");
 
-    if (!searchValue) {
-      setCustomer(null);
-      setSearched(false);
+    // =======================================================
+    // GET SEARCH VALUES
+    // =======================================================
+
+    const customerName = form.customerName.trim();
+    const customercode = form.customercode.trim();
+    const trNumber = form.trNumber.trim();
+    const tradeLicense = form.tradeLicense.trim();
+
+    // =======================================================
+    // VALIDATE
+    // At least one field must be entered
+    // =======================================================
+
+    if (
+      !customerName &&
+      !customercode &&
+      !trNumber &&
+      !tradeLicense
+    ) {
+      setError(
+        "Please enter Customer Name, Customer Code, TR Number, or Trade License."
+      );
+
+      setSearched(true);
       return;
     }
 
     try {
       setLoading(true);
-      setCustomer(null);
-      setSearched(false);
 
-      // Get customer from your existing Frappe API
-      const result = await getCustomerList(
-        1,
-        PAGE_SIZE,
-        searchValue
+      // =====================================================
+      // CALL EXISTING FRAPPE API
+      // =====================================================
+
+      const response = await fetch(
+        "/api/method/jh_digitrack.api.mastermanagement_api.search_sap_customer",
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type": "application/json",
+          },
+
+          credentials: "include",
+
+          // =================================================
+          // SEND ALL FOUR VALUES
+          // Empty values will be sent as ""
+          // =================================================
+
+          body: JSON.stringify({
+            customerName,
+            customercode,
+            trNumber,
+            tradeLicense,
+          }),
+        }
       );
 
-      const customers = result?.data || [];
+      // =====================================================
+      // READ FRAPPE RESPONSE
+      // =====================================================
 
-      // Backend already performs the search.
-      // Take the first matching customer.
-      const foundCustomer =
-        customers.length > 0
-          ? customers[0]
-          : null;
+      const result = await response.json();
 
-      setCustomer(foundCustomer);
+      console.log("Frappe Response:", result);
+
+      // Frappe normally puts the returned Python object
+      // inside "message"
+      const sapResult = result?.message ?? result;
+
+      console.log("SAP Result:", sapResult);
+
+      // =====================================================
+      // HTTP / FRAPPE ERROR
+      // =====================================================
+
+      if (!response.ok) {
+        throw new Error(
+          result?.exception ||
+            result?.message?.message ||
+            result?.message ||
+            `SAP customer search failed (HTTP ${response.status})`
+        );
+      }
+
+      // =====================================================
+      // GET SAP DATA
+      //
+      // Backend response:
+      //
+      // {
+      //   success: true,
+      //   status_code: 200,
+      //   data: {
+      //     status: "Success",
+      //     "Customer code": "400",
+      //     "Details": [...]
+      //   }
+      // }
+      // =====================================================
+
+      const sapData = sapResult?.data ?? sapResult;
+
+      console.log("SAP Data:", sapData);
+
+      // =====================================================
+      // SAP FAILURE
+      //
+      // {
+      //   "status": "FAILED",
+      //   "errorCode": "400",
+      //   "message": "Customer not found"
+      // }
+      // =====================================================
+
+      if (
+        sapResult?.success === false ||
+        sapData?.status?.toUpperCase?.() === "FAILED"
+      ) {
+        const failureMessage =
+          sapData?.message ||
+          sapResult?.message ||
+          "Customer was not found in SAP.";
+
+        setError(failureMessage);
+        setSapResponse(null);
+        setSearched(true);
+
+        return;
+      }
+
+      // =====================================================
+      // SAP SUCCESS
+      //
+      // {
+      //   "status": "Success",
+      //   "Customer code": "400",
+      //   "Details": [...]
+      // }
+      // =====================================================
+
+      if (
+        sapData?.status?.toLowerCase?.() === "success"
+      ) {
+        setSapResponse(sapData);
+        setSearched(true);
+
+        return;
+      }
+
+      // =====================================================
+      // UNKNOWN RESPONSE
+      // =====================================================
+
+      setSapResponse(sapData);
       setSearched(true);
 
-      // =====================================================
-      // SEND FOUND CUSTOMER DATA TO SAP
-      // =====================================================
-
-    } catch (error) {
+    } catch (searchError: any) {
       console.error(
-        "Error searching/sending customer:",
-        error
+        "SAP customer search error:",
+        searchError
       );
 
-      setCustomer(null);
+      setSapResponse(null);
+
+      setError(
+        searchError?.message ||
+          "Unable to search customer in SAP."
+      );
+
       setSearched(true);
 
     } finally {
@@ -81,16 +229,26 @@ function CustomerSearch() {
     }
   };
 
-
   // =========================================================
   // CLEAR SEARCH
   // =========================================================
 
   const handleClear = () => {
-    setSearch("");
-    setCustomer(null);
+    setForm({
+      customerName: "",
+      customercode: "",
+      trNumber: "",
+      tradeLicense: "",
+    });
+
+    setSapResponse(null);
     setSearched(false);
+    setError("");
   };
+
+  // =========================================================
+  // RETURN
+  // =========================================================
 
   return (
     <div className="w-full h-full min-h-[calc(100vh-100px)] flex flex-col">
@@ -123,304 +281,511 @@ function CustomerSearch() {
 
         <form
           onSubmit={handleSearch}
-          className="w-full max-w-[700px]"
+          className="w-full max-w-[900px]"
         >
 
-          {/* =================================================
-              SEARCH BAR
-          ================================================= */}
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
 
-          <div
-            className="
-              w-full
-              h-14
-              flex
-              items-center
-              rounded-full
-              border
-              border-gray-300
-              bg-white
-              shadow-sm
-              hover:shadow-md
-              focus-within:shadow-md
-              transition-shadow
-            "
-          >
+            {/* =================================================
+                FOUR SEARCH FIELDS
+            ================================================= */}
 
-            <IoSearchOutline
-              className="
-                ml-5
-                text-gray-500
-                text-xl
-                flex-shrink-0
-              "
-            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setCustomer(null);
-                setSearched(false);
-              }}
-              placeholder="Search customer by any field"
-              className="
-                flex-1
-                h-full
-                px-4
-                text-sm
-                text-gray-700
-                outline-none
-                bg-transparent
-              "
-            />
+              {/* =============================================
+                  CUSTOMER NAME
+              ============================================= */}
 
-            {search && (
+              <div>
+
+                <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                  Customer Name
+                </label>
+
+                <input
+                  type="text"
+                  value={form.customerName}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      customerName: e.target.value,
+                    })
+                  }
+                  placeholder="ABC Trading"
+                  className="
+                    w-full
+                    h-12
+                    px-4
+                    rounded-lg
+                    border
+                    border-gray-300
+                    bg-white
+                    text-sm
+                    text-gray-700
+                    outline-none
+                    focus:border-[#BD272C]
+                    focus:ring-1
+                    focus:ring-[#BD272C]
+                  "
+                />
+
+              </div>
+
+              {/* =============================================
+                  CUSTOMER CODE
+              ============================================= */}
+
+              <div>
+
+                <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                  Customer Code
+                </label>
+
+                <input
+                  type="text"
+                  value={form.customercode}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      customercode: e.target.value,
+                    })
+                  }
+                  placeholder="Customer code"
+                  className="
+                    w-full
+                    h-12
+                    px-4
+                    rounded-lg
+                    border
+                    border-gray-300
+                    bg-white
+                    text-sm
+                    text-gray-700
+                    outline-none
+                    focus:border-[#BD272C]
+                    focus:ring-1
+                    focus:ring-[#BD272C]
+                  "
+                />
+
+              </div>
+
+              {/* =============================================
+                  TR NUMBER
+              ============================================= */}
+
+              <div>
+
+                <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                  TR Number
+                </label>
+
+                <input
+                  type="text"
+                  value={form.trNumber}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      trNumber: e.target.value,
+                    })
+                  }
+                  placeholder="100001234500003"
+                  className="
+                    w-full
+                    h-12
+                    px-4
+                    rounded-lg
+                    border
+                    border-gray-300
+                    bg-white
+                    text-sm
+                    text-gray-700
+                    outline-none
+                    focus:border-[#BD272C]
+                    focus:ring-1
+                    focus:ring-[#BD272C]
+                  "
+                />
+
+              </div>
+
+              {/* =============================================
+                  TRADE LICENSE
+              ============================================= */}
+
+              <div>
+
+                <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                  Trade License
+                </label>
+
+                <input
+                  type="text"
+                  value={form.tradeLicense}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      tradeLicense: e.target.value,
+                    })
+                  }
+                  placeholder="TL123456"
+                  className="
+                    w-full
+                    h-12
+                    px-4
+                    rounded-lg
+                    border
+                    border-gray-300
+                    bg-white
+                    text-sm
+                    text-gray-700
+                    outline-none
+                    focus:border-[#BD272C]
+                    focus:ring-1
+                    focus:ring-[#BD272C]
+                  "
+                />
+
+              </div>
+
+            </div>
+
+            {/* =================================================
+                BUTTONS
+            ================================================= */}
+
+            <div className="flex justify-center gap-3 mt-6">
+
+              {/* SEARCH */}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="
+                  px-6
+                  py-2.5
+                  bg-[#BD272C]
+                  hover:bg-[#9f2025]
+                  text-white
+                  rounded-lg
+                  text-sm
+                  font-medium
+                  transition
+                  disabled:opacity-50
+                  disabled:cursor-not-allowed
+                "
+              >
+
+                {loading
+                  ? "Searching SAP..."
+                  : "Customer Search"}
+
+              </button>
+
+              {/* CLEAR */}
+
               <button
                 type="button"
                 onClick={handleClear}
+                disabled={loading}
                 className="
-                  mr-3
-                  w-8
-                  h-8
-                  rounded-full
-                  text-gray-400
-                  hover:bg-gray-100
-                  hover:text-gray-600
-                  text-xl
+                  px-6
+                  py-2.5
+                  bg-gray-100
+                  hover:bg-gray-200
+                  border
+                  border-gray-200
+                  rounded-lg
+                  text-sm
+                  text-gray-700
+                  transition
+                  disabled:opacity-50
+                  disabled:cursor-not-allowed
                 "
               >
-                ×
+                Clear
               </button>
-            )}
 
-          </div>
-
-          {/* =================================================
-              SEARCH BUTTON
-          ================================================= */}
-
-          <div className="flex justify-center gap-3 mt-7">
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="
-                px-5
-                py-2.5
-                bg-gray-100
-                hover:bg-gray-200
-                border
-                border-gray-200
-                rounded-md
-                text-sm
-                text-gray-700
-                transition
-                disabled:opacity-50
-              "
-            >
-              {loading
-                ? "Searching..."
-                : "Customer Search"}
-            </button>
+            </div>
 
           </div>
 
         </form>
 
         {/* ===================================================
-            CUSTOMER RESULT
+            SAP CUSTOMER RESULT
         =================================================== */}
 
         {searched && (
-          <div className="w-full mt-8 mb-6">
 
-            {customer ? (
+          <div className="w-full max-w-[1000px] mt-8 mb-6">
 
-              <div
-                className="
-                  w-full
-                  bg-white
-                  rounded-xl
-                  border
-                  border-gray-200
-                  shadow-md
-                  overflow-hidden
-                "
-              >
+            {/* =================================================
+                FAILURE
+            ================================================= */}
 
-                {/* =========================================
-                    RESULT HEADER
-                ========================================= */}
+            {error ? (
 
-                <div className="bg-[#BD272C] px-4 py-2">
+              <div className="bg-red-50 border border-red-200 rounded-xl p-5">
 
-                  <h2 className="text-sm font-semibold text-white">
-                    Customer Details
-                  </h2>
+                <div className="flex items-start gap-3">
+
+                  <div className="flex-1">
+
+                    <p className="text-sm font-semibold text-red-600">
+                      Customer Search Failed
+                    </p>
+
+                    <p className="text-sm text-red-500 mt-1">
+                      {error}
+                    </p>
+
+                  </div>
 
                 </div>
 
-                {/* =========================================
-                    TABLE
-                ========================================= */}
+              </div>
 
-                <div className="w-full overflow-x-auto">
+            ) : sapResponse ? (
 
-                  <table
-                    className="
-                      w-full
-                      table-auto
-                      whitespace-nowrap
-                    "
-                  >
+              /* =================================================
+                 SUCCESS
+              ================================================= */
 
-                    {/* =====================================
-                        TABLE HEADER
-                    ===================================== */}
+              <div className="bg-white rounded-xl border border-gray-200 shadow-md overflow-hidden">
 
-                    <thead className="bg-gray-50">
+                {/* =============================================
+                    HEADER
+                ============================================= */}
 
-                      <tr>
+                <div className="bg-[#BD272C] px-5 py-4">
 
-                        <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600">
-                          Customer Name
-                        </th>
+                  <h2 className="text-base font-semibold text-white">
+                    SAP Customer Details
+                  </h2>
 
-                        <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600">
-                          Customer Type
-                        </th>
+                  <p className="text-[11px] text-white/80 mt-1">
+                    Customer details returned from SAP
+                  </p>
 
-                        <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600">
-                          Business Name
-                        </th>
+                </div>
 
-                        <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600">
-                          TR Number
-                        </th>
+                <div className="p-5">
 
-                        <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600">
-                          Trade Licence
-                        </th>
+                  {/* ===========================================
+                      STATUS + CUSTOMER CODE
+                  =========================================== */}
 
-                        <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600">
-                          Street
-                        </th>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
 
-                        <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600">
-                          Area
-                        </th>
+                    {/* STATUS */}
 
-                        <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600">
-                          Emirate
-                        </th>
+                    <div className="border border-gray-200 rounded-lg p-4">
 
-                        <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600">
-                          City
-                        </th>
+                      <p className="text-xs text-gray-500 mb-1">
+                        Status
+                      </p>
 
-                        <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600">
-                          Email
-                        </th>
+                      <p className="text-sm font-semibold text-green-600">
+                        {sapResponse?.status || "Success"}
+                      </p>
 
-                        <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600">
-                          PO Box
-                        </th>
+                    </div>
 
-                        <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600">
-                          Transportation Zone
-                        </th>
+                    {/* CUSTOMER CODE */}
 
-                        <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600">
-                          Customer Group
-                        </th>
+                    <div className="border border-gray-200 rounded-lg p-4">
 
-                        <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600">
-                          Sales District
-                        </th>
+                      <p className="text-xs text-gray-500 mb-1">
+                        Customer Code
+                      </p>
 
-                        <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600">
-                          Sales Office
-                        </th>
+                      <p className="text-sm font-semibold text-gray-800">
 
-                      </tr>
+                        {
+                          sapResponse?.["Customer code"] ??
+                          sapResponse?.["Customer code "] ??
+                          sapResponse?.customerCode ??
+                          "-"
+                        }
 
-                    </thead>
+                      </p>
 
-                    {/* =====================================
-                        TABLE BODY
-                    ===================================== */}
+                    </div>
 
-                    <tbody>
+                  </div>
 
-                      <tr className="border-t hover:bg-gray-50">
+                  {/* ===========================================
+                      DETAILS
+                  =========================================== */}
 
-                        <td className="px-3 py-3 text-xs text-gray-700">
-                          {customer.customer_name || "-"}
-                        </td>
+                  <div>
 
-                        <td className="px-3 py-3 text-xs text-gray-700">
-                          {customer.customer_type || "-"}
-                        </td>
+                    <h3 className="text-sm font-semibold text-gray-700 mb-3">
+                      Customer Details
+                    </h3>
 
-                        <td className="px-3 py-3 text-xs text-gray-700">
-                          {customer.business_name || "-"}
-                        </td>
+                    {Array.isArray(sapResponse?.Details) &&
+                    sapResponse.Details.length > 0 ? (
 
-                        <td className="px-3 py-3 text-xs text-gray-700">
-                          {customer.tr_number || "-"}
-                        </td>
+                      <div className="space-y-4">
 
-                        <td className="px-3 py-3 text-xs text-gray-700">
-                          {customer.trade_licence_number || "-"}
-                        </td>
+                        {sapResponse.Details.map(
+                          (customer: any, index: number) => (
 
-                        <td className="px-3 py-3 text-xs text-gray-700">
-                          {customer.street || "-"}
-                        </td>
+                            <div
+                              key={index}
+                              className="
+                                border
+                                border-gray-200
+                                rounded-lg
+                                overflow-hidden
+                              "
+                            >
 
-                        <td className="px-3 py-3 text-xs text-gray-700">
-                          {customer.area || "-"}
-                        </td>
+                              {/* CUSTOMER NUMBER */}
 
-                        <td className="px-3 py-3 text-xs text-gray-700">
-                          {customer.emirate_region || "-"}
-                        </td>
+                              <div className="
+                                bg-gray-50
+                                px-4
+                                py-2
+                                border-b
+                                border-gray-200
+                              ">
 
-                        <td className="px-3 py-3 text-xs text-gray-700">
-                          {customer.city || "-"}
-                        </td>
+                                <p className="text-xs font-semibold text-gray-600">
+                                  Customer {index + 1}
+                                </p>
 
-                        <td className="px-3 py-3 text-xs text-gray-700">
-                          {customer.email_id || "-"}
-                        </td>
+                              </div>
 
-                        <td className="px-3 py-3 text-xs text-gray-700">
-                          {customer.po_box || "-"}
-                        </td>
+                              {/* CUSTOMER DETAILS */}
 
-                        <td className="px-3 py-3 text-xs text-gray-700">
-                          {customer.transportation_zone || "-"}
-                        </td>
+                              <div className="p-4">
 
-                        <td className="px-3 py-3 text-xs text-gray-700">
-                          {customer.customer_group || "-"}
-                        </td>
+                                <div className="
+                                  grid
+                                  grid-cols-1
+                                  md:grid-cols-2
+                                  gap-4
+                                ">
 
-                        <td className="px-3 py-3 text-xs text-gray-700">
-                          {customer.sales_district || "-"}
-                        </td>
+                                  {Object.entries(customer).map(
+                                    ([key, value]) => (
 
-                        <td className="px-3 py-3 text-xs text-gray-700">
-                          {customer.sales_office || "-"}
-                        </td>
+                                      <div key={key}>
 
-                      </tr>
+                                        <p className="
+                                          text-[11px]
+                                          text-gray-500
+                                          mb-1
+                                        ">
+                                          {key}
+                                        </p>
 
-                    </tbody>
+                                        <p className="
+                                          text-sm
+                                          text-gray-800
+                                          break-words
+                                        ">
 
-                  </table>
+                                          {value === null ||
+                                          value === undefined ||
+                                          value === "" ? (
+                                            "-"
+                                          ) : typeof value === "object" ? (
+                                            JSON.stringify(
+                                              value,
+                                              null,
+                                              2
+                                            )
+                                          ) : (
+                                            String(value)
+                                          )}
+
+                                        </p>
+
+                                      </div>
+
+                                    )
+                                  )}
+
+                                </div>
+
+                              </div>
+
+                            </div>
+
+                          )
+                        )}
+
+                      </div>
+
+                    ) : (
+
+                      <div className="
+                        border
+                        border-gray-200
+                        rounded-lg
+                        p-5
+                        text-center
+                      ">
+
+                        <p className="text-sm text-gray-500">
+                          SAP returned success, but no customer
+                          details were found.
+                        </p>
+
+                      </div>
+
+                    )}
+
+                  </div>
+
+                  {/* ===========================================
+                      RAW SAP RESPONSE
+                  =========================================== */}
+
+                  <details className="mt-5">
+
+                    <summary className="
+                      cursor-pointer
+                      text-xs
+                      font-medium
+                      text-gray-500
+                    ">
+                      View Raw SAP Response
+                    </summary>
+
+                    <div className="
+                      mt-3
+                      max-h-[400px]
+                      overflow-auto
+                      rounded-lg
+                      border
+                      border-gray-200
+                      bg-gray-50
+                      p-4
+                    ">
+
+                      <pre className="
+                        text-xs
+                        leading-5
+                        text-gray-700
+                        font-mono
+                        whitespace-pre-wrap
+                        break-words
+                      ">
+                        {JSON.stringify(
+                          sapResponse,
+                          null,
+                          2
+                        )}
+                      </pre>
+
+                    </div>
+
+                  </details>
 
                 </div>
 
@@ -428,28 +793,22 @@ function CustomerSearch() {
 
             ) : (
 
-              /* ===========================================
-                 NO CUSTOMER FOUND
-                 =========================================== */
+              /* =================================================
+                 NO CUSTOMER
+              ================================================= */
 
-              <div
-                className="
-                  bg-white
-                  border
-                  border-gray-200
-                  rounded-xl
-                  shadow-sm
-                  p-8
-                  text-center
-                "
-              >
+              <div className="
+                bg-white
+                border
+                border-gray-200
+                rounded-xl
+                shadow-sm
+                p-8
+                text-center
+              ">
 
                 <p className="text-sm text-gray-500">
-                  No customer found for
-                </p>
-
-                <p className="text-sm font-semibold text-[#BD272C] mt-1">
-                  {search}
+                  Customer was not found in SAP.
                 </p>
 
               </div>
@@ -457,6 +816,7 @@ function CustomerSearch() {
             )}
 
           </div>
+
         )}
 
       </div>
@@ -464,6 +824,5 @@ function CustomerSearch() {
     </div>
   );
 }
-
 
 export default CustomerSearch;
