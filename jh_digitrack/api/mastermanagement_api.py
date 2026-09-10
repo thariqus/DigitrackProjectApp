@@ -111,7 +111,7 @@ def send_customer_activation_to_sap(customer_code, company_code):
             SAP_CUSTOMER_ACTIVATION_URL,
             json=payload,
             headers={
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
                 "Username": "JHPIPODEV",
                 "PWD": "Jhpod!nt@1972#"
             },
