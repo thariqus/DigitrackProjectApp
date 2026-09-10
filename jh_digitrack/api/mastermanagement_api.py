@@ -80,14 +80,12 @@ def create_sap_customer(data):
         }
 
 
-
 # =========================================================
 # SAP CUSTOMER ACTIVATION
 # =========================================================
 
-SAP_CUSTOMER_ACTIVATION_URL = (
-    "http://devapi.jaleelholdings.com/RESTAdapter/sap/customer/activation"
-)
+SAP_CUSTOMER_ACTIVATION_URL = "http://10.10.10.74:50000/RESTAdapter/sap/customer/activation"
+
 
 
 def send_customer_activation_to_sap(customer_code, company_code):
@@ -112,9 +110,9 @@ def send_customer_activation_to_sap(customer_code, company_code):
             json=payload,
             headers={
                 "Content-Type": "application/json",
-                "username": "JHPIPODEV",
-                "password": "Jhpod!nt@1972#"
+                "Accept": "application/json"
             },
+            auth=("JHPIPODEV", "Jhpod!nt@1972#"),
             timeout=30,
         )
 
@@ -154,66 +152,173 @@ def send_customer_activation_to_sap(customer_code, company_code):
 
 
 
-SAP_CUSTOMER_DETAILS_URL = (
-    "http://devapi.jaleelholdings.com/RESTAdapter/sap/customer/customerdetails"
-)
+@frappe.whitelist()
+def search_sap_customer(
+    customerName=None,
+    customercode=None,
+    trNumber=None,
+    tradeLicense=None
+):
+    """
+    Search customer details from SAP.
 
+    Any one field can be used for searching.
+    Multiple fields can also be provided.
+    """
 
-def send_customer_details_to_sap(customer):
+    sap_url = "http://10.10.10.74:50000/RESTAdapter/sap/customer/customerdetails"
+
+    sap_username = "JHPIPODEV"
+    sap_password = "Jhpod!nt@1972#"
+
+    # Clean input
+    customerName = (customerName or "").strip()
+    customercode = (customercode or "").strip()
+    trNumber = (trNumber or "").strip()
+    tradeLicense = (tradeLicense or "").strip()
+
+    # At least one field is required
+    if not any([
+        customerName,
+        customercode,
+        trNumber,
+        tradeLicense
+    ]):
+        frappe.throw(
+            "Please enter at least one customer detail."
+        )
+
+    # Send all fields to SAP.
+    # Empty fields are ignored by SAP if its API is designed
+    # to treat empty values as no filter.
     payload = {
-        "customer_name": customer.get("customer_name"),
-        "customer_type": customer.get("customer_type"),
-        "business_name": customer.get("business_name"),
-        "tr_number": customer.get("tr_number"),
-        "trade_license_number": customer.get("trade_licence_number"),
-        "street": customer.get("street"),
-        "area": customer.get("area"),
-        "emirate": customer.get("emirate_region"),
-        "city": customer.get("city"),
-        "email": customer.get("email_id"),
-        "po_box": customer.get("po_box"),
-        "transportation_zone": customer.get("transportation_zone"),
-        "customer_group": customer.get("customer_group"),
-        "sales_district": customer.get("sales_district"),
-        "sales_office": customer.get("sales_office"),
+        "customerName": customerName,
+        "customercode": customercode,
+        "trNumber": trNumber,
+        "tradeLicense": tradeLicense,
     }
 
-    print(
-        "the payload of send_customer_details_to_sap*****:",
-        payload
-    )
+    print("======================================")
+    print("SAP CUSTOMER SEARCH")
+    print("PAYLOAD:", payload)
+    print("======================================")
 
     try:
+
         response = requests.post(
-            SAP_CUSTOMER_DETAILS_URL,
+            sap_url,
             json=payload,
             headers={
                 "Content-Type": "application/json",
-                "username": "JHPIPODEV",
-                "password": "Jhpod!nt@1972#"
+                "Accept": "application/json",
             },
+            auth=(sap_username, sap_password),
             timeout=30,
         )
 
-        print(
-            "SAP CUSTOMER DETAILS STATUS*****:",
-            response.status_code
-        )
+        print("SAP STATUS:", response.status_code)
+        print("SAP RESPONSE:", response.text)
 
-        print(
-            "SAP CUSTOMER DETAILS RESPONSE*****:",
-            response.text
-        )
+        # Try to decode SAP response
+        try:
+            sap_response = response.json()
+        except ValueError:
+            sap_response = {
+                "status": "FAILED",
+                "errorCode": str(response.status_code),
+                "message": response.text
+            }
 
-        return response
+        # ---------------------------------------------------------
+        # SAP SUCCESS
+        # ---------------------------------------------------------
 
-    except Exception:
+        if response.ok:
+
+            return {
+                "success": True,
+                "status_code": response.status_code,
+                "data": sap_response
+            }
+
+        # ---------------------------------------------------------
+        # SAP FAILURE
+        # ---------------------------------------------------------
+
+        return {
+            "success": False,
+            "status_code": response.status_code,
+            "data": sap_response
+        }
+
+    except requests.exceptions.Timeout:
+
         frappe.log_error(
             frappe.get_traceback(),
-            "SAP Customer Details Error"
+            "SAP Customer Search Timeout"
         )
 
-        return None
+        return {
+            "success": False,
+            "status_code": 408,
+            "data": {
+                "status": "FAILED",
+                "errorCode": "408",
+                "message": "SAP customer search request timed out."
+            }
+        }
+
+    except requests.exceptions.ConnectionError:
+
+        frappe.log_error(
+            frappe.get_traceback(),
+            "SAP Customer Search Connection Error"
+        )
+
+        return {
+            "success": False,
+            "status_code": 503,
+            "data": {
+                "status": "FAILED",
+                "errorCode": "503",
+                "message": "Unable to connect to SAP customer service."
+            }
+        }
+
+    except requests.exceptions.RequestException as e:
+
+        frappe.log_error(
+            frappe.get_traceback(),
+            "SAP Customer Search Error"
+        )
+
+        return {
+            "success": False,
+            "status_code": 500,
+            "data": {
+                "status": "FAILED",
+                "errorCode": "500",
+                "message": str(e)
+            }
+        }
+
+    except Exception as e:
+
+        frappe.log_error(
+            frappe.get_traceback(),
+            "SAP Customer Search Unexpected Error"
+        )
+
+        return {
+            "success": False,
+            "status_code": 500,
+            "data": {
+                "status": "FAILED",
+                "errorCode": "500",
+                "message": str(e)
+            }
+        }
+
 # =========================================================
 # ACTIVATE CUSTOMER
 # =========================================================
@@ -530,6 +635,26 @@ def create_customer(**kwargs):
 
         sap_response = create_sap_customer(kwargs)
 
+
+        # =====================================================
+        # SAVE SAP RESPONSE
+        # =====================================================
+
+        import json
+
+        doc.db_set(
+            "customer_details",
+            json.dumps(
+                sap_response,
+                indent=2,
+                ensure_ascii=False
+            ),
+            update_modified=True
+        )
+
+        frappe.db.commit()
+
+       
         # =====================================================
         # RETURN RESPONSE
         # =====================================================
@@ -621,6 +746,7 @@ def get_customer_list(page=1, page_size=20, search=None):
                 "customer_group",
                 "sales_district",
                 "sales_office",
+                "customer_details",
             ],
             order_by="creation desc",
             limit_start=offset,
@@ -641,17 +767,9 @@ def get_customer_list(page=1, page_size=20, search=None):
         total = len(all_data)
 
 
-                # =====================================================
-        # SEND FOUND CUSTOMER DETAILS TO SAP
-        # =====================================================
-
-        if data:
-            send_customer_details_to_sap(data[0])
-
         # =====================================================
         # RETURN EXISTING RESPONSE
         # =====================================================
-
 
 
         # ---------------------------------------------------------
@@ -685,7 +803,6 @@ def get_customer_list(page=1, page_size=20, search=None):
             "count": 0,
             "data": [],
         }
-
 
 
 

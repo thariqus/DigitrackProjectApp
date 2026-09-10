@@ -5,6 +5,7 @@ import {
   IoSearchOutline,
   IoChevronBackOutline,
   IoChevronForwardOutline,
+  IoClose,
 } from "react-icons/io5";
 
 import { useGetCustomerList } from "../PropertyAutomation/hooks/useCustomerApi";
@@ -19,6 +20,57 @@ function CustomerList() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
+
+  // SAP response viewer
+  const [sapResponse, setSapResponse] = useState<unknown | null>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState("");
+  const [sapResponseLoading, setSapResponseLoading] = useState(false);
+  const [sapResponseError, setSapResponseError] = useState("");
+
+ const handleSapResponse = (customer) => {
+  if (!customer?.customer_details) {
+    setSelectedCustomer(customer?.customer_name || customer?.name || "");
+    setSapResponse(null);
+    setSapResponseError(
+      "No SAP response has been saved for this customer."
+    );
+    return;
+  }
+
+  setSelectedCustomer(
+    customer.customer_name || customer.name || ""
+  );
+
+  setSapResponseError("");
+
+  let responseValue = customer.customer_details;
+
+  if (typeof responseValue === "string") {
+    const cleanedValue = responseValue
+      .replace(/<pre[^>]*>/i, "")
+      .replace(/<\/pre>/i, "")
+      .replace(/&quot;/g, '"')
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&amp;/g, "&")
+      .trim();
+
+    try {
+      responseValue = JSON.parse(cleanedValue);
+    } catch {
+      responseValue = cleanedValue;
+    }
+  }
+
+  setSapResponse(responseValue);
+};
+
+  const closeSapResponse = () => {
+    setSapResponse(null);
+    setSelectedCustomer("");
+    setSapResponseError("");
+    setSapResponseLoading(false);
+  };
 
   // ---------------------------------------------------------
   // Header
@@ -500,16 +552,7 @@ function CustomerList() {
                     <td className="px-1.5 py-1.5">
 
                       <button
-                        onClick={() =>
-                          navigate(
-                            "/jh-digitrack/customer-registration/sap-response",
-                            {
-                              state: {
-                                customer,
-                              },
-                            }
-                          )
-                        }
+                        onClick={() => handleSapResponse(customer)}
                         className="bg-[#9A3025] hover:bg-[#7A251F] text-white px-1.5 py-1 rounded text-[9px]"
                       >
                         SAP
@@ -604,6 +647,59 @@ function CustomerList() {
         </div>
 
       </div>
+
+      {/* =====================================================
+          SAP RESPONSE MODAL
+      ===================================================== */}
+      {(sapResponseLoading || sapResponseError || sapResponse !== null) && (
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+          onClick={closeSapResponse}
+        >
+          <div
+            className="w-full max-w-3xl max-h-[85vh] bg-white rounded-xl shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-4 py-3 bg-[#9A3025] text-white">
+              <div>
+                <h3 className="text-sm font-semibold">SAP Response</h3>
+                {selectedCustomer && (
+                  <p className="text-[10px] text-white/80 mt-0.5">
+                    Customer: {selectedCustomer}
+                  </p>
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={closeSapResponse}
+                className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/15 transition"
+                aria-label="Close SAP response"
+              >
+                <IoClose size={18} />
+              </button>
+            </div>
+
+            <div className="max-h-[70vh] overflow-auto p-4">
+              {sapResponseLoading ? (
+                <div className="py-10 text-center text-xs text-gray-500">
+                  Loading SAP response...
+                </div>
+              ) : sapResponseError ? (
+                <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-xs text-red-600">
+                  {sapResponseError}
+                </div>
+              ) : (
+                <pre className="text-[11px] leading-5 text-gray-700 font-mono whitespace-pre-wrap break-words">
+                  {typeof sapResponse === "string"
+                    ? sapResponse
+                    : JSON.stringify(sapResponse, null, 2)}
+                </pre>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
