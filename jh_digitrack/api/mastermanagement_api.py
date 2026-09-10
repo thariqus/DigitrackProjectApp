@@ -13,7 +13,7 @@ import requests
 
 
 
-SAP_CUSTOMER_URL = "http://jhdevpo.jaleel.local:50000/RESTAdapter/sap/customer/create"
+SAP_CUSTOMER_URL = "http://10.10.10.74:50000/RESTAdapter/sap/customer/create"
 
 
 def create_sap_customer(data):
