@@ -3,7 +3,7 @@ import { Link, useLocation } from "react-router";
 import JHICON from "../images/JH.png";
 import jaleelholdings from "../images/jaleel holdings.png";
 import { useCurrentPmsEmployee } from "../hooks/auth";
-
+import { CiCalendar } from "react-icons/ci";
 import {
   ChevronDown,
   MoreHorizontal,
@@ -48,6 +48,11 @@ const managerItems: NavItem[] = [
     icon: <MdOutlineAssessment />,
     name: "Goal Evaluation",
     path: "/goalevaluation",
+  },
+   {
+    icon: <CiCalendar />,
+    name: "Yearly Submission",
+    path: "/yearlysubmission",
   },
 ];
 

@@ -1,4 +1,5 @@
 import { QueryClientProvider } from "@tanstack/react-query";
+import { Toaster } from "sonner";
 import { queryClient } from "@/utils/query-client";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router";
@@ -48,6 +49,7 @@ import SelfEvaluationRedirect from "@/components/SelfEvaluationRedirect"
 import SelfEvaluationHistory from "./pages/pages/SelfEvaluationHistory";
 import AdminSettings from "./pages/AdminSettings";
 import AdminView from "./pages/pages/AdminView";
+import ManagerYearlySubmission from "./pages/pages/ManagerYearlySubmission";
 function AppWrapper() {
   const IDLE_TIME = 15 * 60 * 1000; 
   const logoutTimer = useRef<NodeJS.Timeout | null>(null);
@@ -102,6 +104,7 @@ function AppWrapper() {
             <Route path="/goalmaster" element={<GoalMaster />} />
             <Route path="/goalcreation" element={<GoalCreation />} />
             <Route path="/goalevaluation" element={<GoalEvaluation />} />
+            <Route path="/yearlysubmission" element={<ManagerYearlySubmission />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/employeegoalevaluation" element={<EmployeeGoalEvaluation />} />
             <Route path="/Createdbyme" element={<CreatedByMe />} />
@@ -150,6 +153,7 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AppWrapper />
+      <Toaster richColors position="top-right" />
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   );
