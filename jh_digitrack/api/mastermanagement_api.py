@@ -46,8 +46,8 @@ def create_sap_customer(data):
             json=payload,
             headers={
                 "Content-Type": "application/json",
-                "Username": "JHPIPODEV",
-                "PWD": "Jhpod!nt@1972#"
+                "username": "JHPIPODEV",
+                "password": "Jhpod!nt@1972#"
             },
             timeout=30
         )
@@ -112,8 +112,8 @@ def send_customer_activation_to_sap(customer_code, company_code):
             json=payload,
             headers={
                 "Content-Type": "application/json",
-                "Username": "JHPIPODEV",
-                "PWD": "Jhpod!nt@1972#"
+                "username": "JHPIPODEV",
+                "password": "Jhpod!nt@1972#"
             },
             timeout=30,
         )
@@ -189,8 +189,8 @@ def send_customer_details_to_sap(customer):
             json=payload,
             headers={
                 "Content-Type": "application/json",
-                "Username": "JHPIPODEV",
-                "PWD": "Jhpod!nt@1972#"
+                "username": "JHPIPODEV",
+                "password": "Jhpod!nt@1972#"
             },
             timeout=30,
         )
