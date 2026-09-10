@@ -13,8 +13,15 @@
   "column_break_kml4",
   "status",
   "total_score",
+  "rating",
   "section_break_vp0b",
   "employee_goals",
+  "eligible_for_increment",
+  "training_requirement_identified",
+  "eligible_for_promotion",
+  "goal_name_for_yearly_assesment",
+  "section_break_wyqu",
+  "table_mwyo",
   "section_break_z11k",
   "manager",
   "section_break_p7p9",
@@ -90,12 +97,49 @@
    "fieldname": "comment",
    "fieldtype": "Small Text",
    "label": "comment"
+  },
+  {
+   "default": "0",
+   "fieldname": "eligible_for_increment",
+   "fieldtype": "Check",
+   "label": "Eligible for Increment"
+  },
+  {
+   "default": "0",
+   "fieldname": "training_requirement_identified",
+   "fieldtype": "Check",
+   "label": "Training Requirement Identified"
+  },
+  {
+   "default": "0",
+   "fieldname": "eligible_for_promotion",
+   "fieldtype": "Check",
+   "label": "Eligible for Promotion"
+  },
+  {
+   "fieldname": "goal_name_for_yearly_assesment",
+   "fieldtype": "Data",
+   "label": "Goal Name for Yearly Assesment "
+  },
+  {
+   "fieldname": "section_break_wyqu",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "table_mwyo",
+   "fieldtype": "Table",
+   "options": "JH Documet"
+  },
+  {
+   "fieldname": "rating",
+   "fieldtype": "Rating",
+   "label": "Rating"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-12-13 11:19:25.999661",
+ "modified": "2026-09-10 11:12:19.355262",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "Goal Assessment",
