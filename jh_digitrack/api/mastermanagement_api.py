@@ -45,7 +45,9 @@ def create_sap_customer(data):
             SAP_CUSTOMER_URL,
             json=payload,
             headers={
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
+                "Username": "JHPIPODEV",
+                "PWD": "Jhpod!nt@1972#"
             },
             timeout=30
         )
