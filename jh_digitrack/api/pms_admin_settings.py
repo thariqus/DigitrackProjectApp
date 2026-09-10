@@ -10,10 +10,12 @@ def get_pms_settings():
         "max_value": settings.max_value,
         "enable_goal_submission": settings.enable_goal_submission,
         "enable_goal_evaluation": settings.enable_goal_evaluation,
+        "enable_yearly_appraisal": settings.enable_yearly_appraisal,
         "email_template": settings.email_template,
         "rows": [
             {
                 "year": row.year,
+                "quaterly": row.quaterly,
                 "from": row.from_date,
                 "to": row.to_date,
                 "current": row.is_current,
@@ -32,6 +34,7 @@ def save_pms_settings(
     max_value=None,
     enable_goal_submission=None,
     enable_goal_evaluation=None,
+    enable_yearly_appraisal=None,
     email_template=None,
     rows=None
 ):
@@ -42,6 +45,7 @@ def save_pms_settings(
     settings.max_value = max_value
     settings.enable_goal_submission = enable_goal_submission
     settings.enable_goal_evaluation = enable_goal_evaluation
+    settings.enable_yearly_appraisal = enable_yearly_appraisal
     settings.email_template = email_template
 
     settings.set("pms_settings_table", [])
@@ -49,6 +53,7 @@ def save_pms_settings(
     for row in rows or []:
         settings.append("pms_settings_table", {
             "year": row.get("year"),
+            "quaterly": row.get("quaterly"),
             "from_date": row.get("from"),
             "to_date": row.get("to"),
             "is_current": row.get("current"),
