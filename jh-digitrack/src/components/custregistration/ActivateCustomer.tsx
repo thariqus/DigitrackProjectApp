@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useOutletContext, useNavigate } from "react-router";
+import { useOutletContext } from "react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import { IoPersonAddOutline } from "react-icons/io5";
 
@@ -9,21 +9,30 @@ function ActivateCustomer() {
   const outletContext = useOutletContext() ?? {};
   const setHeaderConfig =
     outletContext.setHeaderConfig ?? (() => {});
-  const navigate = useNavigate();
 
+  // ---------------------------------------------------------
+  // State
+  // ---------------------------------------------------------
   const [companyCode, setCompanyCode] = useState("");
   const [customerCode, setCustomerCode] = useState("");
+  const [sapResponse, setSapResponse] = useState<any>(null);
 
   const [errorModal, setErrorModal] = useState({
     open: false,
     message: "",
   });
 
+  // ---------------------------------------------------------
+  // SAP API
+  // ---------------------------------------------------------
   const {
     mutateAsync: activateCustomer,
     isPending,
   } = useActivateCustomer();
 
+  // ---------------------------------------------------------
+  // Header
+  // ---------------------------------------------------------
   useEffect(() => {
     setHeaderConfig({
       title: "",
@@ -33,43 +42,33 @@ function ActivateCustomer() {
   // ---------------------------------------------------------
   // Activate Customer
   // ---------------------------------------------------------
-  const handleActivate = async (e) => {
-  e.preventDefault();
+  const handleActivate = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
 
-  try {
-    const result = await activateCustomer({
-      customerCode: customerCode.trim(),
-      companyCode: companyCode.trim(),
-    });
+    // Clear previous SAP response before making a new request
+    setSapResponse(null);
 
-    console.log("Activate Customer Response:", result);
+    try {
+      const result = await activateCustomer({
+        customerCode: customerCode.trim(),
+        companyCode: companyCode.trim(),
+      });
 
-    navigate(
-      "/jh-digitrack/customer-registration/sap-response",
-      {
-        state: {
-          customer: {
-            customer_code: customerCode.trim(),
-            company_code: companyCode.trim(),
-          },
-          result,
-        },
-      }
-    );
+      console.log("Activate Customer Response:", result);
 
-  } catch (error) {
-    console.error(
-      "Activate Customer Error:",
-      error
-    );
+      // Store whatever SAP returns
+      setSapResponse(result);
 
-    setErrorModal({
-      open: true,
-      message:
-        "Unable to activate customer. Please try again.",
-    });
-  }
-};
+    } catch (error) {
+      console.error("Activate Customer Error:", error);
+
+      setErrorModal({
+        open: true,
+        message:
+          "Unable to activate customer. Please try again.",
+      });
+    }
+  };
 
   // ---------------------------------------------------------
   // Reset
@@ -77,8 +76,12 @@ function ActivateCustomer() {
   const handleReset = () => {
     setCompanyCode("");
     setCustomerCode("");
+    setSapResponse(null);
   };
 
+  // ---------------------------------------------------------
+  // Render
+  // ---------------------------------------------------------
   return (
     <div className="w-full">
 
@@ -96,12 +99,10 @@ function ActivateCustomer() {
 
       </div>
 
-
       {/* =====================================================
-          CARD
+          ACTIVATION CARD
       ===================================================== */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-md overflow-hidden">
-
 
         {/* ===================================================
             CARD HEADER
@@ -116,7 +117,6 @@ function ActivateCustomer() {
               <IoPersonAddOutline className="text-xl" />
 
             </div>
-
 
             {/* Header Text */}
             <div>
@@ -136,7 +136,6 @@ function ActivateCustomer() {
 
         </div>
 
-
         {/* ===================================================
             FORM
         =================================================== */}
@@ -144,12 +143,10 @@ function ActivateCustomer() {
 
           <div className="p-5">
 
-
             {/* =================================================
                 INPUTS
             ================================================= */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
 
               {/* =================================================
                   COMPANY CODE
@@ -165,7 +162,6 @@ function ActivateCustomer() {
                   </span>
 
                 </label>
-
 
                 <input
                   type="text"
@@ -193,7 +189,6 @@ function ActivateCustomer() {
 
               </div>
 
-
               {/* =================================================
                   CUSTOMER CODE
               ================================================= */}
@@ -208,7 +203,6 @@ function ActivateCustomer() {
                   </span>
 
                 </label>
-
 
                 <input
                   type="text"
@@ -238,12 +232,10 @@ function ActivateCustomer() {
 
             </div>
 
-
             {/* =================================================
                 BUTTONS
             ================================================= */}
             <div className="flex items-center gap-2 mt-5 pt-4 border-t border-gray-200">
-
 
               {/* =================================================
                   ACTIVATE BUTTON
@@ -278,7 +270,6 @@ function ActivateCustomer() {
 
               </button>
 
-
               {/* =================================================
                   RESET BUTTON
               ================================================= */}
@@ -309,6 +300,66 @@ function ActivateCustomer() {
 
       </div>
 
+      {/* =====================================================
+          SAP RESPONSE
+      ===================================================== */}
+      {sapResponse !== null && (
+
+        <div className="mt-4 bg-white rounded-xl border border-gray-200 shadow-md overflow-hidden">
+
+          {/* =================================================
+              RESPONSE HEADER
+          ================================================= */}
+          <div className="bg-[#9A3025] px-5 py-4 text-white">
+
+            <h2 className="text-sm font-semibold">
+              SAP Response
+            </h2>
+
+            <p className="text-xs text-white/80 mt-1">
+              Response received from SAP
+            </p>
+
+          </div>
+
+          {/* =================================================
+              RESPONSE CONTENT
+          ================================================= */}
+          <div className="p-5">
+
+            <div
+              className="
+                max-h-[400px]
+                overflow-auto
+                rounded-lg
+                border
+                border-gray-200
+                bg-gray-50
+                p-4
+              "
+            >
+
+              <pre
+                className="
+                  text-xs
+                  text-gray-800
+                  whitespace-pre-wrap
+                  break-words
+                  font-mono
+                "
+              >
+                {typeof sapResponse === "string"
+                  ? sapResponse
+                  : JSON.stringify(sapResponse, null, 2)}
+              </pre>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      )}
 
       {/* =====================================================
           ERROR MODAL
@@ -405,7 +456,6 @@ function ActivateCustomer() {
                   }}
                 />
 
-
                 {/* X */}
                 <motion.path
                   d="M18 18l16 16"
@@ -425,7 +475,6 @@ function ActivateCustomer() {
                     ease: "easeOut",
                   }}
                 />
-
 
                 {/* X */}
                 <motion.path
@@ -449,14 +498,16 @@ function ActivateCustomer() {
 
               </svg>
 
-
-              {/* Error Message */}
+              {/* =================================================
+                  ERROR MESSAGE
+              ================================================= */}
               <p className="text-sm font-semibold text-gray-800 text-center">
                 {errorModal.message}
               </p>
 
-
-              {/* OK */}
+              {/* =================================================
+                  OK BUTTON
+              ================================================= */}
               <button
                 type="button"
                 onClick={() =>
