@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner';
-import { useGoalEvaluation, useSubmitGoalEvaluation, useGoalAssessment, useDeleteGoalAttachment, useAddGoalDocument, GoalDocumentAttachment } from "../../hooks/goalevaluation";
+import { useGoalEvaluation, useSubmitGoalEvaluation, useGoalAssessment, useDeleteGoalAttachment, GoalDocumentAttachment } from "../hooks/goalevaluation";
 import { useFilesUpload } from "@/hooks/file";
 import { HiArrowNarrowDown } from 'react-icons/hi';
 import { FaRegSave, FaStar } from 'react-icons/fa';
