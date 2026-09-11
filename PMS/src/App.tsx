@@ -49,7 +49,8 @@ import SelfEvaluationRedirect from "@/components/SelfEvaluationRedirect"
 import SelfEvaluationHistory from "./pages/pages/SelfEvaluationHistory";
 import AdminSettings from "./pages/AdminSettings";
 import AdminView from "./pages/pages/AdminView";
-import ManagerYearlySubmission from "./pages/pages/ManagerYearlySubmission";
+import ManagerYearlySubmission from "./pages/ManagerYearlySubmission";
+
 function AppWrapper() {
   const IDLE_TIME = 15 * 60 * 1000; 
   const logoutTimer = useRef<NodeJS.Timeout | null>(null);
@@ -104,7 +105,7 @@ function AppWrapper() {
             <Route path="/goalmaster" element={<GoalMaster />} />
             <Route path="/goalcreation" element={<GoalCreation />} />
             <Route path="/goalevaluation" element={<GoalEvaluation />} />
-            <Route path="/yearlysubmission" element={<ManagerYearlySubmission />} />
+            <Route path="/yearlysubmission" element={<ManagerYearlySubmission/>} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/employeegoalevaluation" element={<EmployeeGoalEvaluation />} />
             <Route path="/Createdbyme" element={<CreatedByMe />} />
