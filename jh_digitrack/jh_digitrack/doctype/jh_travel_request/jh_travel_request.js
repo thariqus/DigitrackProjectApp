@@ -62,6 +62,7 @@ frappe.ui.form.on("JH Travel Request", {
     frappe
       .call({
         method: "jh_digitrack.api.travel.whoami",
+        type: "GET",
         args: {
           req_id: frm.doc.name,
           is_new: frm.is_new(),
