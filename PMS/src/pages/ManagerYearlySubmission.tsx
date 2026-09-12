@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner';
-import { useGoalEvaluation, useSubmitGoalEvaluation, useGoalAssessment, useDeleteGoalAttachment, useAddGoalDocument, GoalDocumentAttachment } from "../../hooks/goalevaluation";
+import { useGoalEvaluation, useSubmitGoalEvaluation, useGoalAssessment, useDeleteGoalAttachment, GoalDocumentAttachment } from "../hooks/goalevaluation";
 import { useFilesUpload } from "@/hooks/file";
 import { HiArrowNarrowDown } from 'react-icons/hi';
 import { FaRegSave, FaStar } from 'react-icons/fa';
@@ -16,26 +16,21 @@ import {
   IoSaveOutline,
 } from 'react-icons/io5';
 import Pagination from '@/components/Pagination';
-
+ 
 const MAX_REVIEW_FILES = 4;
 const MAX_COMMENT_LENGTH = 500;
-
+ 
 type ReviewFlagKey = "eligibleForIncrement" | "trainingRequirementsIdentified" | "eligibleForPromotion";
-
-interface PendingReviewFile {
-  file: File;
-  documentType: string;
-}
-
+ 
 interface ManagerReview {
   rating: number;
   eligibleForIncrement: boolean;
   trainingRequirementsIdentified: boolean;
   eligibleForPromotion: boolean;
   comment: string;
-  files: PendingReviewFile[];
+  files: File[];
 }
-
+ 
 const emptyReview: ManagerReview = {
   rating: 0,
   eligibleForIncrement: false,
@@ -44,15 +39,15 @@ const emptyReview: ManagerReview = {
   comment: "",
   files: [],
 };
-
+ 
 const REVIEW_CHECKBOXES: { key: ReviewFlagKey; label: string; icon: typeof IoTrendingUpOutline }[] = [
   { key: "eligibleForIncrement", label: "Eligible for Increment", icon: IoTrendingUpOutline },
   { key: "trainingRequirementsIdentified", label: "Training Required", icon: IoSchoolOutline },
   { key: "eligibleForPromotion", label: "Eligible for Promotion", icon: IoRibbonOutline },
 ];
-
+ 
 function ManagerYearlySubmission() {
-
+ 
     const [selectedYear, setSelectedYear] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -64,10 +59,10 @@ function ManagerYearlySubmission() {
     const [existingAttachments, setExistingAttachments] = useState<
       Record<string, GoalDocumentAttachment[]>
     >({});
-
+ 
     const getReview = (docname: string) => reviews[docname] || emptyReview;
     const getExistingAttachments = (docname: string) => existingAttachments[docname] || [];
-
+ 
     const toggleReviewFlag = (docname: string, key: ReviewFlagKey) => {
       const current = getReview(docname);
       setReviews((prev) => ({
@@ -75,7 +70,7 @@ function ManagerYearlySubmission() {
         [docname]: { ...current, [key]: !current[key] },
       }));
     };
-
+ 
     const setRating = (docname: string, rating: number) => {
       const current = getReview(docname);
       setReviews((prev) => ({
@@ -83,14 +78,14 @@ function ManagerYearlySubmission() {
         [docname]: { ...current, rating: current.rating === rating ? 0 : rating },
       }));
     };
-
+ 
     const setComment = (docname: string, comment: string) => {
       setReviews((prev) => ({
         ...prev,
         [docname]: { ...getReview(docname), comment },
       }));
     };
-
+ 
     const addFiles = (docname: string, incoming: FileList | null) => {
       if (!incoming || incoming.length === 0) return;
       const current = getReview(docname);
@@ -102,7 +97,7 @@ function ManagerYearlySubmission() {
         [docname]: { ...current, files: nextFiles },
       }));
     };
-
+ 
     const removeFile = (docname: string, index: number) => {
       const current = getReview(docname);
       setReviews((prev) => ({
@@ -110,14 +105,14 @@ function ManagerYearlySubmission() {
         [docname]: { ...current, files: current.files.filter((_, i) => i !== index) },
       }));
     };
-
+ 
     const { evaluations, loading, baseYear, years, refetch } = useGoalEvaluation(
       selectedYear
     );
-
+ 
     useEffect(() => {
       if (!evaluations || evaluations.length === 0) return;
-
+ 
       setReviews((prev) => {
         const next = { ...prev };
         let changed = false;
@@ -136,7 +131,7 @@ function ManagerYearlySubmission() {
         });
         return changed ? next : prev;
       });
-
+ 
       setExistingAttachments((prev) => {
         const next = { ...prev };
         evaluations.forEach((emp: any) => {
@@ -145,37 +140,39 @@ function ManagerYearlySubmission() {
         return next;
       });
     }, [evaluations]);
-
+ 
     const { createGoalAssessment } = useGoalAssessment();
     const { deleteGoalAttachment } = useDeleteGoalAttachment();
     const filesUpload = useFilesUpload();
-
+ 
     const handleRemoveExistingAttachment = async (
       docname: string,
       employeeCode: string,
       fileUrl: string
     ) => {
       const result = await deleteGoalAttachment(employeeCode, selectedYear, fileUrl);
-
+ 
       if (result?.error) {
         toast.error(result.error);
         return;
       }
-
+ 
       setExistingAttachments((prev) => ({
         ...prev,
         [docname]: (prev[docname] || []).filter((f) => f.file_url !== fileUrl),
       }));
       toast.success("Attachment removed successfully.");
     };
-
+ 
     const uploadReviewFiles = (docname: string, employeeCode: string, files: File[]) =>
-      new Promise<boolean>((resolve) => {
+      new Promise<{ fileUrls: string[]; allSucceeded: boolean }>((resolve) => {
         if (files.length === 0) {
-          resolve(true);
+          resolve({ fileUrls: [], allSucceeded: true });
           return;
         }
-
+ 
+        const fileUrls: string[] = [];
+ 
         filesUpload.mutate({
           files,
           employeeCode,
@@ -184,16 +181,19 @@ function ManagerYearlySubmission() {
           docname,
           isPrivate: 1,
           onProgress: () => {},
-          onComplete: (status) => resolve(status),
-          onError: () => resolve(false),
+          onFileUploaded: (fileUrl) => fileUrls.push(fileUrl),
+          onComplete: (status) => resolve({ fileUrls, allSucceeded: status }),
+          onError: () => resolve({ fileUrls, allSucceeded: false }),
         });
       });
-
+ 
     const handleSaveReview = async (docname: string, employeeCode: string) => {
       const review = getReview(docname);
-
+ 
       setSavingDocname(docname);
       try {
+        const { fileUrls, allSucceeded } = await uploadReviewFiles(docname, employeeCode, review.files);
+ 
         const result = await createGoalAssessment({
           employee_code: employeeCode,
           year: selectedYear,
@@ -203,20 +203,20 @@ function ManagerYearlySubmission() {
           training_requirement_identified: review.trainingRequirementsIdentified,
           eligible_for_promotion: review.eligibleForPromotion,
           comment: review.comment.trim(),
+          attachments: fileUrls,
         });
-
+ 
         if (result?.error) {
           toast.error(result.error);
           return;
         }
-
-        const filesUploaded = await uploadReviewFiles(docname, employeeCode, review.files);
-        if (!filesUploaded) {
+ 
+        if (!allSucceeded) {
           toast.error("Review saved, but some attachments failed to upload.");
         } else {
           toast.success("Review saved successfully!");
         }
-
+ 
         setReviews((prev) => ({
           ...prev,
           [docname]: { ...getReview(docname), files: [] },
@@ -226,7 +226,7 @@ function ManagerYearlySubmission() {
         setSavingDocname(null);
       }
     };
-
+ 
     const formatDate = (dateStr?: string) => {
       if (!dateStr) return "";
       return new Date(dateStr)
@@ -237,13 +237,13 @@ function ManagerYearlySubmission() {
         })
         .toUpperCase();
     };
-
+ 
     useEffect(() => {
       if (baseYear && !selectedYear) {
         setSelectedYear(baseYear);
       }
     }, [baseYear]);
-
+ 
     const handleSort = (field: "id" | "designation") => {
       if (sortField === field) {
         setSortOrder(sortOrder === "asc" ? "desc" : "asc");
@@ -253,13 +253,13 @@ function ManagerYearlySubmission() {
       }
       setCurrentPage(1);
     };
-
+ 
     const sortedEmployees = [...evaluations].sort((a, b) => {
       if (!sortField) return 0;
-
+ 
       let valA = "";
       let valB = "";
-
+ 
       switch (sortField) {
         case "id":
           valA = `${a.employee_code} ${a.employee_name}`;
@@ -270,21 +270,21 @@ function ManagerYearlySubmission() {
           valB = b.designation_name || "";
           break;
       }
-
+ 
       return sortOrder === "asc"
         ? valA.localeCompare(valB)
         : valB.localeCompare(valA);
     });
-
+ 
     const totalPages = Math.ceil(sortedEmployees.length / rowsPerPage);
     const indexOfLastRow = currentPage * rowsPerPage;
     const indexOfFirstRow = indexOfLastRow - rowsPerPage;
     const currentRows = sortedEmployees.slice(indexOfFirstRow, indexOfLastRow);
-
+ 
     const handlePageChange = (page: number) => {
       if (page >= 1 && page <= totalPages) setCurrentPage(page);
     };
-
+ 
   return (
     <div className="bg-white min-h-screen border rounded-lg px-6 py-2">
       {/* Header */}
@@ -303,7 +303,7 @@ function ManagerYearlySubmission() {
               </option>
             ))}
           </select>
-
+ 
           {/* {fromDate && toDate && (
             <div className="text-[0.65rem] text-gray-600 flex items-center gap-1">
               <span className="font-medium">Period:</span>
@@ -312,7 +312,7 @@ function ManagerYearlySubmission() {
             </div>
           )} */}
           <button className='bg-primary py-1 px-2 text-xs rounded-md text-white'>Submit</button>
-
+ 
       </div>
        <div className="border rounded-lg w-full mt-1">
          {/* Table */}
@@ -366,7 +366,7 @@ function ManagerYearlySubmission() {
                 const existingFiles = getExistingAttachments(emp.docname);
                 const fileLimitReached =
                   existingFiles.length + review.files.length >= MAX_REVIEW_FILES;
-
+ 
                 return (
                   <tr key={emp.docname} className="border-b text-xs align-top transition">
                     <td className="px-4 py-3 whitespace-nowrap" title={`${emp.employee_code} / ${emp.employee_name}`}>
@@ -403,7 +403,7 @@ function ManagerYearlySubmission() {
                             </span>
                           </div>
                         </div>
-
+ 
                         {/* Review checkboxes */}
                         <div className="flex flex-col gap-2 px-3 py-2.5">
                           <span className="text-[0.6rem] font-semibold uppercase tracking-wide text-gray-400">
@@ -424,7 +424,7 @@ function ManagerYearlySubmission() {
                             </label>
                           ))}
                         </div>
-
+ 
                         {/* File upload */}
                         <div className="flex flex-col gap-2 px-3 py-2.5">
                           <div className="flex items-center justify-between gap-2">
@@ -435,7 +435,7 @@ function ManagerYearlySubmission() {
                               {existingFiles.length + review.files.length}/{MAX_REVIEW_FILES}
                             </span>
                           </div>
-
+ 
                           {existingFiles.length > 0 && (
                             <ul className="flex flex-col gap-1">
                               {existingFiles.map((file) => (
@@ -465,7 +465,7 @@ function ManagerYearlySubmission() {
                               ))}
                             </ul>
                           )}
-
+ 
                           <label
                             className={`flex items-center justify-center gap-1.5 rounded-lg border border-dashed px-2 py-1.5 text-[0.65rem] font-medium transition ${
                               fileLimitReached
@@ -486,7 +486,7 @@ function ManagerYearlySubmission() {
                             <IoCloudUploadOutline className="text-sm" />
                             {fileLimitReached ? "Limit reached" : "Attach file"}
                           </label>
-
+ 
                           {review.files.length > 0 && (
                             <ul className="flex flex-col gap-1">
                               {review.files.map((file, idx) => (
@@ -548,7 +548,7 @@ function ManagerYearlySubmission() {
             )}
           </tbody>
         </table>
-
+ 
         {/* Pagination */}
         <Pagination
           rowsPerPage={rowsPerPage}
@@ -562,5 +562,5 @@ function ManagerYearlySubmission() {
     </div>
   )
 }
-
+ 
 export default ManagerYearlySubmission
