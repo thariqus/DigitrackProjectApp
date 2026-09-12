@@ -76,6 +76,7 @@ def _fetch_evaluations(user, year, include_all_employees):
         as_dict=True
     )
     assessment_year = year or settings_row.get("year")
+    enable_yearly_appraisal = frappe.db.get_single_value("PMS Settings", "enable_yearly_appraisal")
 
     result = frappe.db.sql(
         GOAL_BASED_QUERY,
@@ -120,6 +121,7 @@ def _fetch_evaluations(user, year, include_all_employees):
         "assessment_year": assessment_year,
         "from_date": settings_row.get("from_date"),
         "to_date": settings_row.get("to_date"),
+        "enable_yearly_appraisal": bool(enable_yearly_appraisal),
         "evaluations": result
     }
 
