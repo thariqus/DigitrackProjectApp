@@ -27,6 +27,11 @@ def get_goal_evaluation(user, year=None):
             pe.designation_name,
             pe.band AS grade,
             COALESCE(ga.total_score, 0) AS total_score,
+            COALESCE(ga.rating, 0) * 5 AS rating,
+            ga.comment,
+            ga.eligible_for_increment,
+            ga.training_requirement_identified,
+            ga.eligible_for_promotion,
             CASE
                 WHEN ga.status = 'Goal Submitted'
                     THEN 'Evaluation Pending'
@@ -50,6 +55,27 @@ def get_goal_evaluation(user, year=None):
         (user, assessment_year, allowed_statuses),
         as_dict=True
     )
+
+    docnames = [row["docname"] for row in result]
+    attachments_by_parent = {}
+    if docnames:
+        doc_rows = frappe.get_all(
+            "JH Documet",
+            filters={"parent": ["in", docnames]},
+            fields=["name", "parent", "document_type", "attachment"],
+        )
+        for row in doc_rows:
+            if not row["attachment"]:
+                continue
+            attachments_by_parent.setdefault(row["parent"], []).append({
+                "row_name": row["name"],
+                "file_name": row["attachment"].split("/")[-1],
+                "file_url": row["attachment"],
+                "document_type": row["document_type"],
+            })
+
+    for row in result:
+        row["attachments"] = attachments_by_parent.get(row["docname"], [])
 
     return {
         "assessment_year": assessment_year,
@@ -92,6 +118,34 @@ def create_goal_evaluation(data=None, session_user=None):
 
         if doc.status != "Evaluation Started":
             doc.status = "Evaluation Started"
+
+        if "rating" in data:
+            # The "rating" fieldtype stores a 0-1 fraction (5 stars = 1.0),
+            # but the frontend works in a plain 1-5 star scale.
+            doc.rating = flt(data.get("rating")) / 5
+        if "comment" in data:
+            doc.comment = data.get("comment")
+        if "eligible_for_increment" in data:
+            doc.eligible_for_increment = 1 if data.get("eligible_for_increment") else 0
+        if "training_requirement_identified" in data:
+            doc.training_requirement_identified = 1 if data.get("training_requirement_identified") else 0
+        if "eligible_for_promotion" in data:
+            doc.eligible_for_promotion = 1 if data.get("eligible_for_promotion") else 0
+
+        for attachment in data.get("attachments") or []:
+            if isinstance(attachment, str):
+                file_url, document_type = attachment, ""
+            else:
+                file_url = attachment.get("file_url")
+                document_type = attachment.get("document_type") or ""
+
+            if not file_url:
+                continue
+
+            doc.append("table_mwyo", {
+                "document_type": document_type,
+                "attachment": file_url,
+            })
 
         settings = frappe.get_single("PMS Settings")
         min_value = flt(settings.min_value or 10)
@@ -259,6 +313,17 @@ def delete_goal_attachment(employee_code, year, file_url):
             frappe.throw(_("Goal Assessment not found for the given employee and year."))
 
         file_name = file_url.split("/")[-1]
+        doc = frappe.get_doc("Goal Assessment", goal_assessment_name)
+        row_to_remove = next(
+            (row for row in doc.table_mwyo if row.attachment and row.attachment.split("/")[-1] == file_name),
+            None
+        )
+ 
+        if not row_to_remove:
+            frappe.throw(_("Attachment not found in Goal Assessment."))
+ 
+        doc.remove(row_to_remove)
+        doc.save(ignore_permissions=True)
 
         files = frappe.get_all(
             "File",
@@ -272,7 +337,7 @@ def delete_goal_attachment(employee_code, year, file_url):
                 frappe.db.commit()
                 return {"message": "Attachment deleted successfully.", "file_url": file_url}
 
-        frappe.throw(_("Attachment not found in Goal Assessment."))
+        # frappe.throw(_("Attachment not found in Goal Assessment."))
 
     except Exception as e:
         frappe.db.rollback()
