@@ -1,7 +1,71 @@
 import frappe
 from frappe import _
-@frappe.whitelist(methods=["GET"])
-def get_goal_evaluation(user, year=None):
+
+GOAL_BASED_QUERY = """
+    SELECT
+        ga.name AS docname,
+        ga.employee_name,
+        ga.employee_code,
+        pe.designation_name,
+        pe.band AS grade,
+        COALESCE(ga.total_score, 0) AS total_score,
+        COALESCE(ga.rating, 0) * 5 AS rating,
+        ga.comment,
+        ga.eligible_for_increment,
+        ga.training_requirement_identified,
+        ga.eligible_for_promotion,
+        CASE
+            WHEN ga.status = 'Goal Submitted'
+                THEN 'Evaluation Pending'
+            ELSE ga.status
+        END AS status
+    FROM
+        `tabGoal Assessment` ga
+    LEFT JOIN
+        `tabPMS Employees` pe
+        ON pe.employee_code = ga.employee_code
+    WHERE
+        ga.manager = %s
+        AND ga.year = %s
+        AND ga.status IN %s
+    ORDER BY
+        ga.creation DESC
+"""
+
+ALL_EMPLOYEES_QUERY = """
+    SELECT
+        ga.name AS docname,
+        pe.full_name AS employee_name,
+        pe.employee_code AS employee_code,
+        pe.designation_name AS designation_name,
+        pe.band AS grade,
+        COALESCE(ga.total_score, 0) AS total_score,
+        COALESCE(ga.rating, 0) * 5 AS rating,
+        ga.comment AS comment,
+        ga.eligible_for_increment,
+        ga.training_requirement_identified,
+        ga.eligible_for_promotion,
+        COALESCE(ga.status, 'Evaluation Pending') AS status
+    FROM
+        `tabPMS Employees` pe
+    LEFT JOIN
+        `tabGoal Assessment` ga
+        ON ga.employee_code = pe.employee_code
+        AND ga.year = %s
+    WHERE
+        pe.manager_email = %s
+        AND pe.pms_employee = 1
+"""
+
+ALLOWED_EVALUATION_STATUSES = (
+    "Evaluation Pending",
+    "Evaluation Started",
+    "Evaluation Submitted",
+    "Goal Submitted",
+)
+
+
+def _fetch_evaluations(user, year, include_all_employees):
     if not user:
         frappe.throw(_("User email is required"))
 
@@ -12,51 +76,26 @@ def get_goal_evaluation(user, year=None):
         as_dict=True
     )
     assessment_year = year or settings_row.get("year")
-    allowed_statuses = (
-        "Evaluation Pending",
-        "Evaluation Started",
-        "Evaluation Submitted",
-        "Goal Submitted",
-    )
-
-    query = """
-        SELECT
-            ga.name AS docname,
-            ga.employee_name,
-            ga.employee_code,
-            pe.designation_name,
-            pe.band AS grade,
-            COALESCE(ga.total_score, 0) AS total_score,
-            COALESCE(ga.rating, 0) * 5 AS rating,
-            ga.comment,
-            ga.eligible_for_increment,
-            ga.training_requirement_identified,
-            ga.eligible_for_promotion,
-            CASE
-                WHEN ga.status = 'Goal Submitted'
-                    THEN 'Evaluation Pending'
-                ELSE ga.status
-            END AS status
-        FROM
-            `tabGoal Assessment` ga
-        LEFT JOIN
-            `tabPMS Employees` pe
-            ON pe.employee_code = ga.employee_code
-        WHERE
-            ga.manager = %s
-            AND ga.year = %s
-            AND ga.status IN %s
-        ORDER BY
-            ga.creation DESC
-    """
 
     result = frappe.db.sql(
-        query,
-        (user, assessment_year, allowed_statuses),
+        GOAL_BASED_QUERY,
+        (user, assessment_year, ALLOWED_EVALUATION_STATUSES),
         as_dict=True
     )
 
-    docnames = [row["docname"] for row in result]
+    if include_all_employees:
+        all_employees_result = frappe.db.sql(
+            ALL_EMPLOYEES_QUERY,
+            (assessment_year, user),
+            as_dict=True
+        )
+        seen_employee_codes = {row["employee_code"] for row in result}
+        result += [
+            row for row in all_employees_result
+            if row["employee_code"] not in seen_employee_codes
+        ]
+
+    docnames = [row["docname"] for row in result if row["docname"]]
     attachments_by_parent = {}
     if docnames:
         doc_rows = frappe.get_all(
@@ -80,9 +119,19 @@ def get_goal_evaluation(user, year=None):
     return {
         "assessment_year": assessment_year,
         "from_date": settings_row.get("from_date"),
-        "to_date": settings_row.get("to_date"),        
+        "to_date": settings_row.get("to_date"),
         "evaluations": result
     }
+
+
+@frappe.whitelist(methods=["GET"])
+def get_goal_evaluation(user, year=None):
+    return _fetch_evaluations(user, year, include_all_employees=False)
+
+
+@frappe.whitelist(methods=["GET"])
+def get_yearly_submission(user, year=None):
+    return _fetch_evaluations(user, year, include_all_employees=True)
 
 import frappe
 from frappe.utils import flt
@@ -110,10 +159,13 @@ def create_goal_evaluation(data=None, session_user=None):
             {"employee_code": employee_code, "year": year},
             "name"
         )
-        if not doc_name:
-            frappe.throw(_("Goal Assessment not found for Employee {0}, Year {1}").format(employee_code, year))
+        if doc_name:
+            doc = frappe.get_doc("Goal Assessment", doc_name)
+        else:
+            doc = frappe.new_doc("Goal Assessment")
+            doc.employee_code = employee_code
+            doc.year = year
 
-        doc = frappe.get_doc("Goal Assessment", doc_name)
         doc.manager = session_user
 
         if doc.status != "Evaluation Started":
