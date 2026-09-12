@@ -54,6 +54,11 @@ const managerItems: NavItem[] = [
     name: "Yearly Submission",
     path: "/yearlysubmission",
   },
+   {
+    icon: <CiCalendar />,
+    name: "Functional/Skip level Yearly Submission",
+    path: "/functionalorskiplevelyearlysubmission",
+  },
 ];
 
 const selfItems: NavItem[] = [

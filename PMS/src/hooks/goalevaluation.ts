@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCurrentUser } from "../hooks/auth";
 import { useState, useEffect } from "react";
 import frappeClient from "@/utils/frappe-client";
-
+ 
 export interface GoalAssessment {
   docname: string;
   employee_name: string;
@@ -18,14 +18,14 @@ export interface GoalAssessment {
   eligible_for_promotion?: number;
   attachments?: GoalDocumentAttachment[];
 }
-
+ 
 export interface GoalDocumentAttachment {
   row_name?: string;
   file_name: string;
   file_url: string;
   document_type?: string;
 }
-
+ 
 export interface GoalDetail {
   goal_name: string;
   description: string;
@@ -39,47 +39,48 @@ export interface GoalDetail {
   upwarddownward?: "U" | "D";
   weightage: string | null;
 }
-
+ 
 /* ─────────────────────────────────────────────── */
 /*               Goal Evaluation List               */
 /* ─────────────────────────────────────────────── */
-export function useGoalEvaluation(selectedYear?: string) {
+function useEvaluationList(endpoint: string, queryKeyPrefix: string, selectedYear?: string) {
   const [baseYear, setBaseYear] = useState<string>("");
   const { data: currentUser } = useCurrentUser();
-
+ 
   const { data, isLoading: loading, refetch } = useQuery({
-    queryKey: ["goal-evaluation", currentUser, selectedYear],
+    queryKey: [queryKeyPrefix, currentUser, selectedYear],
     queryFn: async () => {
       if (!currentUser) {
-        return { assessment_year: "",from_date: "", to_date: "", evaluations: [] };
+        return { assessment_year: "", from_date: "", to_date: "", enable_yearly_appraisal: false, evaluations: [] };
       }
-
-      const url = "jh_digitrack.api.goal_evaluation.get_goal_evaluation";
-
+ 
+      const url = endpoint;
+ 
       const params: any = {
         user: currentUser,
       };
-
+ 
       if (selectedYear) params.year = selectedYear;
-
+ 
       const res = await frappeClient.api.get(url, params);
-
+ 
       return {
         assessment_year: res.message?.assessment_year?.toString() || "",
         from_date: res.message?.from_date || "",
         to_date: res.message?.to_date || "",
+        enable_yearly_appraisal: !!res.message?.enable_yearly_appraisal,
         evaluations: res.message?.evaluations || [],
       };
     },
     enabled: !!currentUser,
   });
-
+ 
   useEffect(() => {
     if (!baseYear && data?.assessment_year) {
       setBaseYear(data.assessment_year);
     }
   }, [data?.assessment_year, baseYear]);
-
+ 
   const years = baseYear
     ? [
         baseYear,
@@ -87,7 +88,7 @@ export function useGoalEvaluation(selectedYear?: string) {
         (parseInt(baseYear) - 2).toString(),
       ]
     : [];
-
+ 
   return {
     evaluations: data?.evaluations || [],
     loading,
@@ -96,22 +97,39 @@ export function useGoalEvaluation(selectedYear?: string) {
     years,
     fromDate: data?.from_date,
     toDate: data?.to_date,
+    enableYearlyAppraisal: data?.enable_yearly_appraisal || false,
     refetch,
   };
 }
-
+ 
+export function useGoalEvaluation(selectedYear?: string) {
+  return useEvaluationList(
+    "jh_digitrack.api.goal_evaluation.get_goal_evaluation",
+    "goal-evaluation",
+    selectedYear
+  );
+}
+ 
+export function useYearlySubmission(selectedYear?: string) {
+  return useEvaluationList(
+    "jh_digitrack.api.goal_evaluation.get_yearly_submission",
+    "yearly-submission",
+    selectedYear
+  );
+}
+ 
 /* ─────────────────────────────────────────────── */
 /*            Create Goal Evaluation (POST)         */
 /* ─────────────────────────────────────────────── */
 export function useGoalAssessment() {
   const [loading, setLoading] = useState(false);
   const { data: currentUser } = useCurrentUser();
-
+ 
   const createGoalAssessment = async (payload: any) => {
     setLoading(true);
-
+ 
     try {
-
+ 
       const res = await frappeClient.api.post(
         "jh_digitrack.api.goal_evaluation.create_goal_evaluation",
         {
@@ -119,7 +137,7 @@ export function useGoalAssessment() {
           session_user: currentUser || "Guest",
         }
       );
-
+ 
       return res;
     } catch (error) {
       console.error("Error creating Goal Assessment:", error);
@@ -128,10 +146,10 @@ export function useGoalAssessment() {
       setLoading(false);
     }
   };
-
+ 
   return { createGoalAssessment, loading };
 }
-
+ 
 /* ─────────────────────────────────────────────── */
 /*       Get Employee Goals for Evaluation         */
 /* ─────────────────────────────────────────────── */
@@ -141,10 +159,10 @@ export function useEmployeeGoals(employeeCode: string, year: string) {
   const [comment, setComment] = useState("");
   const [enableGoalEvaluation, setEnableGoalEvaluation] = useState(false);
   const [loading, setLoading] = useState(true);
-
+ 
   useEffect(() => {
     if (!employeeCode || !year) return;
-
+ 
     const getGoals = async () => {
       try {
         const res = await frappeClient.api.get<{
@@ -158,7 +176,7 @@ export function useEmployeeGoals(employeeCode: string, year: string) {
           "jh_digitrack.api.goal_evaluation.get_employee_goals",
           { employee_code: employeeCode, year }
         );
-
+ 
         setEmployeeGoals(res.message?.goals || []);
         setAttachments(res.message?.attachments || []);
         setComment(res.message?.comment || "");
@@ -169,19 +187,19 @@ export function useEmployeeGoals(employeeCode: string, year: string) {
         setLoading(false);
       }
     };
-
+ 
     getGoals();
   }, [employeeCode, year]);
-
+ 
   return { employeeGoals, attachments, comment, enableGoalEvaluation, loading };
 }
-
+ 
 /* ─────────────────────────────────────────────── */
 /*              Submit Goal Evaluation             */
 /* ─────────────────────────────────────────────── */
 export function useSubmitGoalEvaluation() {
   const [loading, setLoading] = useState(false);
-
+ 
   const submitGoalEvaluation = async (
     employeeCode: string,
     year: string,
@@ -189,7 +207,7 @@ export function useSubmitGoalEvaluation() {
   ) => {
     try {
       setLoading(true);
-
+ 
       const res = await frappeClient.api.post(
         "jh_digitrack.api.goal_evaluation.submit_goal_evaluation",
         {
@@ -198,7 +216,7 @@ export function useSubmitGoalEvaluation() {
           comment,
         }
       );
-
+ 
       return res.message || {};
     } catch (error: any) {
       return { error: error.message };
@@ -206,19 +224,19 @@ export function useSubmitGoalEvaluation() {
       setLoading(false);
     }
   };
-
+ 
   return { submitGoalEvaluation, loading };
 }
-
+ 
 /* ─────────────────────────────────────────────── */
 /*               Upload Goal Attachment            */
 /* ─────────────────────────────────────────────── */
-
+ 
 import { useFilesUpload } from "@/hooks/file";
-
+ 
 export const useUploadGoalAttachment = () => {
   const fileUpload = useFilesUpload();
-
+ 
   const uploadGoalAttachment = async (
     employeeCode: string,
     year: string,
@@ -226,12 +244,12 @@ export const useUploadGoalAttachment = () => {
     existingAttachments: any   
   ) => {
     let fieldname = null;
-
+ 
     if (!existingAttachments.attach1) fieldname = "attach1";
     else if (!existingAttachments.attach2) fieldname = "attach2";
     else if (!existingAttachments.attach3) fieldname = "attach3";
     else return { error: "Maximum 3 attachments reached." };
-
+ 
     return new Promise<{ file_url?: string; error?: string }>((resolve) => {
       fileUpload.mutate({
         files: [file],
@@ -250,17 +268,17 @@ export const useUploadGoalAttachment = () => {
       });
     });
   };
-
+ 
   return { uploadGoalAttachment };
 };
-
-
+ 
+ 
 /* ─────────────────────────────────────────────── */
 /*               Delete Goal Attachment            */
 /* ─────────────────────────────────────────────── */
 export function useDeleteGoalAttachment() {
   const [loading, setLoading] = useState(false);
-
+ 
   const deleteGoalAttachment = async (
     employeeCode: string,
     year: string,
@@ -268,13 +286,13 @@ export function useDeleteGoalAttachment() {
   ) => {
     try {
       setLoading(true);
-
+ 
       console.log("Deleting attachment with params:", {
         employeeCode,
         year,
         fileUrl,
       });
-
+ 
       const res = await frappeClient.api.post(
         "jh_digitrack.api.goal_evaluation.delete_goal_attachment",
         {
@@ -283,9 +301,9 @@ export function useDeleteGoalAttachment() {
           file_url: fileUrl,
         }
       );
-
+ 
       console.log("Delete API response:", res);
-
+ 
       return res.message || {};
     } catch (error: any) {
       console.error("Delete API error:", error);
@@ -294,7 +312,8 @@ export function useDeleteGoalAttachment() {
       setLoading(false);
     }
   };
-
+ 
   return { deleteGoalAttachment, loading };
 }
-
+ 
+ 

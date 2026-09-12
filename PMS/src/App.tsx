@@ -50,6 +50,7 @@ import SelfEvaluationHistory from "./pages/pages/SelfEvaluationHistory";
 import AdminSettings from "./pages/AdminSettings";
 import AdminView from "./pages/pages/AdminView";
 import ManagerYearlySubmission from "./pages/ManagerYearlySubmission";
+import FunctionalOrSkiplevelYearlysubmission from "./pages/pages/FunctionalOrSkiplevelYearlysubmission";
 
 function AppWrapper() {
   const IDLE_TIME = 15 * 60 * 1000; 
@@ -106,6 +107,7 @@ function AppWrapper() {
             <Route path="/goalcreation" element={<GoalCreation />} />
             <Route path="/goalevaluation" element={<GoalEvaluation />} />
             <Route path="/yearlysubmission" element={<ManagerYearlySubmission/>} />
+            <Route path="/functionalorskiplevelyearlysubmission" element={<FunctionalOrSkiplevelYearlysubmission/>} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/employeegoalevaluation" element={<EmployeeGoalEvaluation />} />
             <Route path="/Createdbyme" element={<CreatedByMe />} />
