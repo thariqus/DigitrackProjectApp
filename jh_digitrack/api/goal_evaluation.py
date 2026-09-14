@@ -18,12 +18,18 @@ GOAL_BASED_QUERY = """
             WHEN ga.status = 'Goal Submitted'
                 THEN 'Evaluation Pending'
             ELSE ga.status
-        END AS status
+        END AS status,
+        ga.manager,
+        JH.full_name AS manager_name,
+        ga.modified AS submitted_on
     FROM
         `tabGoal Assessment` ga
     LEFT JOIN
         `tabPMS Employees` pe
         ON pe.employee_code = ga.employee_code
+    LEFT JOIN
+        `tabJH User Master` JH
+        ON JH.email = ga.manager
     WHERE
         ga.manager = %s
         AND ga.year = %s
@@ -45,13 +51,19 @@ ALL_EMPLOYEES_QUERY = """
         ga.eligible_for_increment,
         ga.training_requirement_identified,
         ga.eligible_for_promotion,
-        COALESCE(ga.status, 'Evaluation Pending') AS status
+        COALESCE(ga.status, 'Evaluation Pending') AS status,
+        ga.manager,
+        JH.full_name AS manager_name,
+        ga.modified AS submitted_on
     FROM
         `tabPMS Employees` pe
     LEFT JOIN
         `tabGoal Assessment` ga
         ON ga.employee_code = pe.employee_code
         AND ga.year = %s
+    LEFT JOIN
+        `tabJH User Master` JH
+        ON JH.email = ga.manager
     WHERE
         pe.manager_email = %s
         AND pe.pms_employee = 1
@@ -185,6 +197,8 @@ def create_goal_evaluation(data=None, session_user=None):
             doc.training_requirement_identified = 1 if data.get("training_requirement_identified") else 0
         if "eligible_for_promotion" in data:
             doc.eligible_for_promotion = 1 if data.get("eligible_for_promotion") else 0
+        if "goal_name_for_yearly_assesment" in data and not doc.goal_name_for_yearly_assesment:
+            doc.goal_name_for_yearly_assesment = data.get("goal_name_for_yearly_assesment")
 
         for attachment in data.get("attachments") or []:
             if isinstance(attachment, str):
