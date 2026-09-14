@@ -31,6 +31,17 @@ const getInitials = (name?: string) => {
   return ((parts[0]?.[0] || "") + (parts[1]?.[0] || "")).toUpperCase() || "M";
 };
 
+const formatDateTime = (dateStr?: string) => {
+  if (!dateStr) return "";
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return "";
+  const datePart = date
+    .toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
+    .toUpperCase();
+  const timePart = date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+  return `${datePart}, ${timePart}`;
+};
+
 const REVIEW_CHECKBOXES: { key: ReviewFlagKey; label: string; icon: typeof IoTrendingUpOutline }[] = [
   { key: "eligibleForIncrement", label: "Eligible for Increment", icon: IoTrendingUpOutline },
   { key: "trainingRequirementsIdentified", label: "Training Required", icon: IoSchoolOutline },
@@ -291,14 +302,18 @@ function FunctionalOrSkiplevelYearlysubmission() {
 
                           {/* Manager attribution */}
                           {isManagerSubmitted && (
-                            <div className="mt-0.5 flex items-center gap-1.5 border-t border-white pt-1.5">
+                            <div className="mt-0.5 flex items-center  gap-1.5 border-t border-white pt-1.5">
                               {/* <span className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full bg-primary/15 text-[0.55rem] font-bold text-primary">
                                 {getInitials(emp.manager_name)}
                               </span> */}
-                              <span className="truncate text-[0.65rem] font-medium text-gray-700">
+                              <span className="truncate text-[0.65rem] font-medium text-green-500">
                                 {emp.manager_name || "Manager"} Submitted
+                                {emp.manager_submitted_on && (
+                                  <span className="ml-1 font-normal text-gray-700">
+                                    on {formatDateTime(emp.manager_submitted_on)}
+                                  </span>
+                                )}
                               </span>
-                             
                             </div>
                           )}
                         </div>
