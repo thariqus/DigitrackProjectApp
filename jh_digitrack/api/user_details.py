@@ -1894,6 +1894,8 @@ def run_post_hrms_sync():
                 JH.last_name = HR.last_name,
                 JH.full_name = HR.company_name,
                 JH.reporting_manager = HR.reporting_manager,
+                JH.funcational_reporting_manager = HR.funcational_reporting_manager,
+                JH.skip_level_reporting_manager = HR.skip_level_reporting_manager,
                 JH.active = CASE WHEN HR.active = 'Active' THEN 1 ELSE 0 END,
                 JH.business = HR.entity_name     
         """)
@@ -1967,6 +1969,10 @@ def run_post_hrms_sync():
               ON PMS.employee_code = HR.employee_code
             LEFT JOIN `tabJH User Master` JH
               ON HR.reporting_manager = JH.name
+            LEFT JOIN `tabJH User Master` JHF
+              ON HR.funcational_reporting_manager = JHF.name
+            LEFT JOIN `tabJH User Master` JHS
+              ON HR.skip_level_reporting_manager = JHS.name
             SET
                 PMS.first_name = HR.first_name,
                 PMS.middle_name = HR.middle_name,
@@ -1978,6 +1984,12 @@ def run_post_hrms_sync():
                 PMS.manager_name = HR.reporting_manager,
                 PMS.manager_code = JH.employee_code,
                 PMS.manager_email = JH.email,
+                PMS.functional_manager_name = HR.funcational_reporting_manager,
+                PMS.functional_manager_code = JHF.employee_code,
+                PMS.functional_manager_email = JHF.email,
+                PMS.skip_level_manager_name = HR.skip_level_reporting_manager,
+                PMS.skip_level_manager_code = JHS.employee_code,
+                PMS.skip_level_manager_email = JHS.email,
                 PMS.cost_center_name = HR.cost_center_name,
                 PMS.entity_name = HR.entity_name,
                 PMS.ou_name = HR.ou_name,
@@ -1991,6 +2003,8 @@ def run_post_hrms_sync():
             INSERT INTO `tabPMS Employees` (
                 first_name, middle_name, last_name,full_name,
                 employee_email, band, business_unit, manager_name, manager_code, manager_email,
+                functional_manager_name, functional_manager_code, functional_manager_email,
+                skip_level_manager_name, skip_level_manager_code, skip_level_manager_email,
                 cost_center_name, entity_name, ou_name,
                 designation_name, department_name, grade_name,
                 employee_code, name
@@ -1999,6 +2013,8 @@ def run_post_hrms_sync():
                 HR.first_name, HR.middle_name, HR.last_name,
                 HR.company_name,HR.mail_id, HR.grade_name,
                 HR.ou_name, HR.reporting_manager,JH.employee_code,JH.email,
+                HR.funcational_reporting_manager, JHF.employee_code, JHF.email,
+                HR.skip_level_reporting_manager, JHS.employee_code, JHS.email,
                 HR.cost_center_name, HR.entity_name,
                 HR.ou_name, HR.designation_name,
                 HR.department_name, HR.grade_name,
@@ -2008,6 +2024,10 @@ def run_post_hrms_sync():
               ON HR.employee_code = PMS.employee_code
             LEFT JOIN `tabJH User Master` JH
               ON HR.reporting_manager = JH.name
+            LEFT JOIN `tabJH User Master` JHF
+              ON HR.funcational_reporting_manager = JHF.name
+            LEFT JOIN `tabJH User Master` JHS
+              ON HR.skip_level_reporting_manager = JHS.name
             WHERE PMS.employee_code IS NULL
               AND IFNULL(HR.employee_code, '') <> ''
         """)
