@@ -3,7 +3,6 @@ import { Link, useLocation } from "react-router";
 import JHICON from "../images/JH.png";
 import jaleelholdings from "../images/jaleel holdings.png";
 import { useCurrentPmsEmployee } from "../hooks/auth";
-import { useFunctionalOrSkipLevelManagerStatus } from "../hooks/goalevaluation";
 import { CiCalendar } from "react-icons/ci";
 import {
   ChevronDown,
@@ -100,8 +99,6 @@ const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered } = useSidebar();
   const location = useLocation();
   const { data: employee } = useCurrentPmsEmployee();
-  const { isFunctionalManager, isSkipLevelManager } =
-    useFunctionalOrSkipLevelManagerStatus();
 
   // const isActive = useCallback(
   //   (path: string) => location.pathname === path,
@@ -263,11 +260,11 @@ const AppSidebar: React.FC = () => {
             </div>
           ) : null}
 
-          {isFunctionalManager || isSkipLevelManager ? (
+          
             <div className="">
               {renderMenuItems(functionalSkipLevelItems)}
             </div>
-          ) : null}
+         
 
           {employee?.pms_employee || employee?.self_assessment ? (
             <div className="mt-8">
