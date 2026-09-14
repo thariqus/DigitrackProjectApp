@@ -16,6 +16,9 @@ export interface GoalAssessment {
   eligible_for_increment?: number;
   training_requirement_identified?: number;
   eligible_for_promotion?: number;
+  manager_email?: string;
+  manager_name?: string;
+  manager_submitted_on?: string;
   attachments?: GoalDocumentAttachment[];
 }
  
@@ -117,7 +120,7 @@ export function useYearlySubmission(selectedYear?: string) {
     selectedYear
   );
 }
- 
+
 /* ─────────────────────────────────────────────── */
 /*            Create Goal Evaluation (POST)         */
 /* ─────────────────────────────────────────────── */
