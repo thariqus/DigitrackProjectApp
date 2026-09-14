@@ -221,7 +221,7 @@ function FunctionalOrSkiplevelYearlysubmission() {
 
                         {/* ── View mode: Manager's submitted review ── */}
                         <div
-                          className={`flex flex-col gap-1.5 rounded-t-xl px-3 py-2  bg-green-50/60`}
+                          className={`flex flex-col gap-1.5 rounded-t-xl px-3 py-2  bg-gray-100`}
                         >
                           {/* Status + Rating, single row */}
                           <div className="flex items-center justify-between gap-2">
@@ -306,11 +306,11 @@ function FunctionalOrSkiplevelYearlysubmission() {
                               {/* <span className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full bg-primary/15 text-[0.55rem] font-bold text-primary">
                                 {getInitials(emp.manager_name)}
                               </span> */}
-                              <span className="truncate text-[0.65rem] font-medium text-green-500">
+                              <span className="truncate text-[0.65rem] font-medium text-gray-700">
                                 {emp.manager_name || "Manager"} Submitted
-                                {emp.manager_submitted_on && (
+                                {emp.submitted_on && (
                                   <span className="ml-1 font-normal text-gray-700">
-                                    on {formatDateTime(emp.manager_submitted_on)}
+                                    on {formatDateTime(emp.submitted_on)}
                                   </span>
                                 )}
                               </span>

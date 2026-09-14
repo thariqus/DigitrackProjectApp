@@ -18,7 +18,7 @@ export interface GoalAssessment {
   eligible_for_promotion?: number;
   manager_email?: string;
   manager_name?: string;
-  manager_submitted_on?: string;
+  submitted_on?: string;
   attachments?: GoalDocumentAttachment[];
 }
  
