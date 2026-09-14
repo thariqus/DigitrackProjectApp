@@ -256,8 +256,10 @@ function ManagerYearlySubmission() {
       !!evaluations && evaluations.length > 0 &&
       evaluations.every((emp: any) => emp.status === "Evaluation Submitted");
 
+    const isCurrentYear = !!baseYear && selectedYear === baseYear;
+
     const handleSubmitAll = async () => {
-      if (!enableYearlyAppraisal || allSubmitted) return;
+      if (!enableYearlyAppraisal || allSubmitted || !isCurrentYear) return;
       if (!evaluations || evaluations.length === 0) return;
 
       const errors: Record<string, { rating?: boolean; comment?: boolean }> = {};
@@ -420,7 +422,7 @@ function ManagerYearlySubmission() {
           <button
             type="button"
             onClick={handleSubmitAll}
-            disabled={isSubmitting || !enableYearlyAppraisal || allSubmitted}
+            disabled={isSubmitting || !enableYearlyAppraisal || allSubmitted || !isCurrentYear}
             // title={
             //   !enableYearlyAppraisal
             //     ? "Yearly Appraisal is disabled in Admin Settings"
@@ -489,7 +491,7 @@ function ManagerYearlySubmission() {
                   existingFiles.length + review.files.length >= MAX_REVIEW_FILES;
                 const rowErrors = validationErrors[rowKey];
                 const isSubmitted = emp.status === "Evaluation Submitted";
-                const isRowLocked = isSubmitted || !enableYearlyAppraisal;
+                const isRowLocked = isSubmitted || !enableYearlyAppraisal || !isCurrentYear;
  
                 return (
                   <tr key={rowKey} className="border-b text-xs align-top transition">

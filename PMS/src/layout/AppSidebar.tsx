@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router";
 import JHICON from "../images/JH.png";
 import jaleelholdings from "../images/jaleel holdings.png";
 import { useCurrentPmsEmployee } from "../hooks/auth";
+import { useFunctionalOrSkipLevelManagerStatus } from "../hooks/goalevaluation";
 import { CiCalendar } from "react-icons/ci";
 import {
   ChevronDown,
@@ -54,7 +55,10 @@ const managerItems: NavItem[] = [
     name: "Yearly Submission",
     path: "/yearlysubmission",
   },
-   {
+];
+
+const functionalSkipLevelItems: NavItem[] = [
+  {
     icon: <CiCalendar />,
     name: "Functional/Skip level Yearly Submission",
     path: "/functionalorskiplevelyearlysubmission",
@@ -96,6 +100,8 @@ const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered } = useSidebar();
   const location = useLocation();
   const { data: employee } = useCurrentPmsEmployee();
+  const { isFunctionalManager, isSkipLevelManager } =
+    useFunctionalOrSkipLevelManagerStatus();
 
   // const isActive = useCallback(
   //   (path: string) => location.pathname === path,
@@ -254,6 +260,12 @@ const AppSidebar: React.FC = () => {
             <div className="mt-8">
               {renderSectionHeader("Manager")}
               {renderMenuItems(managerItems)}
+            </div>
+          ) : null}
+
+          {isFunctionalManager || isSkipLevelManager ? (
+            <div className="">
+              {renderMenuItems(functionalSkipLevelItems)}
             </div>
           ) : null}
 
