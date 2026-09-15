@@ -72,6 +72,8 @@ ALL_EMPLOYEES_QUERY = """
 ALLOWED_EVALUATION_STATUSES = (
     "Evaluation Pending",
     "Evaluation Started",
+    "Functional Manager Review",
+    "Skip Level Manager Review",
     "Evaluation Submitted",
     "Goal Submitted",
 )
@@ -333,9 +335,64 @@ def get_employee_goals(employee_code, year):
 import frappe
 from frappe import _
 
+
+def _get_manager_chain(employee_code):
+    """Reporting/functional/skip-level manager emails for an employee, from PMS Employees."""
+    return frappe.db.get_value(
+        "PMS Employees",
+        employee_code,
+        ["manager_email", "functional_manager_email", "skip_level_manager_email"],
+        as_dict=True,
+    ) or {}
+
+
+def _status_after_manager_review(employee_code):
+    """
+    Next status once the reporting manager submits their review.
+    If the functional manager is the same person as the reporting manager,
+    the functional review stage is skipped; if the skip-level manager is
+    also the same person, the skip-level stage is skipped too.
+    """
+    managers = _get_manager_chain(employee_code)
+    manager_email = managers.get("manager_email")
+    functional_email = managers.get("functional_manager_email")
+    skip_level_email = managers.get("skip_level_manager_email")
+
+    if functional_email and functional_email == manager_email:
+        if skip_level_email and skip_level_email == functional_email:
+            return "Evaluation Submitted"
+        return "Skip Level Manager Review"
+    return "Functional Manager Review"
+
+
+def _status_after_functional_review(employee_code):
+    """
+    Next status once the functional manager submits their review.
+    If the skip-level manager is the same person as the functional manager,
+    the skip-level stage is skipped and the evaluation is final.
+    """
+    managers = _get_manager_chain(employee_code)
+    functional_email = managers.get("functional_manager_email")
+    skip_level_email = managers.get("skip_level_manager_email")
+
+    if skip_level_email and skip_level_email == functional_email:
+        return "Evaluation Submitted"
+    return "Skip Level Manager Review"
+
+
+def _finalize_or_save(doc, next_status):
+    doc.status = next_status
+    doc.flags.ignore_permissions = True
+    if next_status == "Evaluation Submitted":
+        doc.submit()
+    else:
+        doc.save()
+    frappe.db.commit()
+
+
 @frappe.whitelist(methods=["POST"])
 def submit_goal_evaluation(employee_code, year, comment=None):
-  
+
     if not employee_code or not year:
         frappe.throw(_("Employee code and year are required."))
 
@@ -353,15 +410,72 @@ def submit_goal_evaluation(employee_code, year, comment=None):
         frappe.throw(_("Please save the evaluation before submitting."))
     if doc.docstatus == 1:
         return {"message": "Goal Evaluation already submitted."}
-    doc.status = "Evaluation Submitted"
     if comment:
         doc.comment = comment
-    doc.flags.ignore_permissions = True
 
-    doc.submit()
+    next_status = _status_after_manager_review(employee_code)
+    _finalize_or_save(doc, next_status)
 
-    frappe.db.commit()
-    return {"message": "Goal Evaluation submitted successfully.", "docname": doc.name}
+    return {"message": "Goal Evaluation submitted successfully.", "docname": doc.name, "status": next_status}
+
+
+@frappe.whitelist(methods=["POST"])
+def submit_functional_manager_review(employee_code, year, rating=None, comment=None):
+    if not employee_code or not year:
+        frappe.throw(_("Employee code and year are required."))
+
+    goal_eval = frappe.db.get_value(
+        "Goal Assessment",
+        {"employee_code": employee_code, "year": year},
+        "name"
+    )
+    if not goal_eval:
+        frappe.throw(_("Goal Evaluation record not found."))
+
+    doc = frappe.get_doc("Goal Assessment", goal_eval)
+    if doc.status != "Functional Manager Review":
+        frappe.throw(_("This evaluation is not awaiting functional manager review."))
+    if doc.docstatus == 1:
+        return {"message": "Goal Evaluation already submitted."}
+
+    if rating is not None:
+        doc.functional_manager_rating = flt(rating) / 5
+    if comment:
+        doc.functional_manager_comment = comment
+
+    next_status = _status_after_functional_review(employee_code)
+    _finalize_or_save(doc, next_status)
+
+    return {"message": "Functional manager review submitted successfully.", "docname": doc.name, "status": next_status}
+
+
+@frappe.whitelist(methods=["POST"])
+def submit_skip_level_manager_review(employee_code, year, rating=None, comment=None):
+    if not employee_code or not year:
+        frappe.throw(_("Employee code and year are required."))
+
+    goal_eval = frappe.db.get_value(
+        "Goal Assessment",
+        {"employee_code": employee_code, "year": year},
+        "name"
+    )
+    if not goal_eval:
+        frappe.throw(_("Goal Evaluation record not found."))
+
+    doc = frappe.get_doc("Goal Assessment", goal_eval)
+    if doc.status != "Skip Level Manager Review":
+        frappe.throw(_("This evaluation is not awaiting skip-level manager review."))
+    if doc.docstatus == 1:
+        return {"message": "Goal Evaluation already submitted."}
+
+    if rating is not None:
+        doc.skip_level_manager_rating = flt(rating) / 5
+    if comment:
+        doc.skip_level_manager_comment = comment
+
+    _finalize_or_save(doc, "Evaluation Submitted")
+
+    return {"message": "Skip-level manager review submitted successfully.", "docname": doc.name, "status": "Evaluation Submitted"}
 
 
 @frappe.whitelist(methods=["POST"])

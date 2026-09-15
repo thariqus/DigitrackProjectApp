@@ -2039,12 +2039,7 @@ def run_post_hrms_sync():
         frappe.db.sql("UPDATE `tabPMS Employees` SET pms_employee = 0")
         frappe.db.sql("""
             UPDATE `tabPMS Employees`
-            SET pms_employee = 1
-
-            WHERE grade_name LIKE '%EL_'
-               OR grade_name LIKE '%FL_'
-               OR grade_name LIKE '%GL_'
-               OR grade_name LIKE 'OFRL'
+            SET pms_employee = 1, yearly_appraisal_employee = 1
         """)
         frappe.db.sql("UPDATE `tabPMS Employees` SET pms_manager = 0")
         frappe.db.sql("""
