@@ -260,11 +260,11 @@ const AppSidebar: React.FC = () => {
             </div>
           ) : null}
 
-          
-            <div className="">
+          {employee?.is_functional_or_skip_level_manager ? (
+            <div className="mt-3">
               {renderMenuItems(functionalSkipLevelItems)}
             </div>
-         
+          ) : null}
 
           {employee?.pms_employee || employee?.self_assessment ? (
             <div className="mt-8">

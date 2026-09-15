@@ -46,6 +46,14 @@ const emptyReview: ManagerReview = {
   files: [],
 };
  
+// Statuses reached once the reporting manager has already submitted their review
+// (the next stage may have been auto-skipped if the same person holds it).
+const REPORTING_MANAGER_DONE_STATUSES = [
+  "Functional Manager Review",
+  "Skip Level Manager Review",
+  "Evaluation Submitted",
+];
+
 const REVIEW_CHECKBOXES: { key: ReviewFlagKey; label: string; icon: typeof IoTrendingUpOutline }[] = [
   { key: "eligibleForIncrement", label: "Eligible for Increment", icon: IoTrendingUpOutline },
   { key: "trainingRequirementsIdentified", label: "Training Required", icon: IoSchoolOutline },
@@ -254,7 +262,7 @@ function ManagerYearlySubmission() {
 
     const allSubmitted =
       !!evaluations && evaluations.length > 0 &&
-      evaluations.every((emp: any) => emp.status === "Evaluation Submitted");
+      evaluations.every((emp: any) => REPORTING_MANAGER_DONE_STATUSES.includes(emp.status));
 
     const isCurrentYear = !!baseYear && selectedYear === baseYear;
 
@@ -490,7 +498,7 @@ function ManagerYearlySubmission() {
                 const fileLimitReached =
                   existingFiles.length + review.files.length >= MAX_REVIEW_FILES;
                 const rowErrors = validationErrors[rowKey];
-                const isSubmitted = emp.status === "Evaluation Submitted";
+                const isSubmitted = REPORTING_MANAGER_DONE_STATUSES.includes(emp.status);
                 const isRowLocked = isSubmitted || !enableYearlyAppraisal || !isCurrentYear;
  
                 return (

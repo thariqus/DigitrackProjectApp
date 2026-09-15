@@ -20,6 +20,11 @@ export interface GoalAssessment {
   manager_name?: string;
   submitted_on?: string;
   attachments?: GoalDocumentAttachment[];
+  functional_manager_rating?: number;
+  functional_manager_comment?: string;
+  skip_level_manager_rating?: number;
+  skip_level_manager_comment?: string;
+  reviewer_role?: "functional" | "skip_level" | null;
 }
  
 export interface GoalDocumentAttachment {
@@ -121,6 +126,14 @@ export function useYearlySubmission(selectedYear?: string) {
   );
 }
 
+export function useFunctionalOrSkipLevelYearlySubmission(selectedYear?: string) {
+  return useEvaluationList(
+    "jh_digitrack.api.goal_evaluation.get_functional_or_skiplevel_yearly_submission",
+    "functional-or-skiplevel-yearly-submission",
+    selectedYear
+  );
+}
+
 /* ─────────────────────────────────────────────── */
 /*            Create Goal Evaluation (POST)         */
 /* ─────────────────────────────────────────────── */
@@ -200,26 +213,35 @@ export function useEmployeeGoals(employeeCode: string, year: string) {
 /* ─────────────────────────────────────────────── */
 /*              Submit Goal Evaluation             */
 /* ─────────────────────────────────────────────── */
+/**
+ * Advances a Goal Assessment's status. The backend derives which stage is
+ * being submitted (reporting manager / functional manager / skip-level
+ * manager) from the evaluation's current status, so this single endpoint
+ * covers all three review stages. `rating` is required by the backend for
+ * the functional/skip-level stages, unused for the reporting-manager stage.
+ */
 export function useSubmitGoalEvaluation() {
   const [loading, setLoading] = useState(false);
- 
+
   const submitGoalEvaluation = async (
     employeeCode: string,
     year: string,
-    comment: string
+    comment: string,
+    rating?: number
   ) => {
     try {
       setLoading(true);
- 
+
       const res = await frappeClient.api.post(
         "jh_digitrack.api.goal_evaluation.submit_goal_evaluation",
         {
           employee_code: employeeCode,
           year,
           comment,
+          rating,
         }
       );
- 
+
       return res.message || {};
     } catch (error: any) {
       return { error: error.message };
@@ -227,10 +249,10 @@ export function useSubmitGoalEvaluation() {
       setLoading(false);
     }
   };
- 
+
   return { submitGoalEvaluation, loading };
 }
- 
+
 /* ─────────────────────────────────────────────── */
 /*               Upload Goal Attachment            */
 /* ─────────────────────────────────────────────── */
