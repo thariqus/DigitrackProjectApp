@@ -22,7 +22,8 @@ import {
   IoSaveOutline,
 } from 'react-icons/io5';
 import Pagination from '@/components/Pagination';
- 
+import { StageReviewCard } from '@/components/StageReviewReadOnly';
+
 const MAX_REVIEW_FILES = 4;
 const MAX_COMMENT_LENGTH = 500;
  
@@ -479,7 +480,7 @@ function ManagerYearlySubmission() {
               </th>
               {/* Manager Review */}
               <th className="py-3 px-4">Manager Review</th>
-              <th className="py-3 px-4">Comments</th>
+              <th className="py-3 px-4">{!allSubmitted && "Comments"}</th>
               <th className="py-3"></th>
             </tr>
           </thead>
@@ -500,7 +501,16 @@ function ManagerYearlySubmission() {
                 const rowErrors = validationErrors[rowKey];
                 const isSubmitted = REPORTING_MANAGER_DONE_STATUSES.includes(emp.status);
                 const isRowLocked = isSubmitted || !enableYearlyAppraisal || !isCurrentYear;
- 
+                // Functional/skip-level review stages are auto-skipped when that manager is
+                // the same person as the reporting manager, so no rating/comment is ever
+                // recorded for the stage — only show it once it actually has data.
+                const hasFunctionalReview =
+                  !!(emp.functional_manager_comment && emp.functional_manager_comment.trim()) ||
+                  (emp.functional_manager_rating || 0) > 0;
+                const hasSkipLevelReview =
+                  !!(emp.skip_level_manager_comment && emp.skip_level_manager_comment.trim()) ||
+                  (emp.skip_level_manager_rating || 0) > 0;
+
                 return (
                   <tr key={rowKey} className="border-b text-xs align-top transition">
                     <td className="px-4 py-3 whitespace-nowrap" title={`${emp.employee_code} / ${emp.employee_name}`}>
@@ -509,190 +519,230 @@ function ManagerYearlySubmission() {
                     <td className="px-4 py-3 whitespace-nowrap" title={emp.designation_name || "-"}>
                       {emp.designation_name || "-"}
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="flex w-full flex-col divide-y divide-gray-100 rounded-xl border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md">
-                        {/* Rating */}
-                        <div
-                          className={`flex flex-col gap-1 px-3 py-2.5 ${
-                            rowErrors?.rating ? "bg-red-50" : ""
-                          }`}
-                        >
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="text-[0.6rem] font-semibold uppercase tracking-wide text-gray-400">
-                              Rating
-                            </span>
-                            <div className="flex items-center gap-0.5">
-                              {[1, 2, 3, 4, 5].map((star) => (
-                                <button
-                                  key={star}
-                                  type="button"
-                                  onClick={() => setRating(rowKey, star)}
-                                  disabled={isRowLocked}
-                                  className="p-0.5 transition-transform hover:scale-110 disabled:cursor-not-allowed disabled:hover:scale-100"
-                                  aria-label={`Rate ${star} star${star > 1 ? "s" : ""}`}
-                                >
-                                  <FaStar
-                                    className={`h-3.5 w-3.5 transition-colors ${
-                                      star <= review.rating ? "text-amber-400" : "text-gray-200"
-                                    }`}
-                                  />
-                                </button>
-                              ))}
-                              <span className=" p-1 min-w-[1.5rem] text-[0.65rem] bg-primary/30  font-medium text-primary rounded-full">
-                                {review.rating > 0 ? `${review.rating}/5` : "0/5"}
-                              </span>
-                            </div>
-                          </div>
-                          {rowErrors?.rating && (
-                            <span className="text-[0.6rem] font-medium text-red-500">
-                              Rating is required
-                            </span>
+                    <td className="px-4 py-3" colSpan={isSubmitted ? 2 : 1}>
+                      {isSubmitted ? (
+                        /* ── View mode: one color-coded card per review stage ── */
+                        <div className="flex w-full flex-col gap-2">
+                          <StageReviewCard
+                            stage="manager"
+                            rating={emp.rating}
+                            checklist={REVIEW_CHECKBOXES.map(({ key, label }) => ({
+                              key,
+                              label,
+                              value:
+                                key === "eligibleForIncrement"
+                                  ? !!emp.eligible_for_increment
+                                  : key === "trainingRequirementsIdentified"
+                                  ? !!emp.training_requirement_identified
+                                  : !!emp.eligible_for_promotion,
+                            }))}
+                            comment={emp.comment}
+                            attachments={existingFiles}
+                            submittedByName={emp.manager_name}
+                            submittedOn={emp.submitted_on}
+                          />
+                          {hasFunctionalReview && (
+                            <StageReviewCard
+                              stage="functional"
+                              rating={emp.functional_manager_rating}
+                              comment={emp.functional_manager_comment}
+                            />
+                          )}
+                          {hasSkipLevelReview && (
+                            <StageReviewCard
+                              stage="skip_level"
+                              rating={emp.skip_level_manager_rating}
+                              comment={emp.skip_level_manager_comment}
+                            />
                           )}
                         </div>
-
-                        {/* Review checkboxes */}
-                        <div className="flex flex-col gap-2 px-3 py-2.5">
-                          <span className="text-[0.6rem] font-semibold uppercase tracking-wide text-gray-400">
-                            Checklist
-                          </span>
-                          {REVIEW_CHECKBOXES.map(({ key, label }) => (
-                            <label
-                              key={key}
-                              className={`flex items-center gap-2 text-[0.68rem] text-gray-700 select-none ${
-                                isRowLocked ? "cursor-not-allowed opacity-60" : "cursor-pointer"
+                      ) : (
+                        <div className="flex w-full flex-col divide-y divide-gray-100 rounded-xl border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md">
+                            {/* Rating */}
+                            <div
+                              className={`flex flex-col gap-1 px-3 py-2.5 ${
+                                rowErrors?.rating ? "bg-red-50" : ""
                               }`}
                             >
-                              <input
-                                type="checkbox"
-                                checked={review[key]}
-                                onChange={() => toggleReviewFlag(rowKey, key)}
-                                disabled={isRowLocked}
-                                className="h-3.5 w-3.5 rounded border-gray-300 text-primary accent-primary focus:ring-primary"
-                              />
-                              {label}
-                            </label>
-                          ))}
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-[0.6rem] font-semibold uppercase tracking-wide text-gray-400">
+                                  Rating
+                                </span>
+                                <div className="flex items-center gap-0.5">
+                                  {[1, 2, 3, 4, 5].map((star) => (
+                                    <button
+                                      key={star}
+                                      type="button"
+                                      onClick={() => setRating(rowKey, star)}
+                                      disabled={isRowLocked}
+                                      className="p-0.5 transition-transform hover:scale-110 disabled:cursor-not-allowed disabled:hover:scale-100"
+                                      aria-label={`Rate ${star} star${star > 1 ? "s" : ""}`}
+                                    >
+                                      <FaStar
+                                        className={`h-3.5 w-3.5 transition-colors ${
+                                          star <= review.rating ? "text-amber-400" : "text-gray-200"
+                                        }`}
+                                      />
+                                    </button>
+                                  ))}
+                                  <span className=" p-1 min-w-[1.5rem] text-[0.65rem] bg-primary/30  font-medium text-primary rounded-full">
+                                    {review.rating > 0 ? `${review.rating}/5` : "0/5"}
+                                  </span>
+                                </div>
+                              </div>
+                              {rowErrors?.rating && (
+                                <span className="text-[0.6rem] font-medium text-red-500">
+                                  Rating is required
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Review checkboxes */}
+                            <div className="flex flex-col gap-2 px-3 py-2.5">
+                              <span className="text-[0.6rem] font-semibold uppercase tracking-wide text-gray-400">
+                                Checklist
+                              </span>
+                              {REVIEW_CHECKBOXES.map(({ key, label }) => (
+                                <label
+                                  key={key}
+                                  className={`flex items-center gap-2 text-[0.68rem] text-gray-700 select-none ${
+                                    isRowLocked ? "cursor-not-allowed opacity-60" : "cursor-pointer"
+                                  }`}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={review[key]}
+                                    onChange={() => toggleReviewFlag(rowKey, key)}
+                                    disabled={isRowLocked}
+                                    className="h-3.5 w-3.5 rounded border-gray-300 text-primary accent-primary focus:ring-primary"
+                                  />
+                                  {label}
+                                </label>
+                              ))}
+                            </div>
+
+                            {/* File upload */}
+                            <div className="flex flex-col gap-2 px-3 py-2.5">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-[0.6rem] font-semibold uppercase tracking-wide text-gray-400">
+                                  Attachments
+                                </span>
+                                <span className="text-[0.6rem] font-medium text-gray-400">
+                                  {existingFiles.length + review.files.length}/{MAX_REVIEW_FILES}
+                                </span>
+                              </div>
+
+                              {existingFiles.length > 0 && (
+                                <ul className="flex flex-col gap-1">
+                                  {existingFiles.map((file) => (
+                                    <li
+                                      key={file.file_url}
+                                      className="flex items-center justify-between gap-2 rounded-md bg-gray-50 px-2 py-1 text-[0.6rem]"
+                                    >
+                                      <a
+                                        href={file.file_url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="truncate text-primary hover:underline"
+                                      >
+                                        {file.file_name}
+                                      </a>
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          handleRemoveExistingAttachment(rowKey, emp.employee_code, file.file_url)
+                                        }
+                                        disabled={isRowLocked}
+                                        className="text-gray-400 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-50"
+                                        aria-label="Remove file"
+                                      >
+                                        <IoCloseOutline />
+                                      </button>
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+
+                              <label
+                                className={`flex items-center justify-center gap-1.5 rounded-lg border border-dashed px-2 py-1.5 text-[0.65rem] font-medium transition ${
+                                  fileLimitReached || isRowLocked
+                                    ? "cursor-not-allowed border-gray-200 text-gray-300"
+                                    : "cursor-pointer border-gray-300 text-gray-500 hover:border-primary hover:bg-secondary/60 hover:text-primary"
+                                }`}
+                              >
+                                <input
+                                  type="file"
+                                  multiple
+                                  hidden
+                                  disabled={fileLimitReached || isRowLocked}
+                                  onChange={(e) => {
+                                    addFiles(rowKey, e.target.files);
+                                    e.target.value = "";
+                                  }}
+                                />
+                                <IoCloudUploadOutline className="text-sm" />
+                                {fileLimitReached ? "Limit reached" : "Attach file"}
+                              </label>
+
+                              {review.files.length > 0 && (
+                                <ul className="flex flex-col gap-1">
+                                  {review.files.map((file, idx) => (
+                                    <li
+                                      key={`${file.name}-${idx}`}
+                                      className="flex items-center justify-between gap-2 rounded-md bg-gray-50 px-2 py-1 text-[0.6rem]"
+                                    >
+                                      <span className="truncate">{file.name}</span>
+                                      <button
+                                        type="button"
+                                        onClick={() => removeFile(rowKey, idx)}
+                                        disabled={isRowLocked}
+                                        className="text-gray-400 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-50"
+                                        aria-label="Remove file"
+                                      >
+                                        <IoCloseOutline />
+                                      </button>
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                            </div>
                         </div>
- 
-                        {/* File upload */}
-                        <div className="flex flex-col gap-2 px-3 py-2.5">
-                          <div className="flex items-center justify-between gap-2">
+                      )}
+                    </td>
+                    {!isSubmitted && (
+                      <td className="px-4 py-3">
+                        <div
+                          className={`flex w-full flex-col gap-1.5 rounded-xl border p-3 shadow-sm transition-shadow focus-within:shadow-md hover:shadow-md ${
+                            rowErrors?.comment
+                              ? "border-red-300 bg-red-50 focus-within:border-red-400"
+                              : "border-gray-200 bg-white focus-within:border-primary/50"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
                             <span className="text-[0.6rem] font-semibold uppercase tracking-wide text-gray-400">
-                              Attachments
+                              Comments
                             </span>
-                            <span className="text-[0.6rem] font-medium text-gray-400">
-                              {existingFiles.length + review.files.length}/{MAX_REVIEW_FILES}
+                            <span className="text-[0.6rem] font-medium text-gray-300">
+                              {review.comment.length}/{MAX_COMMENT_LENGTH}
                             </span>
                           </div>
- 
-                          {existingFiles.length > 0 && (
-                            <ul className="flex flex-col gap-1">
-                              {existingFiles.map((file) => (
-                                <li
-                                  key={file.file_url}
-                                  className="flex items-center justify-between gap-2 rounded-md bg-gray-50 px-2 py-1 text-[0.6rem]"
-                                >
-                                  <a
-                                    href={file.file_url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="truncate text-primary hover:underline"
-                                  >
-                                    {file.file_name}
-                                  </a>
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      handleRemoveExistingAttachment(rowKey, emp.employee_code, file.file_url)
-                                    }
-                                    disabled={isRowLocked}
-                                    className="text-gray-400 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-50"
-                                    aria-label="Remove file"
-                                  >
-                                    <IoCloseOutline />
-                                  </button>
-                                </li>
-                              ))}
-                            </ul>
-                          )}
- 
-                          <label
-                            className={`flex items-center justify-center gap-1.5 rounded-lg border border-dashed px-2 py-1.5 text-[0.65rem] font-medium transition ${
-                              fileLimitReached || isRowLocked
-                                ? "cursor-not-allowed border-gray-200 text-gray-300"
-                                : "cursor-pointer border-gray-300 text-gray-500 hover:border-primary hover:bg-secondary/60 hover:text-primary"
-                            }`}
-                          >
-                            <input
-                              type="file"
-                              multiple
-                              hidden
-                              disabled={fileLimitReached || isRowLocked}
-                              onChange={(e) => {
-                                addFiles(rowKey, e.target.files);
-                                e.target.value = "";
-                              }}
-                            />
-                            <IoCloudUploadOutline className="text-sm" />
-                            {fileLimitReached ? "Limit reached" : "Attach file"}
-                          </label>
- 
-                          {review.files.length > 0 && (
-                            <ul className="flex flex-col gap-1">
-                              {review.files.map((file, idx) => (
-                                <li
-                                  key={`${file.name}-${idx}`}
-                                  className="flex items-center justify-between gap-2 rounded-md bg-gray-50 px-2 py-1 text-[0.6rem]"
-                                >
-                                  <span className="truncate">{file.name}</span>
-                                  <button
-                                    type="button"
-                                    onClick={() => removeFile(rowKey, idx)}
-                                    disabled={isRowLocked}
-                                    className="text-gray-400 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-50"
-                                    aria-label="Remove file"
-                                  >
-                                    <IoCloseOutline />
-                                  </button>
-                                </li>
-                              ))}
-                            </ul>
+                          <textarea
+                            value={review.comment}
+                            maxLength={MAX_COMMENT_LENGTH}
+                            onChange={(e) => setComment(rowKey, e.target.value.slice(0, MAX_COMMENT_LENGTH))}
+                            placeholder="Add comments or feedback"
+                            rows={10}
+                            disabled={isRowLocked}
+                            className="w-full resize-none rounded-md border-0 bg-transparent p-0 text-[0.68rem] leading-relaxed text-gray-700 placeholder:text-gray-300 focus:outline-none focus:ring-0 disabled:cursor-not-allowed disabled:opacity-60"
+                          />
+                          {rowErrors?.comment && (
+                            <span className="text-[0.6rem] font-medium text-red-500">
+                              Comment is required
+                            </span>
                           )}
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div
-                        className={`flex w-full flex-col gap-1.5 rounded-xl border p-3 shadow-sm transition-shadow focus-within:shadow-md hover:shadow-md ${
-                          rowErrors?.comment
-                            ? "border-red-300 bg-red-50 focus-within:border-red-400"
-                            : "border-gray-200 bg-white focus-within:border-primary/50"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="text-[0.6rem] font-semibold uppercase tracking-wide text-gray-400">
-                            Comments
-                          </span>
-                          <span className="text-[0.6rem] font-medium text-gray-300">
-                            {review.comment.length}/{MAX_COMMENT_LENGTH}
-                          </span>
-                        </div>
-                        <textarea
-                          value={review.comment}
-                          maxLength={MAX_COMMENT_LENGTH}
-                          onChange={(e) => setComment(rowKey, e.target.value.slice(0, MAX_COMMENT_LENGTH))}
-                          placeholder="Add comments or feedback"
-                          rows={10}
-                          disabled={isRowLocked}
-                          className="w-full resize-none rounded-md border-0 bg-transparent p-0 text-[0.68rem] leading-relaxed text-gray-700 placeholder:text-gray-300 focus:outline-none focus:ring-0 disabled:cursor-not-allowed disabled:opacity-60"
-                        />
-                        {rowErrors?.comment && (
-                          <span className="text-[0.6rem] font-medium text-red-500">
-                            Comment is required
-                          </span>
-                        )}
-                      </div>
-                    </td>
+                      </td>
+                    )}
                     <td className="flex justify-center items-center py-3 text-center">
                       <button
                         type="button"

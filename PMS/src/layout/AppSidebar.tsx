@@ -28,7 +28,7 @@ const masterItems: NavItem[] = [
   {
     icon: <IoClipboardOutline />,
     name: "Goal",
-    path: "/goalmaster",
+    // path: "/goalmaster",
   },
 ];
 
@@ -42,12 +42,12 @@ const managerItems: NavItem[] = [
   {
     icon: <MdOutlineAssignmentTurnedIn />,
     name: "Goal Assignment",
-    path: "/goalassignment",
+    // path: "/goalassignment",
   },
   {
     icon: <MdOutlineAssessment />,
     name: "Goal Evaluation",
-    path: "/goalevaluation",
+    // path: "/goalevaluation",
   },
    {
     icon: <CiCalendar />,
