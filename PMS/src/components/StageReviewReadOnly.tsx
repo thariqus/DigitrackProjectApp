@@ -158,14 +158,14 @@ export function StageReviewCard({
 
       {/* Attribution */}
       <div className="flex items-center gap-1.5 border-t border-gray-100 pt-1.5">
-        <span
+        {/* <span
           className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[0.5rem] font-semibold ${config.avatarBg} ${config.avatarText}`}
         >
           {getInitials(submittedByName)}
-        </span>
-        <span className="truncate text-[0.62rem] text-gray-500">
-          <span className="font-medium text-gray-700">{submittedByName || "Manager"}</span> submitted
-          {submittedOn && <span className="text-gray-400"> · {formatDateTime(submittedOn)}</span>}
+        </span> */}
+        <span className="truncate text-[0.62rem] font-medium text-gray-700">
+          <span className="">{submittedByName || "Manager"}</span>
+          {submittedOn ? <> submitted on <span className="">{formatDateTime(submittedOn)}</span></> : " submitted"}
         </span>
       </div>
     </div>
