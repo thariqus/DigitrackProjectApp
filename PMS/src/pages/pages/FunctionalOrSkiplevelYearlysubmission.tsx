@@ -12,10 +12,9 @@ import {
   IoTrendingUpOutline,
   IoSchoolOutline,
   IoRibbonOutline,
-  IoCheckmarkCircle,
-  IoCloseCircle,
 } from 'react-icons/io5';
 import Pagination from '@/components/Pagination';
+import { StageReviewCard } from '@/components/StageReviewReadOnly';
 
 const MAX_COMMENT_LENGTH = 500;
 
@@ -31,55 +30,11 @@ const emptySkipLevelReview: SkipLevelReview = {
   comment: "",
 };
 
-const getInitials = (name?: string) => {
-  if (!name) return "M";
-  const parts = name.trim().split(/\s+/);
-  return ((parts[0]?.[0] || "") + (parts[1]?.[0] || "")).toUpperCase() || "M";
-};
-
-const formatDateTime = (dateStr?: string) => {
-  if (!dateStr) return "";
-  const date = new Date(dateStr);
-  if (isNaN(date.getTime())) return "";
-  const datePart = date
-    .toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
-    .toUpperCase();
-  const timePart = date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
-  return `${datePart}, ${timePart}`;
-};
-
 const REVIEW_CHECKBOXES: { key: ReviewFlagKey; label: string; icon: typeof IoTrendingUpOutline }[] = [
   { key: "eligibleForIncrement", label: "Eligible for Increment", icon: IoTrendingUpOutline },
   { key: "trainingRequirementsIdentified", label: "Training Required", icon: IoSchoolOutline },
   { key: "eligibleForPromotion", label: "Eligible for Promotion", icon: IoRibbonOutline },
 ];
-
-// Read-only summary of a stage that has already been submitted (functional
-// manager's review, or skip-level manager's review), shown to later-stage
-// reviewers alongside their own editable fields.
-function StageReadOnlyBlock({ label, rating, comment }: { label: string; rating?: number; comment?: string }) {
-  return (
-    <div className="flex flex-col gap-1.5 px-3 py-2 bg-gray-50">
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-gray-500">{label}</span>
-        <div className="flex items-center gap-0.5">
-          {[1, 2, 3, 4, 5].map((star) => (
-            <FaStar
-              key={star}
-              className={`h-3 w-3 ${star <= (rating || 0) ? "text-amber-400" : "text-gray-200"}`}
-            />
-          ))}
-          <span className="ml-1 rounded-full bg-white px-1.5 py-0.5 text-[0.6rem] font-medium text-gray-500">
-            {rating && rating > 0 ? `${rating}/5` : "0/5"}
-          </span>
-        </div>
-      </div>
-      <p className="whitespace-pre-wrap break-words text-[0.68rem] italic leading-snug text-gray-600">
-        {comment ? `"${comment}"` : "No comments added."}
-      </p>
-    </div>
-  );
-}
 
 function FunctionalOrSkiplevelYearlysubmission() {
 
@@ -418,6 +373,9 @@ function FunctionalOrSkiplevelYearlysubmission() {
                 const hasFunctionalReview =
                   !!(emp.functional_manager_comment && emp.functional_manager_comment.trim()) ||
                   (emp.functional_manager_rating || 0) > 0;
+                const hasSkipLevelReview =
+                  !!(emp.skip_level_manager_comment && emp.skip_level_manager_comment.trim()) ||
+                  (emp.skip_level_manager_rating || 0) > 0;
 
                 return (
                   <tr key={rowKey} className="border-b text-xs align-top transition">
@@ -428,133 +386,52 @@ function FunctionalOrSkiplevelYearlysubmission() {
                       {emp.designation_name || "-"}
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex w-full flex-col rounded-xl border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md">
+                      <div className="flex w-full flex-col gap-2">
 
-                        {/* ── View mode: Manager's submitted review ── */}
-                        <div
-                          className={`flex flex-col gap-1.5 rounded-t-xl px-3 py-2  bg-gray-100`}
-                        >
-                          {/* Status + Rating, single row */}
-                          <div className="flex items-center justify-between gap-2">
-                            <span className='text-gray-500'>Manager Review</span>
-                            <div className="flex items-center gap-0.5">
-                              {[1, 2, 3, 4, 5].map((star) => (
-                                <FaStar
-                                  key={star}
-                                  className={`h-3 w-3 ${
-                                    star <= (emp.rating || 0) ? "text-amber-400" : "text-gray-200"
-                                  }`}
-                                />
-                              ))}
-                              <span className="ml-1 rounded-full bg-white px-1.5 py-0.5 text-[0.6rem] font-medium text-gray-500">
-                                {emp.rating > 0 ? `${emp.rating}/5` : "0/5"}
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* Checklist, inline pills */}
-                          <div className="flex flex-wrap items-center gap-1.5">
-                            {REVIEW_CHECKBOXES.map(({ key, label }) => {
-                              const flagValue =
-                                key === "eligibleForIncrement"
-                                  ? emp.eligible_for_increment
-                                  : key === "trainingRequirementsIdentified"
-                                  ? emp.training_requirement_identified
-                                  : emp.eligible_for_promotion;
-                              return (
-                                <span
-                                  key={key}
-                                  className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[0.6rem] ${
-                                    flagValue ? "bg-white text-gray-600" : "bg-gray-200 text-gray-500"
-                                  }`}
-                                >
-                                  {flagValue ? (
-                                    <IoCheckmarkCircle className="h-3 w-3 text-green-500 shrink-0" />
-                                  ) : (
-                                    <IoCloseCircle className="h-3 w-3 text-gray-500 shrink-0" />
-                                  )}
-                                  {label}
-                                </span>
-                              );
-                            })}
-                          </div>
-
-                          {/* Comment, compact quote */}
-                          <p className="whitespace-pre-wrap break-words text-[0.68rem] italic leading-snug text-gray-600">
-                            {emp.comment ? `"${emp.comment}"` : "No comments added."}
-                          </p>
-
-                          {/* Attachments, inline chips */}
-                          {managerAttachments.length > 0 && (
-                            <div className="flex flex-wrap gap-1.5">
-                              {managerAttachments.map((file: any) => (
-                                <a
-                                  key={file.file_url}
-                                  href={file.file_url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="max-w-[8rem] truncate rounded-full bg-white px-2 py-0.5 text-[0.6rem] text-primary hover:underline"
-                                >
-                                  {file.file_name}
-                                </a>
-                              ))}
-                            </div>
-                          )}
-
-                          {/* Manager attribution */}
-                          <div className="mt-0.5 flex items-center  gap-1.5 border-t border-white pt-1.5">
-                            <span className="truncate text-[0.65rem] font-medium text-gray-700">
-                              {emp.manager_name || "Manager"} Submitted
-                              {emp.submitted_on && (
-                                <span className="ml-1 font-normal text-gray-700">
-                                  on {formatDateTime(emp.submitted_on)}
-                                </span>
-                              )}
-                            </span>
-                          </div>
-                        </div>
+                        {/* ── View mode: reporting manager's submitted review ── */}
+                        <StageReviewCard
+                          stage="manager"
+                          rating={emp.rating}
+                          checklist={REVIEW_CHECKBOXES.map(({ key, label }) => ({
+                            key,
+                            label,
+                            value:
+                              key === "eligibleForIncrement"
+                                ? !!emp.eligible_for_increment
+                                : key === "trainingRequirementsIdentified"
+                                ? !!emp.training_requirement_identified
+                                : !!emp.eligible_for_promotion,
+                          }))}
+                          comment={emp.comment}
+                          attachments={managerAttachments}
+                          submittedByName={emp.manager_name}
+                          submittedOn={emp.submitted_on}
+                        />
 
                         {/* ── Functional Manager Review (hidden when the stage was auto-skipped) ── */}
-                        {isSkipLevelReviewer && hasFunctionalReview && (
-                          <>
-                            <hr className="border-gray-200" />
-                            <StageReadOnlyBlock
-                              label="Functional Manager Review"
-                              rating={emp.functional_manager_rating}
-                              comment={emp.functional_manager_comment}
-                            />
-                          </>
+                        {((isSkipLevelReviewer && hasFunctionalReview) ||
+                          (isFunctionalReviewer && !rowIsOwnTurn && hasFunctionalReview)) && (
+                          <StageReviewCard
+                            stage="functional"
+                            rating={emp.functional_manager_rating}
+                            comment={emp.functional_manager_comment}
+                          />
                         )}
 
-                        {isFunctionalReviewer && !rowIsOwnTurn && hasFunctionalReview && (
-                          <>
-                            <hr className="border-gray-200" />
-                            <StageReadOnlyBlock
-                              label="Functional Manager Review"
-                              rating={emp.functional_manager_rating}
-                              comment={emp.functional_manager_comment}
-                            />
-                          </>
-                        )}
-
-                        {/* ── Skip Level Manager Review (read-only, once submitted) ── */}
-                        {isSkipLevelReviewer && !rowIsOwnTurn && (
-                          <>
-                            <hr className="border-gray-200" />
-                            <StageReadOnlyBlock
-                              label="Skip Level Manager Review"
-                              rating={emp.skip_level_manager_rating}
-                              comment={emp.skip_level_manager_comment}
-                            />
-                          </>
+                        {/* ── Skip Level Manager Review (visible to both reviewers once submitted) ── */}
+                        {((isFunctionalReviewer && hasSkipLevelReview) ||
+                          (isSkipLevelReviewer && !rowIsOwnTurn && hasSkipLevelReview)) && (
+                          <StageReviewCard
+                            stage="skip_level"
+                            rating={emp.skip_level_manager_rating}
+                            comment={emp.skip_level_manager_comment}
+                          />
                         )}
 
                         {/* ── Editable: this reviewer's own pending review ── */}
                         {rowIsOwnTurn && (
-                          <>
-                            <hr className="border-gray-200" />
-                            <div className="flex flex-col gap-2.5 px-3 py-2.5">
-                              <span className="text-[0.6rem] font-semibold uppercase tracking-wide text-gray-400">
+                            <div className="flex flex-col gap-2.5 rounded-lg border border-primary/30 bg-primary/5 p-3 shadow-sm">
+                              <span className="inline-flex w-fit items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[0.62rem] font-semibold text-primary">
                                 {ownStageLabel} (Your Review)
                               </span>
 
@@ -623,7 +500,6 @@ function FunctionalOrSkiplevelYearlysubmission() {
                                 )}
                               </div>
                             </div>
-                          </>
                         )}
                       </div>
                     </td>
