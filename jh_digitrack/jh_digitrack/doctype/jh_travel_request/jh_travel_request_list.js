@@ -40,14 +40,27 @@ const REQUEST_STATUS = [
   },
 ];
 frappe.listview_settings["JH Travel Request"] = {
-  add_fields: ["request_status"],
+  add_fields: ["request_status", "current_status"],
   get_indicator(doc) {
     const request_status = REQUEST_STATUS.find(
       (status) => status.label === doc.request_status
     );
+    const label = doc.current_status || (request_status ? request_status.label : "unknown");
     if (request_status) {
-      return [__(request_status.label), request_status.color];
+      return [label, request_status.color];
     }
     return [__("unknown"), "grey"];
+  },
+  formatters: {
+    current_status(value, df, doc) {
+      const request_status = REQUEST_STATUS.find(
+        (status) => status.label === doc.request_status
+      );
+      const color = request_status ? request_status.color : "grey";
+      const label = value || (request_status ? request_status.label : __("unknown"));
+      return `<span class="indicator-pill ${color} ellipsis">
+        <span class="ellipsis">${frappe.utils.escape_html(label)}</span>
+      </span>`;
+    },
   },
 };

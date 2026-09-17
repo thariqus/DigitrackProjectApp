@@ -57,7 +57,7 @@ frappe.ui.form.on("JH Travel Request", {
     const request_status = REQUEST_STATUS.find(
       (status) => status.label === frm.doc.request_status
     );
-    frm.page.set_indicator(__(request_status.label), request_status.color);
+    frm.page.set_indicator(frm.doc.current_status || __(request_status.label), request_status.color);
 
     frappe
       .call({
