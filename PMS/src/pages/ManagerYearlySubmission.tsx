@@ -547,7 +547,7 @@ function ManagerYearlySubmission() {
                               rating={emp.functional_manager_rating}
                               comment={emp.functional_manager_comment}
                               submittedByName={emp.functional_manager_name}
-                              submittedOn={emp.submitted_on}
+                              submittedOn={emp.functional_manager_submitted_on}
                             />
                           )}
                           {hasSkipLevelReview && (
@@ -556,7 +556,7 @@ function ManagerYearlySubmission() {
                               rating={emp.skip_level_manager_rating}
                               comment={emp.skip_level_manager_comment}
                               submittedByName={emp.skip_level_manager_name}
-                              submittedOn={emp.submitted_on}
+                              submittedOn={emp.skip_level_manager_submitted_on}
                             />
                           )}
                         </div>
