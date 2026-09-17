@@ -172,7 +172,7 @@ const AppSidebar: React.FC = () => {
             </Link>
           ) : (
             <div
-              className={`menu-item group menu-item-inactive cursor-default`}
+              className={`menu-item group text-xs menu-item-inactive cursor-default`}
             >
               <span className="menu-item-icon-size text-gray-500">
                 {nav.icon}
