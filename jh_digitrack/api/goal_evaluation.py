@@ -22,13 +22,15 @@ GOAL_BASED_QUERY = """
         END AS status,
         ga.manager,
         JH.full_name AS manager_name,
-        ga.modified AS submitted_on,
+        ga.manager_submitted_on AS submitted_on,
         COALESCE(ga.functional_manager_rating, 0) * 5 AS functional_manager_rating,
         ga.functional_manager_comment,
         FM.full_name AS functional_manager_name,
+        ga.functional_manager_submitted_on,
         COALESCE(ga.skip_level_manager_rating, 0) * 5 AS skip_level_manager_rating,
         ga.skip_level_manager_comment,
-        SM.full_name AS skip_level_manager_name
+        SM.full_name AS skip_level_manager_name,
+        ga.skip_level_manager_submitted_on
     FROM
         `tabGoal Assessment` ga
     LEFT JOIN
@@ -67,13 +69,15 @@ ALL_EMPLOYEES_QUERY = """
         COALESCE(ga.status, 'Evaluation Pending') AS status,
         ga.manager,
         JH.full_name AS manager_name,
-        ga.modified AS submitted_on,
+        ga.manager_submitted_on AS submitted_on,
         COALESCE(ga.functional_manager_rating, 0) * 5 AS functional_manager_rating,
         ga.functional_manager_comment,
         FM.full_name AS functional_manager_name,
+        ga.functional_manager_submitted_on,
         COALESCE(ga.skip_level_manager_rating, 0) * 5 AS skip_level_manager_rating,
         ga.skip_level_manager_comment,
-        SM.full_name AS skip_level_manager_name
+        SM.full_name AS skip_level_manager_name,
+        ga.skip_level_manager_submitted_on
     FROM
         `tabPMS Employees` pe
     LEFT JOIN
@@ -111,13 +115,15 @@ FUNCTIONAL_OR_SKIP_LEVEL_QUERY = """
         ga.status,
         ga.manager,
         JH.full_name AS manager_name,
-        ga.modified AS submitted_on,
+        ga.manager_submitted_on AS submitted_on,
         COALESCE(ga.functional_manager_rating, 0) * 5 AS functional_manager_rating,
         ga.functional_manager_comment,
         FM.full_name AS functional_manager_name,
+        ga.functional_manager_submitted_on,
         COALESCE(ga.skip_level_manager_rating, 0) * 5 AS skip_level_manager_rating,
         ga.skip_level_manager_comment,
         SM.full_name AS skip_level_manager_name,
+        ga.skip_level_manager_submitted_on,
         CASE
             WHEN pe.functional_manager_email = %(user)s THEN 'functional'
             WHEN pe.skip_level_manager_email = %(user)s THEN 'skip_level'
@@ -598,6 +604,7 @@ def submit_goal_evaluation(employee_code, year, rating=None, comment=None):
 
         doc.functional_manager_rating = flt(rating) / 5
         doc.functional_manager_comment = comment
+        doc.functional_manager_submitted_on = frappe.utils.now_datetime()
 
         next_status = _status_after_functional_review(employee_code)
         _finalize_or_save(doc, next_status)
@@ -615,6 +622,7 @@ def submit_goal_evaluation(employee_code, year, rating=None, comment=None):
 
         doc.skip_level_manager_rating = flt(rating) / 5
         doc.skip_level_manager_comment = comment
+        doc.skip_level_manager_submitted_on = frappe.utils.now_datetime()
 
         _finalize_or_save(doc, "Evaluation Submitted")
 
@@ -624,6 +632,7 @@ def submit_goal_evaluation(employee_code, year, rating=None, comment=None):
         frappe.throw(_("Please save the evaluation before submitting."))
     if comment:
         doc.comment = comment
+    doc.manager_submitted_on = frappe.utils.now_datetime()
 
     next_status = _status_after_manager_review(employee_code)
     _finalize_or_save(doc, next_status)

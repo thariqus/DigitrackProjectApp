@@ -29,7 +29,11 @@
   "section_break_p7p9",
   "comment",
   "functional_manager_comment",
-  "skip_level_manager_comment"
+  "skip_level_manager_comment",
+  "section_break_uycd",
+  "manager_submitted_on",
+  "functional_manager_submitted_on",
+  "skip_level_manager_submitted_on"
  ],
  "fields": [
   {
@@ -158,12 +162,31 @@
    "fieldname": "skip_level_manager_comment",
    "fieldtype": "Small Text",
    "label": "Skip Level Manager Comment"
+  },
+  {
+   "fieldname": "section_break_uycd",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "functional_manager_submitted_on",
+   "fieldtype": "Datetime",
+   "label": "Functional Manager Submitted On"
+  },
+  {
+   "fieldname": "skip_level_manager_submitted_on",
+   "fieldtype": "Datetime",
+   "label": "Skip Level Manager Submitted On"
+  },
+  {
+   "fieldname": "manager_submitted_on",
+   "fieldtype": "Datetime",
+   "label": "Manager Submitted On"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-09-15 10:44:40.433189",
+ "modified": "2026-09-17 10:20:18.447027",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "Goal Assessment",
