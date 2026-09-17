@@ -37,3 +37,53 @@ class JHTravelRequest(Document):
                     "JH User Master", {"user": attachment.owner}, ["name"]
                 )
                 attachment.created_by = jh_user
+        self.set_current_status()
+
+    def set_current_status(self):
+        """Human-readable summary of where the request is currently pending."""
+        status = self.request_status
+
+        if status == "Approval Pending":
+            manager_name = None
+            if self.requested_by:
+                reporting_manager = frappe.db.get_value(
+                    "JH User Master", self.requested_by, "reporting_manager"
+                )
+                if reporting_manager:
+                    manager_name = frappe.db.get_value(
+                        "JH User Master", reporting_manager, "full_name"
+                    )
+            self.current_status = f"Pending Approval - {manager_name}" if manager_name else "Pending Approval"
+
+        elif status in ("Approved", "Urgent", "Reconfirmed"):
+            self.current_status = "Pending - Credit Card Holder"
+
+        elif status == "Reconfirmation Pending":
+            requester_name = (
+                frappe.db.get_value("JH User Master", self.requested_by, "full_name")
+                if self.requested_by
+                else None
+            )
+            self.current_status = (
+                f"Pending Reconfirmation - {requester_name}" if requester_name else "Pending Reconfirmation"
+            )
+
+        elif status == "Assigned for PO / IEM":
+            po_assignee_name = (
+                frappe.db.get_value("JH User Master", self.po_assigned_to, "full_name")
+                if self.po_assigned_to
+                else None
+            )
+            self.current_status = f"PO Pending - {po_assignee_name}" if po_assignee_name else "PO Pending"
+
+        elif status == "Assigned for GRN / Miro":
+            assignee_name = (
+                frappe.db.get_value("JH User Master", self.assigned_to, "full_name")
+                if self.assigned_to
+                else None
+            )
+            self.current_status = f"MIRO Pending - {assignee_name}" if assignee_name else "MIRO Pending"
+
+        else:
+            # Completed, Denied, or any other terminal/unmapped status
+            self.current_status = status
