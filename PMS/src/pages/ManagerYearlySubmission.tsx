@@ -521,12 +521,11 @@ function ManagerYearlySubmission() {
                     </td>
                     <td className="px-4 py-3" colSpan={isSubmitted ? 2 : 1}>
                       {isSubmitted ? (
-                        /* ── View mode: one color-coded card per review stage ── */
-                        <div className="flex w-full flex-col gap-2">
-                          <StageReviewCard
-                            stage="manager"
-                            rating={emp.rating}
-                            checklist={REVIEW_CHECKBOXES.map(({ key, label }) => ({
+                        /* ── View mode: one row per review stage, checklist/attachments last ── */
+                        <StageReviewCard
+                          manager={{
+                            rating: emp.rating,
+                            checklist: REVIEW_CHECKBOXES.map(({ key, label }) => ({
                               key,
                               label,
                               value:
@@ -535,31 +534,33 @@ function ManagerYearlySubmission() {
                                   : key === "trainingRequirementsIdentified"
                                   ? !!emp.training_requirement_identified
                                   : !!emp.eligible_for_promotion,
-                            }))}
-                            comment={emp.comment}
-                            attachments={existingFiles}
-                            submittedByName={emp.manager_name}
-                            submittedOn={emp.submitted_on}
-                          />
-                          {hasFunctionalReview && (
-                            <StageReviewCard
-                              stage="functional"
-                              rating={emp.functional_manager_rating}
-                              comment={emp.functional_manager_comment}
-                              submittedByName={emp.functional_manager_name}
-                              submittedOn={emp.functional_manager_submitted_on}
-                            />
-                          )}
-                          {hasSkipLevelReview && (
-                            <StageReviewCard
-                              stage="skip_level"
-                              rating={emp.skip_level_manager_rating}
-                              comment={emp.skip_level_manager_comment}
-                              submittedByName={emp.skip_level_manager_name}
-                              submittedOn={emp.skip_level_manager_submitted_on}
-                            />
-                          )}
-                        </div>
+                            })),
+                            comment: emp.comment,
+                            attachments: existingFiles,
+                            submittedByName: emp.manager_name,
+                            submittedOn: emp.submitted_on,
+                          }}
+                          functional={
+                            hasFunctionalReview
+                              ? {
+                                  rating: emp.functional_manager_rating,
+                                  comment: emp.functional_manager_comment,
+                                  submittedByName: emp.functional_manager_name,
+                                  submittedOn: emp.functional_manager_submitted_on,
+                                }
+                              : undefined
+                          }
+                          skipLevel={
+                            hasSkipLevelReview
+                              ? {
+                                  rating: emp.skip_level_manager_rating,
+                                  comment: emp.skip_level_manager_comment,
+                                  submittedByName: emp.skip_level_manager_name,
+                                  submittedOn: emp.skip_level_manager_submitted_on,
+                                }
+                              : undefined
+                          }
+                        />
                       ) : (
                         <div className="flex w-full flex-col divide-y divide-gray-100 rounded-xl border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md">
                             {/* Rating */}

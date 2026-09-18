@@ -388,55 +388,56 @@ function FunctionalOrSkiplevelYearlysubmission() {
                     <td className="px-4 py-3">
                       <div className="flex w-full flex-col gap-2">
 
-                        {/* ── View mode: reporting manager's submitted review ── */}
+                          {/* ── View mode: one row per review stage, checklist/attachments last ── */}
                         <StageReviewCard
-                          stage="manager"
-                          rating={emp.rating}
-                          checklist={REVIEW_CHECKBOXES.map(({ key, label }) => ({
-                            key,
-                            label,
-                            value:
-                              key === "eligibleForIncrement"
-                                ? !!emp.eligible_for_increment
-                                : key === "trainingRequirementsIdentified"
-                                ? !!emp.training_requirement_identified
-                                : !!emp.eligible_for_promotion,
-                          }))}
-                          comment={emp.comment}
-                          attachments={managerAttachments}
-                          submittedByName={emp.manager_name}
-                          submittedOn={emp.submitted_on}
+                          manager={{
+                            rating: emp.rating,
+                            checklist: REVIEW_CHECKBOXES.map(({ key, label }) => ({
+                              key,
+                              label,
+                              value:
+                                key === "eligibleForIncrement"
+                                  ? !!emp.eligible_for_increment
+                                  : key === "trainingRequirementsIdentified"
+                                  ? !!emp.training_requirement_identified
+                                  : !!emp.eligible_for_promotion,
+                            })),
+                            comment: emp.comment,
+                            attachments: managerAttachments,
+                            submittedByName: emp.manager_name,
+                            submittedOn: emp.submitted_on,
+                          }}
+                          functional={
+                            /* hidden when the stage was auto-skipped */
+                            ((isSkipLevelReviewer && hasFunctionalReview) ||
+                              (isFunctionalReviewer && !rowIsOwnTurn && hasFunctionalReview))
+                              ? {
+                                  rating: emp.functional_manager_rating,
+                                  comment: emp.functional_manager_comment,
+                                  submittedByName: emp.functional_manager_name,
+                                  submittedOn: emp.functional_manager_submitted_on,
+                                }
+                              : undefined
+                          }
+                          skipLevel={
+                            /* visible to both reviewers once submitted */
+                            ((isFunctionalReviewer && hasSkipLevelReview) ||
+                              (isSkipLevelReviewer && !rowIsOwnTurn && hasSkipLevelReview))
+                              ? {
+                                  rating: emp.skip_level_manager_rating,
+                                  comment: emp.skip_level_manager_comment,
+                                  submittedByName: emp.skip_level_manager_name,
+                                  submittedOn: emp.skip_level_manager_submitted_on,
+                                }
+                              : undefined
+                          }
                         />
-
-                        {/* ── Functional Manager Review (hidden when the stage was auto-skipped) ── */}
-                        {((isSkipLevelReviewer && hasFunctionalReview) ||
-                          (isFunctionalReviewer && !rowIsOwnTurn && hasFunctionalReview)) && (
-                          <StageReviewCard
-                            stage="functional"
-                            rating={emp.functional_manager_rating}
-                            comment={emp.functional_manager_comment}
-                            submittedByName={emp.functional_manager_name}
-                            submittedOn={emp.functional_manager_submitted_on}
-                          />
-                        )}
-
-                        {/* ── Skip Level Manager Review (visible to both reviewers once submitted) ── */}
-                        {((isFunctionalReviewer && hasSkipLevelReview) ||
-                          (isSkipLevelReviewer && !rowIsOwnTurn && hasSkipLevelReview)) && (
-                          <StageReviewCard
-                            stage="skip_level"
-                            rating={emp.skip_level_manager_rating}
-                            comment={emp.skip_level_manager_comment}
-                            submittedByName={emp.skip_level_manager_name}
-                            submittedOn={emp.skip_level_manager_submitted_on}
-                          />
-                        )}
 
                         {/* ── Editable: this reviewer's own pending review ── */}
                         {rowIsOwnTurn && (
                             <div className="flex flex-col gap-2.5 rounded-lg border border-primary/30 bg-primary/5 p-3 shadow-sm">
                               <span className="inline-flex w-fit items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[0.62rem] font-semibold text-primary">
-                                {ownStageLabel} (Your Review)
+                                {ownStageLabel}
                               </span>
 
                               {/* Rating */}
@@ -476,7 +477,7 @@ function FunctionalOrSkiplevelYearlysubmission() {
 
                               {/* Comment */}
                               <div
-                                className={`flex w-full flex-col gap-1.5 rounded-lg border p-2 ${
+                                className={`flex w-full flex-col gap-1 rounded-lg border p-2 ${
                                   rowErrors?.comment
                                     ? "border-red-300 bg-red-50 focus-within:border-red-400"
                                     : "border-gray-200 bg-white focus-within:border-primary/50"
@@ -493,7 +494,7 @@ function FunctionalOrSkiplevelYearlysubmission() {
                                   maxLength={MAX_COMMENT_LENGTH}
                                   onChange={(e) => setSkipComment(rowKey, e.target.value.slice(0, MAX_COMMENT_LENGTH))}
                                   placeholder="Add comments or feedback"
-                                  rows={4}
+                                  rows={5}
                                   disabled={isRowLocked}
                                   className="w-full resize-none rounded-md border-0 bg-transparent p-0 text-[0.68rem] leading-relaxed text-gray-700 placeholder:text-gray-300 focus:outline-none focus:ring-0 disabled:cursor-not-allowed disabled:opacity-60"
                                 />
