@@ -76,6 +76,21 @@ export interface ManagerStageReviewData extends StageReviewData {
   attachments?: ManagerReviewAttachment[];
 }
 
+const COMMENT_TRUNCATE_LENGTH = 80;
+
+// When truncateComment is on, only the comment's first line is shown (cut to
+// COMMENT_TRUNCATE_LENGTH chars), with "...." appended whenever content was hidden.
+const getDisplayComment = (comment: string | undefined, truncateComment: boolean) => {
+  if (!comment) return "No comments added.";
+  if (!truncateComment) return `"${comment}"`;
+
+  const firstLine = comment.split("\n")[0];
+  const visibleLine =
+    firstLine.length > COMMENT_TRUNCATE_LENGTH ? firstLine.slice(0, COMMENT_TRUNCATE_LENGTH) : firstLine;
+  const isTruncated = comment.length > visibleLine.length;
+  return `"${visibleLine}${isTruncated ? "...." : ""}"`;
+};
+
 // Read-only review summary rendered as a table: one row per review stage
 // (reporting manager, functional manager, skip-level manager) with the stage
 // heading, star rating + "checked by", and comment each in their own column.
@@ -87,10 +102,12 @@ export function StageReviewCard({
   manager,
   functional,
   skipLevel,
+  truncateComment = false,
 }: {
   manager: ManagerStageReviewData;
   functional?: StageReviewData;
   skipLevel?: StageReviewData;
+  truncateComment?: boolean;
 }) {
   const rows: { stage: ReviewStage; data: StageReviewData }[] = [
     { stage: "manager", data: manager },
@@ -135,9 +152,26 @@ export function StageReviewCard({
             </div>
 
             {/* Column 3: comment */}
-            <p className="min-w-0 whitespace-pre-wrap break-words text-[0.68rem] italic leading-snug text-gray-600">
-              {data.comment ? `"${data.comment}"` : "No comments added."}
+            <p
+              className={`min-w-0 text-[0.68rem] italic leading-snug text-gray-600 ${
+                truncateComment ? "truncate whitespace-nowrap" : "whitespace-pre-wrap break-words"
+              }`}
+            >
+              {getDisplayComment(data.comment, truncateComment)}
             </p>
+
+            {/* Row: submitted by / date & time */}
+            {(data.submittedByName || data.submittedOn) && (
+              <div className="col-span-3 flex items-center gap-1.5  text-[0.6rem] text-gray-600">
+                {/* <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[0.55rem] font-semibold ${config.avatarBg} ${config.avatarText}`}>
+                  {getInitials(data.submittedByName)}
+                </span> */}
+                <span className="truncate">
+                  {data.submittedByName || "Unknown"}
+                  {data.submittedOn ? ` / ${formatDateTime(data.submittedOn)}` : ""}
+                </span>
+              </div>
+            )}
           </div>
         );
       })}

@@ -12,6 +12,7 @@ import {
   IoTrendingUpOutline,
   IoSchoolOutline,
   IoRibbonOutline,
+  IoSearchOutline,
 } from 'react-icons/io5';
 import Pagination from '@/components/Pagination';
 import { StageReviewCard } from '@/components/StageReviewReadOnly';
@@ -39,6 +40,8 @@ const REVIEW_CHECKBOXES: { key: ReviewFlagKey; label: string; icon: typeof IoTre
 function FunctionalOrSkiplevelYearlysubmission() {
 
   const [selectedYear, setSelectedYear] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [excludeComment, setExcludeComment] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [sortField, setSortField] = useState<"id" | "designation" | null>(null);
@@ -243,6 +246,11 @@ function FunctionalOrSkiplevelYearlysubmission() {
     }
   }, [baseYear]);
 
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1);
+  };
+
   const handleSort = (field: "id" | "designation") => {
     if (sortField === field) {
       setSortOrder(sortOrder === "asc" ? "desc" : "asc");
@@ -253,7 +261,16 @@ function FunctionalOrSkiplevelYearlysubmission() {
     setCurrentPage(1);
   };
 
-  const sortedEmployees = [...evaluations].sort((a, b) => {
+  const filteredEmployees = evaluations.filter((emp: any) => {
+    const term = searchTerm.trim().toLowerCase();
+    if (!term) return true;
+    return (
+      (emp.employee_code || "").toLowerCase().includes(term) ||
+      (emp.employee_name || "").toLowerCase().includes(term)
+    );
+  });
+
+  const sortedEmployees = [...filteredEmployees].sort((a, b) => {
     if (!sortField) return 0;
 
     let valA = "";
@@ -291,7 +308,9 @@ function FunctionalOrSkiplevelYearlysubmission() {
         <h1 className="text-primary font-semibold mr-4">Yearly Submission</h1>
       </div>
       <div className="flex items-center justify-between gap-3">
-        <select
+        <div className="flex items-center gap-3">
+
+            <select
           value={selectedYear}
           onChange={(e) => setSelectedYear(e.target.value)}
           className="px-2 py-1 border rounded-md text-[0.65rem]"
@@ -302,6 +321,29 @@ function FunctionalOrSkiplevelYearlysubmission() {
             </option>
           ))}
         </select>
+
+        <div className="flex items-center border rounded-md px-2 py-1 gap-1 flex-1 w-70">
+          <IoSearchOutline className="text-gray-400 text-xs" />
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            placeholder="Search by employee ID or name..."
+            className="w-full text-[0.65rem] focus:outline-none"
+          />
+        </div>
+
+        <label className="flex items-center gap-1.5 text-[0.65rem] text-gray-600 select-none cursor-pointer whitespace-nowrap">
+          <input
+            type="checkbox"
+            checked={excludeComment}
+            onChange={(e) => setExcludeComment(e.target.checked)}
+            className="h-3.5 w-3.5 rounded border-gray-300 text-primary accent-primary focus:ring-primary"
+          />
+          Exclude Comment
+        </label>
+        </div>
+        
 
         <button
           type="button"
@@ -390,6 +432,7 @@ function FunctionalOrSkiplevelYearlysubmission() {
 
                           {/* ── View mode: one row per review stage, checklist/attachments last ── */}
                         <StageReviewCard
+                          truncateComment={excludeComment}
                           manager={{
                             rating: emp.rating,
                             checklist: REVIEW_CHECKBOXES.map(({ key, label }) => ({
