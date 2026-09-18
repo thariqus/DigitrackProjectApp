@@ -10,7 +10,7 @@ import { PropertyAutomationCard } from "./PropertyAutomationCard";
 import { usePropertyDashboardCounts } from "@/components/PropertyAutomation/hooks/useProperty";
 
 const initialCounts = {
-  travel_request: {} as Record<string, number>,
+  travel_request: {} as { pending_on_me?: number; created_by_me?: Record<string, number> },
   my_tasks: {} as Record<string, { count: number; ages?: { label: string; count: number }[] }>,
   created_by_me: {} as Record<string, { count: number; ages?: { label: string; count: number }[] }>,
   audits: {} as Record<string, number>,
@@ -56,8 +56,7 @@ export const TaskCardGrid = () => {
   const taskTotal = (c: Record<string, { count: number }>) =>
     Object.values(c).reduce((s, v) => s + (v?.count || 0), 0);
 
-  const travelTotal = (c: Record<string, number>) =>
-    Object.values(c).reduce((s, v) => s + (v || 0), 0);
+  const travelTotal = (c: { pending_on_me?: number }) => c?.pending_on_me ?? 0;
 
   const propTotal = propError
     ? 0
