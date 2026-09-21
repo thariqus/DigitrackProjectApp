@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import {
   ListTodo,
@@ -40,6 +41,7 @@ export function MainNav() {
   const { mutate: logout } = useLogout();
   const navigate = useNavigate()
   const { setOpen } = useDelegationPanel();
+  const [isAppsOpen, setIsAppsOpen] = useState(false);
  
  
 
@@ -96,7 +98,7 @@ export function MainNav() {
             <span>Employee Lookup</span>
           </button>
 
-          <DropdownMenu>
+          <DropdownMenu open={isAppsOpen} onOpenChange={setIsAppsOpen}>
             <DropdownMenuTrigger asChild>
               <button className="flex items-center gap-1.5 px-3 py-1.5 text-gray-600 transition-colors  hover:text-primary data-[state=open]:bg-white/70 data-[state=open]:text-primary data-[state=open]:shadow-sm data-[state=open]:backdrop-blur-md">
                 <LayoutGrid className="h-5 w-5" />
@@ -105,7 +107,7 @@ export function MainNav() {
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent
-              className="relative w-[300px] overflow-hidden rounded-2xl border border-white/50 bg-white/60 p-3 shadow-2xl shadow-black/10 ring-1 ring-black/5 backdrop-blur-2xl backdrop-saturate-150 supports-[backdrop-filter]:bg-white/40 before:pointer-events-none before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/40 before:via-transparent before:to-white/10"
+              className="relative w-[600px] overflow-hidden rounded-2xl border border-white/50 bg-white/60 p-3 shadow-2xl shadow-black/10 ring-1 ring-black/5 backdrop-blur-2xl backdrop-saturate-150 supports-[backdrop-filter]:bg-white/40 before:pointer-events-none before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/40 before:via-transparent before:to-white/10"
               align="end"
             >
               <div className="relative mb-2 border-b border-white/50 px-1 pt-1 pb-2">
@@ -114,13 +116,14 @@ export function MainNav() {
                   Quick access to your workflows
                 </p>
               </div>
-              <div className="relative grid grid-cols-3 gap-1">
+              <div className="relative grid grid-cols-3 gap-2">
                 
                  <button
                   onClick={() => {
+                    setIsAppsOpen(false);
                     window.location.href = "/app/travel-request";
                   }}
-                  className="group flex flex-col items-center justify-center gap-2 p-1 text-center transition-all duration-200 hover:bg-white/50 hover:shadow-sm hover:backdrop-blur-md"
+                  className="group flex items-center gap-2 rounded-xl p-1 text-center transition-all duration-200 hover:bg-white/50 hover:shadow-sm hover:backdrop-blur-md"
                 >
                   <span className="flex h-10 w-10 items-center justify-center   rounded-2xl bg-primary/15 text-primary shadow-inner shadow-primary/10 ring-1 ring-primary/25 border border-primary/20 backdrop-blur-md backdrop-saturate-150 transition-all duration-200 group-hover:scale-105 group-hover:bg-primary/25 group-hover:shadow-primary/20">
                     <Gauge className="h-5 w-5" />
@@ -133,9 +136,10 @@ export function MainNav() {
                       alert("You have no access to PMS Lite. Please contact admin.");
                       return;
                     }
+                    setIsAppsOpen(false);
                     window.location.href = "/PMS";
                   }}
-                  className="group flex flex-col items-center gap-2 rounded-xl p-1 text-center transition-all duration-200 hover:bg-white/50 hover:shadow-sm hover:backdrop-blur-md"
+                  className="group flex items-center  gap-2 rounded-xl p-1 text-center transition-all duration-200 hover:bg-white/50 hover:shadow-sm hover:backdrop-blur-md"
                 >
                   <span className="flex h-10 w-10 items-center justify-center  rounded-2xl bg-primary/15 text-primary shadow-inner shadow-primary/10 ring-1 ring-primary/25 border border-primary/20 backdrop-blur-md backdrop-saturate-150 transition-all duration-200 group-hover:scale-105 group-hover:bg-primary/25 group-hover:shadow-primary/20">
                     <LineChart className="h-5 w-5" />
@@ -153,9 +157,10 @@ export function MainNav() {
                       alert("You have no access to Property Automation. Please contact admin.");
                       return;
                     }
+                    setIsAppsOpen(false);
                     navigate("property")
                   }}
-                  className="group flex flex-col items-center justify-center gap-2 rounded-xl p-1 text-center transition-all duration-200 hover:bg-white/50 hover:shadow-sm hover:backdrop-blur-md"
+                  className="group flex items-center  gap-2 rounded-xl p-1 text-center transition-all duration-200 hover:bg-white/50 hover:shadow-sm hover:backdrop-blur-md"
                 >
                   <span className="flex h-10 w-10 items-center justify-center   rounded-2xl bg-primary/15 text-primary shadow-inner shadow-primary/10 ring-1 ring-primary/25 border border-primary/20 backdrop-blur-md backdrop-saturate-150 transition-all duration-200 group-hover:scale-105 group-hover:bg-primary/25 group-hover:shadow-primary/20">
                     <Warehouse className="h-5 w-5" />
@@ -164,7 +169,8 @@ export function MainNav() {
                 </button>
                   <Link
                   to="customer-registration"
-                  className="group flex flex-col items-center gap-2 rounded-xl p-1 text-center transition-all duration-200 hover:bg-white/50 hover:shadow-sm hover:backdrop-blur-md"
+                  onClick={() => setIsAppsOpen(false)}
+                  className="group flex items-center  gap-2 rounded-xl p-1 text-center transition-all duration-200 hover:bg-white/50 hover:shadow-sm hover:backdrop-blur-md"
                 >
                   <span className="flex h-10 w-10 items-center justify-center  rounded-2xl bg-primary/15 text-primary shadow-inner shadow-primary/10 ring-1 ring-primary/25 border border-primary/20 backdrop-blur-md backdrop-saturate-150 transition-all duration-200 group-hover:scale-105 group-hover:bg-primary/25 group-hover:shadow-primary/20">
                     <UserPlus className="h-5 w-5" />
@@ -174,7 +180,8 @@ export function MainNav() {
 
                  <Link
                   to="idle-assets"
-                  className="group flex flex-col items-center gap-2 rounded-xl p-1 text-center transition-all duration-200 hover:bg-white/50 hover:shadow-sm hover:backdrop-blur-md"
+                  onClick={() => setIsAppsOpen(false)}
+                  className="group flex items-center  gap-2 rounded-xl p-1 text-center transition-all duration-200 hover:bg-white/50 hover:shadow-sm hover:backdrop-blur-md"
                 >
                   <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/15 text-primary shadow-inner shadow-primary/10 ring-1 ring-primary/25 border border-primary/20 backdrop-blur-md backdrop-saturate-150 transition-all duration-200 group-hover:scale-105 group-hover:bg-primary/25 group-hover:shadow-primary/20">
                     <Recycle className="h-5 w-5" />
@@ -183,7 +190,8 @@ export function MainNav() {
                 </Link>
                 <Link
                   to="email"
-                  className="group flex flex-col items-center justify-center gap-2 rounded-xl p-1 text-center transition-all duration-200 hover:bg-white/50 hover:shadow-sm hover:backdrop-blur-md"
+                  onClick={() => setIsAppsOpen(false)}
+                  className="group flex items-center gap-2 rounded-xl p-1 text-center transition-all duration-200 hover:bg-white/50 hover:shadow-sm hover:backdrop-blur-md"
                 >
                   <span className="flex h-10 w-10 items-center justify-center  rounded-2xl bg-primary/15 text-primary shadow-inner shadow-primary/10 ring-1 ring-primary/25 border border-primary/20 backdrop-blur-md backdrop-saturate-150 transition-all duration-200 group-hover:scale-105 group-hover:bg-primary/25 group-hover:shadow-primary/20">
                     <Mail className="h-5 w-5" />
@@ -192,7 +200,8 @@ export function MainNav() {
                 </Link>
                 <Link
                   to="jrc-permission"
-                  className="group flex flex-col items-center justify-center gap-2  p-1 text-center transition-all duration-200 hover:bg-white/50 hover:shadow-sm hover:backdrop-blur-md"
+                  onClick={() => setIsAppsOpen(false)}
+                  className="group flex items-center  gap-2 rounded-xl p-1 text-center transition-all duration-200 hover:bg-white/50 hover:shadow-sm hover:backdrop-blur-md"
                 >
                   <span className="flex h-10 w-10 items-center justify-center   rounded-2xl bg-primary/15 text-primary shadow-inner shadow-primary/10 ring-1 ring-primary/25 border border-primary/20 backdrop-blur-md backdrop-saturate-150 transition-all duration-200 group-hover:scale-105 group-hover:bg-primary/25 group-hover:shadow-primary/20">
                     <FolderOpenDot className="h-5 w-5" />
