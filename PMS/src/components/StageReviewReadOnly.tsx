@@ -178,7 +178,7 @@ export function StageReviewCard({
 
       {/* Checklist row — manager's, always last */}
       {manager.checklist && manager.checklist.length > 0 && (
-        <div className="grid grid-cols-1 items-center gap-3 border-t border-gray-100  px-3 py-2">
+        <div className="grid grid-cols-1 items-center  gap-3 border-t border-gray-100 bg-rose-50 px-3 py-2">
           {/* <span className="text-[0.6rem] font-semibold uppercase tracking-wide text-gray-400">Checklist</span> */}
           <div className="flex flex-wrap items-center gap-1.5">
             {manager.checklist.map(({ key, label, value }) => (
@@ -202,7 +202,7 @@ export function StageReviewCard({
 
       {/* Attachments row — manager's, always last */}
       {manager.attachments && manager.attachments.length > 0 && (
-        <div className="grid grid-cols-1 items-center gap-3  px-3 py-2">
+        <div className="grid grid-cols-1 items-center gap-3 border-t border-gray-100 bg-rose-50 px-3 py-2">
           {/* <span className="text-[0.6rem] font-semibold uppercase tracking-wide text-gray-400">Attachments</span> */}
           <div className="flex flex-wrap gap-1.5">
             {manager.attachments.map((file) => (
@@ -211,7 +211,7 @@ export function StageReviewCard({
                 href={file.file_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="max-w-[8rem] truncate rounded-full bg-gray-100 px-2 py-0.5 text-[0.6rem] text-primary hover:underline"
+                className="max-w-[10rem] truncate rounded-full bg-gray-100 px-2 py-0.5 text-[0.6rem] text-primary hover:underline"
               >
                 {file.file_name}
               </a>
