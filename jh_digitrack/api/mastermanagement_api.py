@@ -22,22 +22,30 @@ def create_sap_customer(data):
     """
 
     payload = {
-        "customer_name": data.get("customer_name"),
-        "customer_type": data.get("customer_type"),
-        "business_name": data.get("business_name"),
-        "tr_number": data.get("tr_number"),
-        "trade_license_number": data.get("custom_trade_license_no"),
+    "customerName": data.get("customer_name"),
+    "businessName": data.get("business_name"),
+    "trNumber": data.get("tr_number"),
+    "tradeLicense": data.get("custom_trade_license_no"),
+
+    "address": {
         "street": data.get("custom_street"),
         "area": data.get("custom_area"),
         "emirate": data.get("custom_region"),
         "city": data.get("custom_city"),
-        "email": data.get("email_id"),
-        "po_box": data.get("po_box"),
-        "transportation_zone": data.get("transportation_zone"),
-        "customer_group": data.get("customer_group"),
-        "sales_district": data.get("sales_district"),
-        "sales_office": data.get("sales_office"),
+        "poBox": data.get("po_box")
+    },
+
+    "contact": {
+        "email": data.get("email_id")
+    },
+
+    "sales": {
+        "customerGroup": data.get("customer_group"),
+        "salesDistrict": data.get("sales_district"),
+        "salesOffice": data.get("sales_office"),
+        "transportationZone": data.get("transportation_zone")
     }
+}
     print("the payload *****:", payload)
 
     try:
@@ -100,8 +108,7 @@ def send_customer_activation_to_sap(customer_code, company_code):
         "customer_code": customer_code,
         "company_code": company_code,
     }
-    print("the payload  of activate customer*****:", payload)
-
+    
     try:
         print("SAP ACTIVATION PAYLOAD:", payload)
 

@@ -127,20 +127,21 @@ function CustomerList() {
           Registered Customers
         </h2>
 
-        <button
-          onClick={() =>
-            navigate(
-              "/jh-digitrack/custregistration/register-customer"
-            )
-          }
-          className="bg-[##9A3025] hover:bg-[##7A251F] text-white px-2.5 py-1.5 rounded-md flex items-center gap-1.5 shadow transition text-[11px]"
-        >
-          <IoAdd className="text-sm" />
+       <button
+        type="button"
+        onClick={() =>
+          navigate(
+            "/jh-digitrack/customer-registration/register-customer"
+          )
+        }
+        className="bg-[#9A3025] hover:bg-[#7A251F] text-white px-2.5 py-1.5 rounded-md flex items-center gap-1.5 shadow transition text-[11px]"
+      >
+        <IoAdd className="text-sm" />
 
-          <span>
-            Register New Customer
-          </span>
-        </button>
+        <span>
+          Register New Customer
+        </span>
+      </button>
 
       </div>
 

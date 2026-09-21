@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useOutletContext, useLocation, useNavigate } from "react-router";
 
@@ -773,6 +773,39 @@ function RegisterCustomer() {
   // The response can vary between customers, so it is rendered dynamically.
   const [sapResponse, setSapResponse] = useState<unknown | null>(null);
 
+  // Reference to the TR Number input.
+  const trNumberRef = useRef<HTMLInputElement>(null);
+
+  // Tracks whether the validation popup was previously open.
+  const errorModalWasOpenRef = useRef(false);
+
+  // Focus TR Number only after the validation popup has actually closed.
+  // This is more reliable than focusing directly inside onClose because
+  // StatusModal is animated and removed after the state changes.
+  useEffect(() => {
+    if (errorModalWasOpenRef.current && !errorModal.open) {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          const input = trNumberRef.current;
+
+          if (!input) return;
+
+          input.focus();
+
+          const length = input.value.length;
+          try {
+            input.setSelectionRange(length, length);
+          } catch {
+            // Ignore unsupported selection-range cases.
+          }
+        });
+      });
+    }
+
+    errorModalWasOpenRef.current = errorModal.open;
+  }, [errorModal.open]);
+
+
  
   // =========================================================
 
@@ -1228,10 +1261,10 @@ if (editMode) {
                     {field.label}
  
                     {field.required && (
-<span className="text-[#9A3025] ml-1">
+                  <span className="text-[#9A3025] ml-1">
 
-                        *
-</span>
+                                          *
+                  </span>
 
                     )}
  
@@ -1246,8 +1279,8 @@ if (editMode) {
                     {/* ===================================== */}
  
                     <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary transition-colors">
-<Icon size={13} />
-</span>
+                    <Icon size={13} />
+                    </span>
  
                     {/* ===================================== */}
 
@@ -1256,7 +1289,7 @@ if (editMode) {
                     {/* ===================================== */}
  
                     {field.type === "select" ? (
-<select
+  <select
 
                         required={field.required}
 
@@ -1425,6 +1458,11 @@ if (editMode) {
                       /* ===================================== */
  
                       <input
+                        ref={
+                          field.key === "tr_number"
+                            ? trNumberRef
+                            : undefined
+                        }
 
                         type={field.type || "text"}
 
@@ -1689,18 +1727,12 @@ if (editMode) {
 
         message={errorModal.message}
 
-        onClose={() =>
-
+        onClose={() => {
           setErrorModal({
-
             open: false,
-
             message: "",
-
-          })
-
-        }
-
+          });
+        }}
       />
  
     </div>
