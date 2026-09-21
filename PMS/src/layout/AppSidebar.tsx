@@ -24,13 +24,13 @@ type NavItem = {
   fromAdmin?: boolean;
 };
 
-const masterItems: NavItem[] = [
-  {
-    icon: <IoClipboardOutline />,
-    name: "Goal",
-    // path: "/goalmaster",
-  },
-];
+// const masterItems: NavItem[] = [
+//   {
+//     icon: <IoClipboardOutline />,
+//     name: "Goal",
+//     // path: "/goalmaster",
+//   },
+// ];
 
 const managerItems: NavItem[] = [
   {
@@ -246,12 +246,12 @@ const AppSidebar: React.FC = () => {
       <div className="flex flex-col text-sm overflow-y-auto duration-300 ease-linear no-scrollbar">
         <nav className="mb-6">
           {/* Conditionally render based on PMS Employee flags */}
-          {employee?.pms_master ? (
+          {/* {employee?.pms_master ? (
             <>
               {renderSectionHeader("Master")}
               {renderMenuItems(masterItems)}
             </>
-          ) : null}
+          ) : null} */}
 
           {employee?.pms_manager ? (
             <div className="mt-8">
