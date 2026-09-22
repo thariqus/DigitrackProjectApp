@@ -230,8 +230,21 @@ def download_excel(year=None, manager=None, view_type="team"):
             "employee_name": "Employee Name",
             "status": "Status",
             "total_score": "Total Score",
-            "comment": "Comment"
-        }
+            
+            "eligible_for_increment": "Eligible for Increment",
+            "training_requirement_identified": "Training Requirement Identified",
+            "eligible_for_promotion": "Eligible for Promotion",
+            "goal_name_for_yearly_assesment": "Goal Name for Yearly Assessment",
+            "rating": "Rating",
+            "functional_manager_rating": "Functional Manager Rating",
+            "skip_level_manager_rating": "Skip Level Manager Rating",
+            # "comment": "Comment",
+            # "functional_manager_comment": "Functional Manager Comment",                                                                  
+            # "skip_level_manager_comment": "Skip Level Manager Comment",                                                         
+            "functional_manager_submitted_on": "Functional Manager Submitted On",
+            "skip_level_manager_submitted_on": "Skip Level Manager Submitted On",
+            "manager_submitted_on": "Manager Submitted On"
+        }                                                                                                                                                                                                                                                                   
 
         child_fields = {
             "goal_id": "Goal ID",
@@ -304,7 +317,7 @@ def download_excel(year=None, manager=None, view_type="team"):
                     )
 
                     row_idx = ws3.max_row
-                    for col in (7, 14, 15, 16, 17):
+                    for col in (7, 23, 24, 25, 26):
                         set_two_decimal(ws3.cell(row=row_idx, column=col))
 
             else:
