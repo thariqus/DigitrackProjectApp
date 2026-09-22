@@ -129,7 +129,7 @@ export function MainNav() {
                   <span className="flex h-10 w-10 items-center justify-center   rounded-2xl bg-primary/15 text-primary shadow-inner shadow-primary/10 ring-1 ring-primary/25 border border-primary/20 backdrop-blur-md backdrop-saturate-150 transition-all duration-200 group-hover:scale-105 group-hover:bg-primary/25 group-hover:shadow-primary/20">
                     <Gauge className="h-5 w-5" />
                   </span>
-                  <span className="text-xs font-medium text-gray-700">Travel Dashboard</span>
+                  <span className="text-xs font-medium text-gray-700">Travel Desk</span>
                 </button>
                  <button
                   onClick={() => {
@@ -185,6 +185,19 @@ export function MainNav() {
                   <span className="text-xs font-medium text-gray-700">Customer Registration</span>
                 </button>
 
+                <div className="col-span-3  border-t border-gray-200"></div>
+
+                 <Link
+                  to="jrc-permission"
+                  onClick={() => setIsAppsOpen(false)}
+                  className="group flex items-center  gap-2 rounded-xl p-1 text-center transition-all duration-200 hover:bg-white/50 hover:shadow-sm hover:backdrop-blur-md"
+                >
+                  <span className="flex h-10 w-10 items-center justify-center   rounded-2xl bg-primary/15 text-primary shadow-inner shadow-primary/10 ring-1 ring-primary/25 border border-primary/20 backdrop-blur-md backdrop-saturate-150 transition-all duration-200 group-hover:scale-105 group-hover:bg-primary/25 group-hover:shadow-primary/20">
+                    <FolderOpenDot className="h-5 w-5" />
+                  </span>
+                  <span className="text-xs font-medium text-gray-700">JRC Explorer</span>
+                </Link>
+
                  <Link
                   to="idle-assets"
                   onClick={() => setIsAppsOpen(false)}
@@ -205,16 +218,7 @@ export function MainNav() {
                   </span>
                   <span className="text-xs font-medium text-gray-700">Email</span>
                 </Link>
-                <Link
-                  to="jrc-permission"
-                  onClick={() => setIsAppsOpen(false)}
-                  className="group flex items-center  gap-2 rounded-xl p-1 text-center transition-all duration-200 hover:bg-white/50 hover:shadow-sm hover:backdrop-blur-md"
-                >
-                  <span className="flex h-10 w-10 items-center justify-center   rounded-2xl bg-primary/15 text-primary shadow-inner shadow-primary/10 ring-1 ring-primary/25 border border-primary/20 backdrop-blur-md backdrop-saturate-150 transition-all duration-200 group-hover:scale-105 group-hover:bg-primary/25 group-hover:shadow-primary/20">
-                    <FolderOpenDot className="h-5 w-5" />
-                  </span>
-                  <span className="text-xs font-medium text-gray-700">JRC Explorer</span>
-                </Link>
+               
                
               </div>
             </DropdownMenuContent>
