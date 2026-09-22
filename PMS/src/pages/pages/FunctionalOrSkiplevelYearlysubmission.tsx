@@ -186,6 +186,9 @@ function FunctionalOrSkiplevelYearlysubmission() {
     !!evaluations && evaluations.length > 0 &&
     evaluations.every((emp: any) => !isOwnTurn(emp));
 
+  const hasSubmittedRows =
+    !!evaluations && evaluations.some((emp: any) => !isOwnTurn(emp));
+
   const handleSubmitAll = async () => {
     if (!enableYearlyAppraisal || allSubmitted || !isCurrentYear) return;
     if (!evaluations || evaluations.length === 0) return;
@@ -333,15 +336,17 @@ function FunctionalOrSkiplevelYearlysubmission() {
           />
         </div>
 
-        <label className="flex items-center gap-1.5 text-[0.65rem] text-gray-600 select-none cursor-pointer whitespace-nowrap">
-          <input
-            type="checkbox"
-            checked={excludeComment}
-            onChange={(e) => setExcludeComment(e.target.checked)}
-            className="h-3.5 w-3.5 rounded border-gray-300 text-primary accent-primary focus:ring-primary"
-          />
-          Exclude Comment
-        </label>
+        {hasSubmittedRows && (
+          <label className="flex items-center gap-1.5 text-[0.65rem] text-gray-600 select-none cursor-pointer whitespace-nowrap">
+            <input
+              type="checkbox"
+              checked={excludeComment}
+              onChange={(e) => setExcludeComment(e.target.checked)}
+              className="h-3.5 w-3.5 rounded border-gray-300 text-primary accent-primary focus:ring-primary"
+            />
+            Exclude Comment
+          </label>
+        )}
         </div>
         
 
