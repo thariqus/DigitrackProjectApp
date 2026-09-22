@@ -1,8 +1,12 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ScrapTable from "./scrapitem-table";
 import SearchScrapTable from "./search-table";
+import { useHasIdleAssetRole } from "@/hooks/userrole";
 
 function Scrapitems() {
+  const { data: idleAssetAccess } = useHasIdleAssetRole();
+  const canManageIdleAssets = !!idleAssetAccess?.message?.has_access;
+
   return (
     <div className="space-y-6">
       <div>
@@ -10,20 +14,24 @@ function Scrapitems() {
         <p className="text-sm text-muted-foreground">Idle Assets List</p>
       </div>
 
-      <Tabs defaultValue="my-assets">
-        <TabsList>
-          <TabsTrigger value="my-assets">My Assets</TabsTrigger>
-          <TabsTrigger value="search-assets">Search Idle Assets</TabsTrigger>
-        </TabsList>
+      {canManageIdleAssets ? (
+        <Tabs defaultValue="my-assets">
+          <TabsList>
+            <TabsTrigger value="my-assets">My Assets</TabsTrigger>
+            <TabsTrigger value="search-assets">Search Idle Assets</TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="my-assets" className="mt-4">
-          <ScrapTable />
-        </TabsContent>
+          <TabsContent value="my-assets" className="mt-4">
+            <ScrapTable />
+          </TabsContent>
 
-        <TabsContent value="search-assets" className="mt-4">
-          <SearchScrapTable />
-        </TabsContent>
-      </Tabs>
+          <TabsContent value="search-assets" className="mt-4">
+            <SearchScrapTable />
+          </TabsContent>
+        </Tabs>
+      ) : (
+        <SearchScrapTable />
+      )}
     </div>
   );
 }

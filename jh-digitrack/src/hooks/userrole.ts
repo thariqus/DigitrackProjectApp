@@ -43,6 +43,38 @@ export const useHasJrcPermission = () => {
 };
 
 
+export const useHasIdleAssetRole = () => {
+  return useQuery({
+    queryKey: ["idle-asset-role"],
+    queryFn: async () => {
+      const res = await frappe.api.get<{
+        message: { message: { has_access: boolean } };
+      }>("jh_digitrack.api.user_details.has_idle_asset_role");
+
+      return { message: res.message.message };
+    },
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+  });
+};
+
+export const useHasCustomerRegistrationRole = () => {
+  return useQuery({
+    queryKey: ["customer-registration-role"],
+    queryFn: async () => {
+      const res = await frappe.api.get<{
+        message: { message: { has_access: boolean } };
+      }>("jh_digitrack.api.user_details.has_customer_registration_role");
+
+      return { message: res.message.message };
+    },
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+  });
+};
+
 export const useHasPropertyAccess = () => {
   return useQuery({
     queryKey: ["property-access"],

@@ -14,9 +14,13 @@ import ScrapRow from "../ui/ScrapRow";
 import ActionButtons from "../ui/ActionButton";
 import { ScrapItemSheet } from "../scrapitem_sheet";
 import { useDeleteScrapItem  } from "@/hooks/scrapitem";
+import { useHasIdleAssetRole } from "@/hooks/userrole";
+
 export const ScrapTable = () => {
   const navigate = useNavigate();
   const { data: currentJhUser } = useCurrentJhUser();
+  const { data: idleAssetAccess } = useHasIdleAssetRole();
+  const canCreateIdleAsset = !!idleAssetAccess?.message?.has_access;
 
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -134,7 +138,7 @@ const handleDeleteScrap = useCallback(
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <SearchBar value={searchQuery} onChange={handleSearchChange} />
-        <ActionButtons onCreateTask={handleCreateScrap} />
+        {canCreateIdleAsset && <ActionButtons onCreateTask={handleCreateScrap} />}
       </div>
 
       {!isLoading && sortedItems?.length > 0 ? (

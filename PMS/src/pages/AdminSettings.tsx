@@ -5,16 +5,25 @@ import { useEffect } from "react";
 import frappeClient from "@/utils/frappe-client";
 type Row = {
   year: string;
+  quaterly: string;
   from: string;
   to: string;
   current: boolean;
 };
+
+const getQuarterOptions = (year: string) =>
+  year.trim() === ""
+    ? []
+    : [1, 2, 3, 4].map((q) => `${year} Q${q}`);
+
+const YEAR_OPTIONS = Array.from({ length: 2030 - 2020 + 1 }, (_, i) => String(2020 + i));
 
 
 
 function AdminSettings() {
  const [enableGoalSubmission, setEnableGoalSubmission] = useState(false);
  const [enableGoalEvaluation, setEnableGoalEvaluation] = useState(false);
+ const [enableYearlyAppraisal, setEnableYearlyAppraisal] = useState(false);
  const [emailTemplate, setEmailTemplate] = useState("");
 
  const [minNoOfGoals,setMinNoOfGoals] = useState<number | "">("");
@@ -23,6 +32,7 @@ function AdminSettings() {
  const [rows, setRows] = useState<Row[]>([
   {
     year: '',
+    quaterly: '',
     from: '',
     to: '',
     current: false,
@@ -35,6 +45,7 @@ function AdminSettings() {
     ...rows,
     {
       year: '',
+      quaterly: '',
       from: '',
       to: '',
       current: false,
@@ -71,11 +82,13 @@ useEffect(() => {
 
       setEnableGoalSubmission(!!data.enable_goal_submission);
       setEnableGoalEvaluation(!!data.enable_goal_evaluation);
+      setEnableYearlyAppraisal(!!data.enable_yearly_appraisal);
       setEmailTemplate(data.email_template ?? "");
 
       setRows(
         (data.rows || []).map((r: any) => ({
           year: r.year ?? "",
+          quaterly: r.quaterly ?? "",
           from: r.from ?? "",
           to: r.to ?? "",
           current: !!r.current,
@@ -104,6 +117,40 @@ const handleChange = (
 
 const handleSave = async () => {
 
+  const hasIncompleteRow = rows.some(
+    (r) =>
+      !r.year.trim() ||
+      !r.quaterly.trim() ||
+      !r.from.trim() ||
+      !r.to.trim()
+  );
+
+  if (hasIncompleteRow) {
+    setMessage({
+      text: "Please fill in Year, Quarterly, From and To for all rows before saving.",
+      type: "error",
+    });
+    return;
+  }
+
+  const seenQuarters = new Set<string>();
+  const hasDuplicateQuarter = rows.some((r) => {
+    const key = `${r.year.trim()}|${r.quaterly.trim()}`;
+    if (seenQuarters.has(key)) {
+      return true;
+    }
+    seenQuarters.add(key);
+    return false;
+  });
+
+  if (hasDuplicateQuarter) {
+    setMessage({
+      text: "Duplicate Year and Quarterly combination found. Each row must have a unique Year and Quarterly.",
+      type: "error",
+    });
+    return;
+  }
+
   const hasValidCurrentRow = rows.some(
     (r) => r.current && r.year.trim() !== ""
   );
@@ -115,6 +162,20 @@ const handleSave = async () => {
     });
     return;
   }
+
+  if (enableYearlyAppraisal) {
+    const currentRow = rows.find((r) => r.current);
+    const isCurrentQuarterQ4 = !!currentRow && /Q4$/.test(currentRow.quaterly.trim());
+
+    if (!isCurrentQuarterQ4) {
+      setMessage({
+        text: "Enable Yearly Appraisal can only be turned on when the current row's Quarterly is Q4.",
+        type: "error",
+      });
+      return;
+    }
+  }
+
   if (!window.confirm("Are you sure you want to save these settings?")) {
     return;
   }
@@ -125,6 +186,7 @@ const handleSave = async () => {
     max_value: maxValue,
     enable_goal_submission: enableGoalSubmission ? 1 : 0,
     enable_goal_evaluation: enableGoalEvaluation ? 1 : 0,
+    enable_yearly_appraisal: enableYearlyAppraisal ? 1 : 0,
     email_template: emailTemplate,
     rows,
   };
@@ -149,6 +211,60 @@ const handleSave = async () => {
   }
 };
 
+
+const handleDeleteRow = async (index: number) => {
+  const rowToDelete = rows[index];
+
+  if (rowToDelete.current) {
+    setMessage({
+      text: "You cannot delete the current row. Please change the current year first.",
+      type: "error",
+    });
+    return;
+  }
+
+  if (rows.length <= 1) {
+    setMessage({
+      text: "At least one row must exist and be marked as current.",
+      type: "error",
+    });
+    return;
+  }
+
+  if (!window.confirm("Are you sure you want to delete this row?")) {
+    return;
+  }
+
+  const updatedRows = rows.filter((_, i) => i !== index);
+  setRows(updatedRows);
+
+  try {
+    await frappeClient.api.post(
+      "jh_digitrack.api.pms_admin_settings.save_pms_settings",
+      {
+        min_no_of_goals: minNoOfGoals,
+        min_value: minValue,
+        max_value: maxValue,
+        enable_goal_submission: enableGoalSubmission ? 1 : 0,
+        enable_goal_evaluation: enableGoalEvaluation ? 1 : 0,
+        enable_yearly_appraisal: enableYearlyAppraisal ? 1 : 0,
+        email_template: emailTemplate,
+        rows: updatedRows,
+      }
+    );
+
+    setMessage({
+      text: "Deleted successfully.",
+      type: "success",
+    });
+  } catch (err) {
+    console.error(err);
+    setMessage({
+      text: "Failed to delete row.",
+      type: "error",
+    });
+  }
+};
 
 const deleteSelectedRows = async () => {
   const rowsToDelete = rows.filter((_, index) =>
@@ -202,6 +318,7 @@ const deleteSelectedRows = async () => {
         max_value: maxValue,
         enable_goal_submission: enableGoalSubmission ? 1 : 0,
         enable_goal_evaluation: enableGoalEvaluation ? 1 : 0,
+        enable_yearly_appraisal: enableYearlyAppraisal ? 1 : 0,
         email_template: emailTemplate,
         rows: updatedRows,
       }
@@ -346,6 +463,15 @@ const deleteSelectedRows = async () => {
                   />
                   <p className='text-xs '>Enable Goal Evaluation</p>
                 </div>
+                <div className="flex gap-2">
+                  <input
+                    type="checkbox"
+                    checked={enableYearlyAppraisal}
+                    onChange={(e) => setEnableYearlyAppraisal(e.target.checked)}
+                    className="border"
+                  />
+                  <p className='text-xs '>Enable Yearly Appraisal</p>
+                </div>
             </div>
           
           </div>
@@ -372,9 +498,11 @@ const deleteSelectedRows = async () => {
               <tr>
                 <th className="py-2 px-2  w-[10%]">No</th>
                 <th className="py-2 px-1   w-[15%]">Year</th>
+                <th className="py-2 px-1  w-[15%]">Quarterly</th>
                 <th className="py-2 px-1  w-[25%]">From</th>
                 <th className="py-2 px-1  w-[25%]">To</th>
                 <th className="py-2 px-1  text-center  w-[15%]">Current</th>
+                <th className="py-2 px-1  text-center  w-[10%]">Action</th>
               </tr>
             </thead>
            <tbody>
@@ -388,24 +516,43 @@ const deleteSelectedRows = async () => {
 
     
       <td className="px-1 py-2">
-        <input
-          type="text"
-          maxLength={10}
+        <select
           className="w-full rounded-sm px-2 py-1 border border-gray-300 focus:outline-none"
           value={row.year}
           onChange={(e) => {
             const value = e.target.value;
-
-            if (value.length <= 10) {
-              const updatedRows = [...rows];
-              updatedRows[index] = {
-                ...updatedRows[index],
-                year: value,
-              };
-              setRows(updatedRows);
-            }
+            const updatedRows = [...rows];
+            updatedRows[index] = {
+              ...updatedRows[index],
+              year: value,
+              quaterly: '',
+            };
+            setRows(updatedRows);
           }}
-        />
+        >
+          <option value="">Select</option>
+          {YEAR_OPTIONS.map((y) => (
+            <option key={y} value={y}>
+              {y}
+            </option>
+          ))}
+        </select>
+      </td>
+
+      <td className="px-1 py-2">
+        <select
+          className="w-full rounded-sm px-2 py-1 border border-gray-300 focus:outline-none"
+          value={row.quaterly}
+          disabled={row.year.trim() === ""}
+          onChange={(e) => handleChange(index, 'quaterly', e.target.value)}
+        >
+          <option value="">Select</option>
+          {getQuarterOptions(row.year).map((q) => (
+            <option key={q} value={q}>
+              {q}
+            </option>
+          ))}
+        </select>
       </td>
 
       <td className="px-1 py-2">
@@ -445,6 +592,16 @@ const deleteSelectedRows = async () => {
             setRows(updatedRows);
           }}
         />
+      </td>
+
+      <td className="px-1 py-2 text-center">
+        <button
+          type="button"
+          onClick={() => handleDeleteRow(index)}
+          className="text-red-600 hover:text-red-800"
+        >
+          <AiOutlineDelete size={16} />
+        </button>
       </td>
     </tr>
   ))}

@@ -39,15 +39,15 @@ const isPropertyInactive = property.property_status === "Vacated" || property.pr
       <TableCell>{property.property_name}</TableCell>
       <TableCell>{property.type_of_property}</TableCell>
       <TableCell>{property.division_used} </TableCell>
-      <TableCell>{property.emirate}</TableCell>
-      <TableCell>{property.current_rent}</TableCell>
+      <TableCell >{property.emirate}</TableCell>
+      <TableCell className="text-center">{property.current_rent}</TableCell>
       {/* Renewal urgency */}
       <TableCell className={`${renewalColorHighlight(property.renewal_date)} text-center`}>
         {formatDate(property.renewal_date)}
       </TableCell>
       <TableCell className="text-center">
         <div className="flex justify-center">
-          <StatusBadge status={getRenewalStatus(property.renewal_date, property.property_status)} />
+          <StatusBadge status={getRenewalStatus(property.renewal_date, property.latest_renewal_workflow_state === "Withdrawn" && property.property_status === "Active" ? "Withdrawn" : property.property_status)} />
         </div>
       </TableCell>
 

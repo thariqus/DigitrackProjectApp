@@ -26,13 +26,14 @@ function Reports() {
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
   const [selectedYear, setSelectedYear] = useState("");
+  const [selectedQuarterly, setSelectedQuarterly] = useState("");
   const [selectedManager, setSelectedManager] = useState("All");
   const [reportMode, setReportMode] = useState<"team" | "org">("team");
 
   const dropdownRef = useRef<HTMLDivElement | null>(null);
 
-  const { managers, baseYear, years, fromDate, toDate } =
-    useGoalAssessment(selectedYear, reportMode);
+  const { managers, baseYear, baseQuarterly, periods, fromDate, toDate } =
+    useGoalAssessment(selectedYear, reportMode, selectedQuarterly);
 
   const { data: currentUser } = useCurrentUser();
 
@@ -56,6 +57,12 @@ function Reports() {
       setSelectedYear(baseYear);
     }
   }, [baseYear]);
+
+  useEffect(() => {
+    if (baseQuarterly && !selectedQuarterly) {
+      setSelectedQuarterly(baseQuarterly);
+    }
+  }, [baseQuarterly]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -190,6 +197,7 @@ function Reports() {
   const clearFilters = () => {
     if (!baseYear) return;
     setSelectedYear(baseYear);
+    setSelectedQuarterly(baseQuarterly);
     setSelectedManager("All");
     setManagerSearch("");
   };
@@ -252,13 +260,18 @@ function Reports() {
       <div className="flex justify-between pb-3">
         <div className="flex gap-3">
           <select
-            value={selectedYear}
-            onChange={(e) => setSelectedYear(e.target.value)}
+            value={selectedQuarterly}
+            onChange={(e) => {
+              const quaterly = e.target.value;
+              const period = periods.find((p) => p.quaterly === quaterly);
+              setSelectedQuarterly(quaterly);
+              if (period) setSelectedYear(period.year);
+            }}
             className="px-2 py-1 border rounded-md text-[0.65rem]"
           >
-            {years.map((y) => (
-              <option key={y} value={y}>
-                {y}
+            {periods.map((p) => (
+              <option key={p.quaterly || p.year} value={p.quaterly || p.year}>
+                {p.quaterly || p.year}
               </option>
             ))}
           </select>
@@ -332,7 +345,7 @@ function Reports() {
           </div>
 
           {(selectedManager !== "All" ||
-            selectedYear !== baseYear) && (
+            selectedQuarterly !== baseQuarterly) && (
             <button
               onClick={clearFilters}
               className="text-red-500 text-xs flex items-center gap-1"

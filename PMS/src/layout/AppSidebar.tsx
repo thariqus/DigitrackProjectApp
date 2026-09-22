@@ -3,7 +3,7 @@ import { Link, useLocation } from "react-router";
 import JHICON from "../images/JH.png";
 import jaleelholdings from "../images/jaleel holdings.png";
 import { useCurrentPmsEmployee } from "../hooks/auth";
-
+import { CiCalendar } from "react-icons/ci";
 import {
   ChevronDown,
   MoreHorizontal,
@@ -24,13 +24,13 @@ type NavItem = {
   fromAdmin?: boolean;
 };
 
-const masterItems: NavItem[] = [
-  {
-    icon: <IoClipboardOutline />,
-    name: "Goal",
-    path: "/goalmaster",
-  },
-];
+// const masterItems: NavItem[] = [
+//   {
+//     icon: <IoClipboardOutline />,
+//     name: "Goal",
+//     // path: "/goalmaster",
+//   },
+// ];
 
 const managerItems: NavItem[] = [
   {
@@ -42,12 +42,25 @@ const managerItems: NavItem[] = [
   {
     icon: <MdOutlineAssignmentTurnedIn />,
     name: "Goal Assignment",
-    path: "/goalassignment",
+    // path: "/goalassignment",
   },
   {
     icon: <MdOutlineAssessment />,
     name: "Goal Evaluation",
-    path: "/goalevaluation",
+    // path: "/goalevaluation",
+  },
+   {
+    icon: <CiCalendar />,
+    name: "Yearly Submission",
+    path: "/yearlysubmission",
+  },
+];
+
+const functionalSkipLevelItems: NavItem[] = [
+  {
+    icon: <CiCalendar />,
+    name: "Functional/Skip level Yearly Submission",
+    path: "/functionalorskiplevelyearlysubmission",
   },
 ];
 
@@ -159,7 +172,7 @@ const AppSidebar: React.FC = () => {
             </Link>
           ) : (
             <div
-              className={`menu-item group menu-item-inactive cursor-default`}
+              className={`menu-item group text-xs menu-item-inactive cursor-default`}
             >
               <span className="menu-item-icon-size text-gray-500">
                 {nav.icon}
@@ -233,11 +246,18 @@ const AppSidebar: React.FC = () => {
       <div className="flex flex-col text-sm overflow-y-auto duration-300 ease-linear no-scrollbar">
         <nav className="mb-6">
           {/* Conditionally render based on PMS Employee flags */}
-          {employee?.pms_master ? (
+          {/* {employee?.pms_master ? (
             <>
               {renderSectionHeader("Master")}
               {renderMenuItems(masterItems)}
             </>
+          ) : null} */}
+
+          {employee?.pms_employee || employee?.self_assessment ? (
+            <div className="mt-8">
+              {renderSectionHeader("Self")}
+              {renderMenuItems(selfItems)}
+            </div>
           ) : null}
 
           {employee?.pms_manager ? (
@@ -247,10 +267,9 @@ const AppSidebar: React.FC = () => {
             </div>
           ) : null}
 
-          {employee?.pms_employee || employee?.self_assessment ? (
-            <div className="mt-8">
-              {renderSectionHeader("Self")}
-              {renderMenuItems(selfItems)}
+          {employee?.is_functional_or_skip_level_manager ? (
+            <div className="mt-3">
+              {renderMenuItems(functionalSkipLevelItems)}
             </div>
           ) : null}
 

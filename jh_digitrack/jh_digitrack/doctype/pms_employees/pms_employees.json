@@ -20,13 +20,20 @@
   "manager_code",
   "manager_name",
   "manager_email",
+  "functional_manager_name",
+  "functional_manager_code",
+  "functional_manager_email",
   "column_break_qkdj",
+  "skip_level_manager_name",
+  "skip_level_manager_code",
+  "skip_level_manager_email",
   "self_assessment",
   "pms_admin",
   "pms_manager",
   "pms_employee",
   "pms_master",
   "edit_settings",
+  "yearly_appraisal_employee",
   "section_break_7gls",
   "cost_center_name",
   "entity_name",
@@ -189,12 +196,50 @@
    "fieldname": "edit_settings",
    "fieldtype": "Check",
    "label": "Edit Settings"
+  },
+  {
+   "default": "0",
+   "fieldname": "yearly_appraisal_employee",
+   "fieldtype": "Check",
+   "label": "Yearly Appraisal Employee"
+  },
+  {
+   "fieldname": "functional_manager_name",
+   "fieldtype": "Link",
+   "label": "Functional Manager Name",
+   "options": "JH User Master"
+  },
+  {
+   "fieldname": "functional_manager_code",
+   "fieldtype": "Data",
+   "label": "Functional Manager Code"
+  },
+  {
+   "fieldname": "functional_manager_email",
+   "fieldtype": "Data",
+   "label": "Functional Manager Email"
+  },
+  {
+   "fieldname": "skip_level_manager_name",
+   "fieldtype": "Link",
+   "label": "Skip Level Manager Name",
+   "options": "JH User Master"
+  },
+  {
+   "fieldname": "skip_level_manager_code",
+   "fieldtype": "Data",
+   "label": "Skip Level Manager Code"
+  },
+  {
+   "fieldname": "skip_level_manager_email",
+   "fieldtype": "Data",
+   "label": "Skip Level Manager Email"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-12-18 16:37:41.847166",
+ "modified": "2026-09-14 11:04:56.869550",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "PMS Employees",
@@ -215,6 +260,7 @@
   }
  ],
  "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
  "search_fields": "full_name",
  "sort_field": "modified",
  "sort_order": "DESC",

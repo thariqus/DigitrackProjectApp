@@ -6,7 +6,7 @@ import json
 def get_goal_assessment_summary(year=None, manager=None):
     try:
 
-        current_year, years = get_pms_years()
+        current_year, current_quarterly, years = get_pms_years()
         if year is None:
             year = current_year
 
@@ -170,6 +170,7 @@ def get_goal_assessment_summary(year=None, manager=None):
         return {
             "message": data,
             "current_year": current_year,
+            "current_quarterly": current_quarterly,
             "years": years,
         }
 
@@ -182,7 +183,7 @@ def get_goal_assessment_summary(year=None, manager=None):
 def get_goal_assessment_summary_org(year=None, manager=None):
     try:
 
-        current_year, years = get_pms_years()
+        current_year, current_quarterly, years = get_pms_years()
         if year is None:
             year = current_year
 
@@ -208,6 +209,7 @@ def get_goal_assessment_summary_org(year=None, manager=None):
             return {
                 "message": [],
                 "current_year": current_year,
+                "current_quarterly": current_quarterly,
                 "years": years,
             }
 
@@ -305,6 +307,7 @@ def get_goal_assessment_summary_org(year=None, manager=None):
         return {
             "message": final_data,
             "current_year": current_year,
+            "current_quarterly": current_quarterly,
             "years": years,
         }
     except Exception as e:
@@ -317,7 +320,7 @@ def get_goal_assessment_summary_org(year=None, manager=None):
 def get_goal_assessment_summary_admin(year=None, manager=None):
     try:
 
-        current_year, years = get_pms_years()
+        current_year, current_quarterly, years = get_pms_years()
         if year is None:
             year = current_year
 
@@ -344,6 +347,7 @@ def get_goal_assessment_summary_admin(year=None, manager=None):
             return {
                 "message": [],
                 "current_year": current_year,
+                "current_quarterly": current_quarterly,
                 "years": years,
             }
 
@@ -454,6 +458,7 @@ def get_goal_assessment_summary_admin(year=None, manager=None):
         return {
             "message": final_data,
             "current_year": current_year,
+            "current_quarterly": current_quarterly,
             "years": years,
         }
 
@@ -504,26 +509,34 @@ def get_self_evaluation_history(current_user=None):
 
 @frappe.whitelist(allow_guest=True,methods=["GET"])
 def get_pms_years():
+    # Each PMS Settings Table row is one (year, quarter) period, e.g.
+    # year="2026", quaterly="2026 Q1". The dropdown lists these quarterly
+    # periods; the "year" filter used against Goal Assessment stays the
+    # plain year of whichever period is selected.
     rows = frappe.db.get_all(
         "PMS Settings Table",
         filters={"parent": "PMS Settings"},
-        fields=["year", "from_date", "to_date", "is_current"],
-        order_by="year desc",
+        fields=["year", "quaterly", "from_date", "to_date", "is_current"],
+        order_by="year desc, quaterly desc",
         ignore_permissions=True
     )
     current_year = None
+    current_quarterly = None
     years = []
 
     for r in rows:
         years.append({
             "year": r.year,
+            "quaterly": r.quaterly,
             "from_date": r.from_date,
             "to_date": r.to_date,
+            "is_current": bool(r.is_current),
         })
         if r.is_current:
             current_year = r.year
+            current_quarterly = r.quaterly
 
-    return current_year, years
+    return current_year, current_quarterly, years
 
 
 from frappe.utils import get_url
