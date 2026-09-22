@@ -37,14 +37,17 @@ export interface ManagerSummary {
 
 export interface PMSYear {
   year: string;
+  quaterly?: string;
   from_date?: string;
   to_date?: string;
+  is_current?: boolean;
 }
 
 export interface GoalAssessmentResponse {
   message: {
     message: ManagerSummary[];
     current_year: string;
+    current_quarterly?: string;
     years: PMSYear[];
   };
 }
@@ -52,9 +55,11 @@ export interface GoalAssessmentResponse {
 
 export function useGoalAssessment(
   selectedYear?: string,
-  reportMode: "team" | "org"
+  reportMode: "team" | "org",
+  selectedQuarterly?: string
 ) {
   const [baseYear, setBaseYear] = useState<string>("");
+  const [baseQuarterly, setBaseQuarterly] = useState<string>("");
   const { data: currentUser } = useCurrentUser();
 
   const { data, isLoading, refetch } = useQuery<GoalAssessmentResponse>({
@@ -104,6 +109,7 @@ export function useGoalAssessment(
   });
 
   const currentYear = data?.message?.current_year;
+  const currentQuarterly = data?.message?.current_quarterly;
 
   useEffect(() => {
     if (!baseYear && currentYear) {
@@ -111,19 +117,26 @@ export function useGoalAssessment(
     }
   }, [currentYear, baseYear]);
 
-  const years =
-    data?.message?.years?.map(y => y.year) || [];
-  const selectedYearData = data?.message?.years?.find(
-    (y) => y.year === (selectedYear || baseYear)
-  );
+  useEffect(() => {
+    if (!baseQuarterly && currentQuarterly) {
+      setBaseQuarterly(currentQuarterly);
+    }
+  }, [currentQuarterly, baseQuarterly]);
 
-  const fromDate = selectedYearData?.from_date;
-  const toDate = selectedYearData?.to_date;
+  const periods = data?.message?.years || [];
+
+  const selectedPeriod =
+    periods.find((p) => p.quaterly === (selectedQuarterly || baseQuarterly)) ||
+    periods.find((p) => p.year === (selectedYear || baseYear));
+
+  const fromDate = selectedPeriod?.from_date;
+  const toDate = selectedPeriod?.to_date;
 
   return {
     managers: data?.message?.message || [],
     baseYear,
-    years,
+    baseQuarterly,
+    periods,
     fromDate,
     toDate,
     loading: isLoading,
@@ -134,8 +147,12 @@ export function useGoalAssessment(
 }
 
 
-export function useGoalAssessmentAdmin(selectedYear?: string) {
+export function useGoalAssessmentAdmin(
+  selectedYear?: string,
+  selectedQuarterly?: string
+) {
   const [baseYear, setBaseYear] = useState<string>("");
+  const [baseQuarterly, setBaseQuarterly] = useState<string>("");
 
   const { data, isLoading, refetch } = useQuery<GoalAssessmentResponse>({
     queryKey: ["goal-assessment-summary-admin", selectedYear],
@@ -170,6 +187,7 @@ export function useGoalAssessmentAdmin(selectedYear?: string) {
   });
 
   const currentYear = data?.message?.current_year;
+  const currentQuarterly = data?.message?.current_quarterly;
 
   useEffect(() => {
     if (!baseYear && currentYear) {
@@ -177,19 +195,26 @@ export function useGoalAssessmentAdmin(selectedYear?: string) {
     }
   }, [currentYear, baseYear]);
 
-  const years =
-    data?.message?.years?.map(y => y.year) || [];
-  const selectedYearData = data?.message?.years?.find(
-    (y) => y.year === (selectedYear || baseYear)
-  );
+  useEffect(() => {
+    if (!baseQuarterly && currentQuarterly) {
+      setBaseQuarterly(currentQuarterly);
+    }
+  }, [currentQuarterly, baseQuarterly]);
 
-  const fromDate = selectedYearData?.from_date;
-  const toDate = selectedYearData?.to_date;
+  const periods = data?.message?.years || [];
+
+  const selectedPeriod =
+    periods.find((p) => p.quaterly === (selectedQuarterly || baseQuarterly)) ||
+    periods.find((p) => p.year === (selectedYear || baseYear));
+
+  const fromDate = selectedPeriod?.from_date;
+  const toDate = selectedPeriod?.to_date;
 
   return {
     managers: data?.message?.message || [],
     baseYear,
-    years,
+    baseQuarterly,
+    periods,
     fromDate,
     toDate,
     loading: isLoading,
