@@ -201,6 +201,20 @@ def has_pms_role(email=None):
 
 
 @frappe.whitelist(methods=["GET"])
+def has_idle_asset_role():
+    user_roles = set(frappe.get_roles(frappe.session.user))
+    has_access = "idle asset" in user_roles or "System Manager" in user_roles
+    return {"message": {"has_access": has_access}}
+
+
+@frappe.whitelist(methods=["GET"])
+def has_customer_registration_role():
+    user_roles = set(frappe.get_roles(frappe.session.user))
+    has_access = "Customer Registration" in user_roles or "System Manager" in user_roles
+    return {"message": {"has_access": has_access}}
+
+
+@frappe.whitelist(methods=["GET"])
 def has_jrc_permission(email=None):
     if not email:
         frappe.throw(_("Email is required"))

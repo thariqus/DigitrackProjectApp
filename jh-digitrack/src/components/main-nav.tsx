@@ -31,7 +31,7 @@ import { useCurrentJhUser, useLogout } from "@/hooks/auth";
 import { useAppVersion } from "@/hooks/system";
 import { JHDigitrackSettings } from "@/types/JHDigitrack/JHDigitrackSettings";
 import { useDocDetail } from "@/hooks/doc";
-import { useHasPmsAccess, useHasPropertyAccess } from "@/hooks/userrole";
+import { useHasPmsAccess, useHasPropertyAccess, useHasCustomerRegistrationRole } from "@/hooks/userrole";
 import { useDelegationPanel } from "@/context/DelegationPanelContext";
 
 export function MainNav() {
@@ -66,6 +66,7 @@ export function MainNav() {
   const attachment = attachmentDetailed?.docs[0];
   const { data: pmsRole } = useHasPmsAccess();
   const { data: propertyRole, isLoading: isPropertyRoleLoading, isFetching: isPropertyRoleFetching } = useHasPropertyAccess();
+  const { data: customerRegRole } = useHasCustomerRegistrationRole();
 
   return (
     <header className="border-b">
@@ -167,16 +168,22 @@ export function MainNav() {
                   </span>
                   <span className="text-xs font-medium text-gray-700">Property Automation</span>
                 </button>
-                  <Link
-                  to="customer-registration"
-                  onClick={() => setIsAppsOpen(false)}
+                  <button
+                  onClick={() => {
+                    if (!customerRegRole?.message?.has_access) {
+                      alert("You have no access to Customer Registration. Please contact admin.");
+                      return;
+                    }
+                    setIsAppsOpen(false);
+                    navigate("customer-registration")
+                  }}
                   className="group flex items-center  gap-2 rounded-xl p-1 text-center transition-all duration-200 hover:bg-white/50 hover:shadow-sm hover:backdrop-blur-md"
                 >
                   <span className="flex h-10 w-10 items-center justify-center  rounded-2xl bg-primary/15 text-primary shadow-inner shadow-primary/10 ring-1 ring-primary/25 border border-primary/20 backdrop-blur-md backdrop-saturate-150 transition-all duration-200 group-hover:scale-105 group-hover:bg-primary/25 group-hover:shadow-primary/20">
                     <UserPlus className="h-5 w-5" />
                   </span>
                   <span className="text-xs font-medium text-gray-700">Customer Registration</span>
-                </Link>
+                </button>
 
                  <Link
                   to="idle-assets"
