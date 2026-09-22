@@ -1177,13 +1177,68 @@ def get_task_status_counts(jh_user_name):
         """, (jh_user_name,), as_dict=True)
         return {row.status.lower(): row.count for row in result}
     def get_travel_counts():
-        result = frappe.db.sql("""
-            SELECT request_status, COUNT(*) AS count
-            FROM `tabJH Travel Request`
-            WHERE requested_by = %s
-            GROUP BY request_status
-        """, (jh_user_name,), as_dict=True)
-        return {row.request_status: row.count for row in result}
+        is_cc_holder = "JH Credit Card Holder" in frappe.get_roles(frappe.session.user)
+
+        # Pending my approval: I am the reporting manager of the requester
+        approval_pending = frappe.db.sql("""
+            SELECT COUNT(*) FROM `tabJH Travel Request` tr
+            INNER JOIN `tabJH User Master` req ON req.name = tr.requested_by
+            WHERE tr.request_status = 'Approval Pending'
+            AND req.reporting_manager = %(jh_user_name)s
+        """, {"jh_user_name": jh_user_name})[0][0]
+
+        # Pending with the credit card holder: only relevant if I hold that role
+        cc_holder_pending = 0
+        if is_cc_holder:
+            cc_holder_pending = frappe.db.sql("""
+                SELECT COUNT(*) FROM `tabJH Travel Request`
+                WHERE request_status IN ('Approved', 'Urgent', 'Reconfirmed')
+            """)[0][0]
+
+        # Pending my reconfirmation: I am the requester
+        reconfirmation_pending = frappe.db.sql("""
+            SELECT COUNT(*) FROM `tabJH Travel Request`
+            WHERE request_status = 'Reconfirmation Pending'
+            AND requested_by = %(jh_user_name)s
+        """, {"jh_user_name": jh_user_name})[0][0]
+
+        # Pending my PO / IEM action
+        po_pending = frappe.db.sql("""
+            SELECT COUNT(*) FROM `tabJH Travel Request`
+            WHERE request_status = 'Assigned for PO / IEM'
+            AND po_assigned_to = %(jh_user_name)s
+        """, {"jh_user_name": jh_user_name})[0][0]
+
+        # Pending my GRN / MIRO action
+        miro_pending = frappe.db.sql("""
+            SELECT COUNT(*) FROM `tabJH Travel Request`
+            WHERE request_status = 'Assigned for GRN / Miro'
+            AND assigned_to = %(jh_user_name)s
+        """, {"jh_user_name": jh_user_name})[0][0]
+
+        pending_on_me = (
+            approval_pending + cc_holder_pending + reconfirmation_pending + po_pending + miro_pending
+        )
+
+        # Requests I personally raised, regardless of role
+        created_by_me_total = frappe.db.sql("""
+            SELECT COUNT(*) FROM `tabJH Travel Request`
+            WHERE requested_by = %(jh_user_name)s
+        """, {"jh_user_name": jh_user_name})[0][0]
+
+        created_by_me_completed = frappe.db.sql("""
+            SELECT COUNT(*) FROM `tabJH Travel Request`
+            WHERE requested_by = %(jh_user_name)s
+            AND request_status = 'Completed'
+        """, {"jh_user_name": jh_user_name})[0][0]
+
+        return {
+            "pending_on_me": pending_on_me,
+            "created_by_me": {
+                "total": created_by_me_total,
+                "completed": created_by_me_completed,
+            },
+        }
     
     def get_meeting_counts():
         result = frappe.db.sql("""

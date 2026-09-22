@@ -1,27 +1,31 @@
 import React from "react";
 import { Plane } from "lucide-react";
 
-const statuses = ["Approval Pending", "Urgent", "Reconfirmation Pending"];
-
 export const TravelRequestCard = ({
   title,
   counts = {},
 }: {
   title: string;
   filterKey: string;
-  counts?: { [status: string]: number };
+  counts?: { pending_on_me?: number; created_by_me?: { total?: number; completed?: number } };
 }) => {
+  const pendingOnMe = counts.pending_on_me || 0;
+  const createdByMeTotal = counts.created_by_me?.total || 0;
+  const createdByMeCompleted = counts.created_by_me?.completed || 0;
+
   const handleCardClick = () => {
-    window.location.href = `/app/jh-travel-request/view/list?request_status=`;
+    window.location.href = `/app/jh-travel-request/view/list`;
   };
 
-  const handleStatusClick = (e: React.MouseEvent, status: string) => {
+  const handleStatusClick = (e: React.MouseEvent, requestStatus?: string) => {
     e.stopPropagation();
-    const statusParam = encodeURIComponent(status);
+    if (!requestStatus) {
+      window.location.href = `/app/jh-travel-request/view/list`;
+      return;
+    }
+    const statusParam = encodeURIComponent(requestStatus);
     window.location.href = `/app/jh-travel-request/view/list?request_status=${statusParam}`;
   };
-
-  const total = statuses.reduce((sum, s) => sum + (counts[s] || 0), 0);
 
   return (
     <div
@@ -33,22 +37,39 @@ export const TravelRequestCard = ({
           <Plane size={14} className="text-primary flex-shrink-0 !important" />
           <h3 className="text-sm font-semibold text-primary">{title}</h3>
         </div>
-        <span className="text-sm font-bold text-gray-700">{String(total).padStart(2, "0")}</span>
+        <span className="text-sm font-bold text-gray-700">{String(pendingOnMe).padStart(2, "0")}</span>
       </div>
 
       <div className="flex flex-col divide-y divide-rose-200">
-        {statuses.map((status) => (
-          <div
-            key={status}
-            onClick={(e) => handleStatusClick(e, status)}
-            className="flex justify-between items-center py-1"
-          >
-            <span className="text-xs text-gray-600">{status}</span>
-            <span className="text-xs font-semibold text-gray-800">
-              {String(counts[status] || 0).padStart(2, "0")}
-            </span>
-          </div>
-        ))}
+        <div
+          onClick={(e) => handleStatusClick(e)}
+          className="flex justify-between items-center py-1"
+        >
+          <span className="text-xs text-gray-600">Pending On Me</span>
+          <span className="text-xs font-semibold text-gray-800">
+            {String(pendingOnMe).padStart(2, "0")}
+          </span>
+        </div>
+
+        <div
+          onClick={(e) => handleStatusClick(e)}
+          className="flex justify-between items-center py-1"
+        >
+          <span className="text-xs text-gray-600">Created By Me</span>
+          <span className="text-xs font-semibold text-gray-800">
+            {String(createdByMeTotal).padStart(2, "0")}
+          </span>
+        </div>
+
+        <div
+          onClick={(e) => handleStatusClick(e, "Completed")}
+          className="flex justify-between items-center py-1"
+        >
+          <span className="text-xs text-gray-600">Completed</span>
+          <span className="text-xs font-semibold text-gray-800">
+            {String(createdByMeCompleted).padStart(2, "0")}
+          </span>
+        </div>
       </div>
     </div>
   );
