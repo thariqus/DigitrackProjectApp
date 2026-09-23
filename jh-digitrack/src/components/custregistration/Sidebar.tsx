@@ -1,10 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router";
+import { Link, useLocation } from "react-router";
 import { LuUserPlus } from "react-icons/lu";
 import { IoChevronBack, IoChevronForward } from "react-icons/io5";
-import CashIcon from "@/assets/Jaleel Cash and Carry Logo 1.png"
-import JHlogo from "@/assets/JH.png"
-
 
 const navItems = [
   {
@@ -16,10 +13,7 @@ const navItems = [
       { name: "Activate Customer", path: "/jh-digitrack/customer-registration/activate-customer" },
       { name: "Customer Search", path: "/jh-digitrack/customer-registration/customer-search" },
       { name: "Registration List", path: "/jh-digitrack/customer-registration/customer-list" },
-      {
-  name: "Customer with Site code",
-  path: "/jh-digitrack/customer-registration/customer-with-site-code",
-},
+      { name: "Customer with Site code", path: "/jh-digitrack/customer-registration/customer-with-site-code" },
     ],
   },
 ];
@@ -27,6 +21,8 @@ const navItems = [
 function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(true);
   const [showExpandedContent, setShowExpandedContent] = useState(false);
+  const { pathname } = useLocation();
+
   const expandTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const clearExpandTimer = () => {
@@ -40,18 +36,13 @@ function Sidebar() {
     clearExpandTimer();
     setIsCollapsed(false);
     setShowExpandedContent(false);
-
-    expandTimerRef.current = setTimeout(() => {
-      setShowExpandedContent(true);
-    }, 220);
+    expandTimerRef.current = setTimeout(() => setShowExpandedContent(true), 220);
   };
 
   useEffect(() => clearExpandTimer, []);
 
   const handleMenuClick = () => {
-    if (isCollapsed) {
-      openSidebar();
-    }
+    if (isCollapsed) openSidebar();
   };
 
   const toggleApplicationMenu = () => {
@@ -59,7 +50,6 @@ function Sidebar() {
       openSidebar();
       return;
     }
-
     clearExpandTimer();
     setShowExpandedContent(false);
     setIsCollapsed(true);
@@ -67,70 +57,114 @@ function Sidebar() {
 
   return (
     <aside
-      className={`sidebar-shell glass-card relative flex min-h-[calc(100vh-1rem)] flex-shrink-0 flex-col overflow-hidden rounded-xl py-4 transition-[width,padding] duration-300 ${
-        isCollapsed ? "w-18 items-center px-2" : "w-54 px-4"
+      className={`sidebar-shell glass-card relative flex min-h-[calc(100vh-1rem)] flex-shrink-0 flex-col rounded-2xl py-4 transition-[width,padding] duration-300 ease-out ${
+        isCollapsed ? "w-[4.5rem] items-center px-2" : "w-[14rem] items-start px-3"
       }`}
     >
-      {/* Logo */}
-      <div className={`relative flex items-center ${isCollapsed ? "w-full justify-center" : "justify-between"}`}>
-        {isCollapsed ? (
-          <img src={JHlogo} alt="JH" className="h-8 w-8 object-contain" />
-        ) : (
-          <img src={CashIcon} alt="JH DigiTrack" className="h-12 w-auto object-contain" />
-        )}
+      {/* Header row */}
+      <div className={`relative flex h-7 w-full items-center ${isCollapsed ? "justify-center" : "justify-start"}`}>
+       <span
+  className={`font-semibold uppercase text-gray-400 transition-all duration-200 ${
+    isCollapsed
+      ? "text-[0.55rem] tracking-[0.12em]"
+      : "pl-2 text-[0.65rem] tracking-[0.18em]"
+  }`}
+>
+  Menu
+</span>
 
         <button
           type="button"
           aria-label={isCollapsed ? "Open sidebar" : "Collapse sidebar"}
-          className={`absolute z-10 cursor-pointer rounded-full p-1 text-gray-700 ${isCollapsed ? "top-2" : "top-3"}`}
-          style={{
-            right: isCollapsed ? "-12px" : "-21px",
-            background: "rgba(231, 231, 231, 0.9)",
-          }}
           onClick={toggleApplicationMenu}
+          className="absolute top-1/2 z-20 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 shadow-sm ring-1 ring-black/[0.02] transition hover:border-gray-300 hover:text-gray-800 hover:shadow-md active:scale-95"
+          style={{ right: isCollapsed ? "-14px" : "-15px" }}
         >
-          {isCollapsed ? <IoChevronForward size={14} /> : <IoChevronBack size={14} />}
+          {isCollapsed ? <IoChevronForward size={13} /> : <IoChevronBack size={13} />}
         </button>
       </div>
 
-      <p className={`text-gray-400 ${isCollapsed ? "mb-0.5 mt-1 text-center text-xs leading-none" : "mb-3 pl-3 text-sm"}`}>
-        Menu
-      </p>
+      {/* Divider */}
+      <div className={`my-3 h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent ${isCollapsed ? "w-8 self-center" : "w-full"}`} />
 
-      <ul className={`flex flex-col ${isCollapsed ? "mt-0 w-full items-center gap-0" : "mt-1 gap-2"}`}>
-        {navItems.map((menu) => (
-          <li key={menu.name} className={`relative group ${isCollapsed ? "flex w-full justify-center" : "w-full"}`}>
-            <button
-              type="button"
-              onClick={handleMenuClick}
-              className={`sidebar-menu-button rounded-lg transition hover:bg-gray-100 ${
-                isCollapsed ? "flex h-7 w-7 items-center justify-center" : "flex w-full items-center gap-3 px-3 py-2 text-left"
-              }`}
-            >
-              <span className="flex items-center justify-center text-xl" style={{ color: menu.color }}>
-                {menu.icon}
-              </span>
+      {/* Navigation */}
+      <ul className={`flex w-full flex-col ${isCollapsed ? "items-center gap-2" : "items-start gap-1"}`}>
+        {navItems.map((menu) => {
+          const sectionActive = menu.subItems?.some((s) => pathname === s.path);
 
-              {showExpandedContent && (
-                <span className="font-medium" style={{ color: menu.color }}>
-                  {menu.name}
+          return (
+            <li key={menu.name} className={`group relative w-full ${isCollapsed ? "flex justify-center" : ""}`}>
+              <button
+                type="button"
+                onClick={handleMenuClick}
+                className={`sidebar-menu-button rounded-xl transition-all duration-200 ${
+                  isCollapsed
+                    ? "flex h-10 w-10 items-center justify-center"
+                    : "flex w-full items-center gap-3 px-2 py-2 text-left hover:bg-black/[0.03]"
+                }`}
+              >
+                <span
+                  className={`flex items-center justify-center rounded-lg text-lg transition-all duration-200 ${
+                    isCollapsed ? "h-10 w-10" : "h-8 w-8"
+                  } group-hover:scale-105`}
+                  style={{
+                    color: menu.color,
+                    backgroundColor: sectionActive ? `${menu.color}1f` : `${menu.color}12`,
+                    boxShadow: sectionActive ? `inset 0 0 0 1px ${menu.color}33` : "none",
+                  }}
+                >
+                  {menu.icon}
                 </span>
-              )}
-            </button>
 
-            {menu.subItems && showExpandedContent && (
-              <ul className="sidebar-submenu mt-2 flex w-full flex-col gap-3 rounded-lg border-l border-gray-300 py-2 pl-6">
-                {menu.subItems.map((sub) => (
-                  <li key={sub.path}>
-                    <Link to={sub.path} className="sidebar-link block text-sm text-gray-700 transition hover:text-primary">
-                      {sub.name}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </li>
-        ))}
+                {showExpandedContent && (
+                  <span className="text-sm font-semibold" style={{ color: menu.color }}>
+                    {menu.name}
+                  </span>
+                )}
+              </button>
+
+              {isCollapsed && (
+  <span
+    className="pointer-events-none absolute left-full top-1/2 z-[70] ml-3 -translate-y-1/2 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-xs font-medium text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100"
+    style={{ backgroundColor: menu.color }}
+  >
+    {menu.name}
+    <span
+      className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent"
+      style={{ borderRightColor: menu.color }}
+    />
+  </span>
+)}
+              {menu.subItems && showExpandedContent && (
+                <ul className="sidebar-submenu relative ml-4 mt-1 flex w-full flex-col gap-0.5 border-l border-gray-200 py-1 pl-3">
+                  {menu.subItems.map((sub) => {
+                    const active = pathname === sub.path;
+
+                    return (
+                      <li key={sub.path} className="relative">
+                        {active && (
+                          <span
+                            className="absolute -left-[13px] top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-full"
+                            style={{ backgroundColor: menu.color }}
+                          />
+                        )}
+                        <Link
+                          to={sub.path}
+                          className={`sidebar-link block rounded-md px-2 py-1.5 text-[0.8rem] leading-snug transition-colors duration-150 ${
+                            active ? "font-semibold" : "text-gray-600 hover:bg-black/[0.03] hover:text-gray-900"
+                          }`}
+                          style={active ? { color: menu.color, backgroundColor: `${menu.color}0f` } : undefined}
+                        >
+                          {sub.name}
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </li>
+          );
+        })}
       </ul>
     </aside>
   );

@@ -32,9 +32,9 @@ function SampleShell() {
 
   return (
     <div className="flex min-h-screen w-full items-start gap-2 p-2">
-      <div className="sticky top-2 self-start">
-        <Sidebar />
-      </div>
+      <div className="sticky top-2 self-start z-[60]">
+  <Sidebar />
+</div>
 
       <div className="flex min-h-[calc(100vh-1rem)] min-w-0 flex-1 flex-col gap-1">
         <header className="relative z-50 pl-2">
