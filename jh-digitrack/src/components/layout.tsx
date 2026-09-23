@@ -8,7 +8,7 @@ function Layout() {
       <MainNav />
       <Username/>
       <main className="flex justify-center">
-        <div className="container px-4 lg:px-8">
+        <div className="w-full px-4 lg:px-8">
           <Outlet />
         </div>
       </main>
