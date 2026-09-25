@@ -32,6 +32,7 @@
   "pms_manager",
   "pms_employee",
   "pms_master",
+  "super_admin",
   "edit_settings",
   "yearly_appraisal_employee",
   "section_break_7gls",
@@ -156,6 +157,12 @@
    "fieldname": "pms_master",
    "fieldtype": "Check",
    "label": "PMS Master"
+  },
+  {
+   "default": "0",
+   "fieldname": "super_admin",
+   "fieldtype": "Check",
+   "label": "Super Admin"
   },
   {
    "fieldname": "cost_center_name",
