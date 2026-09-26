@@ -11,7 +11,8 @@
   "quaterly",
   "from_date",
   "to_date",
-  "is_current"
+  "is_current",
+  "check_appraisal_cycle"
  ],
  "fields": [
   {
@@ -48,19 +49,26 @@
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Quaterly"
+  },
+  {
+   "default": "0",
+   "fieldname": "check_appraisal_cycle",
+   "fieldtype": "Check",
+   "label": "Check Appraisal Cycle"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-09-08 10:17:52.442934",
+ "modified": "2026-09-25 18:04:31.275374",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "PMS Settings Table",
  "owner": "Administrator",
  "permissions": [],
  "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": []

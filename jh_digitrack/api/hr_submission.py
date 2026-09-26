@@ -1,0 +1,349 @@
+from io import BytesIO
+
+import frappe
+from frappe import _
+from frappe.utils import flt
+from frappe.utils.file_manager import save_file
+
+ALLOWED_EXTENSIONS = {"xlsx", "xls"}
+
+HEADER_ALIASES = {
+    "employee_code": {"employee code", "emp code", "employee id", "emp id", "employee_code"},
+    "manager_code": {"manager code", "mgr code", "manager id", "mgr id", "manager_code"},
+    "hr_rating": {"hr rating", "rating", "hr_rating"},
+    "hr_comment": {"hr comment", "comment", "comments", "remarks", "hr_comment"},
+}
+
+
+def _is_super_admin(user):
+    return frappe.db.get_value("PMS Employees", {"employee_email": user}, "super_admin") == 1
+
+
+def _is_yearly_appraisal_enabled():
+    ae=bool(frappe.db.get_single_value("PMS Settings", "enable_yearly_appraisal"))
+    print("Yearly Appraisal Enabled:", ae)
+    return bool(frappe.db.get_single_value("PMS Settings", "enable_yearly_appraisal"))
+
+
+def _get_current_settings_row():
+    return frappe.db.get_value(
+        "PMS Settings Table",
+        {"parent": "PMS Settings", "is_current": 1},
+        ["name", "year", "quaterly", "check_appraisal_cycle"],
+        as_dict=True,
+    )
+
+
+def _is_cycle_closed_for_year(year):
+    rows = frappe.get_all(
+        "PMS Settings Table",
+        filters={"parent": "PMS Settings", "year": year},
+        fields=["check_appraisal_cycle"],
+    )
+    return bool(rows) and any(row.check_appraisal_cycle for row in rows)
+
+
+def _normalize_header(value):
+    text = str(value or "").strip().lower()
+    text = text.replace("_", " ").replace("-", " ")
+    return " ".join(text.split())
+
+
+def _normalize_code(value):
+    if value is None:
+        return ""
+    if isinstance(value, float) and value.is_integer():
+        return str(int(value))
+    return str(value).strip()
+
+
+def _read_excel_rows(content, extension):
+    rows = []
+    if extension == "xlsx":
+        from openpyxl import load_workbook
+
+        workbook = load_workbook(filename=BytesIO(content), data_only=True, read_only=True)
+        sheet = workbook.active
+        for row in sheet.iter_rows(values_only=True):
+            rows.append(list(row))
+    else:
+        import xlrd
+
+        workbook = xlrd.open_workbook(file_contents=content)
+        sheet = workbook.sheet_by_index(0)
+        for row_idx in range(sheet.nrows):
+            rows.append(sheet.row_values(row_idx))
+    return rows
+
+
+def _map_columns(header_row):
+    column_map = {}
+    for idx, cell in enumerate(header_row):
+        normalized = _normalize_header(cell)
+        for key, aliases in HEADER_ALIASES.items():
+            if key not in column_map and normalized in aliases:
+                column_map[key] = idx
+    return column_map
+
+
+def _process_hr_excel(content, extension, year):
+    rows = _read_excel_rows(content, extension)
+    rows = [row for row in rows if any(cell not in (None, "") for cell in row)]
+
+    if not rows:
+        frappe.throw(_("The uploaded file is empty."))
+
+    column_map = _map_columns(rows[0])
+
+    missing = [key for key in ("employee_code", "manager_code", "hr_rating") if key not in column_map]
+    if missing:
+        frappe.throw(
+            _("Could not find required column(s) in the uploaded file: {0}").format(
+                ", ".join(missing)
+            )
+        )
+
+    updated = 0
+    skipped = []
+
+    for row_num, row in enumerate(rows[1:], start=2):
+
+        def cell(key):
+            idx = column_map.get(key)
+            return row[idx] if idx is not None and idx < len(row) else None
+
+        employee_code = _normalize_code(cell("employee_code"))
+        if not employee_code:
+            continue
+
+        manager_code_in_file = _normalize_code(cell("manager_code"))
+        rating_value = cell("hr_rating")
+        comment_value = cell("hr_comment")
+
+        pms_employee = frappe.db.get_value(
+            "PMS Employees", employee_code, ["name", "manager_code"], as_dict=True
+        )
+        if not pms_employee:
+            skipped.append(
+                {"row": row_num, "employee_code": employee_code, "reason": _("Employee code not found.")}
+            )
+            continue
+
+        if not manager_code_in_file:
+            skipped.append(
+                {
+                    "row": row_num,
+                    "employee_code": employee_code,
+                    "reason": _("Manager code is required."),
+                }
+            )
+            continue
+
+        if _normalize_code(pms_employee.manager_code) != manager_code_in_file:
+            skipped.append(
+                {
+                    "row": row_num,
+                    "employee_code": employee_code,
+                    "reason": _("Manager code mismatch (file: {0}, on record: {1}).").format(
+                        manager_code_in_file, pms_employee.manager_code
+                    ),
+                }
+            )
+            continue
+
+        goal_assessment_name = frappe.db.get_value(
+            "Goal Assessment", {"employee_code": employee_code, "year": year}, "name"
+        )
+        if not goal_assessment_name:
+            skipped.append(
+                {
+                    "row": row_num,
+                    "employee_code": employee_code,
+                    "reason": _("No Goal Assessment found for {0}.").format(year),
+                }
+            )
+            continue
+
+        rating = flt(rating_value)
+        if rating <= 0 or rating > 5:
+            skipped.append(
+                {
+                    "row": row_num,
+                    "employee_code": employee_code,
+                    "reason": _("HR rating must be between 1 and 5."),
+                }
+            )
+            continue
+
+        doc = frappe.get_doc("Goal Assessment", goal_assessment_name)
+        # The "Rating" fieldtype stores a 0-1 fraction (5 stars = 1.0), but the
+        # uploaded sheet works in a plain 1-5 scale, matching the manager/
+        # functional-manager/skip-level-manager rating fields on this doctype.
+        doc.hr_rating = rating / 5
+        if comment_value not in (None, ""):
+            doc.hr_comment = str(comment_value).strip()
+        doc.save(ignore_permissions=True, ignore_version=True)
+        updated += 1
+
+    return {
+        "total_rows": len(rows) - 1,
+        "updated": updated,
+        "skipped": skipped,
+    }
+
+
+@frappe.whitelist(methods=["GET"])
+def has_super_admin_role():
+    user = frappe.session.user
+    if user == "Guest":
+        return {"has_access": False}
+    return {"has_access": bool(_is_super_admin(user))}
+
+
+@frappe.whitelist(methods=["GET"])
+def get_hr_submission_access():
+    user = frappe.session.user
+    if user == "Guest":
+        return {"has_access": False, "yearly_appraisal_enabled": False, "cycle_closed": False}
+
+    current_row = _get_current_settings_row()
+    return {
+        "has_access": bool(_is_super_admin(user)),
+        "yearly_appraisal_enabled": _is_yearly_appraisal_enabled(),
+        "cycle_closed": bool(current_row and current_row.check_appraisal_cycle),
+    }
+
+
+@frappe.whitelist(methods=["POST"])
+def close_appraisal_cycle():
+    user = frappe.session.user
+    if not _is_super_admin(user):
+        frappe.throw(_("You are not allowed to close the appraisal cycle."))
+
+    current_row = _get_current_settings_row()
+    if not current_row:
+        frappe.throw(_("No current appraisal period is configured in PMS Settings."))
+
+    if current_row.check_appraisal_cycle:
+        frappe.throw(_("The appraisal cycle for {0} is already closed.").format(current_row.year))
+
+    frappe.db.set_value("PMS Settings Table", current_row.name, "check_appraisal_cycle", 1)
+    frappe.db.commit()
+
+    return {
+        "year": current_row.year,
+        "quaterly": current_row.quaterly,
+        "cycle_closed": True,
+    }
+
+
+@frappe.whitelist(methods=["POST"])
+def submit_hr_excel():
+    user = frappe.session.user
+    if user == "Guest":
+        frappe.throw(_("You must be logged in to upload files."))
+
+    if not _is_super_admin(user):
+        frappe.throw(_("You are not allowed to submit HR data."))
+
+    if not _is_yearly_appraisal_enabled():
+        frappe.throw(_("Yearly Appraisal is not enabled in PMS Settings."))
+
+    current_row = _get_current_settings_row()
+    if current_row and current_row.check_appraisal_cycle:
+        frappe.throw(_("The appraisal cycle for {0} is closed.").format(current_row.year))
+
+    year = frappe.form_dict.get("year")
+    if not year:
+        frappe.throw(_("Year is required."))
+
+    upload = frappe.request.files.get("file")
+    if not upload:
+        frappe.throw(_("Please select a file to upload."))
+
+    extension = upload.filename.rsplit(".", 1)[-1].lower() if "." in upload.filename else ""
+    if extension not in ALLOWED_EXTENSIONS:
+        frappe.throw(_("Only Excel files (.xlsx, .xls) are allowed."))
+
+    content = upload.stream.read()
+
+    result = _process_hr_excel(content, extension, year)
+
+    doc = frappe.get_doc(
+        {
+            "doctype": "JH HR Submission",
+            "assessment_year": year,
+            "uploaded_by": user,
+        }
+    )
+    doc.insert(ignore_permissions=True)
+
+    file_doc = save_file(
+        upload.filename,
+        content,
+        "JH HR Submission",
+        doc.name,
+        is_private=1,
+        df="attachment",
+    )
+
+    doc.attachment = file_doc.file_url
+    doc.save(ignore_permissions=True)
+
+    frappe.db.commit()
+
+    return {
+        "name": doc.name,
+        "file_name": file_doc.file_name,
+        "file_url": file_doc.file_url,
+        "total_rows": result["total_rows"],
+        "updated": result["updated"],
+        "skipped": result["skipped"],
+    }
+
+
+@frappe.whitelist(methods=["GET"])
+def get_hr_submissions(year=None):
+    user = frappe.session.user
+    if not _is_super_admin(user):
+        frappe.throw(_("You are not allowed to view HR submissions."))
+
+    filters = {}
+    if year:
+        filters["assessment_year"] = year
+
+    return frappe.get_all(
+        "JH HR Submission",
+        filters=filters,
+        fields=["name", "assessment_year", "attachment", "uploaded_by", "creation"],
+        order_by="creation desc",
+    )
+
+
+@frappe.whitelist(methods=["POST"])
+def delete_hr_submission(name):
+    user = frappe.session.user
+    if not _is_super_admin(user):
+        frappe.throw(_("You are not allowed to delete HR submissions."))
+
+    if not name:
+        frappe.throw(_("HR Submission name is required."))
+
+    if not frappe.db.exists("JH HR Submission", name):
+        frappe.throw(_("HR Submission not found."))
+
+    assessment_year = frappe.db.get_value("JH HR Submission", name, "assessment_year")
+    if _is_cycle_closed_for_year(assessment_year):
+        frappe.throw(_("The appraisal cycle for {0} is closed.").format(assessment_year))
+
+    file_url = frappe.db.get_value("JH HR Submission", name, "attachment")
+
+    frappe.delete_doc("JH HR Submission", name, ignore_permissions=True, force=True)
+
+    if file_url:
+        for file_name in frappe.get_all("File", filters={"file_url": file_url}, pluck="name"):
+            frappe.delete_doc("File", file_name, ignore_permissions=True, force=True)
+
+    frappe.db.commit()
+
+    return {"deleted": name}

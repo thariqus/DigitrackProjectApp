@@ -16,6 +16,7 @@
   "rating",
   "functional_manager_rating",
   "skip_level_manager_rating",
+  "hr_rating",
   "section_break_vp0b",
   "employee_goals",
   "eligible_for_increment",
@@ -30,6 +31,7 @@
   "comment",
   "functional_manager_comment",
   "skip_level_manager_comment",
+  "hr_comment",
   "section_break_uycd",
   "manager_submitted_on",
   "functional_manager_submitted_on",
@@ -181,12 +183,24 @@
    "fieldname": "manager_submitted_on",
    "fieldtype": "Datetime",
    "label": "Manager Submitted On"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "hr_rating",
+   "fieldtype": "Rating",
+   "label": "HR Rating"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "hr_comment",
+   "fieldtype": "Small Text",
+   "label": "HR comment"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-09-17 10:20:18.447027",
+ "modified": "2026-09-24 14:24:10.413059",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "Goal Assessment",

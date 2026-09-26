@@ -2,11 +2,22 @@ import frappe
 import io
 from datetime import datetime
 from frappe import _
+from frappe.utils import flt
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, PatternFill
 from werkzeug.wrappers import Response
 from openpyxl.utils import get_column_letter
 from jh_digitrack.api.pms_report import get_goal_assessment_summary
+
+# The "Rating" fieldtype on Goal Assessment stores a 0-1 fraction (5 stars =
+# 1.0); reports should show the plain 1-5 scale reviewers actually picked.
+RATING_FIELDS = {"rating", "functional_manager_rating", "skip_level_manager_rating"}
+
+
+def _to_star_rating(value):
+    if value in (None, ""):
+        return ""
+    return round(flt(value) * 5)
 
 @frappe.whitelist(methods=["GET"])
 def download_excel(year=None, manager=None, view_type="team"):
@@ -300,7 +311,10 @@ def download_excel(year=None, manager=None, view_type="team"):
             manager_name = mdata.get("full_name", "")
 
             manager_values = [manager_code, manager_name]
-            parent_values = [ga.get(f) for f in parent_fields.keys()]
+            parent_values = [
+                _to_star_rating(ga.get(f)) if f in RATING_FIELDS else ga.get(f)
+                for f in parent_fields.keys()
+            ]
 
             child_rows = frappe.get_all(
                 "Employee Goals",
