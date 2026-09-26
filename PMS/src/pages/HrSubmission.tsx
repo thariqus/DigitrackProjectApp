@@ -41,6 +41,8 @@ function HrSubmission() {
   const [deletingName, setDeletingName] = useState<string | null>(null);
   const [isClosingCycle, setIsClosingCycle] = useState(false);
   const [lastResult, setLastResult] = useState<UploadResult | null>(null);
+  const [showClosePopup, setShowClosePopup] = useState(false);
+  const [closeRemark, setCloseRemark] = useState("");
   const [message, setMessage] = useState<{ text: string; type: "success" | "error" | "" }>({
     text: "",
     type: "",
@@ -122,24 +124,77 @@ function HrSubmission() {
     }
   };
  
-  const handleCloseAppraisalCycle = async () => {
-    if (cycleClosed) return;
-    if (!window.confirm("Are you sure you want to close the appraisal cycle?")) {
-      return;
-    }
+  // const handleCloseAppraisalCycle = async () => {
+  //   if (cycleClosed) return;
+  //   if (!window.confirm("Are you sure you want to close the appraisal cycle?")) {
+  //     return;
+  //   }
  
-    setIsClosingCycle(true);
-    try {
-      await frappe.api.post("jh_digitrack.api.hr_submission.close_appraisal_cycle", {});
-      setCycleClosed(true);
-      setMessage({ text: "Appraisal cycle closed successfully.", type: "success" });
-    } catch (err: any) {
-      setMessage({ text: err?.message || "Failed to close appraisal cycle.", type: "error" });
-    } finally {
-      setIsClosingCycle(false);
-    }
-  };
- 
+  //   setIsClosingCycle(true);
+  //   try {
+  //     await frappe.api.post("jh_digitrack.api.hr_submission.close_appraisal_cycle", {});
+  //     setCycleClosed(true);
+  //     setMessage({ text: "Appraisal cycle closed successfully.", type: "success" });
+  //   } catch (err: any) {
+  //     setMessage({ text: err?.message || "Failed to close appraisal cycle.", type: "error" });
+  //   } finally {
+  //     setIsClosingCycle(false);
+  //   }
+  // };
+      const handleCloseAppraisalCycle = () => {
+        if (cycleClosed || isClosingCycle) return;
+
+        setCloseRemark("");
+        setShowClosePopup(true);
+      };
+
+      const handleCancelClosePopup = () => {
+        if (isClosingCycle) return;
+
+        setCloseRemark("");
+        setShowClosePopup(false);
+      };
+
+      const handleConfirmCloseCycle = async () => {
+        const remark = closeRemark.trim();
+
+        if (remark.length < 3) {
+          setMessage({
+            text: "Please enter at least 3 characters in the remarks.",
+            type: "error",
+          });
+          return;
+        }
+
+        setIsClosingCycle(true);
+
+        try {
+          await frappe.api.post(
+            "jh_digitrack.api.hr_submission.close_appraisal_cycle",
+            {
+              remarks: remark,
+            }
+          );
+
+          setCycleClosed(true);
+          setShowClosePopup(false);
+          setCloseRemark("");
+
+          setMessage({
+            text: `Appraisal cycle for ${selectedYear} closed successfully.`,
+            type: "success",
+          });
+        } catch (err: any) {
+          setMessage({
+            text:
+              err?.message ||
+              "Failed to close appraisal cycle.",
+            type: "error",
+          });
+        } finally {
+          setIsClosingCycle(false);
+        }
+      };
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) {
@@ -391,6 +446,83 @@ function HrSubmission() {
           {cycleClosed ? "Appraisal Cycle Closed" : isClosingCycle ? "Closing..." : "Close Appraisal Cycle"}
         </button>
       </div>
+      {showClosePopup && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-[500px] rounded-lg bg-white shadow-2xl">
+
+            {/* Header */}
+            <div className="flex justify-end px-6 pt-4">
+              <button
+                type="button"
+                onClick={handleCancelClosePopup}
+                disabled={isClosingCycle}
+                className="text-xl leading-none text-gray-400 hover:text-gray-700 disabled:opacity-50"
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="px-6 py-5">
+              <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3">
+                <p className="text-sm font-semibold leading-6 text-red-700">
+                  Once the appraisal cycle for{" "}
+                  <span className="font-bold">{selectedYear}</span>{" "}
+                  is closed, it cannot be edited or uploaded.
+                </p>
+              </div>
+
+              <label className="mt-5 block text-sm font-medium text-gray-700">
+                Remarks
+              </label>
+
+              <textarea
+                value={closeRemark}
+                onChange={(e) => setCloseRemark(e.target.value)}
+                placeholder="Enter remarks..."
+                rows={4}
+                disabled={isClosingCycle}
+                className="mt-2 w-full resize-none rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary disabled:bg-gray-100"
+              />
+
+              <p
+                className={`mt-1 text-xs ${
+                  closeRemark.trim().length < 3
+                    ? "text-gray-500"
+                    : "text-green-600"
+                }`}
+              >
+                Minimum 3 characters required.
+              </p>
+            </div>
+
+            {/* Footer */}
+            <div className="flex justify-end gap-3 border-t border-gray-200 px-6 py-4">
+              <button
+                type="button"
+                onClick={handleCancelClosePopup}
+                disabled={isClosingCycle}
+                className="rounded-md border border-gray-300 bg-white px-5 py-2.5 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={handleConfirmCloseCycle}
+                disabled={
+                  isClosingCycle ||
+                  closeRemark.trim().length < 3
+                }
+                className="rounded-md bg-primary px-5 py-2.5 text-sm text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isClosingCycle ? "Confirming..." : "Confirm"}
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
  
       {message.text && (
         <div
