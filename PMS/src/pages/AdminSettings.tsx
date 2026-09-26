@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { AiOutlineDelete } from 'react-icons/ai';
+import { FiEye } from "react-icons/fi";
 import "../pages/AdminSettings.css"
 import { useEffect } from "react";
 import frappeClient from "@/utils/frappe-client";
@@ -502,7 +502,7 @@ const deleteSelectedRows = async () => {
                 <th className="py-2 px-1  w-[25%]">From</th>
                 <th className="py-2 px-1  w-[25%]">To</th>
                 <th className="py-2 px-1  text-center  w-[15%]">Current</th>
-                <th className="py-2 px-1  text-center  w-[10%]">Action</th>
+                <th className="py-2 px-1  text-center  w-[10%]">Result</th>
               </tr>
             </thead>
            <tbody>
@@ -597,12 +597,12 @@ const deleteSelectedRows = async () => {
       <td className="px-1 py-2 text-center">
         <button
           type="button"
-          onClick={() => handleDeleteRow(index)}
-          className="text-red-600 hover:text-red-800"
+          className="text-primary hover:opacity-70"
+          title="View Result"
         >
-          <AiOutlineDelete size={16} />
+          <FiEye size={16} />
         </button>
-      </td>
+      </td>      
     </tr>
   ))}
 </tbody>
