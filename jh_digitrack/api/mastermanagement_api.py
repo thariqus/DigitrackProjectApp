@@ -583,6 +583,7 @@ def get_customer_groups(search=None):
 @frappe.whitelist(methods=["POST"])
 def create_customer(**kwargs):
     try:
+        cust_group = frappe.db.get_value("Customer Group", kwargs.get("customer_group"), "customer_group_name")
         duplicate = frappe.db.exists(
             "Customer Registration",
             {
@@ -596,7 +597,7 @@ def create_customer(**kwargs):
                 "emirate_region": kwargs.get("custom_region"),
                 "city": kwargs.get("custom_city"),
                 "transportation_zone": kwargs.get("transportation_zone"),
-                "customer_group": kwargs.get("customer_group"),
+                "customer_group": cust_group,
                 "sales_district": kwargs.get("sales_district"),
                 "sales_office": kwargs.get("sales_office"),
             },
@@ -630,7 +631,7 @@ def create_customer(**kwargs):
             "site_code": kwargs.get("site_code"),
             "po_box": kwargs.get("po_box"),
             "transportation_zone": kwargs.get("transportation_zone"),
-            "customer_group": kwargs.get("customer_group"),
+            "customer_group": cust_group,
             "sales_district": kwargs.get("sales_district"),
             "sales_office": kwargs.get("sales_office"),
             "custom_customer_code": kwargs.get("customer_code"),
