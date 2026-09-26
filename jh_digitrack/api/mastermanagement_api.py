@@ -45,7 +45,7 @@ def create_sap_customer(data):
         "salesOffice": data.get("sales_office"),
         "transportationZone": data.get("transportation_zone")
     }
-}
+    }
     print("the payload *****:", payload)
 
     try:
@@ -549,6 +549,8 @@ def get_customer_groups(search=None):
             order_by="customer_group_name asc",
         )
 
+        print("Fetched Customer Groups:", data)
+
         return {
             "status_code": 200,
             "message": "success",
@@ -570,6 +572,8 @@ def get_customer_groups(search=None):
             "count": 0,
             "data": [],
         }
+
+
 
 # ---------------------------------------------------------------------------
 # Customer Registration
@@ -685,6 +689,7 @@ def create_customer(**kwargs):
             "status_code": 500,
             "message": "Internal Server Error. Please contact Administrator.",
         }
+
 
 
 @frappe.whitelist(methods=["GET"])
