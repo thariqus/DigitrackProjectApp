@@ -57,4 +57,7 @@ export interface PMSEmployee {
 
 	/** PMS Master : Check */
 	pms_master?: 0 | 1
+
+	/** Super Admin : Check */
+	super_admin?: 0 | 1
 }
