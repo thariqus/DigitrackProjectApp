@@ -2,6 +2,7 @@
  "actions": [],
  "allow_import": 1,
  "allow_rename": 1,
+ "autoname": "field:customer_group_name",
  "creation": "2026-08-18 16:18:25.606348",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -14,7 +15,8 @@
    "fieldname": "customer_group_name",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Customer Group Name"
+   "label": "Customer Group Name",
+   "unique": 1
   },
   {
    "fieldname": "customer_group_title",
@@ -25,10 +27,11 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-08-20 18:55:59.411428",
+ "modified": "2026-09-26 13:00:52.664753",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "Customer Group",
+ "naming_rule": "By fieldname",
  "owner": "Administrator",
  "permissions": [
   {
