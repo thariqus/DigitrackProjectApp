@@ -644,7 +644,7 @@ def create_customer(**kwargs):
         # =====================================================
         # SEND CUSTOMER DATA TO SAP
         # =====================================================
-
+        kwargs["customer_group"] = cust_group  # Update customer group to name for SAP
         sap_response = create_sap_customer(kwargs)
 
 
