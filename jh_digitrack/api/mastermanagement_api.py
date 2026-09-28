@@ -22,21 +22,29 @@ def create_sap_customer(data):
     """
 
     payload = {
-        "customer_name": data.get("customer_name"),
-        "customer_type": data.get("customer_type"),
-        "business_name": data.get("business_name"),
-        "tr_number": data.get("tr_number"),
-        "trade_license_number": data.get("custom_trade_license_no"),
+    "customerName": data.get("customer_name"),
+    "businessName": data.get("business_name"),
+    "trNumber": data.get("tr_number"),
+    "tradeLicense": data.get("custom_trade_license_no"),
+
+    "address": {
         "street": data.get("custom_street"),
         "area": data.get("custom_area"),
         "emirate": data.get("custom_region"),
         "city": data.get("custom_city"),
-        "email": data.get("email_id"),
-        "po_box": data.get("po_box"),
-        "transportation_zone": data.get("transportation_zone"),
-        "customer_group": data.get("customer_group"),
-        "sales_district": data.get("sales_district"),
-        "sales_office": data.get("sales_office"),
+        "poBox": data.get("po_box")
+    },
+
+    "contact": {
+        "email": data.get("email_id")
+    },
+
+    "sales": {
+        "customerGroup": data.get("customer_group"),
+        "salesDistrict": data.get("sales_district"),
+        "salesOffice": data.get("sales_office"),
+        "transportationZone": data.get("transportation_zone")
+    }
     }
     print("the payload *****:", payload)
 
@@ -100,8 +108,7 @@ def send_customer_activation_to_sap(customer_code, company_code):
         "customer_code": customer_code,
         "company_code": company_code,
     }
-    print("the payload  of activate customer*****:", payload)
-
+    
     try:
         print("SAP ACTIVATION PAYLOAD:", payload)
 
@@ -542,6 +549,8 @@ def get_customer_groups(search=None):
             order_by="customer_group_name asc",
         )
 
+        print("Fetched Customer Groups:", data)
+
         return {
             "status_code": 200,
             "message": "success",
@@ -564,6 +573,8 @@ def get_customer_groups(search=None):
             "data": [],
         }
 
+
+
 # ---------------------------------------------------------------------------
 # Customer Registration
 # ---------------------------------------------------------------------------
@@ -572,6 +583,7 @@ def get_customer_groups(search=None):
 @frappe.whitelist(methods=["POST"])
 def create_customer(**kwargs):
     try:
+        cust_group = frappe.db.get_value("Customer Group", kwargs.get("customer_group"), "customer_group_name")
         duplicate = frappe.db.exists(
             "Customer Registration",
             {
@@ -585,7 +597,7 @@ def create_customer(**kwargs):
                 "emirate_region": kwargs.get("custom_region"),
                 "city": kwargs.get("custom_city"),
                 "transportation_zone": kwargs.get("transportation_zone"),
-                "customer_group": kwargs.get("customer_group"),
+                "customer_group": cust_group,
                 "sales_district": kwargs.get("sales_district"),
                 "sales_office": kwargs.get("sales_office"),
             },
@@ -619,7 +631,7 @@ def create_customer(**kwargs):
             "site_code": kwargs.get("site_code"),
             "po_box": kwargs.get("po_box"),
             "transportation_zone": kwargs.get("transportation_zone"),
-            "customer_group": kwargs.get("customer_group"),
+            "customer_group": cust_group,
             "sales_district": kwargs.get("sales_district"),
             "sales_office": kwargs.get("sales_office"),
             "custom_customer_code": kwargs.get("customer_code"),
@@ -632,7 +644,7 @@ def create_customer(**kwargs):
         # =====================================================
         # SEND CUSTOMER DATA TO SAP
         # =====================================================
-
+        kwargs["customer_group"] = cust_group  # Update customer group to name for SAP
         sap_response = create_sap_customer(kwargs)
 
 
@@ -678,6 +690,7 @@ def create_customer(**kwargs):
             "status_code": 500,
             "message": "Internal Server Error. Please contact Administrator.",
         }
+
 
 
 @frappe.whitelist(methods=["GET"])

@@ -41,8 +41,8 @@ export const PropertyTableHeader = ({
             key={index}
             className={`
               cursor-pointer
-              ${heading === "Workflow Stage" ? "w-[185px] text-center" : ""}
-              ${heading === "Renewal Date" || heading === "Renewal Status" ? "text-center" : ""}
+              ${heading === "Workflow Stage" ? "w-[190px] text-center" : ""}
+              ${heading === "Renewal Date" || heading === "Renewal Status" || heading === "Property Status" || heading === "Current Rent" ? "text-center" : ""}
             `}
           >
             {heading}
