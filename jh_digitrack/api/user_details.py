@@ -1785,7 +1785,7 @@ def run_post_hrms_sync():
             UPDATE `tabJH User Master` JHUSER
             INNER JOIN `tabHRMS Inactive Employees` HRMS_INACTIVE
                 ON JHUSER.employee_code = HRMS_INACTIVE.emp_id
-            SET JHUSER.email = ''
+            SET JHUSER.email = '',JHUSER.active=0
         """)
         frappe.log_error(
             title="PRE-STEP 3: Clear Email from JH User Master",
@@ -1893,7 +1893,7 @@ def run_post_hrms_sync():
             JOIN `tabHRMS Users` HR
               ON JH.employee_code = HR.employee_code
             SET
-                JH.email = HR.mail_id,
+                JH.email = CASE WHEN IFNULL(HR.mail_id, '') <> '' THEN HR.mail_id ELSE CONCAT(HR.employee_code, '@jaleel.com') END,
                 JH.location_name = HR.location_name,
                 JH.designation_name = HR.designation_name,
                 JH.department_name = HR.department_name,
@@ -1943,7 +1943,8 @@ def run_post_hrms_sync():
                 employee_code, active, name
             )
             SELECT
-                HR.mail_id, HR.location_name, HR.designation_name,
+                CASE WHEN IFNULL(HR.mail_id, '') <> '' THEN HR.mail_id ELSE CONCAT(HR.employee_code, '@jaleel.com') END,
+                HR.location_name, HR.designation_name,
                 HR.department_name, HR.region, HR.country, HR.city,
                 HR.position, HR.cost_center, HR.employee_status,
                 HR.first_name, HR.middle_name, HR.last_name,
@@ -1953,7 +1954,6 @@ def run_post_hrms_sync():
             LEFT JOIN `tabJH User Master` JH
               ON HR.employee_code = JH.employee_code
             WHERE JH.employee_code IS NULL
-              AND IFNULL(HR.mail_id, '') <> ''
               AND IFNULL(HR.employee_code, '') <> ''       
         """)
 
@@ -1975,6 +1975,42 @@ def run_post_hrms_sync():
                 attach_user(jh_user.get("name"), jh_user.get("email"))
             except Exception:
                 frappe.log_error(frappe.get_traceback(), f"attach_user failed for {jh_user.get('name')}")
+
+        # ================================================================
+        # PRE-STEP 3a : Remove System access from frappe user
+        # ----------------------------------------------------------------
+        # Frappe User set as disable.
+        # ================================================================
+        frappe.db.sql("""
+            UPDATE `tabUser` FPUSER
+            INNER JOIN `tabJH User Master` JHUSER
+                ON FPUSER.email = JHUSER.user
+            SET FPUSER.enabled = JHUSER.active
+        """)
+        frappe.log_error(
+            title="PRE-STEP 3a: Disable the user from frappe user",
+            message="Disable the user from frappe user"
+        )
+
+        # ================================================================
+        # PRE-STEP 3b : Disable Frappe users not linked to JH User Master
+        # ----------------------------------------------------------------
+        # Any Frappe User (except Administrator / Guest) with no matching
+        # JH User Master record is disabled.
+        # ================================================================
+        frappe.db.sql("""
+            UPDATE `tabUser` FPUSER
+            SET FPUSER.enabled = 0
+            WHERE FPUSER.name NOT IN ('Administrator', 'Guest')
+              AND NOT EXISTS (
+                  SELECT 1 FROM `tabJH User Master` JHUSER
+                  WHERE JHUSER.user = FPUSER.email
+              )
+        """)
+        frappe.log_error(
+            title="PRE-STEP 3b: Disable unlinked frappe users",
+            message="Disabled Frappe users (except Administrator/Guest) with no matching tabJH User Master record"
+        )
 
         # 5. Update PMS Employees
         frappe.db.sql("""
