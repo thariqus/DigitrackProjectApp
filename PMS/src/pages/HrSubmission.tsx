@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { CiCalendar } from "react-icons/ci";
 import { MdOutlineFileUpload } from "react-icons/md";
 import { FiEye } from "react-icons/fi";
+import { HiArrowNarrowDown } from "react-icons/hi";
 import frappe from "@/utils/frappe-client";
  
 const ALLOWED_EXTENSIONS = ["xlsx", "xls"];
@@ -46,6 +47,11 @@ function HrSubmission() {
   const [closeRemark, setCloseRemark] = useState("");
   const [selectedResult, setSelectedResult] = useState<string>("");
   const [showResultPopup, setShowResultPopup] = useState(false);
+  const [sortField, setSortField] = useState<
+   "year" | "file" | "uploadedBy" | "uploadedOn" | null
+  >(null);
+
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [message, setMessage] = useState<{ text: string; type: "success" | "error" | "" }>({
     text: "",
     type: "",
@@ -366,7 +372,48 @@ function HrSubmission() {
       </div>
     );
   }
- 
+const handleSort = (
+  field: "year" | "file" | "uploadedBy" | "uploadedOn"
+) => {
+  if (sortField === field) {
+    setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+  } else {
+    setSortField(field);
+    setSortOrder("asc");
+  }
+}; 
+const sortedSubmissions = [...submissions].sort((a, b) => {
+  if (!sortField) return 0;
+
+  let valueA = "";
+  let valueB = "";
+
+  switch (sortField) {
+    case "year":
+      valueA = a.assessment_year || "";
+      valueB = b.assessment_year || "";
+      break;
+
+    case "file":
+      valueA = a.attachment?.split("/").pop() || "";
+      valueB = b.attachment?.split("/").pop() || "";
+      break;
+
+    case "uploadedBy":
+      valueA = a.uploaded_by || "";
+      valueB = b.uploaded_by || "";
+      break;
+
+    case "uploadedOn":
+      valueA = a.creation || "";
+      valueB = b.creation || "";
+      break;
+  }
+
+  return sortOrder === "asc"
+    ? valueA.localeCompare(valueB)
+    : valueB.localeCompare(valueA);
+});
   return (
     <div className="bg-white min-h-screen border rounded-lg px-6 py-2 h-full relative overflow-hidden">
       <div className="flex justify-between items-center">
@@ -433,26 +480,43 @@ function HrSubmission() {
           </p>
  
           {lastResult.skipped.length > 0 && (
-            <div className="border rounded-lg w-full mt-2">
-              <table className="w-full text-center table-fixed">
-                <thead className="bg-red-50 text-red-600 text-[11px]">
-                  <tr>
-                    <th className="py-2 px-2 w-[12%]">Row</th>
-                    <th className="py-2 px-2 w-[23%]">Employee Code</th>
-                    <th className="py-2 px-2 w-[65%] text-left">Reason</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {lastResult.skipped.map((row, index) => (
-                    <tr key={index} className="border-t text-xs">
-                      <td className="py-2 px-2 w-[12%]">{row.row}</td>
-                      <td className="py-2 px-2 w-[23%]">{row.employee_code}</td>
-                      <td className="py-2 px-2 w-[65%] text-left">{row.reason}</td>
+            <div className="mt-3 w-full rounded-lg border border-gray-200 bg-white shadow-sm">
+              <div className="flex items-center justify-between border-b border-gray-200 bg-gray-50 px-4 py-3">
+                <span className="text-sm font-medium text-primary">
+                  Upload Result ({lastResult.skipped.length} skipped)
+                </span>
+
+                <span className="text-xs text-gray-500">
+                  {lastResult.skipped.length} rows
+                </span>
+              </div>
+
+              <div className="max-h-[400px] overflow-y-auto">
+                <table className="w-full table-fixed text-center">
+                  <thead className="sticky top-0 z-10 bg-red-50 text-red-600 text-[11px]">
+                    <tr>
+                      <th className="py-2 px-2 w-[12%]">Row</th>
+                      <th className="py-2 px-2 w-[23%]">Employee Code</th>
+                      <th className="py-2 px-2 w-[65%] text-left">Reason</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+
+                  <tbody>
+                    {lastResult.skipped.map((row, index) => (
+                      <tr key={index} className="border-t text-xs">
+                        <td className="py-2 px-2 w-[12%]">{row.row}</td>
+                        <td className="py-2 px-2 w-[23%]">
+                          {row.employee_code}
+                        </td>
+                        <td className="py-2 px-2 w-[65%] text-left">
+                          {row.reason}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>            
           )}
         </div>
       )}
@@ -461,10 +525,61 @@ function HrSubmission() {
         <table className="w-full text-center table-auto">
           <thead className="bg-gray-100 text-gray-500 text-[11px]">
             <tr>
-              <th className="py-2 px-2">Year</th>
-              <th className="py-2 px-2">File</th>
-              <th className="py-2 px-2">Uploaded By</th>
-              <th className="py-2 px-2">Uploaded On</th>
+              <th
+                className="py-2 px-2 cursor-pointer"
+                onClick={() => handleSort("year")}
+              >
+                <div className="flex items-center justify-center gap-2">
+                  Year
+                  <HiArrowNarrowDown
+                    className={`text-gray-400 text-xs transition-transform ${
+                      sortField === "year" && sortOrder === "asc" ? "rotate-180" : ""
+                    }`}
+                  />
+                </div>
+              </th>
+
+              <th
+                className="py-2 px-2 cursor-pointer"
+                onClick={() => handleSort("file")}
+              >
+                <div className="flex items-center justify-center gap-2">
+                  File
+                  <HiArrowNarrowDown
+                    className={`text-gray-400 text-xs transition-transform ${
+                      sortField === "file" && sortOrder === "asc" ? "rotate-180" : ""
+                    }`}
+                  />
+                </div>
+              </th>
+
+              <th
+                className="py-2 px-2 cursor-pointer"
+                onClick={() => handleSort("uploadedBy")}
+              >
+                <div className="flex items-center justify-center gap-2">
+                  Uploaded By
+                  <HiArrowNarrowDown
+                    className={`text-gray-400 text-xs transition-transform ${
+                      sortField === "uploadedBy" && sortOrder === "asc" ? "rotate-180" : ""
+                    }`}
+                  />
+                </div>
+              </th>
+
+              <th
+                className="py-2 px-2 cursor-pointer"
+                onClick={() => handleSort("uploadedOn")}
+              >
+                <div className="flex items-center justify-center gap-2">
+                  Uploaded On
+                  <HiArrowNarrowDown
+                    className={`text-gray-400 text-xs transition-transform ${
+                      sortField === "uploadedOn" && sortOrder === "asc" ? "rotate-180" : ""
+                    }`}
+                  />
+                </div>
+              </th>              
               <th className="py-2 px-2">Result</th>
             </tr>
           </thead>
@@ -476,7 +591,7 @@ function HrSubmission() {
                 </td>
               </tr>
             ) : (
-              submissions.map((row) => (
+              sortedSubmissions.map((row) => (
                 <tr key={row.name} className="border-t text-xs">
                   <td className="py-2 px-2">{row.assessment_year}</td>
                   <td className="py-2 px-2">
@@ -490,7 +605,7 @@ function HrSubmission() {
                     </a>
                   </td>
                   <td className="py-2 px-2">{row.uploaded_by}</td>
-                  <td className="py-2 px-2">{row.creation}</td>
+                  <td className="py-2 px-2">{row.creation?.split(".")[0] || row.creation}</td>           
                   {/* <td className="py-2 px-2 text-center">
                     <button
                       type="button"
@@ -631,10 +746,27 @@ function HrSubmission() {
             {/* Result */}
             <div className="px-6 py-5">
               {selectedResult ? (
-                <div className="overflow-hidden rounded-md border border-gray-200">
-                  <table className="w-full table-fixed text-center text-xs">
+                // <div className="overflow-hidden rounded-md border border-gray-200">
+                //   <table className="w-full table-fixed text-center text-xs">
+                <div className="overflow-hidden rounded-lg border border-gray-200">
 
-                    <thead className="bg-red-50 text-red-600 text-[11px]">
+                  <div className="flex items-center justify-between border-b border-gray-200 bg-gray-50 px-4 py-3">
+                    <span className="text-sm font-medium text-primary">
+                      Upload Result
+                    </span>
+
+                    <span className="text-xs text-gray-500">
+                      {selectedResult
+                        .split("\n")
+                        .slice(1)
+                        .filter((line) => line.trim()).length}{" "}
+                      rows
+                    </span>
+                  </div>
+
+                  <div className="max-h-[400px] overflow-y-auto">
+                    <table className="w-full table-fixed text-center text-xs">
+                    <thead className="sticky top-0 z-10 bg-red-50 text-red-600 text-[11px]">
                       <tr>
                         <th className="py-2 px-2 w-[12%]">
                           Row
@@ -681,6 +813,7 @@ function HrSubmission() {
                     </tbody>
 
                   </table>
+                </div>
                 </div>
               ) : (
                 <p className="py-6 text-center text-sm text-gray-500">
