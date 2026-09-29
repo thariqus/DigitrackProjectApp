@@ -9,7 +9,8 @@
  "field_order": [
   "assessment_year",
   "attachment",
-  "uploaded_by"
+  "uploaded_by",
+  "result"
  ],
  "fields": [
   {
@@ -30,12 +31,17 @@
    "in_list_view": 1,
    "label": "Uploaded By",
    "read_only": 1
+  },
+  {
+   "fieldname": "result",
+   "fieldtype": "Long Text",
+   "label": "Result"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-09-24 14:21:39.990687",
+ "modified": "2026-09-29 11:18:46.071334",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH HR Submission",
