@@ -151,7 +151,7 @@ FUNCTIONAL_OR_SKIP_LEVEL_QUERY = """
                 AND (pe.functional_manager_email = %(user)s OR pe.skip_level_manager_email = %(user)s)
             )
             OR (
-                ga.status = 'Evaluation Submitted'
+                ga.status IN ('HR Review', 'HR Submitted', 'Evaluation Submitted')
                 AND (pe.functional_manager_email = %(user)s OR pe.skip_level_manager_email = %(user)s)
             )
         )
@@ -165,6 +165,8 @@ ALLOWED_EVALUATION_STATUSES = (
     "Evaluation Started",
     "Functional Manager Review",
     "Skip Level Manager Review",
+    "HR Review",
+    "HR Submitted",
     "Evaluation Submitted",
     "Goal Submitted",
 )
@@ -525,7 +527,8 @@ def _status_after_manager_review(employee_code):
     Next status once the reporting manager submits their review.
     If the functional manager is the same person as the reporting manager,
     the functional review stage is skipped; if the skip-level manager is
-    also the same person, the skip-level stage is skipped too.
+    also the same person, the skip-level stage is skipped too and the
+    evaluation goes to HR review.
     """
     managers = _get_manager_chain(employee_code)
     manager_email = managers.get("manager_email")
@@ -534,7 +537,7 @@ def _status_after_manager_review(employee_code):
 
     if functional_email and functional_email == manager_email:
         if skip_level_email and skip_level_email == functional_email:
-            return "Evaluation Submitted"
+            return "HR Review"
         return "Skip Level Manager Review"
     return "Functional Manager Review"
 
@@ -543,14 +546,14 @@ def _status_after_functional_review(employee_code):
     """
     Next status once the functional manager submits their review.
     If the skip-level manager is the same person as the functional manager,
-    the skip-level stage is skipped and the evaluation is final.
+    the skip-level stage is skipped and the evaluation goes to HR review.
     """
     managers = _get_manager_chain(employee_code)
     functional_email = managers.get("functional_manager_email")
     skip_level_email = managers.get("skip_level_manager_email")
 
     if skip_level_email and skip_level_email == functional_email:
-        return "Evaluation Submitted"
+        return "HR Review"
     return "Skip Level Manager Review"
 
 
@@ -624,9 +627,11 @@ def submit_goal_evaluation(employee_code, year, rating=None, comment=None):
         doc.skip_level_manager_comment = comment
         doc.skip_level_manager_submitted_on = frappe.utils.now_datetime()
 
-        _finalize_or_save(doc, "Evaluation Submitted")
+        # The evaluation is finalised (submitted) only after HR uploads its
+        # rating/comment via the HR Submission Excel upload.
+        _finalize_or_save(doc, "HR Review")
 
-        return {"message": "Skip-level manager review submitted successfully.", "docname": doc.name, "status": "Evaluation Submitted"}
+        return {"message": "Skip-level manager review submitted successfully.", "docname": doc.name, "status": "HR Review"}
 
     if doc.status == "Goal Submitted":
         frappe.throw(_("Please save the evaluation before submitting."))

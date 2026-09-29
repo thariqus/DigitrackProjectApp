@@ -71,7 +71,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Status",
-   "options": "Goal Pending\nGoal Started\nGoal Submitted\nEvaluation Pending\nEvaluation Started\nFunctional Manager Review\nSkip Level Manager Review\nEvaluation Submitted"
+   "options": "Goal Pending\nGoal Started\nGoal Submitted\nEvaluation Pending\nEvaluation Started\nFunctional Manager Review\nSkip Level Manager Review\nHR Review\nHR Submitted\nEvaluation Submitted"
   },
   {
    "fieldname": "section_break_vp0b",
@@ -185,13 +185,11 @@
    "label": "Manager Submitted On"
   },
   {
-   "allow_on_submit": 1,
    "fieldname": "hr_rating",
    "fieldtype": "Rating",
    "label": "HR Rating"
   },
   {
-   "allow_on_submit": 1,
    "fieldname": "hr_comment",
    "fieldtype": "Small Text",
    "label": "HR comment"
@@ -200,7 +198,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-09-24 14:24:10.413059",
+ "modified": "2026-09-29 15:15:41.579744",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "Goal Assessment",

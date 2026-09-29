@@ -6,6 +6,7 @@ from frappe.utils import flt
 from frappe.utils.file_manager import save_file
 
 ALLOWED_EXTENSIONS = {"xlsx", "xls"}
+ALL_SUCCESS_MESSAGE = "All records successfully submitted"
 
 HEADER_ALIASES = {
     "employee_code": {"employee code", "emp code", "employee id", "emp id", "employee_code"},
@@ -176,12 +177,40 @@ def _process_hr_excel(content, extension, year):
             continue
 
         doc = frappe.get_doc("Goal Assessment", goal_assessment_name)
+        # HR is the last review stage: evaluations waiting for HR (HR Review) or
+        # already HR-rated but not yet finalised (HR Submitted) can be updated.
+        # HR rating/comment lock once Close Appraisal Cycle submits the evaluation.
+        if doc.docstatus == 1 or doc.status == "Evaluation Submitted":
+            skipped.append(
+                {
+                    "row": row_num,
+                    "employee_code": employee_code,
+                    "reason": _("Evaluation already submitted; HR rating and comment cannot be changed."),
+                }
+            )
+            continue
+
+        if doc.status not in ("HR Review", "HR Submitted"):
+            skipped.append(
+                {
+                    "row": row_num,
+                    "employee_code": employee_code,
+                    "reason": _("Evaluation is not ready for HR review (current status: {0}).").format(
+                        doc.status or "-"
+                    ),
+                }
+            )
+            continue
+
         # The "Rating" fieldtype stores a 0-1 fraction (5 stars = 1.0), but the
         # uploaded sheet works in a plain 1-5 scale, matching the manager/
         # functional-manager/skip-level-manager rating fields on this doctype.
         doc.hr_rating = rating / 5
         if comment_value not in (None, ""):
             doc.hr_comment = str(comment_value).strip()
+
+        # "Eval Started" on the reports; finalised when the appraisal cycle is closed
+        doc.status = "HR Submitted"
         doc.save(ignore_permissions=True, ignore_version=True)
         updated += 1
 
@@ -214,6 +243,27 @@ def get_hr_submission_access():
     }
 
 
+@frappe.whitelist(methods=["GET"])
+def get_pending_reviews(year=None):
+    """Evaluations for the year that will NOT be submitted when the appraisal
+    cycle is closed (HR has not uploaded for them yet), shown as a warning."""
+    if not _is_super_admin(frappe.session.user):
+        frappe.throw(_("You are not allowed to view pending reviews."))
+
+    if not year:
+        current_row = _get_current_settings_row()
+        year = current_row.year if current_row else None
+    if not year:
+        frappe.throw(_("Year is required."))
+
+    return frappe.get_all(
+        "Goal Assessment",
+        filters={"year": year, "status": ["not in", ["HR Submitted", "Evaluation Submitted"]]},
+        fields=["employee_code", "employee_name", "status"],
+        order_by="status asc, employee_code asc",
+    )
+
+
 @frappe.whitelist(methods=["POST"])
 def close_appraisal_cycle():
     user = frappe.session.user
@@ -226,14 +276,57 @@ def close_appraisal_cycle():
 
     if current_row.check_appraisal_cycle:
         frappe.throw(_("The appraisal cycle for {0} is already closed.").format(current_row.year))
+    remarks = (frappe.form_dict.get("remarks") or "").strip()
 
-    frappe.db.set_value("PMS Settings Table", current_row.name, "check_appraisal_cycle", 1)
+    if len(remarks) < 3:
+        frappe.throw(_("Remarks must contain at least 3 characters."))
+
+    # Get the user who closed the appraisal cycle
+    user_name = frappe.db.get_value(
+        "User",
+        frappe.session.user,
+        "full_name"
+    ) or frappe.session.user
+
+    # Get current date and time
+    timestamp = frappe.utils.now_datetime().strftime("%d-%m-%Y %I:%M %p")
+
+    # Save remark with user and time
+    remarks_with_details = (
+        f"{remarks}\n"
+        f"By: {user_name}\n"
+        f"At: {timestamp}"
+    )    
+    # Finalise every evaluation HR has rated ("Eval Started" -> "Eval Submitted").
+    # Evaluations still in an earlier stage are left as they are. All-or-nothing:
+    # any failure rolls back the whole close.
+    submitted = 0
+    for name in frappe.get_all(
+        "Goal Assessment",
+        filters={"year": current_row.year, "status": "HR Submitted", "docstatus": 0},
+        pluck="name",
+    ):
+        doc = frappe.get_doc("Goal Assessment", name)
+        doc.status = "Evaluation Submitted"
+        doc.flags.ignore_permissions = True
+        doc.submit()
+        submitted += 1
+
+    frappe.db.set_value(
+        "PMS Settings Table",
+        current_row.name,
+        {
+            "check_appraisal_cycle": 1,
+            "remark": remarks_with_details,
+        }
+    )
     frappe.db.commit()
 
     return {
         "year": current_row.year,
         "quaterly": current_row.quaterly,
         "cycle_closed": True,
+        "evaluations_submitted": submitted,
     }
 
 
@@ -267,15 +360,43 @@ def submit_hr_excel():
 
     content = upload.stream.read()
 
+    # result = _process_hr_excel(content, extension, year)
+
+    # doc = frappe.get_doc(
+    #     {
+    #         "doctype": "JH HR Submission",
+    #         "assessment_year": year,
+    #         "uploaded_by": user,
+    #     }
+    # )
     result = _process_hr_excel(content, extension, year)
+
+    # Create Result text using pipe (|)
+    result_lines = [
+        "Row | Employee Code | Reason"
+    ]
+
+    for item in result.get("skipped", []):
+        result_lines.append(
+            f'{item.get("row", "")} | '
+            f'{item.get("employee_code", "")} | '
+            f'{item.get("reason", "")}'
+        )
+
+    result_text = "\n".join(result_lines)
+
+    # Every data row was applied — store a plain success message instead of an empty table
+    if result["total_rows"] > 0 and not result.get("skipped") and result["updated"] == result["total_rows"]:
+        result_text = ALL_SUCCESS_MESSAGE
 
     doc = frappe.get_doc(
         {
             "doctype": "JH HR Submission",
             "assessment_year": year,
             "uploaded_by": user,
+            "result": result_text,
         }
-    )
+    )    
     doc.insert(ignore_permissions=True)
 
     file_doc = save_file(
@@ -315,35 +436,42 @@ def get_hr_submissions(year=None):
     return frappe.get_all(
         "JH HR Submission",
         filters=filters,
-        fields=["name", "assessment_year", "attachment", "uploaded_by", "creation"],
+        fields=[
+            "name",
+            "assessment_year",
+            "attachment",
+            "uploaded_by",
+            "creation",
+            "result",
+        ],        
         order_by="creation desc",
     )
 
 
-@frappe.whitelist(methods=["POST"])
-def delete_hr_submission(name):
-    user = frappe.session.user
-    if not _is_super_admin(user):
-        frappe.throw(_("You are not allowed to delete HR submissions."))
+# @frappe.whitelist(methods=["POST"])
+# def delete_hr_submission(name):
+#     user = frappe.session.user
+#     if not _is_super_admin(user):
+#         frappe.throw(_("You are not allowed to delete HR submissions."))
 
-    if not name:
-        frappe.throw(_("HR Submission name is required."))
+#     if not name:
+#         frappe.throw(_("HR Submission name is required."))
 
-    if not frappe.db.exists("JH HR Submission", name):
-        frappe.throw(_("HR Submission not found."))
+#     if not frappe.db.exists("JH HR Submission", name):
+#         frappe.throw(_("HR Submission not found."))
 
-    assessment_year = frappe.db.get_value("JH HR Submission", name, "assessment_year")
-    if _is_cycle_closed_for_year(assessment_year):
-        frappe.throw(_("The appraisal cycle for {0} is closed.").format(assessment_year))
+#     assessment_year = frappe.db.get_value("JH HR Submission", name, "assessment_year")
+#     if _is_cycle_closed_for_year(assessment_year):
+#         frappe.throw(_("The appraisal cycle for {0} is closed.").format(assessment_year))
 
-    file_url = frappe.db.get_value("JH HR Submission", name, "attachment")
+#     file_url = frappe.db.get_value("JH HR Submission", name, "attachment")
 
-    frappe.delete_doc("JH HR Submission", name, ignore_permissions=True, force=True)
+#     frappe.delete_doc("JH HR Submission", name, ignore_permissions=True, force=True)
 
-    if file_url:
-        for file_name in frappe.get_all("File", filters={"file_url": file_url}, pluck="name"):
-            frappe.delete_doc("File", file_name, ignore_permissions=True, force=True)
+#     if file_url:
+#         for file_name in frappe.get_all("File", filters={"file_url": file_url}, pluck="name"):
+#             frappe.delete_doc("File", file_name, ignore_permissions=True, force=True)
 
-    frappe.db.commit()
+#     frappe.db.commit()
 
-    return {"deleted": name}
+#     return {"deleted": name}

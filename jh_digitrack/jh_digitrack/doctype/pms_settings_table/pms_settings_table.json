@@ -7,12 +7,14 @@
  "engine": "InnoDB",
  "field_order": [
   "section_break_pygc",
+  "remark_column",
   "year",
   "quaterly",
   "from_date",
   "to_date",
   "is_current",
-  "check_appraisal_cycle"
+  "check_appraisal_cycle",
+  "remark"
  ],
  "fields": [
   {
@@ -55,13 +57,23 @@
    "fieldname": "check_appraisal_cycle",
    "fieldtype": "Check",
    "label": "Check Appraisal Cycle"
+  },
+  {
+   "fieldname": "remark_column",
+   "fieldtype": "Column Break",
+   "label": "Remark"
+  },
+  {
+   "fieldname": "remark",
+   "fieldtype": "Small Text",
+   "label": "Remark"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-09-25 18:04:31.275374",
+ "modified": "2026-09-28 09:45:29.891628",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "PMS Settings Table",
