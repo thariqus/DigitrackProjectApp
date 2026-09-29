@@ -16,17 +16,29 @@ export interface ManagerSummary {
   employee_count: number;
   employees_under_manager: EmployeeSummary[];
 
-  goals_pending: number;
-  goals_pending_employees: EmployeeSummary[];
-
   goals_started: number;
   goals_started_employees: EmployeeSummary[];
 
   goals_submitted: number;
   goals_submitted_employees: EmployeeSummary[];
 
-  evaluation_pending: number;
-  evaluation_pending_employees: EmployeeSummary[];
+  rpt_manager_started: number;
+  rpt_manager_started_employees: EmployeeSummary[];
+
+  rpt_manager_submitted: number;
+  rpt_manager_submitted_employees: EmployeeSummary[];
+
+  fm_manager_started: number;
+  fm_manager_started_employees: EmployeeSummary[];
+
+  fm_manager_submitted: number;
+  fm_manager_submitted_employees: EmployeeSummary[];
+
+  sm_manager_started: number;
+  sm_manager_started_employees: EmployeeSummary[];
+
+  sm_manager_submitted: number;
+  sm_manager_submitted_employees: EmployeeSummary[];
 
   evaluation_started: number;
   evaluation_started_employees: EmployeeSummary[];
@@ -91,13 +103,35 @@ export function useGoalAssessment(
           ...manager,
           department: manager.department || "Unknown",
           employees_under_manager: manager.employees_under_manager || [],
-          goals_pending_employees: manager.goals_pending_employees || [],
           goals_started_employees: manager.goals_started_employees || [],
           goals_submitted_employees: manager.goals_submitted_employees || [],
-          evaluation_pending_employees:
-            manager.evaluation_pending_employees || [],
+          rpt_manager_started: manager.rpt_manager_started || 0,
+          rpt_manager_started_employees:
+            manager.rpt_manager_started_employees || [],
+
+          rpt_manager_submitted: manager.rpt_manager_submitted || 0,
+          rpt_manager_submitted_employees:
+            manager.rpt_manager_submitted_employees || [],
+
+          fm_manager_started: manager.fm_manager_started || 0,
+          fm_manager_started_employees:
+            manager.fm_manager_started_employees || [],
+
+          fm_manager_submitted: manager.fm_manager_submitted || 0,
+          fm_manager_submitted_employees:
+            manager.fm_manager_submitted_employees || [],
+
+          sm_manager_started: manager.sm_manager_started || 0,
+          sm_manager_started_employees:
+            manager.sm_manager_started_employees || [],
+
+          sm_manager_submitted: manager.sm_manager_submitted || 0,
+          sm_manager_submitted_employees:
+            manager.sm_manager_submitted_employees || [],
+          evaluation_started: manager.evaluation_started || 0,  
           evaluation_started_employees:
             manager.evaluation_started_employees || [],
+          evaluation_submitted: manager.evaluation_submitted || 0,  
           evaluation_submitted_employees:
             manager.evaluation_submitted_employees || [],
         })) || [];
@@ -171,13 +205,35 @@ export function useGoalAssessmentAdmin(
           ...manager,
           department: manager.department || "Unknown",
           employees_under_manager: manager.employees_under_manager || [],
-          goals_pending_employees: manager.goals_pending_employees || [],
           goals_started_employees: manager.goals_started_employees || [],
           goals_submitted_employees: manager.goals_submitted_employees || [],
-          evaluation_pending_employees:
-            manager.evaluation_pending_employees || [],
+          rpt_manager_started: manager.rpt_manager_started || 0,
+          rpt_manager_started_employees:
+            manager.rpt_manager_started_employees || [],
+
+          rpt_manager_submitted: manager.rpt_manager_submitted || 0,
+          rpt_manager_submitted_employees:
+            manager.rpt_manager_submitted_employees || [],
+
+          fm_manager_started: manager.fm_manager_started || 0,
+          fm_manager_started_employees:
+            manager.fm_manager_started_employees || [],
+
+          fm_manager_submitted: manager.fm_manager_submitted || 0,
+          fm_manager_submitted_employees:
+            manager.fm_manager_submitted_employees || [],
+
+          sm_manager_started: manager.sm_manager_started || 0,
+          sm_manager_started_employees:
+            manager.sm_manager_started_employees || [],
+
+          sm_manager_submitted: manager.sm_manager_submitted || 0,
+          sm_manager_submitted_employees:
+            manager.sm_manager_submitted_employees || [],   
+          evaluation_started: manager.evaluation_started || 0,         
           evaluation_started_employees:
             manager.evaluation_started_employees || [],
+          evaluation_submitted: manager.evaluation_submitted || 0,  
           evaluation_submitted_employees:
             manager.evaluation_submitted_employees || [],
         })) || [];
