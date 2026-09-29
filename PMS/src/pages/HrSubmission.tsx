@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { CiCalendar } from "react-icons/ci";
 import { MdOutlineFileUpload } from "react-icons/md";
-import { AiOutlineDelete } from "react-icons/ai";
+import { FiEye } from "react-icons/fi";
 import frappe from "@/utils/frappe-client";
  
 const ALLOWED_EXTENSIONS = ["xlsx", "xls"];
@@ -12,6 +12,7 @@ type SubmissionRow = {
   attachment: string;
   uploaded_by: string;
   creation: string;
+  result?: string;
 };
  
 type SkippedRow = {
@@ -43,6 +44,8 @@ function HrSubmission() {
   const [lastResult, setLastResult] = useState<UploadResult | null>(null);
   const [showClosePopup, setShowClosePopup] = useState(false);
   const [closeRemark, setCloseRemark] = useState("");
+  const [selectedResult, setSelectedResult] = useState<string>("");
+  const [showResultPopup, setShowResultPopup] = useState(false);
   const [message, setMessage] = useState<{ text: string; type: "success" | "error" | "" }>({
     text: "",
     type: "",
@@ -184,13 +187,47 @@ function HrSubmission() {
             text: `Appraisal cycle for ${selectedYear} closed successfully.`,
             type: "success",
           });
+        
+        
         } catch (err: any) {
+          let errorMessage = "Failed to upload HR Excel file.";
+
+          const rawError = [
+            err?.message,
+            err?.exception,
+            err?.response?.data?.message,
+            err?.response?.data?.exception,
+            err?.response?.data?._server_messages,
+            JSON.stringify(err),
+          ]
+            .filter(Boolean)
+            .join(" ");
+
+          const requiredColumnText =
+            "Could not find required column(s) in the uploaded file:";
+
+          const startIndex = rawError.indexOf(requiredColumnText);
+
+          if (startIndex !== -1) {
+            let extractedMessage = rawError.substring(startIndex);
+
+            // Remove traceback / escaped new lines / JSON characters
+            extractedMessage = extractedMessage
+              .split("\\n")[0]
+              .split("\n")[0]
+              .replace(/\\"/g, '"')
+              .replace(/["\]]+$/g, "")
+              .trim();
+
+            errorMessage = extractedMessage;
+          }
+
           setMessage({
-            text:
-              err?.message ||
-              "Failed to close appraisal cycle.",
+            text: errorMessage,
             type: "error",
           });
+               
+               
         } finally {
           setIsClosingCycle(false);
         }
@@ -261,8 +298,43 @@ function HrSubmission() {
       if (fileInputRef.current) fileInputRef.current.value = "";
       fetchSubmissions(selectedYear);
     } catch (err: any) {
-      setMessage({ text: err?.message || "Upload failed. Please try again.", type: "error" });
-    } finally {
+      let errorMessage = "Upload failed. Please try again.";
+
+      const rawError = [
+        err?.message,
+        err?.exception,
+        err?.response?.data?.message,
+        err?.response?.data?.exception,
+        err?.response?.data?._server_messages,
+        typeof err === "string" ? err : "",
+      ]
+        .filter(Boolean)
+        .join(" ");
+
+      const requiredColumnText =
+        "Could not find required column(s) in the uploaded file:";
+
+      const startIndex = rawError.indexOf(requiredColumnText);
+
+      if (startIndex !== -1) {
+        let extractedMessage = rawError.substring(startIndex);
+
+        // Stop before traceback / escaped JSON content
+        extractedMessage = extractedMessage
+          .split("\\n")[0]
+          .split("\n")[0]
+          .replace(/\\"/g, '"')
+          .replace(/["\]}]+$/g, "")
+          .trim();
+
+        errorMessage = extractedMessage;
+      }
+
+      setMessage({
+        text: errorMessage,
+        type: "error",
+      });
+    } finally {    
       setIsUploading(false);
     }
   };
@@ -362,20 +434,20 @@ function HrSubmission() {
  
           {lastResult.skipped.length > 0 && (
             <div className="border rounded-lg w-full mt-2">
-              <table className="w-full text-center table-auto">
+              <table className="w-full text-center table-fixed">
                 <thead className="bg-red-50 text-red-600 text-[11px]">
                   <tr>
-                    <th className="py-2 px-2 w-[10%]">Row</th>
-                    <th className="py-2 px-2 w-[20%]">Employee Code</th>
-                    <th className="py-2 px-2">Reason</th>
+                    <th className="py-2 px-2 w-[12%]">Row</th>
+                    <th className="py-2 px-2 w-[23%]">Employee Code</th>
+                    <th className="py-2 px-2 w-[65%] text-left">Reason</th>
                   </tr>
                 </thead>
                 <tbody>
                   {lastResult.skipped.map((row, index) => (
                     <tr key={index} className="border-t text-xs">
-                      <td className="py-2 px-2">{row.row}</td>
-                      <td className="py-2 px-2">{row.employee_code}</td>
-                      <td className="py-2 px-2 text-left px-4">{row.reason}</td>
+                      <td className="py-2 px-2 w-[12%]">{row.row}</td>
+                      <td className="py-2 px-2 w-[23%]">{row.employee_code}</td>
+                      <td className="py-2 px-2 w-[65%] text-left">{row.reason}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -393,7 +465,7 @@ function HrSubmission() {
               <th className="py-2 px-2">File</th>
               <th className="py-2 px-2">Uploaded By</th>
               <th className="py-2 px-2">Uploaded On</th>
-              <th className="py-2 px-2">Action</th>
+              <th className="py-2 px-2">Result</th>
             </tr>
           </thead>
           <tbody>
@@ -419,7 +491,7 @@ function HrSubmission() {
                   </td>
                   <td className="py-2 px-2">{row.uploaded_by}</td>
                   <td className="py-2 px-2">{row.creation}</td>
-                  <td className="py-2 px-2 text-center">
+                  {/* <td className="py-2 px-2 text-center">
                     <button
                       type="button"
                       onClick={() => handleDeleteSubmission(row.name)}
@@ -428,7 +500,21 @@ function HrSubmission() {
                     >
                       <AiOutlineDelete size={16} className="inline" />
                     </button>
-                  </td>
+                  </td> */}
+                   
+                  <td className="py-2 px-2 text-center">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedResult(row.result || "No result available.");
+                        setShowResultPopup(true);
+                      }}
+                      className="text-primary hover:opacity-70"
+                      title="View Result"
+                    >
+                      <FiEye size={16} className="inline" />
+                    </button>
+                  </td>                                  
                 </tr>
               ))
             )}
@@ -523,7 +609,100 @@ function HrSubmission() {
           </div>
         </div>
       )}
- 
+      {showResultPopup && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-[750px] rounded-lg bg-white shadow-2xl">
+
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+              <h2 className="text-base font-medium text-primary">
+                Upload Result
+              </h2>
+
+              <button
+                type="button"
+                onClick={() => setShowResultPopup(false)}
+                className="text-xl leading-none text-gray-400 hover:text-gray-700"
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Result */}
+            <div className="px-6 py-5">
+              {selectedResult ? (
+                <div className="overflow-hidden rounded-md border border-gray-200">
+                  <table className="w-full table-fixed text-center text-xs">
+
+                    <thead className="bg-red-50 text-red-600 text-[11px]">
+                      <tr>
+                        <th className="py-2 px-2 w-[12%]">
+                          Row
+                        </th>
+
+                        <th className="py-2 px-2 w-[23%]">
+                          Employee Code
+                        </th>
+
+                        <th className="py-2 px-2 w-[65%] text-left">
+                          Reason
+                        </th>
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {selectedResult
+                        .split("\n")
+                        .slice(1)
+                        .filter((line) => line.trim())
+                        .map((line, index) => {
+                          const parts = line.split("|");
+
+                          const rowNumber = parts[0]?.trim() || "";
+                          const employeeCode = parts[1]?.trim() || "";
+                          const reason = parts.slice(2).join("|").trim();
+
+                          return (
+                            <tr key={index} className="border-t text-xs">
+                              <td className="py-2 px-2 w-[12%]">
+                                {rowNumber}
+                              </td>
+
+                              <td className="py-2 px-2 w-[23%]">
+                                {employeeCode}
+                              </td>
+
+                              <td className="py-2 px-2 w-[65%] text-left">
+                                {reason}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                    </tbody>
+
+                  </table>
+                </div>
+              ) : (
+                <p className="py-6 text-center text-sm text-gray-500">
+                  No result available.
+                </p>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="flex justify-end border-t border-gray-200 px-6 py-4">
+              <button
+                type="button"
+                onClick={() => setShowResultPopup(false)}
+                className="rounded-md bg-primary px-5 py-2.5 text-sm text-white"
+              >
+                Close
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )} 
       {message.text && (
         <div
           className={`fixed top-5 right-5 flex items-center justify-between gap-3 px-6 py-3 rounded-lg shadow-xl text-sm font-medium z-[9999]

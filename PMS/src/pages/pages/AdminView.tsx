@@ -20,8 +20,8 @@ interface ManagerSummary {
   department?: string;
   employee_count: number;
 
-  goals_pending: number;
-  goals_pending_employees: EmployeeSummary[];
+  // goals_pending: number;
+  // goals_pending_employees: EmployeeSummary[];
 
   goals_started: number;
   goals_started_employees: EmployeeSummary[];
@@ -29,9 +29,16 @@ interface ManagerSummary {
   goals_submitted: number;
   goals_submitted_employees: EmployeeSummary[];
 
-  evaluation_pending: number;
-  evaluation_pending_employees: EmployeeSummary[];
+  // evaluation_pending: number;
+  // evaluation_pending_employees: EmployeeSummary[];
+  rpt_manager_started: number;
+  rpt_manager_submitted: number;
 
+  fm_manager_started: number;
+  fm_manager_submitted: number;
+
+  sm_manager_started: number;
+  sm_manager_submitted: number;
   evaluation_started: number;
   evaluation_started_employees: EmployeeSummary[];
 
@@ -544,10 +551,16 @@ function AdminView() {
             <tr>
               <th className="py-3 px-1 text-left">Manager Name</th>
               <th className="py-3 px-1">No. of Employees</th>
-              <th className="py-3 px-1">Goals Pending</th>
+              {/* <th className="py-3 px-1">Goals Pending</th> */}
               <th className="py-3 px-1">Goals Started</th>
               <th className="py-3 px-1">Goals Submitted</th>
-              <th className="py-3 px-1">Evaluation Pending</th>
+              {/* <th className="py-3 px-1">Evaluation Pending</th> */}
+              <th className="py-3 px-1">RPT Manager Started</th>
+              <th className="py-3 px-1">RPT Manager Submitted</th>
+              <th className="py-3 px-1">FM Manager Started</th>
+              <th className="py-3 px-1">FM Manager Submitted</th>
+              <th className="py-3 px-1">SM Manager Started</th>
+              <th className="py-3 px-1">SM Manager Submitted</th>
               <th className="py-3 px-1">Evaluation Started</th>
               <th className="py-3 px-1">Evaluation Submitted</th>
             </tr>
@@ -564,17 +577,40 @@ function AdminView() {
                 <td className="px-1 py-2">
                   {renderCountCell(manager.employee_count, manager, "employees")}
                 </td>
-                <td className="px-1 py-2">
+                {/* <td className="px-1 py-2">
                   {renderCountCell(manager.goals_pending, manager, "goals_pending")}
-                </td>
+                </td> */}
                 <td className="px-1 py-2">
                   {renderCountCell(manager.goals_started, manager, "goals_started")}
                 </td>
                 <td className="px-1 py-2">
                   {renderCountCell(manager.goals_submitted, manager, "goals_submitted")}
                 </td>
-                <td className="px-1 py-2">
+                {/* <td className="px-1 py-2">
                   {renderCountCell(manager.evaluation_pending, manager, "evaluation_pending")}
+                </td> */}
+                <td className="px-1 py-2">
+                  {renderCountCell(manager.rpt_manager_started, manager, "rpt_manager_started")}
+                </td>
+
+                <td className="px-1 py-2">
+                  {renderCountCell(manager.rpt_manager_submitted, manager, "rpt_manager_submitted")}
+                </td>
+
+                <td className="px-1 py-2">
+                  {renderCountCell(manager.fm_manager_started, manager, "fm_manager_started")}
+                </td>
+
+                <td className="px-1 py-2">
+                  {renderCountCell(manager.fm_manager_submitted, manager, "fm_manager_submitted")}
+                </td>
+
+                <td className="px-1 py-2">
+                  {renderCountCell(manager.sm_manager_started, manager, "sm_manager_started")}
+                </td>
+
+                <td className="px-1 py-2">
+                  {renderCountCell(manager.sm_manager_submitted, manager, "sm_manager_submitted")}
                 </td>
                 <td className="px-1 py-2">
                   {renderCountCell(manager.evaluation_started, manager, "evaluation_started")}

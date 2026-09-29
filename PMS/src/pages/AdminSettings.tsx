@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { FiEye } from "react-icons/fi";
+import { AiOutlineDelete } from 'react-icons/ai';
 import "../pages/AdminSettings.css"
 import { useEffect } from "react";
 import frappeClient from "@/utils/frappe-client";
@@ -355,13 +355,15 @@ const deleteSelectedRows = async () => {
 
       </div>
         
-        <form className="flex gap-5 pt-5">
+        <form>
+  <fieldset className="flex gap-5 pt-5">
           <div className='flex w-[20%] flex-col gap-2'>
              <div className="flex flex-col gap-2 items-start">
                 <p className="text-xs">Minimum No. of Goals</p>
                     <input type="text" inputMode="numeric"        
                       pattern="[0-9]*"
                       value={minNoOfGoals}
+                      disabled
                       onChange={(e) => {
                         const value = e.target.value;
 
@@ -383,7 +385,7 @@ const deleteSelectedRows = async () => {
                           e.preventDefault();
                         }
                       }}
-                      className="w-30 no-spinner px-1 border border-gray-300 rounded-sm focus:outline-none"
+                      className="w-30 no-spinner px-1 border border-gray-300 rounded-sm bg-gray-100 text-gray-400 opacity-60 cursor-not-allowed"
                     />
               </div>
 
@@ -394,6 +396,7 @@ const deleteSelectedRows = async () => {
                   inputMode="numeric"
                   pattern="[0-9]*"
                   value={minValue}
+                  disabled
                   onChange={(e) => {
                     const value = e.target.value;
 
@@ -414,7 +417,7 @@ const deleteSelectedRows = async () => {
                       e.preventDefault();
                     }
                   }}
-                  className="w-30 px-1 no-spinner border border-gray-300 rounded-sm focus:outline-none"
+                  className="w-30 px-1 no-spinner border border-gray-300 rounded-sm bg-gray-100 text-gray-400 opacity-60 cursor-not-allowed focus:outline-none"
                 />
 
             </div>
@@ -424,6 +427,7 @@ const deleteSelectedRows = async () => {
                pattern="[0-9]*"
                 value={maxValue}
                 max={110}
+                disabled
                 onChange={(e) => {
                 const value = e.target.value;
                 if (value.length <= 3) {
@@ -439,7 +443,7 @@ const deleteSelectedRows = async () => {
                   setMaxValue(110);
                 }
               }}
-                className='w-30 px-1 no-spinner border border-gray-300  rounded-sm focus:outline-none' />
+                className="w-30 px-1 no-spinner border border-gray-300 rounded-sm bg-gray-100 text-gray-400 opacity-60 cursor-not-allowed focus:outline-none"/>
             </div>
 
               <div className="flex flex-col gap-4 py-2">
@@ -448,8 +452,9 @@ const deleteSelectedRows = async () => {
                   <input
                     type="checkbox"
                     checked={enableGoalSubmission}
+                    disabled
                     onChange={(e) => setEnableGoalSubmission(e.target.checked)}
-                    className="border"
+                    className="border cursor-not-allowed opacity-60"
                   />
                   <p className='text-xs '>Enable Goal Submission</p>
                 </div>
@@ -458,20 +463,22 @@ const deleteSelectedRows = async () => {
                   <input
                     type="checkbox"
                     checked={enableGoalEvaluation}
+                    disabled
                     onChange={(e) => setEnableGoalEvaluation(e.target.checked)}
-                    className="border"
+                    className="border cursor-not-allowed opacity-60"
                   />
                   <p className='text-xs '>Enable Goal Evaluation</p>
                 </div>
-                <div className="flex gap-2">
+                {/* <div className="flex gap-2">
                   <input
                     type="checkbox"
                     checked={enableYearlyAppraisal}
+                    disabled
                     onChange={(e) => setEnableYearlyAppraisal(e.target.checked)}
-                    className="border"
+                    className="border cursor-not-allowed opacity-50"
                   />
                   <p className='text-xs '>Enable Yearly Appraisal</p>
-                </div>
+                </div> */}
             </div>
           
           </div>
@@ -483,13 +490,24 @@ const deleteSelectedRows = async () => {
               <textarea
                 value={emailTemplate}
                 maxLength={500}
+                disabled
                 onChange={(e) => setEmailTemplate(e.target.value)}
-                className="w-full px-1 rounded-sm h-56 border focus:outline-none"
+                className="w-full px-1 rounded-sm h-56 border border-gray-300 bg-gray-100 text-gray-400 opacity-60 cursor-not-allowed focus:outline-none"
               name="" id=""></textarea>
 
              </div>
             
-        </div>      
+        </div>   
+        </fieldset>   
+      <div className="flex gap-2 mt-2">
+        <input
+          type="checkbox"
+          checked={enableYearlyAppraisal}
+          onChange={(e) => setEnableYearlyAppraisal(e.target.checked)}
+          className="border"
+        />
+        <p className="text-xs">Enable Yearly Appraisal</p>
+      </div>        
       </form>
 
         <div className="border rounded-lg w-full mt-5">
@@ -502,7 +520,7 @@ const deleteSelectedRows = async () => {
                 <th className="py-2 px-1  w-[25%]">From</th>
                 <th className="py-2 px-1  w-[25%]">To</th>
                 <th className="py-2 px-1  text-center  w-[15%]">Current</th>
-                <th className="py-2 px-1  text-center  w-[10%]">Result</th>
+                <th className="py-2 px-1  text-center  w-[10%]">Action</th>
               </tr>
             </thead>
            <tbody>
@@ -595,17 +613,17 @@ const deleteSelectedRows = async () => {
       </td>
 
       <td className="px-1 py-2 text-center">
-        <button
-          type="button"
-          className="text-primary hover:opacity-70"
-          title="View Result"
-        >
-          <FiEye size={16} />
-        </button>
-      </td>      
-    </tr>
-  ))}
-</tbody>
+              <button
+                type="button"
+                onClick={() => handleDeleteRow(index)}
+                className="text-red-600 hover:text-red-800"
+              >
+                <AiOutlineDelete size={16} />
+              </button>
+            </td>
+          </tr>
+        ))}
+      </tbody>      
 
 
       <div className="flex gap-3 items-center m-2">
