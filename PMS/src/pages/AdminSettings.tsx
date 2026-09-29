@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { AiOutlineDelete } from 'react-icons/ai';
+import { FiSave } from 'react-icons/fi';
 import "../pages/AdminSettings.css"
 import { useEffect } from "react";
 import frappeClient from "@/utils/frappe-client";
@@ -56,7 +57,7 @@ const [message, setMessage] = useState<{
   text: string;
   type: "success" | "error" | "";
 }>({ text: "", type: "" });
-
+const [showSavePopup, setShowSavePopup] = useState(false);
 useEffect(() => {
   if (message.text) {
     const timer = setTimeout(() => {
@@ -114,8 +115,10 @@ const handleChange = (
   };
   setRows(updatedRows);
 };
-
-const handleSave = async () => {
+const handleSave = () => {
+  setShowSavePopup(true);
+};
+const handleSaveSettings = async () => {
 
   const hasIncompleteRow = rows.some(
     (r) =>
@@ -176,9 +179,9 @@ const handleSave = async () => {
     }
   }
 
-  if (!window.confirm("Are you sure you want to save these settings?")) {
-    return;
-  }
+  // if (!window.confirm("Are you sure you want to save these settings?")) {
+  //   return;
+  // }
 
   const payload = {
     min_no_of_goals: minNoOfGoals,
@@ -638,6 +641,43 @@ const deleteSelectedRows = async () => {
 
 
       </div>
+{showSavePopup && (
+  <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/40">
+    <div className="w-[400px] rounded-lg bg-white p-6 shadow-2xl">
+      <div className="mb-4 flex items-center gap-2">
+        <FiSave className="text-primary" size={18} />
+        <h2 className="text-base font-semibold text-primary">
+          Save Changes
+        </h2>
+      </div>      
+
+      <p className="mb-2 text-left text-sm font-medium text-gray-800">
+        Are you sure you want to save these settings?
+      </p>         
+
+      <div className="mt-5 flex justify-end gap-3">
+        <button
+          type="button"
+          onClick={() => setShowSavePopup(false)}
+          className="rounded-md bg-gray-200 px-4 py-2 text-xs text-gray-700"
+        >
+          Cancel
+        </button>
+
+        <button
+          type="button"
+          onClick={async () => {
+            setShowSavePopup(false);
+            await handleSaveSettings();
+          }}
+          className="rounded-md bg-primary px-4 py-2 text-xs text-white"
+        >
+          OK
+        </button>
+      </div>
+    </div>
+  </div>
+)}      
 {message.text && (
   <div
     className={`fixed top-5 right-5 flex items-center justify-between gap-3 px-6 py-3 rounded-lg shadow-xl text-sm font-medium z-[9999]
