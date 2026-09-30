@@ -145,7 +145,7 @@ export function MainNav() {
                   <span className="flex h-10 w-10 items-center justify-center  rounded-2xl bg-primary/15 text-primary shadow-inner shadow-primary/10 ring-1 ring-primary/25 border border-primary/20 backdrop-blur-md backdrop-saturate-150 transition-all duration-200 group-hover:scale-105 group-hover:bg-primary/25 group-hover:shadow-primary/20">
                     <LineChart className="h-5 w-5" />
                   </span>
-                  <span className="text-xs font-medium text-gray-700">PMS Lite</span>
+                  <span className="text-xs font-medium text-gray-700">J- Reflect</span>
                 </button>
 
                 <button

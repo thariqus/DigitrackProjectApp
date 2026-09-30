@@ -301,7 +301,7 @@ fixtures = [
     },
     {
         "doctype": "Role",
-        "filters": [["role_name", "in", ["JRC Permission","JH Property Department","JH Licensing Team","JH GL Team","idle asset","Customer Registration"]]],
+        "filters": [["role_name", "in", ["JRC Permission","JH Property Department","JH Licensing Team","JH GL Team","idle asset","Customer Registration","PMS Manager"]]],
     },
     {
         "doctype": "Print Format",

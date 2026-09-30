@@ -2,11 +2,22 @@ import frappe
 import io
 from datetime import datetime
 from frappe import _
+from frappe.utils import flt
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, PatternFill
 from werkzeug.wrappers import Response
 from openpyxl.utils import get_column_letter
-from jh_digitrack.api.pms_report import get_goal_assessment_summary
+from jh_digitrack.api.pms_report import get_goal_assessment_summary, STATUS_BUCKETS
+
+# The "Rating" fieldtype on Goal Assessment stores a 0-1 fraction (5 stars =
+# 1.0); reports should show the plain 1-5 scale reviewers actually picked.
+RATING_FIELDS = {"rating", "functional_manager_rating", "skip_level_manager_rating", "hr_rating"}
+
+
+def _to_star_rating(value):
+    if value in (None, ""):
+        return ""
+    return round(flt(value) * 5)
 
 @frappe.whitelist(methods=["GET"])
 def download_excel(year=None, manager=None, view_type="team"):
@@ -58,13 +69,7 @@ def download_excel(year=None, manager=None, view_type="team"):
             "Manager Name",
             "Status",
             "No. of Employees",
-            "Goals Pending",
-            "Goals Started",
-            "Goals Submitted",
-            "Evaluation Pending",
-            "Evaluation Started",
-            "Evaluation Submitted",
-        ]
+        ] + [label for _key, label in STATUS_BUCKETS]
 
         ws.append(sheet1_headers)
 
@@ -89,13 +94,7 @@ def download_excel(year=None, manager=None, view_type="team"):
                 row.get("manager_name"),
                 status,
                 row.get("employee_count"),
-                row.get("goals_pending"),
-                row.get("goals_started"),
-                row.get("goals_submitted"),
-                row.get("evaluation_pending"),
-                row.get("evaluation_started"),
-                row.get("evaluation_submitted"),
-            ])
+            ] + [row.get(key) or 0 for key, _label in STATUS_BUCKETS])
 
         # Auto width
         for i, col in enumerate(ws.columns, 1):
@@ -143,15 +142,11 @@ def download_excel(year=None, manager=None, view_type="team"):
             ) or ""
 
             employee_groups = [
-                ("Goals Pending", row.get("goals_pending_employees") or []),
-                ("Goals Started", row.get("goals_started_employees") or []),
-                ("Goals Submitted", row.get("goals_submitted_employees") or []),
-                ("Evaluation Pending", row.get("evaluation_pending_employees") or []),
-                ("Evaluation Started", row.get("evaluation_started_employees") or []),
-                ("Evaluation Submitted", row.get("evaluation_submitted_employees") or []),
+                (key, label, row.get(f"{key}_employees") or [])
+                for key, label in STATUS_BUCKETS
             ]
 
-            for status_label, emp_list in employee_groups:
+            for status_key, status_label, emp_list in employee_groups:
                 for emp in emp_list:
                     employee_code = emp.get("employee_code") or ""
                     employee_name = emp.get("employee_name") or ""
@@ -187,7 +182,7 @@ def download_excel(year=None, manager=None, view_type="team"):
                     comment = assessment.get("comment") or ""
                     total_score = ""
 
-                    if status_label == "Evaluation Submitted":
+                    if status_key == "evaluation_submitted":
                         total_score = assessment.get("total_score") or ""
 
                     ws2.append([
@@ -236,11 +231,13 @@ def download_excel(year=None, manager=None, view_type="team"):
             "eligible_for_promotion": "Eligible for Promotion",
             "goal_name_for_yearly_assesment": "Goal Name for Yearly Assessment",
             "rating": "Rating",
+            "comment": "Manager Comment",
             "functional_manager_rating": "Functional Manager Rating",
+            "functional_manager_comment": "Functional Manager Comment",
             "skip_level_manager_rating": "Skip Level Manager Rating",
-            # "comment": "Comment",
-            # "functional_manager_comment": "Functional Manager Comment",                                                                  
-            # "skip_level_manager_comment": "Skip Level Manager Comment",                                                         
+            "skip_level_manager_comment": "Skip Level Manager Comment",
+            "hr_rating": "HR Rating",
+            "hr_comment": "HR Comment",
             "functional_manager_submitted_on": "Functional Manager Submitted On",
             "skip_level_manager_submitted_on": "Skip Level Manager Submitted On",
             "manager_submitted_on": "Manager Submitted On"
@@ -263,6 +260,13 @@ def download_excel(year=None, manager=None, view_type="team"):
         headers = list(manager_fields.values()) + list(parent_fields.values()) + list(child_fields.values())
         ws3.append(headers)
 
+        # 1-based column positions of the numeric columns shown with two decimals
+        field_order = list(manager_fields) + list(parent_fields) + list(child_fields)
+        total_score_col = field_order.index("total_score") + 1
+        decimal_cols = [total_score_col] + [
+            field_order.index(f) + 1 for f in ("weightage", "achievement_score", "achieved_score")
+        ]
+
         for cell in ws3[1]:
             cell.font = Font(bold=True)
             cell.fill = header_fill
@@ -270,14 +274,7 @@ def download_excel(year=None, manager=None, view_type="team"):
 
         all_emp_codes = set()
         for row in data:
-            groups = [
-                row.get("goals_pending_employees") or [],
-                row.get("goals_started_employees") or [],
-                row.get("goals_submitted_employees") or [],
-                row.get("evaluation_pending_employees") or [],
-                row.get("evaluation_started_employees") or [],
-                row.get("evaluation_submitted_employees") or [],
-            ]
+            groups = [row.get(f"{key}_employees") or [] for key, _label in STATUS_BUCKETS]
             for grp in groups:
                 for e in grp:
                     all_emp_codes.add(e["employee_code"])
@@ -300,7 +297,10 @@ def download_excel(year=None, manager=None, view_type="team"):
             manager_name = mdata.get("full_name", "")
 
             manager_values = [manager_code, manager_name]
-            parent_values = [ga.get(f) for f in parent_fields.keys()]
+            parent_values = [
+                _to_star_rating(ga.get(f)) if f in RATING_FIELDS else ga.get(f)
+                for f in parent_fields.keys()
+            ]
 
             child_rows = frappe.get_all(
                 "Employee Goals",
@@ -317,18 +317,19 @@ def download_excel(year=None, manager=None, view_type="team"):
                     )
 
                     row_idx = ws3.max_row
-                    for col in (7, 23, 24, 25, 26):
+                    for col in decimal_cols:
                         set_two_decimal(ws3.cell(row=row_idx, column=col))
 
             else:
                 ws3.append(manager_values + parent_values + [""] * len(child_fields))
 
                 row_idx = ws3.max_row
-                set_two_decimal(ws3.cell(row=row_idx, column=7))  # Total Score
+                set_two_decimal(ws3.cell(row=row_idx, column=total_score_col))
 
         for i, col in enumerate(ws3.columns, 1):
             max_length = max(len(str(cell.value or "")) for cell in col)
-            ws3.column_dimensions[get_column_letter(i)].width = max_length + 3
+            # Capped so long comment columns don't become unreadably wide
+            ws3.column_dimensions[get_column_letter(i)].width = min(max_length + 3, 60)
 
         # =====================================================
         # OUTPUT FILE
@@ -866,7 +867,7 @@ def draw_footer(canvas, doc):
     canvas.saveState()
 
     footer_text = [
-        "Confidential – PMSLite | Authorized Internal Use Only",
+        "Confidential – J-Reflect | Authorized Internal Use Only",
         "Use, disclosure, or distribution outside the organization is prohibited",
         f"Document generated on: {datetime.now().strftime('%d-%b-%Y')}",
     ]

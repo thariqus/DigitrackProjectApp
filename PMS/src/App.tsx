@@ -51,7 +51,7 @@ import AdminSettings from "./pages/AdminSettings";
 import AdminView from "./pages/pages/AdminView";
 import ManagerYearlySubmission from "./pages/ManagerYearlySubmission";
 import FunctionalOrSkiplevelYearlysubmission from "./pages/pages/FunctionalOrSkiplevelYearlysubmission";
-
+import HrSubmission from "./pages/HrSubmission";
 function AppWrapper() {
   const IDLE_TIME = 15 * 60 * 1000; 
   const logoutTimer = useRef<NodeJS.Timeout | null>(null);
@@ -108,6 +108,7 @@ function AppWrapper() {
             <Route path="/goalevaluation" element={<GoalEvaluation />} />
             <Route path="/yearlysubmission" element={<ManagerYearlySubmission/>} />
             <Route path="/functionalorskiplevelyearlysubmission" element={<FunctionalOrSkiplevelYearlysubmission/>} />
+            <Route path="/hrsubmission" element={<HrSubmission />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/employeegoalevaluation" element={<EmployeeGoalEvaluation />} />
             <Route path="/Createdbyme" element={<CreatedByMe />} />

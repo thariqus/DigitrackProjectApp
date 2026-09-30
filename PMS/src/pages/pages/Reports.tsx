@@ -159,22 +159,16 @@ function Reports() {
   ): EmployeeSummary[] => {
     if (!manager) return [];
     switch (type) {
-      case "goals_pending":
-        return manager.goals_pending_employees;
       case "goals_started":
         return manager.goals_started_employees;
-      case "goals_submitted":
-        return manager.goals_submitted_employees;
-      case "evaluation_pending":
-        return manager.evaluation_pending_employees;
-      case "evaluation_started":
-        return manager.evaluation_started_employees;
-      case "evaluation_submitted":
-        return manager.evaluation_submitted_employees;
       case "employees":
         return manager.employees_under_manager || [];
-      default:
-        return [];
+      default: {
+        // Every status column ("goals_started", "rpt_manager_submitted", ...) has a
+        // matching "<column>_employees" list in the summary
+        const list = (manager as unknown as Record<string, unknown>)[`${type}_employees`];
+        return Array.isArray(list) ? (list as EmployeeSummary[]) : [];
+      }
     }
   };
 
@@ -383,10 +377,14 @@ function Reports() {
               {/* <th className="text-left px-2 py-2">Manager Name</th> */}
               <th className="py-3 px-1 text-left">Manager Name</th>
               <th>Employees</th>
-              <th>Goals Pending</th>
               <th>Goals Started</th>
               <th>Goals Submitted</th>
-              <th>Eval Pending</th>
+              <th>RPT Manager Started</th>
+              <th>RPT Manager Submitted</th>
+              <th>FM Manager Started</th>
+              <th>FM Manager Submitted</th>
+              <th>SM Manager Started</th>
+              <th>SM Manager Submitted</th>
               <th>Eval Started</th>
               <th>Eval Submitted</th>
             </tr>
@@ -404,10 +402,18 @@ function Reports() {
                   {m.manager_name}
                 </td>
                 <td>{renderCountCell(m.employee_count, m, "employees")}</td>
-                <td>{renderCountCell(m.goals_pending, m, "goals_pending")}</td>
                 <td>{renderCountCell(m.goals_started, m, "goals_started")}</td>
                 <td>{renderCountCell(m.goals_submitted, m, "goals_submitted")}</td>
-                <td>{renderCountCell(m.evaluation_pending, m, "evaluation_pending")}</td>
+
+                <td>{renderCountCell(m.rpt_manager_started, m, "rpt_manager_started")}</td>
+                <td>{renderCountCell(m.rpt_manager_submitted, m, "rpt_manager_submitted")}</td>
+
+                <td>{renderCountCell(m.fm_manager_started, m, "fm_manager_started")}</td>
+                <td>{renderCountCell(m.fm_manager_submitted, m, "fm_manager_submitted")}</td>
+
+                <td>{renderCountCell(m.sm_manager_started, m, "sm_manager_started")}</td>
+                <td>{renderCountCell(m.sm_manager_submitted, m, "sm_manager_submitted")}</td>
+
                 <td>{renderCountCell(m.evaluation_started, m, "evaluation_started")}</td>
                 <td>{renderCountCell(m.evaluation_submitted, m, "evaluation_submitted")}</td>
               </tr>
