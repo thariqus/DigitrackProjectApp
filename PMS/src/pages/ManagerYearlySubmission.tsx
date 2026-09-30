@@ -53,6 +53,8 @@ const emptyReview: ManagerReview = {
 const REPORTING_MANAGER_DONE_STATUSES = [
   "Functional Manager Review",
   "Skip Level Manager Review",
+  "HR Review",
+  "HR Submitted",
   "Evaluation Submitted",
 ];
 

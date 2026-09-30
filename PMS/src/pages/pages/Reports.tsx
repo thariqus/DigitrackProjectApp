@@ -161,16 +161,14 @@ function Reports() {
     switch (type) {
       case "goals_started":
         return manager.goals_started_employees;
-      case "goals_submitted":
-        return manager.goals_submitted_employees;
-      case "evaluation_started":
-        return manager.evaluation_started_employees;
-      case "evaluation_submitted":
-        return manager.evaluation_submitted_employees;
       case "employees":
         return manager.employees_under_manager || [];
-      default:
-        return [];
+      default: {
+        // Every status column ("goals_started", "rpt_manager_submitted", ...) has a
+        // matching "<column>_employees" list in the summary
+        const list = (manager as unknown as Record<string, unknown>)[`${type}_employees`];
+        return Array.isArray(list) ? (list as EmployeeSummary[]) : [];
+      }
     }
   };
 

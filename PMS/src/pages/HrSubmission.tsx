@@ -6,6 +6,8 @@ import { HiArrowNarrowDown } from "react-icons/hi";
 import frappe from "@/utils/frappe-client";
  
 const ALLOWED_EXTENSIONS = ["xlsx", "xls"];
+
+const ALL_SUCCESS_MESSAGE = "All records successfully submitted";
  
 type SubmissionRow = {
   name: string;
@@ -22,6 +24,12 @@ type SkippedRow = {
   reason: string;
 };
  
+type PendingReview = {
+  employee_code: string;
+  employee_name: string;
+  status: string;
+};
+
 type UploadResult = {
   total_rows: number;
   updated: number;
@@ -45,6 +53,8 @@ function HrSubmission() {
   const [lastResult, setLastResult] = useState<UploadResult | null>(null);
   const [showClosePopup, setShowClosePopup] = useState(false);
   const [closeRemark, setCloseRemark] = useState("");
+  const [pendingReviews, setPendingReviews] = useState<PendingReview[]>([]);
+  const [isLoadingPending, setIsLoadingPending] = useState(false);
   const [selectedResult, setSelectedResult] = useState<string>("");
   const [showResultPopup, setShowResultPopup] = useState(false);
   const [sortField, setSortField] = useState<
@@ -150,11 +160,26 @@ function HrSubmission() {
   //     setIsClosingCycle(false);
   //   }
   // };
-      const handleCloseAppraisalCycle = () => {
+      const handleCloseAppraisalCycle = async () => {
         if (cycleClosed || isClosingCycle) return;
 
         setCloseRemark("");
+        setPendingReviews([]);
         setShowClosePopup(true);
+
+        // Warn about employees whose evaluation is not submitted yet
+        setIsLoadingPending(true);
+        try {
+          const res = await frappe.api.get<{ message: PendingReview[] }>(
+            "jh_digitrack.api.hr_submission.get_pending_reviews",
+            { year: selectedYear }
+          );
+          setPendingReviews(res.message || []);
+        } catch (err) {
+          console.error("Error fetching pending reviews", err);
+        } finally {
+          setIsLoadingPending(false);
+        }
       };
 
       const handleCancelClosePopup = () => {
@@ -296,8 +321,11 @@ function HrSubmission() {
  
       const { total_rows, updated, skipped } = result.message as UploadResult;
       setLastResult({ total_rows, updated, skipped: skipped || [] });
+      const allSucceeded = total_rows > 0 && !skipped?.length && updated === total_rows;
       setMessage({
-        text: `HR data updated for ${updated} of ${total_rows} employee(s).`,
+        text: allSucceeded
+          ? ALL_SUCCESS_MESSAGE
+          : `HR data updated for ${updated} of ${total_rows} employee(s).`,
         type: updated > 0 ? "success" : "error",
       });
       setSelectedFile(null);
@@ -478,7 +506,13 @@ const sortedSubmissions = [...submissions].sort((a, b) => {
             <span className="font-medium text-primary">{lastResult.updated}</span> of{" "}
             <span className="font-medium">{lastResult.total_rows}</span> row(s) in the last upload.
           </p>
- 
+
+          {lastResult.total_rows > 0 &&
+            lastResult.skipped.length === 0 &&
+            lastResult.updated === lastResult.total_rows && (
+              <p className="mt-2 text-sm font-medium text-green-600">{ALL_SUCCESS_MESSAGE}</p>
+            )}
+
           {lastResult.skipped.length > 0 && (
             <div className="mt-3 w-full rounded-lg border border-gray-200 bg-white shadow-sm">
               <div className="flex items-center justify-between border-b border-gray-200 bg-gray-50 px-4 py-3">
@@ -649,7 +683,7 @@ const sortedSubmissions = [...submissions].sort((a, b) => {
       </div>
       {showClosePopup && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-[500px] rounded-lg bg-white shadow-2xl">
+          <div className="flex w-full max-w-[500px] max-h-[90vh] flex-col rounded-lg bg-white shadow-2xl">
 
             {/* Header */}
             <div className="flex justify-end px-6 pt-4">
@@ -664,7 +698,7 @@ const sortedSubmissions = [...submissions].sort((a, b) => {
             </div>
 
             {/* Body */}
-            <div className="px-6 py-5">
+            <div className="overflow-y-auto px-6 py-5">
               <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3">
                 <p className="text-sm font-semibold leading-6 text-red-700">
                   Once the appraisal cycle for{" "}
@@ -672,6 +706,45 @@ const sortedSubmissions = [...submissions].sort((a, b) => {
                   is closed, it cannot be edited or uploaded.
                 </p>
               </div>
+
+              {isLoadingPending ? (
+                <p className="mt-4 text-sm text-gray-500">Checking pending reviews...</p>
+              ) : pendingReviews.length > 0 ? (
+                <div className="mt-4">
+                  <p className="text-sm font-medium text-amber-700">
+                    {pendingReviews.length} employee(s) are still pending review.
+                  </p>
+                  {/* Header + 5 rows visible; scrolls beyond that */}
+                  <div className="mt-2 max-h-[180px] overflow-y-auto rounded-md border border-gray-200">
+                    <table className="w-full text-left text-xs">
+                      <thead className="sticky top-0 bg-amber-50 text-amber-700 text-[11px]">
+                        <tr>
+                          <th className="py-2 px-3">Employee</th>
+                          <th className="py-2 px-3">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {pendingReviews.map((row) => (
+                          <tr key={row.employee_code} className="border-t">
+                            <td className="py-1.5 px-3">
+                              {row.employee_code} / {row.employee_name}
+                            </td>
+                            <td className="py-1.5 px-3">{row.status}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ) : (
+                <p className="mt-4 text-sm font-medium text-green-600">
+                  All evaluations are submitted.
+                </p>
+              )}
+
+              <p className="mt-4 text-sm font-medium text-gray-800">
+                Are you sure you want to close the appraisal cycle?
+              </p>
 
               <label className="mt-5 block text-sm font-medium text-gray-700">
                 Remarks
@@ -745,9 +818,11 @@ const sortedSubmissions = [...submissions].sort((a, b) => {
 
             {/* Result */}
             <div className="px-6 py-5">
-              {selectedResult ? (
-                // <div className="overflow-hidden rounded-md border border-gray-200">
-                //   <table className="w-full table-fixed text-center text-xs">
+              {selectedResult === ALL_SUCCESS_MESSAGE ? (
+                <p className="py-6 text-center text-sm font-medium text-green-600">
+                  {ALL_SUCCESS_MESSAGE}
+                </p>
+              ) : selectedResult ? (
                 <div className="overflow-hidden rounded-lg border border-gray-200">
 
                   <div className="flex items-center justify-between border-b border-gray-200 bg-gray-50 px-4 py-3">

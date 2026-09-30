@@ -6,7 +6,7 @@ from frappe.utils import flt
 from frappe.utils.file_manager import save_file
 
 ALLOWED_EXTENSIONS = {"xlsx", "xls"}
-ALL_SUCCESS_MESSAGE = "All records successfully submitted"
+ALL_SUCCESS_MESSAGE = "All records have been successfully updated"
 
 HEADER_ALIASES = {
     "employee_code": {"employee code", "emp code", "employee id", "emp id", "employee_code"},
