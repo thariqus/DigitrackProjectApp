@@ -3,7 +3,8 @@ import { Link } from "react-router";
 import { useSidebar } from "../context/SidebarContext";
 import NotificationDropdown from "../components/header/NotificationDropdown";
 import UserDropdown from "../components/header/UserDropdown";
-import jaleelholdings from "../images/jaleel holdings.png"
+import jaleelholdings from "../images/j-reflect-icon.png"
+import jReflectIcon from "../images/j-reflect-icon.png";
 import { useCurrentPmsEmployee } from "../hooks/auth";
 
 
@@ -116,16 +117,13 @@ const AppHeader: React.FC = () => {
               />
             </svg>
           </button>
-  {/* PMS Lite */}
-  <div className="flex items-center gap-1">
+  {/* J-Reflect logo: red "J" mark + wordmark (serif, spaced capitals) */}
+  <div className="flex items-center gap-3 select-none">
     <span
-      className="text-xl font-extrabold tracking-wider drop-shadow-sm"
-      style={{ color: "var(--color-primary)" }}
+      className="text-xl uppercase tracking-[0.3em] text-gray-500 dark:text-gray-300"
+      style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
     >
-      PMS
-    </span>
-    <span className="text-sm font-semibold text-gray-500 dark:text-gray-300 mt-1">
-      Lite
+      J-Reflect
     </span>
   </div>
 

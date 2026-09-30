@@ -867,7 +867,7 @@ def draw_footer(canvas, doc):
     canvas.saveState()
 
     footer_text = [
-        "Confidential – PMSLite | Authorized Internal Use Only",
+        "Confidential – J-Reflect | Authorized Internal Use Only",
         "Use, disclosure, or distribution outside the organization is prohibited",
         f"Document generated on: {datetime.now().strftime('%d-%b-%Y')}",
     ]

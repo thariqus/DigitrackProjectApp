@@ -1,8 +1,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router";
-import JHICON from "../images/JH.png";
-import jaleelholdings from "../images/jaleel holdings.png";
+import JHICON from "../images/j-reflect-icon.png";
+import jaleelholdings from "../images/j-reflect-icon.png";
 import { useCurrentPmsEmployee } from "../hooks/auth";
 import { CiCalendar } from "react-icons/ci";
 import {
