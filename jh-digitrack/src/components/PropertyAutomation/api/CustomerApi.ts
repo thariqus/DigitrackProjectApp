@@ -14,6 +14,7 @@ export interface CustomerPayload {
   custom_city?: string;
   email_id?: string;
   po_box?: string;
+  custom_site_code?: string;
   transportation_zone?: string;
   customer_group?: string;
   sales_district?: string;
@@ -52,6 +53,12 @@ export interface SalesDistrict {
  */
 export interface Emirate {
   name: string;
+}
+
+export interface SiteCode {
+  name: string;
+  site_code: string;
+  site_name: string;
 }
 
 const MASTER_MANAGEMENT_API = "jh_digitrack.api.mastermanagement_api";
@@ -167,18 +174,34 @@ export const getEmirates = async (
   return res.message?.data ?? [];
 };
 
+
+export const getSiteCodes = async (
+  search: string = ""
+): Promise<SiteCode[]> => {
+  const res = await frappe.api.get(
+    `${MASTER_MANAGEMENT_API}.get_site_code`,
+    {
+      search,
+    }
+  );
+
+  return res.message?.data ?? [];
+};
+
 /**
  * Activate Customer
  */
 export const activateCustomer = async (
   customerCode: string,
-  companyCode: string
+  companyCode: string,
+  salesOffice: string
 ): Promise<ActivateCustomerResponse> => {
   const res = await frappe.api.post(
     `${MASTER_MANAGEMENT_API}.activate_customer`,
     {
       customer_code: customerCode,
       company_code: companyCode,
+      sales_office: salesOffice
     }
   );
 
