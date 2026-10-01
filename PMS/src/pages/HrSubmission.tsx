@@ -7,7 +7,11 @@ import frappe from "@/utils/frappe-client";
  
 const ALLOWED_EXTENSIONS = ["xlsx", "xls"];
 
-const ALL_SUCCESS_MESSAGE = "All records successfully submitted";
+// Must match ALL_SUCCESS_MESSAGE in jh_digitrack/api/hr_submission.py
+const ALL_SUCCESS_MESSAGE = "All records have been successfully updated";
+// Result text the server saves when every row succeeded (older uploads used the second wording)
+const isAllSuccessResult = (result?: string) =>
+  [ALL_SUCCESS_MESSAGE, "All records successfully submitted"].includes((result || "").trim());
  
 type SubmissionRow = {
   name: string;
@@ -696,7 +700,7 @@ const sortedSubmissions = [...submissions].sort((a, b) => {
           <tbody>
             {submissions.length === 0 ? (
               <tr>
-                <td colSpan={5} className="py-4 text-xs text-gray-400">
+                <td colSpan={5} className="py-4 text-center text-xs text-gray-400">
                   No submissions uploaded for {selectedYear} yet.
                 </td>
               </tr>
@@ -895,7 +899,7 @@ const sortedSubmissions = [...submissions].sort((a, b) => {
 
             {/* Result */}
             <div className="px-6 py-5">
-              {selectedResult === ALL_SUCCESS_MESSAGE ? (
+              {isAllSuccessResult(selectedResult) ? (
                 <p className="py-6 text-center text-sm font-medium text-green-600">
                   {ALL_SUCCESS_MESSAGE}
                 </p>

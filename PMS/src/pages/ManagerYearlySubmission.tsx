@@ -10,6 +10,7 @@ import {
 import { useFilesUpload } from "@/hooks/file";
 import { HiArrowNarrowDown } from 'react-icons/hi';
 import { FaRegSave, FaStar } from 'react-icons/fa';
+import { TiTickOutline } from 'react-icons/ti';
 import {
   IoCloudUploadOutline,
   IoCloseOutline,
@@ -76,6 +77,7 @@ function ManagerYearlySubmission() {
     const [reviews, setReviews] = useState<Record<string, ManagerReview>>({});
     const [hoveredRating, setHoveredRating] = useState<Record<string, number>>({});
     const [savingDocname, setSavingDocname] = useState<string | null>(null);
+    const [submittingDocname, setSubmittingDocname] = useState<string | null>(null);
     const [existingAttachments, setExistingAttachments] = useState<
       Record<string, GoalDocumentAttachment[]>
     >({});
@@ -275,6 +277,63 @@ function ManagerYearlySubmission() {
 
     const isCurrentYear = !!baseYear && selectedYear === baseYear;
 
+    // Save the row's current review (incl. new attachments), then submit it.
+    const saveAndSubmitReview = async (rowKey: string, employeeCode: string) => {
+      const review = getReview(rowKey);
+      const { fileUrls, allSucceeded } = await uploadReviewFiles(rowKey, employeeCode, review.files);
+
+      const saveResult = await createGoalAssessment({
+        employee_code: employeeCode,
+        year: selectedYear,
+        goals: [],
+        rating: review.rating,
+        eligible_for_increment: review.eligibleForIncrement,
+        training_requirement_identified: review.trainingRequirementsIdentified,
+        eligible_for_promotion: review.eligibleForPromotion,
+        comment: review.comment.trim(),
+        attachments: fileUrls,
+        goal_name_for_yearly_assesment: "Yearly submission",
+      });
+      if (saveResult?.error) return { ok: false, error: saveResult.error as string };
+      if (!allSucceeded) return { ok: false, error: "Some attachments failed to upload." };
+
+      const submitResult = await submitGoalEvaluation(employeeCode, selectedYear, review.comment.trim());
+      if (submitResult?.error) return { ok: false, error: submitResult.error as string };
+      return { ok: true };
+    };
+
+    const handleSubmitReview = async (rowKey: string, employeeCode: string) => {
+      const review = getReview(rowKey);
+      const rowErrors: { rating?: boolean; comment?: boolean } = {};
+      if (!review.rating || review.rating <= 0) rowErrors.rating = true;
+      if (!review.comment || !review.comment.trim()) rowErrors.comment = true;
+
+      if (rowErrors.rating || rowErrors.comment) {
+        setValidationErrors((prev) => ({ ...prev, [rowKey]: rowErrors }));
+        toast.error("Rating and comments are required before submitting.");
+        return;
+      }
+
+      setSubmittingDocname(rowKey);
+      try {
+        const result = await saveAndSubmitReview(rowKey, employeeCode);
+        if (!result.ok) {
+          toast.error(result.error || "Failed to submit review.");
+          return;
+        }
+        toast.success("Review submitted successfully!");
+        setValidationErrors((prev) => {
+          const rest = { ...prev };
+          delete rest[rowKey];
+          return rest;
+        });
+        setReviews((prev) => ({ ...prev, [rowKey]: { ...getReview(rowKey), files: [] } }));
+        refetch();
+      } finally {
+        setSubmittingDocname(null);
+      }
+    };
+
     const handleSubmitAll = async () => {
       if (!enableYearlyAppraisal || allSubmitted || !isCurrentYear) return;
       if (!evaluations || evaluations.length === 0) return;
@@ -311,32 +370,8 @@ function ManagerYearlySubmission() {
 
         for (const emp of evaluations) {
           const rowKey = emp.docname || emp.employee_code;
-          const review = getReview(rowKey);
-
-          const { fileUrls, allSucceeded } = await uploadReviewFiles(rowKey, emp.employee_code, review.files);
-
-          const saveResult = await createGoalAssessment({
-            employee_code: emp.employee_code,
-            year: selectedYear,
-            goals: [],
-            rating: review.rating,
-            eligible_for_increment: review.eligibleForIncrement,
-            training_requirement_identified: review.trainingRequirementsIdentified,
-            eligible_for_promotion: review.eligibleForPromotion,
-            comment: review.comment.trim(),
-            attachments: fileUrls,
-            goal_name_for_yearly_assesment: "Yearly submission",
-          });
-
-          if (saveResult?.error || !allSucceeded) {
-            failedCount += 1;
-            continue;
-          }
-
-          const submitResult = await submitGoalEvaluation(emp.employee_code, selectedYear, review.comment.trim());
-          if (submitResult?.error) {
-            failedCount += 1;
-          }
+          const result = await saveAndSubmitReview(rowKey, emp.employee_code);
+          if (!result.ok) failedCount += 1;
         }
 
         if (failedCount > 0) {
@@ -490,7 +525,7 @@ function ManagerYearlySubmission() {
             // }
             className="bg-primary py-1 px-2 text-xs rounded-md text-white disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {isSubmitting ? "Submitting..." : "Submit"}
+            {isSubmitting ? "Submitting..." : "Submit All"}
           </button>
  
       </div>
@@ -798,11 +833,11 @@ function ManagerYearlySubmission() {
                         </div>
                       </td>
                     )}
-                    <td className="flex justify-center items-center py-3 text-center">
+                    <td className="flex gap-1 justify-center items-center py-3 text-center">
                       <button
                         type="button"
                         onClick={() => handleSaveReview(rowKey, emp.employee_code)}
-                        disabled={savingDocname === rowKey || isRowLocked}
+                        disabled={savingDocname === rowKey || submittingDocname === rowKey || isSubmitting || isRowLocked}
                         className="inline-flex items-center justify-center rounded-md p-1.5 text-gray-500 transition hover:bg-secondary/60 hover:text-primary disabled:cursor-not-allowed disabled:opacity-50"
                         aria-label="Save review"
                         // title={
@@ -814,6 +849,16 @@ function ManagerYearlySubmission() {
                         // }
                       >
                           <FaRegSave className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSubmitReview(rowKey, emp.employee_code)}
+                        disabled={savingDocname === rowKey || submittingDocname === rowKey || isSubmitting || isRowLocked}
+                        className="inline-flex items-center justify-center rounded-md p-1.5 text-gray-500 transition hover:bg-secondary/60 hover:text-primary disabled:cursor-not-allowed disabled:opacity-50"
+                        aria-label="Submit review"
+                        title="Submit review"
+                      >
+                        <TiTickOutline className="h-5 w-5" />
                       </button>
                     </td>
                   </tr>
