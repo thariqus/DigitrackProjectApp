@@ -9,6 +9,7 @@ import {
   activateCustomer,
   CustomerPayload,
   getEmirates,
+  getSiteCodes,
 } from "../api/CustomerApi";
 
 export const useCreateCustomer = () =>
@@ -47,12 +48,18 @@ export const useSalesDistricts = (search: string = "") =>
 
 export const useActivateCustomer = () =>
   useMutation({
-    mutationFn: ({ customerCode, companyCode }: { customerCode: string; companyCode: string }) =>
-      activateCustomer(customerCode, companyCode),
+    mutationFn: ({ customerCode, companyCode, salesOffice }: { customerCode: string; companyCode: string; salesOffice: string }) =>
+      activateCustomer(customerCode, companyCode, salesOffice),
   });
 
 export const useEmirates = (search: string = "") =>
   useQuery({
     queryKey: ["emirates", search],
     queryFn: () => getEmirates(search),
+  });
+
+export const useSiteCodes = (search: string = "") =>
+  useQuery({
+    queryKey: ["siteCodes", search],
+    queryFn: () => getSiteCodes(search),
   });

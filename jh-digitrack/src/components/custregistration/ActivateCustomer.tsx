@@ -107,7 +107,7 @@ function ActivateCustomer() {
         {/* ===================================================
             CARD HEADER
         =================================================== */}
-        <div className="bg-[#9A3025] px-5 py-4 text-white">
+        <div className="bg-rose-50 border-b border-rose-200 px-5 py-4 text-[#9A3025]">
 
           <div className="flex items-center gap-3">
 
@@ -125,7 +125,7 @@ function ActivateCustomer() {
                 Activate Customer
               </h2>
 
-              <p className="text-xs text-white/80">
+              <p className="text-xs text-gray-500">
                 Enter the company code and customer code
                 to activate the customer.
               </p>
@@ -172,19 +172,19 @@ function ActivateCustomer() {
                   }
                   placeholder="e.g. JALEEL01"
                   className="
-                    w-full
-                    border
-                    border-gray-300
-                    rounded-lg
-                    px-3
-                    py-2
-                    text-sm
-                    outline-none
-                    focus:border-[#9A3025]
-                    focus:ring-2
-                    focus:ring-[#9A3025]/10
-                    transition
-                  "
+                      w-full
+                      border
+                      border-rose-200
+                      rounded-lg
+                      px-3
+                      py-2
+                      text-sm
+                      outline-none
+                      focus:border-rose-400
+                      focus:ring-2
+                      focus:ring-rose-100
+                      transition
+                    "
                 />
 
               </div>
@@ -243,23 +243,26 @@ function ActivateCustomer() {
               <button
                 type="submit"
                 disabled={isPending}
-                className="
-                  flex
-                  items-center
-                  gap-2
-                  bg-[#9A3025]
-                  hover:bg-[#7A251F]
-                  disabled:opacity-50
-                  disabled:cursor-not-allowed
-                  text-white
-                  px-5
-                  py-2
-                  rounded-md
-                  text-xs
-                  font-semibold
-                  shadow
-                  transition
-                "
+               className="
+                flex
+                items-center
+                gap-2
+                bg-rose-50
+                border
+                border-rose-200
+                text-[#9A3025]
+                hover:bg-rose-100
+                hover:border-rose-300
+                disabled:opacity-50
+                disabled:cursor-not-allowed
+                px-5
+                py-2
+                rounded-lg
+                text-xs
+                font-semibold
+                shadow-sm
+                transition
+              "
               >
 
                 <IoPersonAddOutline />
@@ -277,17 +280,18 @@ function ActivateCustomer() {
                 type="button"
                 onClick={handleReset}
                 className="
-                  px-5
-                  py-2
-                  rounded-md
-                  border
-                  border-gray-300
-                  text-gray-600
-                  hover:bg-gray-50
-                  text-xs
-                  font-medium
-                  transition
-                "
+                      px-5
+                      py-2
+                      rounded-lg
+                      border
+                      border-rose-200
+                      text-gray-600
+                      hover:bg-rose-50
+                      hover:border-rose-300
+                      text-xs
+                      font-medium
+                      transition
+                    "
               >
                 Reset
               </button>
@@ -310,13 +314,13 @@ function ActivateCustomer() {
           {/* =================================================
               RESPONSE HEADER
           ================================================= */}
-          <div className="bg-[#9A3025] px-5 py-4 text-white">
+          <div className="bg-rose-50 border-b border-rose-200 px-5 py-4 text-[#9A3025]">
 
             <h2 className="text-sm font-semibold">
               SAP Response
             </h2>
 
-            <p className="text-xs text-white/80 mt-1">
+            <p className="text-xs text-gray-500 mt-1">
               Response received from SAP
             </p>
 
@@ -333,8 +337,8 @@ function ActivateCustomer() {
                 overflow-auto
                 rounded-lg
                 border
-                border-gray-200
-                bg-gray-50
+                border-rose-200
+                bg-rose-50
                 p-4
               "
             >
@@ -521,9 +525,10 @@ function ActivateCustomer() {
                   px-6
                   py-2
                   rounded-lg
-                  bg-[#9A3025]
-                  hover:bg-[#7A251F]
-                  text-white
+                  bg-rose-50
+                  border border-rose-200
+                  text-[#9A3025]
+                  hover:bg-rose-100
                   text-xs
                   font-semibold
                   transition-colors
