@@ -57,6 +57,14 @@ function HrSubmission() {
   const [isLoadingPending, setIsLoadingPending] = useState(false);
   const [selectedResult, setSelectedResult] = useState<string>("");
   const [showResultPopup, setShowResultPopup] = useState(false);
+
+
+  const [closedCycleInfo, setClosedCycleInfo] = useState({
+    year: "",
+    closedBy: "",
+    closedAt: "",
+    remarks: "",
+  });
   const [sortField, setSortField] = useState<
    "year" | "file" | "uploadedBy" | "uploadedOn" | null
   >(null);
@@ -93,10 +101,18 @@ function HrSubmission() {
     const fetchAccess = async () => {
       try {
         const res = await frappe.api.get<{
-          message: { has_access: boolean; yearly_appraisal_enabled: boolean; cycle_closed: boolean };
+          message: { has_access: boolean; yearly_appraisal_enabled: boolean; cycle_closed: boolean; closed_info?: { year: string;closed_by: string;closed_at: string;remarks: string;}; };
         }>("jh_digitrack.api.hr_submission.get_hr_submission_access");
         setAppraisalEnabled(!!res.message?.yearly_appraisal_enabled);
         setCycleClosed(!!res.message?.cycle_closed);
+        if (res.message?.closed_info) {
+          setClosedCycleInfo({
+            year: res.message.closed_info.year || "",
+            closedBy: res.message.closed_info.closed_by || "",
+            closedAt: res.message.closed_info.closed_at || "",
+            remarks: res.message.closed_info.remarks || "",
+          });
+        }        
       } catch (err) {
         console.error("Error fetching HR submission access", err);
         setAppraisalEnabled(false);
@@ -203,22 +219,42 @@ function HrSubmission() {
         setIsClosingCycle(true);
 
         try {
-          await frappe.api.post(
+          // await frappe.api.post(
+          //   "jh_digitrack.api.hr_submission.close_appraisal_cycle",
+          //   {
+          //     remarks: remark,
+          //   }
+          // );
+
+          // setCycleClosed(true);
+          // setShowClosePopup(false);
+          // setCloseRemark("");
+
+          // setMessage({
+          //   text: `Appraisal cycle for ${selectedYear} closed successfully.`,
+          //   type: "success",
+          // });
+          const response: any = await frappe.api.post(
             "jh_digitrack.api.hr_submission.close_appraisal_cycle",
             {
               remarks: remark,
             }
           );
 
+          const closeData = response?.message || {};
+
           setCycleClosed(true);
           setShowClosePopup(false);
           setCloseRemark("");
 
-          setMessage({
-            text: `Appraisal cycle for ${selectedYear} closed successfully.`,
-            type: "success",
+          setClosedCycleInfo({
+            year: closeData.year || selectedYear,
+            closedBy: closeData.closed_by || "",
+            closedAt: closeData.closed_at || "",
+            remarks: closeData.remarks || remark,
           });
-        
+
+               
         
         } catch (err: any) {
           let errorMessage = "Failed to upload HR Excel file.";
@@ -446,7 +482,47 @@ const sortedSubmissions = [...submissions].sort((a, b) => {
     <div className="bg-white min-h-screen border rounded-lg px-6 py-2 h-full relative overflow-hidden">
       <div className="flex justify-between items-center">
         <h1 className="text-primary font-medium">HR Submission</h1>
+        {cycleClosed && (
+          <div className="absolute right-0 top-0 select-text">
+            <div className="w-[320px] rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 shadow-sm">
+              <div className="flex items-center gap-2 border-b border-red-200 pb-1.5">
+                <span className="text-sm">🔒</span>
+
+                <span className="text-sm font-semibold text-red-700">
+                  Appraisal Cycle Closed
+                </span>
+              </div>
+
+              <div className="mt-1.5 space-y-1 text-xs text-gray-700">
+                <div className="flex">
+                  <span className="w-[65px] font-medium">Year</span>
+                  <span>: {closedCycleInfo.year}</span>
+                </div>
+
+                <div className="flex">
+                  <span className="w-[65px] font-medium">Closed By</span>
+                  <span className="truncate">
+                    : {closedCycleInfo.closedBy}
+                  </span>
+                </div>
+
+                <div className="flex">
+                  <span className="w-[65px] font-medium">Closed On</span>
+                  <span>: {closedCycleInfo.closedAt}</span>
+                </div>
+
+                <div className="flex">
+                  <span className="w-[65px] font-medium">Remarks</span>
+                  <span className="break-words">
+                    : {closedCycleInfo.remarks}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}        
       </div>
+    
  
       <div className="flex flex-col gap-8 pt-5">
         <div className="flex items-center gap-2">
@@ -556,14 +632,14 @@ const sortedSubmissions = [...submissions].sort((a, b) => {
       )}
  
       <div className="border rounded-lg w-full mt-6">
-        <table className="w-full text-center table-auto">
+        <table className="w-full text-left table-auto">
           <thead className="bg-gray-100 text-gray-500 text-[11px]">
             <tr>
               <th
-                className="py-2 px-2 cursor-pointer"
+                className="py-2 px-4 cursor-pointer"
                 onClick={() => handleSort("year")}
               >
-                <div className="flex items-center justify-center gap-2">
+                <div className="flex items-center justify-start gap-2">
                   Year
                   <HiArrowNarrowDown
                     className={`text-gray-400 text-xs transition-transform ${
@@ -574,10 +650,10 @@ const sortedSubmissions = [...submissions].sort((a, b) => {
               </th>
 
               <th
-                className="py-2 px-2 cursor-pointer"
+                className="py-2 px-4 cursor-pointer"
                 onClick={() => handleSort("file")}
               >
-                <div className="flex items-center justify-center gap-2">
+                <div className="flex items-center justify-start gap-2">
                   File
                   <HiArrowNarrowDown
                     className={`text-gray-400 text-xs transition-transform ${
@@ -588,10 +664,10 @@ const sortedSubmissions = [...submissions].sort((a, b) => {
               </th>
 
               <th
-                className="py-2 px-2 cursor-pointer"
+                className="py-2 px-4 cursor-pointer"
                 onClick={() => handleSort("uploadedBy")}
               >
-                <div className="flex items-center justify-center gap-2">
+                <div className="flex items-center justify-start gap-2">
                   Uploaded By
                   <HiArrowNarrowDown
                     className={`text-gray-400 text-xs transition-transform ${
@@ -602,10 +678,10 @@ const sortedSubmissions = [...submissions].sort((a, b) => {
               </th>
 
               <th
-                className="py-2 px-2 cursor-pointer"
+                className="py-2 px-4 cursor-pointer"
                 onClick={() => handleSort("uploadedOn")}
               >
-                <div className="flex items-center justify-center gap-2">
+                <div className="flex items-center justify-start gap-2">
                   Uploaded On
                   <HiArrowNarrowDown
                     className={`text-gray-400 text-xs transition-transform ${
@@ -614,7 +690,7 @@ const sortedSubmissions = [...submissions].sort((a, b) => {
                   />
                 </div>
               </th>              
-              <th className="py-2 px-2">Result</th>
+              <th className="py-2 px-4 text-center">Result</th>
             </tr>
           </thead>
           <tbody>
@@ -627,8 +703,8 @@ const sortedSubmissions = [...submissions].sort((a, b) => {
             ) : (
               sortedSubmissions.map((row) => (
                 <tr key={row.name} className="border-t text-xs">
-                  <td className="py-2 px-2">{row.assessment_year}</td>
-                  <td className="py-2 px-2">
+                  <td className="py-2 px-4">{row.assessment_year}</td>
+                  <td className="py-2 px-4">
                     <a
                       href={row.attachment}
                       target="_blank"
@@ -638,8 +714,8 @@ const sortedSubmissions = [...submissions].sort((a, b) => {
                       {row.attachment?.split("/").pop()}
                     </a>
                   </td>
-                  <td className="py-2 px-2">{row.uploaded_by}</td>
-                  <td className="py-2 px-2">{row.creation?.split(".")[0] || row.creation}</td>           
+                  <td className="py-2 px-4">{row.uploaded_by}</td>
+                  <td className="py-2 px-4">{row.creation?.split(".")[0] || row.creation}</td>           
                   {/* <td className="py-2 px-2 text-center">
                     <button
                       type="button"
@@ -651,7 +727,7 @@ const sortedSubmissions = [...submissions].sort((a, b) => {
                     </button>
                   </td> */}
                    
-                  <td className="py-2 px-2 text-center">
+                  <td className="py-2 px-4 text-center">
                     <button
                       type="button"
                       onClick={() => {
@@ -797,6 +873,7 @@ const sortedSubmissions = [...submissions].sort((a, b) => {
           </div>
         </div>
       )}
+      
       {showResultPopup && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-[750px] rounded-lg bg-white shadow-2xl">
