@@ -763,7 +763,7 @@ const sortedSubmissions = [...submissions].sort((a, b) => {
       </div>
       {showClosePopup && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/40 px-4">
-          <div className="flex w-full max-w-[500px] max-h-[90vh] flex-col rounded-lg bg-white shadow-2xl">
+          <div className="flex w-full max-w-[720px] max-h-[95vh] flex-col rounded-lg bg-white shadow-2xl">
 
             {/* Header */}
             <div className="flex justify-end px-6 pt-4">
@@ -794,8 +794,8 @@ const sortedSubmissions = [...submissions].sort((a, b) => {
                   <p className="text-sm font-medium text-amber-700">
                     {pendingReviews.length} employee(s) are still pending review.
                   </p>
-                  {/* Header + 5 rows visible; scrolls beyond that */}
-                  <div className="mt-2 max-h-[180px] overflow-y-auto rounded-md border border-gray-200">
+                  {/* Header + 10 rows visible; scrolls beyond that */}
+                  <div className="mt-2 max-h-[370px] overflow-y-auto rounded-md border border-gray-200">
                     <table className="w-full text-left text-xs">
                       <thead className="sticky top-0 bg-amber-50 text-amber-700 text-[11px]">
                         <tr>

@@ -173,6 +173,7 @@ export function useEmployeeGoals(employeeCode: string, year: string) {
   const [employeeGoals, setEmployeeGoals] = useState<GoalDetail[]>([]);
   const [attachments, setAttachments] = useState<{ file_name: string; file_url: string }[]>([]);
   const [comment, setComment] = useState("");
+  const [hrComment, setHrComment] = useState("");
   const [enableGoalEvaluation, setEnableGoalEvaluation] = useState(false);
   const [loading, setLoading] = useState(true);
  
@@ -186,6 +187,7 @@ export function useEmployeeGoals(employeeCode: string, year: string) {
             goals: GoalDetail[];
             attachments: { file_name: string; file_url: string }[];
             comment: string;
+            hr_comment: string;
             enable_goal_evaluation: boolean;
           };
         }>(
@@ -196,6 +198,7 @@ export function useEmployeeGoals(employeeCode: string, year: string) {
         setEmployeeGoals(res.message?.goals || []);
         setAttachments(res.message?.attachments || []);
         setComment(res.message?.comment || "");
+        setHrComment(res.message?.hr_comment || "");
         setEnableGoalEvaluation(!!res.message?.enable_goal_evaluation);
       } catch (error) {
         console.error("Error fetching employee goals:", error);
@@ -207,7 +210,7 @@ export function useEmployeeGoals(employeeCode: string, year: string) {
     getGoals();
   }, [employeeCode, year]);
  
-  return { employeeGoals, attachments, comment, enableGoalEvaluation, loading };
+  return { employeeGoals, attachments, comment, hrComment, enableGoalEvaluation, loading };
 }
  
 /* ─────────────────────────────────────────────── */

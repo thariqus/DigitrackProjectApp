@@ -124,6 +124,7 @@ useEffect(() => {
     employeeGoals: fetchedEmployeeGoals,
     attachments: fetchedAttachments,
     comment: fetchedComment,
+    hrComment: fetchedHrComment,
     enableGoalEvaluation,
   } = useEmployeeGoals(employee?.id || "", year || "");
 
@@ -701,14 +702,27 @@ useEffect(() => {
         )} */}
         
 
-        {isSubmitted && submittedComment && (
-          <div className="mx-2 mb-2 px-4 py-2 border rounded-lg bg-gray-50">
-            <h3 className="text-md font-medium text-gray-800 mb-1">Comment</h3>
+        {/* Self view shows the final HR comment; other flows show the submitted comment */}
+        {cameFromViewflag === "1" ? (
+          fetchedHrComment && (
+            <div className="mx-2 mb-2 px-4 py-2 border rounded-lg bg-gray-50">
+              <h3 className="text-md font-medium text-gray-800 mb-1">Comment</h3>
 
-            <p className="text-gray-700 text-sm max-h-40 overflow-y-auto whitespace-pre-wrap break-words leading-5 p-2 border rounded bg-white">
-              {submittedComment}
-            </p>
-          </div>
+              <p className="text-gray-700 text-sm max-h-40 overflow-y-auto whitespace-pre-wrap break-words leading-5 p-2 border rounded bg-white">
+                {fetchedHrComment}
+              </p>
+            </div>
+          )
+        ) : (
+          isSubmitted && submittedComment && (
+            <div className="mx-2 mb-2 px-4 py-2 border rounded-lg bg-gray-50">
+              <h3 className="text-md font-medium text-gray-800 mb-1">Comment</h3>
+
+              <p className="text-gray-700 text-sm max-h-40 overflow-y-auto whitespace-pre-wrap break-words leading-5 p-2 border rounded bg-white">
+                {submittedComment}
+              </p>
+            </div>
+          )
         )}
         </div>
         {/* Footer */}

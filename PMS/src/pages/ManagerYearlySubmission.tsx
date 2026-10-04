@@ -338,10 +338,19 @@ function ManagerYearlySubmission() {
       if (!enableYearlyAppraisal || allSubmitted || !isCurrentYear) return;
       if (!evaluations || evaluations.length === 0) return;
 
+      // Rows already submitted (e.g. one at a time with the row Submit button) are skipped
+      const pending = evaluations.filter(
+        (emp: any) => !REPORTING_MANAGER_DONE_STATUSES.includes(emp.status)
+      );
+      if (pending.length === 0) {
+        toast.success("All employee reviews are already submitted.");
+        return;
+      }
+
       const errors: Record<string, { rating?: boolean; comment?: boolean }> = {};
       const missingEmployees: string[] = [];
 
-      evaluations.forEach((emp: any) => {
+      pending.forEach((emp: any) => {
         const rowKey = emp.docname || emp.employee_code;
         const review = getReview(rowKey);
         const rowErrors: { rating?: boolean; comment?: boolean } = {};
@@ -351,7 +360,7 @@ function ManagerYearlySubmission() {
 
         if (rowErrors.rating || rowErrors.comment) {
           errors[rowKey] = rowErrors;
-          missingEmployees.push(`${emp.employee_code} - ${emp.employee_name}`);
+          missingEmployees.push(emp.employee_code);
         }
       });
 
@@ -359,25 +368,35 @@ function ManagerYearlySubmission() {
 
       if (missingEmployees.length > 0) {
         toast.error(
-          `Rating and comments are required for all employees`
+          `Rating and comment are required before submitting. Missing for: ${missingEmployees.join(", ")}`
         );
         return;
       }
 
       setIsSubmitting(true);
       try {
-        let failedCount = 0;
+        const failed: string[] = [];
+        let submitted = 0;
 
-        for (const emp of evaluations) {
+        for (const emp of pending) {
           const rowKey = emp.docname || emp.employee_code;
           const result = await saveAndSubmitReview(rowKey, emp.employee_code);
-          if (!result.ok) failedCount += 1;
+          if (result.ok) {
+            submitted += 1;
+          } else {
+            failed.push(`${emp.employee_code} (${result.error || "unknown error"})`);
+          }
         }
 
-        if (failedCount > 0) {
-          toast.error(`${failedCount} employee review(s) failed to submit. Please try again.`);
+        const skipped = evaluations.length - pending.length;
+        const skippedNote = skipped > 0 ? ` ${skipped} already submitted earlier.` : "";
+
+        if (failed.length > 0) {
+          toast.error(
+            `Submitted ${submitted} of ${pending.length} review(s). Could not submit: ${failed.join("; ")}.${skippedNote}`
+          );
         } else {
-          toast.success("All employee reviews submitted successfully!");
+          toast.success(`Submitted ${submitted} review(s) successfully.${skippedNote}`);
           setValidationErrors({});
         }
 
