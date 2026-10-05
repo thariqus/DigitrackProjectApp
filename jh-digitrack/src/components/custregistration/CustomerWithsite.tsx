@@ -27,19 +27,22 @@ import { CustomerPayload } from "../PropertyAutomation/api/CustomerApi";
 
 const FIELDS = [
   {
-    key: "customer_name",
-    label: "Customer Name",
-    icon: LuUser,
-    placeholder: "e.g. Al Maha Trading LLC",
-    required: true,
-  },
-  {
-    key: "business_name",
-    label: "Business Name",
-    icon: LuUser,
-    placeholder: "e.g. Al Maha Trading LLC",
-    required: true,
-  },
+  key: "customer_name",
+  label: "Customer Name 1",
+  icon: LuUser,
+  placeholder: "e.g. Al Maha Trading LLC",
+  required: true,
+  maxLength: 40,
+},
+
+{
+  key: "business_name",
+  label: "Business Name",
+  icon: LuUser,
+  placeholder: "e.g. Al Maha Trading LLC",
+  required: true,
+  maxLength: 40,
+},
   {
     key: "customer_type",
     label: "Customer Type",
@@ -56,9 +59,9 @@ const FIELDS = [
     label: "TR Number",
     icon: LuUser,
     placeholder: "e.g. 1234567890",
-    maxLength: 10,
-    minLength: 10,
-    pattern: "^[0-9]{10}$",
+    maxLength: 15,
+    minLength: 15,
+    pattern: "^[0-14]{15}$",
   },
   {
     key: "custom_trade_license_no",
@@ -81,7 +84,7 @@ const FIELDS = [
   },
   {
     key: "custom_area",
-    label: "Area",
+    label: "Area / Locality",
     icon: LuMapPin,
     placeholder: "e.g. Al Quoz",
     required: true,
@@ -891,8 +894,8 @@ function CustomerWithsite() {
     // TR Number must contain exactly 10 digits
     const trNumber = form.tr_number?.trim();
 
-    if (trNumber && !/^\d{10}$/.test(trNumber)) {
-      showError("TR Number must contain exactly 10 digits.", {
+    if (trNumber && !/^\d{15}$/.test(trNumber)) {
+      showError("TR Number must contain exactly 15 digits.", {
         title: "Validation Required",
         focusTr: true,
       });
@@ -1182,7 +1185,11 @@ function CustomerWithsite() {
                             field.key === "tr_number" ? "numeric" : undefined
                           }
                           maxLength={
-                            field.key === "tr_number" ? 10 : undefined
+                            field.key === "tr_number"
+                              ? 15
+                              : field.key === "customer_name" || field.key === "business_name"
+                                ? 40
+                                : undefined
                           }
                           required={field.required}
                           placeholder={field.placeholder}
@@ -1190,9 +1197,9 @@ function CustomerWithsite() {
                           onChange={(e) => {
                             let value = e.target.value;
 
-                            // TR Number: numbers only, maximum 10 digits
+                            // TR Number: numbers only, maximum 15 digits
                             if (field.key === "tr_number") {
-                              value = value.replace(/\D/g, "").slice(0, 10);
+                              value = value.replace(/\D/g, "").slice(0, 15);
                             }
 
                             handleChange(field.key, value);
