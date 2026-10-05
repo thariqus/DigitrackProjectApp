@@ -96,14 +96,29 @@ function CustomerSearch() {
       return;
     }
 
+<<<<<<< HEAD
     // Numeric validation
+=======
+    // =======================================================
+    // NUMERIC VALIDATION
+    // Customer Code, TR Number, Trade License → digits only
+    // TR Number → exactly 15 digits
+    // =======================================================
+
+>>>>>>> 9318202 (TR  update)
     if (customercode && !/^\d+$/.test(customercode)) {
       showError("Customer Code must contain numbers only.");
       return;
     }
 
+<<<<<<< HEAD
     if (trNumber && !/^\d{10}$/.test(trNumber)) {
       showError("TR Number must contain exactly 10 digits.");
+=======
+    if (trNumber && !/^\d{15}$/.test(trNumber)) {
+      setError("TR Number must contain exactly 15 digits.");
+      setSearched(true);
+>>>>>>> 9318202 (TR  update)
       return;
     }
 
@@ -215,7 +230,7 @@ function CustomerSearch() {
     transition
   `;
 
-  const trRemaining = 10 - form.trNumber.length;
+  const trRemaining = 15 - form.trNumber.length;
 
   // =========================================================
   // RETURN
@@ -270,7 +285,14 @@ function CustomerSearch() {
                 />
               </div>
 
+<<<<<<< HEAD
               {/* TR NUMBER */}
+=======
+              {/* =============================================
+                  TR NUMBER (digits only, exactly 15)
+              ============================================= */}
+
+>>>>>>> 9318202 (TR  update)
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1.5">
                   TR Number
@@ -278,10 +300,10 @@ function CustomerSearch() {
                 <input
                   type="text"
                   inputMode="numeric"
-                  maxLength={10}
+                  maxLength={15}
                   value={form.trNumber}
                   onChange={(e) =>
-                    handleNumericChange("trNumber", e.target.value, 10)
+                    handleNumericChange("trNumber", e.target.value, 15)
                   }
                   placeholder="e.g. 1234567890"
                   className={inputClass}
