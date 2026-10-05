@@ -1,10 +1,28 @@
 import { useEffect, useState } from "react";
 import { useOutletContext } from "react-router";
-import { IoSearchOutline } from "react-icons/io5";
+import { IoSearchOutline, IoCheckmarkCircle, IoCloseCircle } from "react-icons/io5";
+
+// =========================================================
+// RESPONSE HELPERS
+// =========================================================
+
+const SUCCESS_STATUSES = ["S", "SUCCESS"];
+
+// Case/space-insensitive field lookup:
+// getField(obj, "customercode") matches "Customercode", "Customer code ", "customerCode", ...
+function getField(obj: any, name: string) {
+  if (!obj || typeof obj !== "object") return undefined;
+
+  const target = name.toLowerCase().replace(/[\s_-]/g, "");
+  const key = Object.keys(obj).find(
+    (k) => k.toLowerCase().replace(/[\s_-]/g, "") === target
+  );
+
+  return key !== undefined ? obj[key] : undefined;
+}
 
 function CustomerSearch() {
   const outletContext = useOutletContext() ?? {};
-
   const setHeaderConfig = outletContext.setHeaderConfig ?? (() => {});
 
   // =========================================================
@@ -20,7 +38,6 @@ function CustomerSearch() {
 
   // =========================================================
   // DIGITS-ONLY INPUT HANDLER
-  // Strips anything that isn't 0-9; optional max length
   // =========================================================
 
   const handleNumericChange = (
@@ -36,22 +53,27 @@ function CustomerSearch() {
 
   // =========================================================
   // SEARCH STATE
+  // result: { ok, customerCode, message }
   // =========================================================
 
-  const [sapResponse, setSapResponse] = useState<any>(null);
-  const [searched, setSearched] = useState(false);
+  const [result, setResult] = useState<{
+    ok: boolean;
+    customerCode: string;
+    message: string;
+  } | null>(null);
+
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
 
   // =========================================================
   // HEADER
   // =========================================================
 
   useEffect(() => {
-    setHeaderConfig({
-      title: "",
-    });
+    setHeaderConfig({ title: "" });
   }, [setHeaderConfig]);
+
+  const showError = (message: string, customerCode = "") =>
+    setResult({ ok: false, customerCode, message });
 
   // =========================================================
   // SEARCH CUSTOMER IN SAP
@@ -59,79 +81,46 @@ function CustomerSearch() {
 
   const handleSearch = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
-    // Clear previous result
-    setSearched(false);
-    setSapResponse(null);
-    setError("");
-
-    // =======================================================
-    // GET SEARCH VALUES
-    // =======================================================
+    setResult(null);
 
     const customerName = form.customerName.trim();
     const customercode = form.customercode.trim();
     const trNumber = form.trNumber.trim();
     const tradeLicense = form.tradeLicense.trim();
 
-    // =======================================================
-    // VALIDATE
     // At least one field must be entered
-    // =======================================================
-
     if (!customerName && !customercode && !trNumber && !tradeLicense) {
-      setError(
+      showError(
         "Please enter Customer Name, Customer Code, TR Number, or Trade License."
       );
-      setSearched(true);
       return;
     }
 
-    // =======================================================
-    // NUMERIC VALIDATION
-    // Customer Code, TR Number, Trade License → digits only
-    // TR Number → exactly 10 digits
-    // =======================================================
-
+    // Numeric validation
     if (customercode && !/^\d+$/.test(customercode)) {
-      setError("Customer Code must contain numbers only.");
-      setSearched(true);
+      showError("Customer Code must contain numbers only.");
       return;
     }
 
     if (trNumber && !/^\d{10}$/.test(trNumber)) {
-      setError("TR Number must contain exactly 10 digits.");
-      setSearched(true);
+      showError("TR Number must contain exactly 10 digits.");
       return;
     }
 
     if (tradeLicense && !/^\d+$/.test(tradeLicense)) {
-      setError("Trade License must contain numbers only.");
-      setSearched(true);
+      showError("Trade License must contain numbers only.");
       return;
     }
 
     try {
       setLoading(true);
 
-      // =====================================================
-      // CALL EXISTING FRAPPE API
-      // =====================================================
-
       const response = await fetch(
         "/api/method/jh_digitrack.api.mastermanagement_api.search_sap_customer",
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           credentials: "include",
-
-          // =================================================
-          // SEND ALL FOUR VALUES
-          // Empty values will be sent as ""
-          // =================================================
-
           body: JSON.stringify({
             customerName,
             customercode,
@@ -141,106 +130,50 @@ function CustomerSearch() {
         }
       );
 
-      // =====================================================
-      // READ FRAPPE RESPONSE
-      // =====================================================
+      const json = await response.json();
+      console.log("Frappe Response:", json);
 
-      const result = await response.json();
-
-      console.log("Frappe Response:", result);
-
-      // Frappe normally puts the returned Python object
-      // inside "message"
-      const sapResult = result?.message ?? result;
-
-      console.log("SAP Result:", sapResult);
-
-      // =====================================================
-      // HTTP / FRAPPE ERROR
-      // =====================================================
+      // Frappe puts the returned Python object inside "message"
+      const backend = json?.message ?? json;
 
       if (!response.ok) {
         throw new Error(
-          result?.exception ||
-            result?.message?.message ||
-            result?.message ||
+          backend?.message ||
+            json?.exception ||
             `SAP customer search failed (HTTP ${response.status})`
         );
       }
 
-      // =====================================================
-      // GET SAP DATA
-      //
-      // Backend response:
-      //
-      // {
-      //   success: true,
-      //   status_code: 200,
-      //   data: {
-      //     status: "Success",
-      //     "Customer code": "400",
-      //     "Details": [...]
-      //   }
-      // }
-      // =====================================================
+      // Backend: { success, status_code, data: { status, Customercode, Message, ... } }
+      const sapData = backend?.data ?? backend;
 
-      const sapData = sapResult?.data ?? sapResult;
+      const status = String(getField(sapData, "status") ?? "")
+        .trim()
+        .toUpperCase();
 
-      console.log("SAP Data:", sapData);
+      const customerCode = String(getField(sapData, "customercode") ?? "").trim();
 
-      // =====================================================
-      // SAP FAILURE
-      //
-      // {
-      //   "status": "FAILED",
-      //   "errorCode": "400",
-      //   "message": "Customer not found"
-      // }
-      // =====================================================
+      const message = String(
+        getField(sapData, "message") ??
+          getField(getField(sapData, "error_details"), "error_message") ??
+          ""
+      ).trim();
 
-      if (
-        sapResult?.success === false ||
-        sapData?.status?.toUpperCase?.() === "FAILED"
-      ) {
-        const failureMessage =
-          sapData?.message ||
-          sapResult?.message ||
-          "Customer was not found in SAP.";
+      const isSuccess =
+        backend?.success !== false && SUCCESS_STATUSES.includes(status);
 
-        setError(failureMessage);
-        setSapResponse(null);
-        setSearched(true);
-        return;
-      }
-
-      // =====================================================
-      // SAP SUCCESS
-      //
-      // {
-      //   "status": "Success",
-      //   "Customer code": "400",
-      //   "Details": [...]
-      // }
-      // =====================================================
-
-      if (sapData?.status?.toLowerCase?.() === "success") {
-        setSapResponse(sapData);
-        setSearched(true);
-        return;
-      }
-
-      // =====================================================
-      // UNKNOWN RESPONSE
-      // =====================================================
-
-      setSapResponse(sapData);
-      setSearched(true);
+      setResult({
+        ok: isSuccess,
+        customerCode,
+        message:
+          message ||
+          (isSuccess
+            ? "Customer found in SAP."
+            : "Customer was not found in SAP."),
+      });
     } catch (searchError: any) {
       console.error("SAP customer search error:", searchError);
-
-      setSapResponse(null);
-      setError(searchError?.message || "Unable to search customer in SAP.");
-      setSearched(true);
+      showError(searchError?.message || "Unable to search customer in SAP.");
     } finally {
       setLoading(false);
     }
@@ -257,10 +190,7 @@ function CustomerSearch() {
       trNumber: "",
       tradeLicense: "",
     });
-
-    setSapResponse(null);
-    setSearched(false);
-    setError("");
+    setResult(null);
   };
 
   // =========================================================
@@ -293,40 +223,22 @@ function CustomerSearch() {
 
   return (
     <div className="w-full h-full min-h-[calc(100vh-100px)] flex flex-col">
-      {/* =====================================================
-          SEARCH AREA
-      ===================================================== */}
-
       <div className="flex flex-col items-center pt-8">
-        {/* ===================================================
-            TITLE
-        =================================================== */}
-
+        {/* TITLE */}
         <h1 className="text-5xl font-semibold tracking-tight mb-8">
           <span className="text-[#9A3025]">Customer</span>
           <span className="text-gray-700 ml-2">Search</span>
         </h1>
 
-        {/* ===================================================
-            SEARCH FORM
-        =================================================== */}
-
+        {/* SEARCH FORM */}
         <form onSubmit={handleSearch} className="w-full max-w-[900px]">
           <div className="bg-white rounded-xl border border-rose-200 shadow-sm p-5">
-            {/* =================================================
-                FOUR SEARCH FIELDS
-            ================================================= */}
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* =============================================
-                  CUSTOMER NAME
-              ============================================= */}
-
+              {/* CUSTOMER NAME */}
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1.5">
                   Customer Name
                 </label>
-
                 <input
                   type="text"
                   value={form.customerName}
@@ -341,15 +253,11 @@ function CustomerSearch() {
                 />
               </div>
 
-              {/* =============================================
-                  CUSTOMER CODE (digits only)
-              ============================================= */}
-
+              {/* CUSTOMER CODE */}
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1.5">
                   Customer Code
                 </label>
-
                 <input
                   type="text"
                   inputMode="numeric"
@@ -362,15 +270,11 @@ function CustomerSearch() {
                 />
               </div>
 
-              {/* =============================================
-                  TR NUMBER (digits only, exactly 10)
-              ============================================= */}
-
+              {/* TR NUMBER */}
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1.5">
                   TR Number
                 </label>
-
                 <input
                   type="text"
                   inputMode="numeric"
@@ -382,7 +286,6 @@ function CustomerSearch() {
                   placeholder="e.g. 1234567890"
                   className={inputClass}
                 />
-
                 {form.trNumber && trRemaining > 0 && (
                   <p className="mt-1 text-[11px] text-rose-600">
                     {trRemaining} more digit{trRemaining === 1 ? "" : "s"}{" "}
@@ -391,15 +294,11 @@ function CustomerSearch() {
                 )}
               </div>
 
-              {/* =============================================
-                  TRADE LICENSE (digits only)
-              ============================================= */}
-
+              {/* TRADE LICENSE */}
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1.5">
                   Trade License
                 </label>
-
                 <input
                   type="text"
                   inputMode="numeric"
@@ -413,13 +312,8 @@ function CustomerSearch() {
               </div>
             </div>
 
-            {/* =================================================
-                BUTTONS
-            ================================================= */}
-
+            {/* BUTTONS */}
             <div className="flex justify-center gap-3 mt-6">
-              {/* SEARCH */}
-
               <button
                 type="submit"
                 disabled={loading}
@@ -446,8 +340,6 @@ function CustomerSearch() {
                   {loading ? "Searching SAP..." : "Customer Search"}
                 </span>
               </button>
-
-              {/* CLEAR */}
 
               <button
                 type="button"
@@ -476,173 +368,63 @@ function CustomerSearch() {
           </div>
         </form>
 
-        {/* ===================================================
-            SAP CUSTOMER RESULT
-        =================================================== */}
+        {/* =================================================
+            RESULT — customer code + message only
+        ================================================= */}
+        {result && (
+          <div className="w-full max-w-[900px] mt-8 mb-6">
+            <div
+              className={`overflow-hidden rounded-xl border shadow-sm ${
+                result.ok
+                  ? "border-green-200 bg-green-50"
+                  : "border-rose-200 bg-rose-50"
+              }`}
+            >
+              {/* HEADER */}
+              <div
+                className={`flex items-center gap-2 border-b px-5 py-3 ${
+                  result.ok
+                    ? "border-green-200 text-green-700"
+                    : "border-rose-200 text-[#9A3025]"
+                }`}
+              >
+                {result.ok ? (
+                  <IoCheckmarkCircle size={20} />
+                ) : (
+                  <IoCloseCircle size={20} />
+                )}
+                <h2 className="text-base font-semibold">
+                  {result.ok ? "Customer Found" : "Customer Search Failed"}
+                </h2>
+              </div>
 
-        {searched && (
-          <div className="w-full max-w-[1000px] mt-8 mb-6">
-            {/* =================================================
-                FAILURE
-            ================================================= */}
+              {/* BODY */}
+              <div className="bg-white">
+                {(result.ok || result.customerCode) && (
+                  <div className="grid grid-cols-[160px_1fr] border-b border-gray-100">
+                    <div className="bg-gray-50 px-5 py-3 text-sm font-medium text-gray-600">
+                      Customer Code
+                    </div>
+                    <div className="px-5 py-3 text-sm font-semibold text-gray-900 tabular-nums">
+                      {result.customerCode || "—"}
+                    </div>
+                  </div>
+                )}
 
-            {error ? (
-              <div className="bg-rose-50 border border-rose-200 rounded-xl p-5">
-                <div className="flex items-start gap-3">
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold text-[#9A3025]">
-                      Customer Search Failed
-                    </p>
-
-                    <p className="text-sm text-rose-700 mt-1">{error}</p>
+                <div className="grid grid-cols-[160px_1fr]">
+                  <div className="bg-gray-50 px-5 py-3 text-sm font-medium text-gray-600">
+                    Message
+                  </div>
+                  <div
+                    className={`px-5 py-3 text-sm font-semibold ${
+                      result.ok ? "text-gray-900" : "text-[#9A3025]"
+                    }`}
+                  >
+                    {result.message}
                   </div>
                 </div>
               </div>
-            ) : sapResponse ? (
-              /* =================================================
-                 SUCCESS
-              ================================================= */
-
-              <div className="bg-white rounded-xl border border-rose-200 shadow-sm overflow-hidden">
-                {/* =============================================
-                    HEADER
-                ============================================= */}
-
-                <div className="bg-rose-50 border-b border-rose-200 px-5 py-4">
-                  <h2 className="text-base font-semibold text-[#9A3025]">
-                    SAP Customer Details
-                  </h2>
-
-                  <p className="text-[11px] text-gray-500 mt-1">
-                    Customer details returned from SAP
-                  </p>
-                </div>
-
-                <div className="p-5">
-                  {/* ===========================================
-                      STATUS + CUSTOMER CODE
-                  =========================================== */}
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
-                    {/* STATUS */}
-
-                    <div className="border border-rose-200 bg-rose-50/50 rounded-lg p-4">
-                      <p className="text-xs text-gray-500 mb-1">Status</p>
-
-                      <p className="text-sm font-semibold text-green-600">
-                        {sapResponse?.status || "Success"}
-                      </p>
-                    </div>
-
-                    {/* CUSTOMER CODE */}
-
-                    <div className="border border-rose-200 bg-rose-50/50 rounded-lg p-4">
-                      <p className="text-xs text-gray-500 mb-1">
-                        Customer Code
-                      </p>
-
-                      <p className="text-sm font-semibold text-gray-800">
-                        {sapResponse?.["Customer code"] ??
-                          sapResponse?.["Customer code "] ??
-                          sapResponse?.customerCode ??
-                          "-"}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* ===========================================
-                      DETAILS
-                  =========================================== */}
-
-                  <div>
-                    <h3 className="text-sm font-semibold text-[#9A3025] mb-3">
-                      Customer Details
-                    </h3>
-
-                    {Array.isArray(sapResponse?.Details) &&
-                    sapResponse.Details.length > 0 ? (
-                      <div className="space-y-4">
-                        {sapResponse.Details.map(
-                          (customer: any, index: number) => (
-                            <div
-                              key={index}
-                              className="border border-rose-200 rounded-lg overflow-hidden"
-                            >
-                              {/* CUSTOMER NUMBER */}
-
-                              <div className="bg-rose-50 px-4 py-2 border-b border-rose-200">
-                                <p className="text-xs font-semibold text-[#9A3025]">
-                                  Customer {index + 1}
-                                </p>
-                              </div>
-
-                              {/* CUSTOMER DETAILS */}
-
-                              <div className="p-4">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                  {Object.entries(customer).map(
-                                    ([key, value]) => (
-                                      <div key={key}>
-                                        <p className="text-[11px] text-gray-500 mb-1">
-                                          {key}
-                                        </p>
-
-                                        <p className="text-sm text-gray-800 break-words">
-                                          {value === null ||
-                                          value === undefined ||
-                                          value === ""
-                                            ? "-"
-                                            : typeof value === "object"
-                                            ? JSON.stringify(value, null, 2)
-                                            : String(value)}
-                                        </p>
-                                      </div>
-                                    )
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          )
-                        )}
-                      </div>
-                    ) : (
-                      <div className="border border-rose-200 bg-rose-50/50 rounded-lg p-5 text-center">
-                        <p className="text-sm text-gray-500">
-                          SAP returned success, but no customer details were
-                          found.
-                        </p>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* ===========================================
-                      RAW SAP RESPONSE
-                  =========================================== */}
-
-                  <details className="mt-5">
-                    <summary className="cursor-pointer text-xs font-medium text-[#9A3025] hover:text-rose-700">
-                      View Raw SAP Response
-                    </summary>
-
-                    <div className="mt-3 max-h-[400px] overflow-auto rounded-lg border border-rose-200 bg-rose-50 p-4">
-                      <pre className="text-xs leading-5 text-gray-700 font-mono whitespace-pre-wrap break-words">
-                        {JSON.stringify(sapResponse, null, 2)}
-                      </pre>
-                    </div>
-                  </details>
-                </div>
-              </div>
-            ) : (
-              /* =================================================
-                 NO CUSTOMER
-              ================================================= */
-
-              <div className="bg-rose-50 border border-rose-200 rounded-xl shadow-sm p-8 text-center">
-                <p className="text-sm text-gray-600">
-                  Customer was not found in SAP.
-                </p>
-              </div>
-            )}
+            </div>
           </div>
         )}
       </div>
