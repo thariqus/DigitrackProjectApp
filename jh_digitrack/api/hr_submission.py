@@ -30,9 +30,28 @@ def _get_current_settings_row():
     return frappe.db.get_value(
         "PMS Settings Table",
         {"parent": "PMS Settings", "is_current": 1},
-        ["name", "year", "quaterly", "check_appraisal_cycle"],
+        ["name", "year", "quaterly", "check_appraisal_cycle", "remark"],
         as_dict=True,
     )
+
+
+def _closed_cycle_info(row):
+    """Who closed the cycle, when, and the remarks. close_appraisal_cycle saves
+    these inside the row's remark text as "<remarks>\nBy: <name>\nAt: <time>"."""
+    remarks_lines, closed_by, closed_at = [], "", ""
+    for line in (row.remark or "").splitlines():
+        if line.startswith("By: "):
+            closed_by = line[len("By: "):].strip()
+        elif line.startswith("At: "):
+            closed_at = line[len("At: "):].strip()
+        else:
+            remarks_lines.append(line)
+    return {
+        "year": row.year,
+        "closed_by": closed_by,
+        "closed_at": closed_at,
+        "remarks": "\n".join(remarks_lines).strip(),
+    }
 
 
 def _is_cycle_closed_for_year(year):
@@ -236,10 +255,12 @@ def get_hr_submission_access():
         return {"has_access": False, "yearly_appraisal_enabled": False, "cycle_closed": False}
 
     current_row = _get_current_settings_row()
+    cycle_closed = bool(current_row and current_row.check_appraisal_cycle)
     return {
         "has_access": bool(_is_super_admin(user)),
         "yearly_appraisal_enabled": _is_yearly_appraisal_enabled(),
-        "cycle_closed": bool(current_row and current_row.check_appraisal_cycle),
+        "cycle_closed": cycle_closed,
+        "closed_info": _closed_cycle_info(current_row) if cycle_closed else None,
     }
 
 
@@ -327,6 +348,9 @@ def close_appraisal_cycle():
         "quaterly": current_row.quaterly,
         "cycle_closed": True,
         "evaluations_submitted": submitted,
+        "closed_by": user_name,
+        "closed_at": timestamp,
+        "remarks": remarks,
     }
 
 

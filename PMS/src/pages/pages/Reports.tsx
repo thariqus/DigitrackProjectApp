@@ -89,7 +89,7 @@ function Reports() {
   const filteredManagers = managers.filter((m) => {
     if (
       selectedManager !== "All" &&
-      m.manager_name.toLowerCase() !== selectedManager.toLowerCase()
+      (m.manager_name || "").toLowerCase() !== selectedManager.toLowerCase()
     ) {
       return false;
     }
@@ -316,7 +316,7 @@ function Reports() {
 
                   {managers
                     .filter((m) =>
-                      m.manager_name
+                      (m.manager_name || "")
                         .toLowerCase()
                         .includes(managerSearch.toLowerCase())
                     )
@@ -463,7 +463,7 @@ function Reports() {
               <ul className="space-y-2">
                 {employeeListForModal(selectedModalManager, modalType)
                   .filter((emp) =>
-                    emp.employee_name.toLowerCase().includes(employeeSearch.toLowerCase())
+                    (emp.employee_name || "").toLowerCase().includes(employeeSearch.toLowerCase())
                   )
                   .map((emp) => (
                     // <li
@@ -505,7 +505,7 @@ function Reports() {
               </ul>
  
               {employeeListForModal(selectedModalManager, modalType).filter((emp) =>
-                emp.employee_name.toLowerCase().includes(employeeSearch.toLowerCase())
+                (emp.employee_name || "").toLowerCase().includes(employeeSearch.toLowerCase())
               ).length === 0 && (
                   <div className="text-center text-gray-500 italic mt-10">
                     No employees found.

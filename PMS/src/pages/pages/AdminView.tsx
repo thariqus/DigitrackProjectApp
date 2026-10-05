@@ -185,7 +185,7 @@ function AdminView() {
       if (
         selectedManager !== "All" &&
         selectedManager !== "" &&
-        m.manager_name.toLowerCase() !== selectedManager.toLowerCase()
+        (m.manager_name || "").toLowerCase() !== selectedManager.toLowerCase()
       )
         return false;
 
@@ -206,7 +206,7 @@ function AdminView() {
         return aHasPending ? -1 : 1;
       }
 
-      return a.manager_name.localeCompare(b.manager_name, undefined, {
+      return (a.manager_name || "").localeCompare(b.manager_name || "", undefined, {
         sensitivity: "base",
       });
     });
@@ -442,12 +442,12 @@ function AdminView() {
                   </li>
                   {managers
                     .filter((m) =>
-                      m.manager_name
+                      (m.manager_name || "")
                         .toLowerCase()
                         .includes(managerSearch.toLowerCase())
                     )
                     .sort((a, b) =>
-                      a.manager_name.localeCompare(b.manager_name, undefined, {
+                      (a.manager_name || "").localeCompare(b.manager_name || "", undefined, {
                         sensitivity: "base",
                       })
                     )
@@ -664,7 +664,7 @@ function AdminView() {
               <ul className="space-y-2">
                 {getEmployeeList()
                   .filter((e) =>
-                    e.employee_name.toLowerCase().includes(employeeSearch.toLowerCase())
+                    (e.employee_name || "").toLowerCase().includes(employeeSearch.toLowerCase())
                   )
                   .map((emp) => (
                     <li
@@ -698,7 +698,7 @@ function AdminView() {
               </ul>
 
               {getEmployeeList().filter((emp) =>
-                emp.employee_name.toLowerCase().includes(employeeSearch.toLowerCase())
+                (emp.employee_name || "").toLowerCase().includes(employeeSearch.toLowerCase())
               ).length === 0 && (
                 <div className="text-center text-gray-500 italic mt-10">
                   No employees found.

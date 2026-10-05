@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
+import { FaStar } from "react-icons/fa";
 import Pagination from "../../components/Pagination";
 import { useCurrentUser, useCurrentPmsEmployee } from "../../hooks/auth";
 import frappeClient from "@/utils/frappe-client";
@@ -27,8 +28,7 @@ export default function SelfEvaluationHistory() {
         const formatted = message.assessments.map((a: any) => ({
           year: a.year,
           status: a.status,
-          final_score: formatTwoDecimals(a.total_score),
-          final_comment: a.comment,
+          final_rating: a.final_rating,
         }));
 
         setRows(formatted);
@@ -93,12 +93,6 @@ export default function SelfEvaluationHistory() {
       }
   };
 
-  const formatTwoDecimals = (value: any) => {
-    if (value === null || value === undefined || value === "") return "0.00";
-    const num = Number(value);
-    return isNaN(num) ? "0.00" : num.toFixed(2);
-  };
-
   return (
     <div className="bg-white min-h-screen border rounded-lg px-6 py-4">
 
@@ -114,18 +108,16 @@ export default function SelfEvaluationHistory() {
 
           <thead className="bg-gray-100 text-xs text-gray-700">
             <tr>
-              <th className="py-3 px-2 text-left w-[10%]">Year</th>
-              <th className="py-3 px-2 text-left w-[12%]">Status</th>
-              <th className="py-3 px-2 text-left w-[10%]">Final Score</th>
-              <th className="py-3 px-2 text-left w-[48%]">Final Comment</th>
-              <th className="py-3 px-2 text-center w-[20%]">Download</th>
+              <th className="py-3 px-2 text-left w-[30%]">Year</th>
+              <th className="py-3 px-2 text-left w-[40%]">Final Rating</th>
+              <th className="py-3 px-2 text-center w-[30%]">Download</th>
             </tr>
           </thead>
 
           <tbody>
             {currentRows.length === 0 && (
               <tr>
-                <td colSpan={5} className="p-4 text-center text-gray-500">
+                <td colSpan={3}className="p-4 text-center text-gray-500">
                   No records found
                 </td>
               </tr>
@@ -137,23 +129,24 @@ export default function SelfEvaluationHistory() {
                 className="border-b hover:bg-gray-50 cursor-pointer text-xs"
                 onClick={() => handleRowClick(row)}
               >
-                <td className="px-2 py-2 w-[10%]">{row.year}</td>
+                <td className="px-2 py-2 w-[30%]">{row.year}</td>
 
-                <td className="px-2 py-2 w-[12%] truncate">
-                  {row.status}
+                <td className="px-2 py-2 w-[40%] text-left">
+                  {row.final_rating ? (
+                    <div className="flex items-center gap-0.5" title={`${row.final_rating}/5`}>
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <FaStar
+                          key={star}
+                          className={`h-3.5 w-3.5 ${star <= Math.round(row.final_rating) ? "text-amber-400" : "text-gray-200"}`}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    "-"
+                  )}
                 </td>
 
-                <td className="px-2 py-2 w-[10%] text-left">
-                  {row.final_score}
-                </td>
-
-                <td className="px-2 py-2 w-[48%]">
-                  <div className="line-clamp-2">
-                    {row.final_comment}
-                  </div>
-                </td>
-
-                <td className="px-2 py-2 w-[20%] text-center whitespace-nowrap">
+                <td className="px-2 py-2 w-[30%] text-center whitespace-nowrap">
                   <span
                     className="text-primary hover:underline cursor-pointer"
                     onClick={(e) => handleDownload(e, row, "xlsx")}

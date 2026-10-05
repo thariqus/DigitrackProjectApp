@@ -463,13 +463,21 @@ def get_employee_goals(employee_code, year):
         goal_assessment = frappe.db.get_value(
             "Goal Assessment",
             {"employee_code": employee_code, "year": year},
-            ["name", "comment"],
+            ["name", "comment", "status", "hr_comment"],
             as_dict=True
         )
         settings = frappe.get_single("PMS Settings")
         enable_goal_evaluation = settings.enable_goal_evaluation or False
         if not goal_assessment:
-            return {"goals": [], "attachments": [], "comment": "","enable_goal_evaluation": enable_goal_evaluation}
+            return {"goals": [], "attachments": [], "comment": "", "hr_comment": "", "enable_goal_evaluation": enable_goal_evaluation}
+
+        # HR can still change its comment until the appraisal cycle is closed,
+        # so only expose it once the evaluation is submitted.
+        hr_comment = (
+            goal_assessment.hr_comment or ""
+            if goal_assessment.status == "Evaluation Submitted"
+            else ""
+        )
 
         goals = frappe.db.sql("""
             SELECT 
@@ -501,6 +509,7 @@ def get_employee_goals(employee_code, year):
             "goals": goals,
             "attachments": attachments,
             "comment": goal_assessment.comment or "",
+            "hr_comment": hr_comment,
             "enable_goal_evaluation": enable_goal_evaluation
         }
 

@@ -1,6 +1,7 @@
 
 import frappe
 import json
+from frappe.utils import flt
 
 # Report columns in workflow order: (summary key, column label). Each employee
 # is counted in exactly one column, based on where their evaluation is now.
@@ -361,8 +362,18 @@ def get_self_evaluation_history(current_user=None):
                 "employee_code": employee_code,
                 "status": ["not in", ["Goal Pending", "Goal Started"]]
             },
-            fields=["name", "employee_code", "year", "status", "total_score", "comment"]
+            fields=["name", "employee_code", "year", "status", "total_score", "comment", "hr_rating"]
         )
+
+        # HR rating is the final rating, but HR can still change it until the
+        # appraisal cycle is closed, so only expose it once the evaluation is submitted.
+        # The "Rating" fieldtype stores a 0-1 fraction (5 stars = 1.0); return it on a 1-5 scale.
+        for assessment in assessments:
+            if assessment.status == "Evaluation Submitted" and assessment.hr_rating:
+                assessment.final_rating = round(flt(assessment.hr_rating) * 5, 1)
+            else:
+                assessment.final_rating = None
+            assessment.pop("hr_rating", None)
 
         return {
             "employee_code": employee_code,
