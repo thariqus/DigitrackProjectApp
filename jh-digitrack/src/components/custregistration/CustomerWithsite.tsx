@@ -27,19 +27,22 @@ import { CustomerPayload } from "../PropertyAutomation/api/CustomerApi";
 
 const FIELDS = [
   {
-    key: "customer_name",
-    label: "Customer Name",
-    icon: LuUser,
-    placeholder: "e.g. Al Maha Trading LLC",
-    required: true,
-  },
-  {
-    key: "business_name",
-    label: "Business Name",
-    icon: LuUser,
-    placeholder: "e.g. Al Maha Trading LLC",
-    required: true,
-  },
+  key: "customer_name",
+  label: "Customer Name 1",
+  icon: LuUser,
+  placeholder: "e.g. Al Maha Trading LLC",
+  required: true,
+  maxLength: 40,
+},
+
+{
+  key: "business_name",
+  label: "Business Name",
+  icon: LuUser,
+  placeholder: "e.g. Al Maha Trading LLC",
+  required: true,
+  maxLength: 40,
+},
   {
     key: "customer_type",
     label: "Customer Type",
@@ -81,7 +84,7 @@ const FIELDS = [
   },
   {
     key: "custom_area",
-    label: "Area",
+    label: "Area / Locality",
     icon: LuMapPin,
     placeholder: "e.g. Al Quoz",
     required: true,
@@ -1182,7 +1185,11 @@ function CustomerWithsite() {
                             field.key === "tr_number" ? "numeric" : undefined
                           }
                           maxLength={
-                            field.key === "tr_number" ? 15 : undefined
+                            field.key === "tr_number"
+                              ? 15
+                              : field.key === "customer_name" || field.key === "business_name"
+                                ? 40
+                                : undefined
                           }
                           required={field.required}
                           placeholder={field.placeholder}
