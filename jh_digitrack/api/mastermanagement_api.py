@@ -1,15 +1,20 @@
 import frappe
 
+import json
+
+import requests
+
+def to_int_or_none(value):
+    value = str(value or "").strip()
+    return int(value) if value.isdigit() else None
+
 # ---------------------------------------------------------------------------
 # Master Management API
 # Provides fetch endpoints for:
 # 1. Transportation Zone Codes
 # 2. Sales District Codes
 # 3. Customer Groups
-# ---------------------------------------------------------------------------
-
-
-import requests
+# ----------------------------------------------------------------------
 
 
 
@@ -45,7 +50,7 @@ def create_sap_customer(data):
         "salesOffice": data.get("sales_office"),
         "transportationZone": data.get("transportation_zone")
     }
-}
+    }
     print("the payload *****:", payload)
 
     try:
@@ -105,9 +110,9 @@ def send_customer_activation_to_sap(customer_code, company_code):
     """
 
     payload = {
-        "customer_code": customer_code,
-        "company_code": company_code,
-    }
+    "customer_code": to_int_or_none(customer_code),
+    "company_code": to_int_or_none(company_code),
+}
     
     try:
         print("SAP ACTIVATION PAYLOAD:", payload)
@@ -124,7 +129,6 @@ def send_customer_activation_to_sap(customer_code, company_code):
         )
 
         print("SAP ACTIVATION STATUS:", response.status_code)
-        print("SAP ACTIVATION RESPONSE:", response.text)
 
         try:
             sap_data = response.json()
@@ -199,10 +203,10 @@ def search_sap_customer(
     # Empty fields are ignored by SAP if its API is designed
     # to treat empty values as no filter.
     payload = {
-        "customerName": customerName,
-        "customercode": customercode,
-        "trNumber": trNumber,
-        "tradeLicense": tradeLicense,
+    "customerName": customerName,
+    "customercode": to_int_or_none(customercode),
+    "trNumber": to_int_or_none(trNumber),
+    "tradeLicense": tradeLicense,
     }
 
     print("======================================")
@@ -571,6 +575,7 @@ def get_customer_groups(search=None):
             "data": [],
         }
 
+
 # ---------------------------------------------------------------------------
 # Customer Registration
 # ---------------------------------------------------------------------------
@@ -579,6 +584,7 @@ def get_customer_groups(search=None):
 @frappe.whitelist(methods=["POST"])
 def create_customer(**kwargs):
     try:
+        cust_group = frappe.db.get_value("Customer Group", kwargs.get("customer_group"), "customer_group_name")
         duplicate = frappe.db.exists(
             "Customer Registration",
             {
@@ -591,8 +597,9 @@ def create_customer(**kwargs):
                 "area": kwargs.get("custom_area"),
                 "emirate_region": kwargs.get("custom_region"),
                 "city": kwargs.get("custom_city"),
+                "site_code": kwargs.get("site_code"),
                 "transportation_zone": kwargs.get("transportation_zone"),
-                "customer_group": kwargs.get("customer_group"),
+                "customer_group": cust_group,
                 "sales_district": kwargs.get("sales_district"),
                 "sales_office": kwargs.get("sales_office"),
             },
@@ -626,7 +633,7 @@ def create_customer(**kwargs):
             "site_code": kwargs.get("site_code"),
             "po_box": kwargs.get("po_box"),
             "transportation_zone": kwargs.get("transportation_zone"),
-            "customer_group": kwargs.get("customer_group"),
+            "customer_group": cust_group,
             "sales_district": kwargs.get("sales_district"),
             "sales_office": kwargs.get("sales_office"),
             "custom_customer_code": kwargs.get("customer_code"),
@@ -639,7 +646,7 @@ def create_customer(**kwargs):
         # =====================================================
         # SEND CUSTOMER DATA TO SAP
         # =====================================================
-
+        kwargs["customer_group"] = cust_group  # Update customer group to name for SAP
         sap_response = create_sap_customer(kwargs)
 
 
@@ -647,7 +654,6 @@ def create_customer(**kwargs):
         # SAVE SAP RESPONSE
         # =====================================================
 
-        import json
 
         doc.db_set(
             "customer_details",
@@ -661,7 +667,229 @@ def create_customer(**kwargs):
 
         frappe.db.commit()
 
-       
+        # =====================================================
+        # SEND SAVED SAP RESPONSE TO CUSTOMER MASTER API
+        # ONLY IF SITE CODE IS PROVIDED
+        # =====================================================
+
+        customer_master_response = None
+
+        if kwargs.get("site_code"):
+
+            customer_master_url = (
+                "http://store1uaejccuat.jaleel.local"
+                "/api/method/jaleel_ho.sap_outbound.customer.create_update_customer_master"
+            )
+
+            print("1")
+
+            try:
+                # Get the exact SAP response saved in customer_details
+                saved_sap_response = json.loads(doc.customer_details)
+
+                
+                print("1.5")
+                # ---------------------------------------------------------
+                # Extract SAP response
+                # ---------------------------------------------------------
+                                # ---------------------------------------------------------
+                # Extract SAP response (tolerates dict or list at each level)
+                # ---------------------------------------------------------
+                sap_response_data = saved_sap_response.get("data", {})
+
+                if isinstance(sap_response_data, list):
+                    sap_response_data = sap_response_data[0] if sap_response_data else {}
+
+                if not isinstance(sap_response_data, dict):
+                    sap_response_data = {}
+
+                sap_status = sap_response_data.get("status")
+                sap_message = sap_response_data.get("message")
+                sap_code = sap_response_data.get("code")
+
+                print("SAP STATUS:", sap_status)
+                print("SAP CODE:", sap_code)
+                print("SAP MESSAGE:", sap_message)
+
+                if sap_status == "E":
+
+                    print("SAP returned an error. Customer Master API will NOT be called.")
+
+                    customer_master_response = {
+                        "success": False,
+                        "message": sap_message,
+                        "code": sap_code,
+                        "sap_status": sap_status,
+                        "customer_master_called": False
+                    }
+
+                else:
+
+                    # ---------------------------------------------------------
+                    # Get actual customer data:
+                    #   real SAP response -> sap_response_data["data"]
+                    #   test payload      -> sap_response_data is the customer itself
+                    # ---------------------------------------------------------
+                    customer_data = sap_response_data.get("data")
+
+                    if customer_data is None and sap_response_data.get("custom_customer_code"):
+                        customer_data = sap_response_data
+
+                    if isinstance(customer_data, list):
+                        customer_data = customer_data[0] if customer_data else {}
+
+                    if not isinstance(customer_data, dict):
+
+                        customer_master_response = {
+                            "success": False,
+                            "message": "Invalid customer data in saved SAP response",
+                            "customer_master_called": False
+                        }
+
+                    else:
+
+                        # ---------------------------------------------------------
+                        # Validate customer code
+                        # ---------------------------------------------------------
+                        custom_customer_code = customer_data.get(
+                            "custom_customer_code"
+                        )
+
+                        if not custom_customer_code:
+
+                            customer_master_response = {
+                                "success": False,
+                                "message": "custom_customer_code is missing from SAP response",
+                                "customer_master_called": False
+                            }
+
+                        else:
+
+                            # ---------------------------------------------------------
+                            # Convert fields to list format expected by
+                            # create_update_customer_master()
+                            # ---------------------------------------------------------
+
+                            list_fields = [
+                                "credit_limits",
+                                "custom_customer_company",
+                                "custom_distribution_channel",
+                                "addr_list",
+                                "contact_list",
+                                "sales_team",
+                                "custom_mop"
+                            ]
+
+                            for field in list_fields:
+
+                                value = customer_data.get(field)
+
+                                if value is None:
+                                    customer_data[field] = []
+
+                                elif isinstance(value, dict):
+                                    customer_data[field] = [value]
+
+                                elif not isinstance(value, list):
+                                    customer_data[field] = []
+
+                            # ---------------------------------------------------------
+                            # Add source site
+                            # ---------------------------------------------------------
+
+                            customer_data["X-Source-Site"] = str(doc.site_code)
+
+                            # ---------------------------------------------------------
+                            # Create accepted Customer Master payload
+                            # ---------------------------------------------------------
+
+                            customer_master_payload = {
+                                "data": [
+                                    customer_data
+                                ]
+                            }
+
+                            print("CUSTOMER MASTER PAYLOAD:")
+                            print(
+                                json.dumps(
+                                    customer_master_payload,
+                                    indent=2,
+                                    ensure_ascii=False,
+                                    default=str
+                                )
+                            )
+
+                            # ---------------------------------------------------------
+                            # Call Customer Master API
+                            # ---------------------------------------------------------
+
+                            response = requests.post(
+                                customer_master_url,
+                                json=customer_master_payload,
+                                headers={
+                                    "Content-Type": "application/json",
+                                    "Accept": "application/json",
+                                },
+                                timeout=30
+                            )
+
+                            print(
+                                "CUSTOMER MASTER HTTP STATUS:",
+                                response.status_code
+                            )
+
+                            try:
+                                response_data = response.json()
+
+                            except ValueError:
+                                response_data = {
+                                    "raw_response": response.text
+                                }
+
+                            customer_master_response = {
+                                "success": response.ok,
+                                "status_code": response.status_code,
+                                "data": response_data,
+                                "customer_master_called": True
+                            }
+
+            except requests.exceptions.RequestException as e:
+
+                frappe.log_error(
+                    frappe.get_traceback(),
+                    "Customer Master API Error"
+                )
+
+                customer_master_response = {
+                    "success": False,
+                    "status_code": 500,
+                    "message": str(e),
+                    "customer_master_called": True
+                }
+
+            except Exception as e:
+
+                frappe.log_error(
+                    frappe.get_traceback(),
+                    "Customer Master Processing Error"
+                )
+
+                customer_master_response = {
+                    "success": False,
+                    "status_code": 500,
+                    "message": str(e),
+                    "customer_master_called": False
+                }
+
+        else:
+
+            customer_master_response = {
+                "success": False,
+                "message": "Site code not provided",
+                "customer_master_called": False
+            }
+
+
         # =====================================================
         # RETURN RESPONSE
         # =====================================================
@@ -671,6 +899,7 @@ def create_customer(**kwargs):
             "message": "Customer Created Successfully",
             "name": doc.name,
             "sap_response": sap_response,
+            "customer_master_response": customer_master_response
         }
 
     except Exception:
@@ -811,30 +1040,76 @@ def get_customer_list(page=1, page_size=20, search=None):
             "data": [],
         }
 
+def resolve_customer_group_code(value):
+    """
+    Accepts a Customer Group ID (hash, e.g. 'qeoqlbl4be') or a code (e.g. '13')
+    and returns the code that Customer Registration stores.
+    """
+    value = (value or "").strip()
+    if not value:
+        return ""
+
+    # Value is the Customer Group's name/ID (hash) → return its code
+    code = frappe.db.get_value("Customer Group", value, "customer_group_name")
+    if code:
+        return code
+
+    # Already a code (or unknown) → keep as-is
+    return value
+
+
+# Frontend key → Customer Registration fieldname
+CUSTOMER_UPDATE_FIELD_MAP = {
+    "customer_name": "customer_name",
+    "business_name": "business_name",
+    "tr_number": "tr_number",
+    "custom_trade_license_no": "trade_licence_number",
+    "address": "address",
+    "custom_street": "street",
+    "custom_area": "area",
+    "custom_region": "emirate_region",
+    "custom_city": "city",
+    "email_id": "email_id",
+    "po_box": "po_box",
+    "site_code": "site_code",
+    "transportation_zone": "transportation_zone",
+    "customer_group": "customer_group",
+    "sales_district": "sales_district",
+    "sales_office": "sales_office",
+    "customer_code": "custom_customer_code",
+    "company_code": "custom_company_code",
+}
 
 
 @frappe.whitelist(methods=["POST"])
 def update_customer(**kwargs):
     try:
-        doc = frappe.get_doc("Customer Registration", kwargs.get("name"))
+        name = (kwargs.get("name") or "").strip()
 
-        doc.customer_name = kwargs.get("customer_name")
-        doc.business_name = kwargs.get("business_name")
-        doc.tr_number = kwargs.get("tr_number")
-        doc.trade_licence_number = kwargs.get("custom_trade_license_no")
-        doc.address = kwargs.get("address")
-        doc.street = kwargs.get("custom_street")
-        doc.area = kwargs.get("custom_area")
-        doc.emirate_region = kwargs.get("custom_region")
-        doc.city = kwargs.get("custom_city")
-        doc.email_id = kwargs.get("email_id")
-        doc.po_box = kwargs.get("po_box")
-        doc.transportation_zone = kwargs.get("transportation_zone")
-        doc.customer_group = kwargs.get("customer_group")
-        doc.sales_district = kwargs.get("sales_district")
-        doc.sales_office = kwargs.get("sales_office")
-        doc.custom_customer_code = kwargs.get("customer_code")
-        doc.custom_company_code = kwargs.get("company_code")
+        if not name:
+            frappe.local.response["http_status_code"] = 400
+            return {
+                "status_code": 400,
+                "message": "Customer record name is required for update.",
+            }
+
+        doc = frappe.get_doc("Customer Registration", name)
+
+        # Only update fields the frontend actually sent,
+        # so fields missing from the form are not wiped out.
+        for request_key, fieldname in CUSTOMER_UPDATE_FIELD_MAP.items():
+            if request_key not in kwargs:
+                continue
+
+            value = kwargs.get(request_key)
+
+            if isinstance(value, str):
+                value = value.strip()
+
+            if request_key == "customer_group":
+                value = resolve_customer_group_code(value)
+
+            doc.set(fieldname, value)
 
         doc.save(ignore_permissions=True)
         frappe.db.commit()
@@ -843,6 +1118,13 @@ def update_customer(**kwargs):
             "status_code": 200,
             "message": "Customer Updated Successfully",
             "name": doc.name,
+        }
+
+    except frappe.DoesNotExistError:
+        frappe.local.response["http_status_code"] = 404
+        return {
+            "status_code": 404,
+            "message": f"Customer Registration '{kwargs.get('name')}' not found.",
         }
 
     except Exception:
@@ -854,9 +1136,6 @@ def update_customer(**kwargs):
         }
 
 
-# ---------------------------------------------------------------------------
-# Customer Activation (SAP)
-# ---------------------------------------------------------------------------
 
 # Emirate Master API
 # ---------------------------------------------------------------------------
@@ -923,6 +1202,41 @@ def get_emirates(search=None):
             "data": [],
         }
 
+# site code 
 
+@frappe.whitelist(methods=["GET"])
+def get_site_code(search=None):
+    try:
+        filters = {}
 
+        if search:
+            filters["site_code"] = ["like", f"%{search}%"]
 
+        data = frappe.db.get_all(
+            "Site",
+            filters=filters,
+            fields=["site_code"],
+            order_by="site_code asc",
+        )
+
+        return {
+            "status_code": 200,
+            "message": "success",
+            "count": len(data),
+            "data": data,
+        }
+
+    except Exception:
+        frappe.log_error(
+            frappe.get_traceback(),
+            "Get Site Code Error"
+        )
+
+        frappe.local.response["http_status_code"] = 500
+
+        return {
+            "status_code": 500,
+            "message": "Internal Server Error. Please contact Administrator.",
+            "count": 0,
+            "data": [],
+        }

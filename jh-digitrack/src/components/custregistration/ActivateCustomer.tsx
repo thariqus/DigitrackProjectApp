@@ -5,48 +5,309 @@ import { IoPersonAddOutline } from "react-icons/io5";
 
 import { useActivateCustomer } from "../PropertyAutomation/hooks/useCustomerApi";
 
+// =========================================================
+// SAP RESPONSE HELPERS
+// Only status "S" is success — anything else is shown as an error.
+// =========================================================
+
+const SUCCESS_STATUSES = ["S", "SUCCESS"];
+
+function parseIfJson(value) {
+  if (typeof value !== "string") return value;
+  const trimmed = value.trim();
+  if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) return value;
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    return value;
+  }
+}
+
+// Walks the response and returns the first object matching `test`.
+function findNode(node, test, depth = 0) {
+  node = parseIfJson(node);
+  if (node == null || typeof node !== "object" || depth > 8) return null;
+  if (!Array.isArray(node) && test(node)) return node;
+
+  for (const value of Object.values(node)) {
+    const found = findNode(value, test, depth + 1);
+    if (found) return found;
+  }
+  return null;
+}
+
+function findSapResult(res) {
+  // Pass 1: classic SAP single-letter status (E / S / W / A / I)
+  const strict = findNode(
+    res,
+    (n) =>
+      typeof n.status === "string" &&
+      /^[ESWAI]$/i.test(n.status.trim()) &&
+      ("code" in n || "message" in n)
+  );
+  if (strict) return strict;
+
+  // Pass 2: word status ("Error", "Success", ...) with a text message
+  return findNode(
+    res,
+    (n) =>
+      typeof n.status === "string" &&
+      n.status.trim() !== "" &&
+      isNaN(Number(n.status)) &&
+      typeof n.message === "string"
+  );
+}
+
+function checkActivationResponse(res) {
+  // Backend wraps SAP's result as: sap_response: { success, status_code, data }
+  const wrapper = findNode(res, (n) => "sap_response" in n)?.sap_response;
+  const sapCallFailed = wrapper?.success === false || res?.success === false;
+
+  const sapResult = findSapResult(wrapper ?? res);
+
+  const sapMessage =
+    (typeof sapResult?.message === "string" && sapResult.message.trim()) ||
+    sapResult?.error_details?.error_message ||
+    wrapper?.data?.error ||
+    wrapper?.data?.raw_response ||
+    "";
+
+  // SAP returned a status → only "S" is success
+  if (sapResult) {
+    const status = sapResult.status.trim().toUpperCase();
+    const isSuccess = !sapCallFailed && SUCCESS_STATUSES.includes(status);
+
+    if (!isSuccess) {
+      const kind =
+        status === "W" || status === "WARNING" ? "SAP Warning" : "SAP Error";
+
+      return {
+        ok: false,
+        title: sapResult.code ? `${kind} (${sapResult.code})` : kind,
+        message:
+          sapMessage || "SAP rejected the activation. Please try again.",
+      };
+    }
+
+    return {
+      ok: true,
+      title: "Customer Activated",
+      message: sapMessage || "Customer activated successfully.",
+    };
+  }
+
+  // No SAP status in the response
+  if (sapCallFailed) {
+    return {
+      ok: false,
+      title: "SAP Error",
+      message: sapMessage || "Unable to reach SAP. Please try again.",
+    };
+  }
+
+  return {
+    ok: true,
+    title: "Customer Activated",
+    message: sapMessage || "Customer activated successfully.",
+  };
+}
+
+// =========================================================
+// STATUS MODAL (success ✓ / error ✕) — message only
+// =========================================================
+
+function StatusModal({ open, type = "error", title, message, onClose }) {
+  const isSuccess = type === "success";
+  const stroke = isSuccess ? "#22c55e" : "#DC2626";
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-[3px] p-4"
+          onClick={onClose}
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.85, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 10 }}
+            transition={{ type: "spring", stiffness: 350, damping: 25 }}
+            onClick={(e) => e.stopPropagation()}
+            className="relative w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-2xl"
+          >
+            {/* TOP ACCENT */}
+            <div
+              className="h-1.5"
+              style={{
+                background: isSuccess
+                  ? "linear-gradient(90deg,#22c55e,#4ade80,#22c55e)"
+                  : "linear-gradient(90deg,#9A3025,#c44738,#9A3025)",
+              }}
+            />
+
+            {/* CLOSE BUTTON */}
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close"
+              className="absolute right-3 top-4 flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition-all hover:bg-gray-100 hover:text-gray-700"
+            >
+              <span className="text-xl leading-none">&times;</span>
+            </button>
+
+            {/* CONTENT */}
+            <div className="flex flex-col items-center px-8 py-8">
+              {/* ANIMATED CIRCLE + MARK */}
+              <svg viewBox="0 0 52 52" className="mb-4 h-16 w-16">
+                <motion.circle
+                  cx="26"
+                  cy="26"
+                  r="24"
+                  fill="none"
+                  stroke={stroke}
+                  strokeWidth="2.5"
+                  initial={{ pathLength: 0 }}
+                  animate={{ pathLength: 1 }}
+                  transition={{ duration: 0.45, ease: "easeOut" }}
+                />
+
+                {isSuccess ? (
+                  <motion.path
+                    d="M14.5 27l7 7 16-16"
+                    fill="none"
+                    stroke={stroke}
+                    strokeWidth="3.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    initial={{ pathLength: 0 }}
+                    animate={{ pathLength: 1 }}
+                    transition={{ duration: 0.35, delay: 0.45, ease: "easeOut" }}
+                  />
+                ) : (
+                  <>
+                    <motion.path
+                      d="M17 17 L35 35"
+                      fill="none"
+                      stroke={stroke}
+                      strokeWidth="3.5"
+                      strokeLinecap="round"
+                      initial={{ pathLength: 0 }}
+                      animate={{ pathLength: 1 }}
+                      transition={{ duration: 0.25, delay: 0.45, ease: "easeOut" }}
+                    />
+                    <motion.path
+                      d="M35 17 L17 35"
+                      fill="none"
+                      stroke={stroke}
+                      strokeWidth="3.5"
+                      strokeLinecap="round"
+                      initial={{ pathLength: 0 }}
+                      animate={{ pathLength: 1 }}
+                      transition={{ duration: 0.25, delay: 0.7, ease: "easeOut" }}
+                    />
+                  </>
+                )}
+              </svg>
+
+              {/* TITLE */}
+              <h2 className="text-center text-lg font-bold text-gray-800">
+                {title || (isSuccess ? "Success" : "Activation Failed")}
+              </h2>
+
+              {/* MESSAGE */}
+              <p className="mt-2 max-w-sm text-center text-sm leading-6 text-gray-500">
+                {message}
+              </p>
+
+              {/* DIVIDER */}
+              <div className="my-6 h-px w-full bg-gray-100" />
+
+              {/* BUTTON */}
+              <button
+                type="button"
+                onClick={onClose}
+                className={`w-full rounded-xl px-5 py-2.5 text-sm font-semibold shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0 ${
+                  isSuccess
+                    ? "bg-green-600 text-white shadow-green-600/20 hover:bg-green-700"
+                    : "bg-rose-50 border border-rose-200 text-[#9A3025] shadow-sm hover:bg-rose-100 hover:border-rose-300"
+                }`}
+              >
+                {isSuccess ? "Done" : "OK, Got It"}
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+// =========================================================
+// ACTIVATE CUSTOMER PAGE
+// =========================================================
+
+const inputClass = `
+  w-full
+  border
+  border-rose-200
+  rounded-lg
+  px-3
+  py-2
+  text-sm
+  outline-none
+  focus:border-rose-400
+  focus:ring-2
+  focus:ring-rose-100
+  hover:border-rose-300
+  transition
+`;
+
 function ActivateCustomer() {
   const outletContext = useOutletContext() ?? {};
-  const setHeaderConfig =
-    outletContext.setHeaderConfig ?? (() => {});
+  const setHeaderConfig = outletContext.setHeaderConfig ?? (() => {});
 
   // ---------------------------------------------------------
   // State
   // ---------------------------------------------------------
   const [companyCode, setCompanyCode] = useState("");
   const [customerCode, setCustomerCode] = useState("");
-  const [sapResponse, setSapResponse] = useState<any>(null);
 
-  const [errorModal, setErrorModal] = useState({
+  const [statusModal, setStatusModal] = useState({
     open: false,
+    type: "error",
+    title: "",
     message: "",
   });
 
   // ---------------------------------------------------------
   // SAP API
   // ---------------------------------------------------------
-  const {
-    mutateAsync: activateCustomer,
-    isPending,
-  } = useActivateCustomer();
+  const { mutateAsync: activateCustomer, isPending } = useActivateCustomer();
 
   // ---------------------------------------------------------
   // Header
   // ---------------------------------------------------------
   useEffect(() => {
-    setHeaderConfig({
-      title: "",
-    });
+    setHeaderConfig({ title: "" });
   }, [setHeaderConfig]);
+
+  // ---------------------------------------------------------
+  // Reset
+  // ---------------------------------------------------------
+  const handleReset = () => {
+    setCompanyCode("");
+    setCustomerCode("");
+  };
 
   // ---------------------------------------------------------
   // Activate Customer
   // ---------------------------------------------------------
   const handleActivate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
-    // Clear previous SAP response before making a new request
-    setSapResponse(null);
 
     try {
       const result = await activateCustomer({
@@ -56,27 +317,41 @@ function ActivateCustomer() {
 
       console.log("Activate Customer Response:", result);
 
-      // Store whatever SAP returns
-      setSapResponse(result);
+      const outcome = checkActivationResponse(result);
 
-    } catch (error) {
+      setStatusModal({
+        open: true,
+        type: outcome.ok ? "success" : "error",
+        title: outcome.title,
+        message: outcome.message,
+      });
+    } catch (error: any) {
       console.error("Activate Customer Error:", error);
 
-      setErrorModal({
+      // Backend may return a readable message even on 4xx/5xx
+      const body = error?.response?.data ?? error?.data;
+      const backendMessage =
+        body?.message?.message || body?.message || error?.message;
+
+      setStatusModal({
         open: true,
+        type: "error",
+        title: "Activation Failed",
         message:
-          "Unable to activate customer. Please try again.",
+          typeof backendMessage === "string" && backendMessage.trim()
+            ? backendMessage
+            : "Unable to activate customer. Please try again.",
       });
     }
   };
 
-  // ---------------------------------------------------------
-  // Reset
-  // ---------------------------------------------------------
-  const handleReset = () => {
-    setCompanyCode("");
-    setCustomerCode("");
-    setSapResponse(null);
+  const closeStatusModal = () => {
+    const wasSuccess = statusModal.type === "success";
+
+    setStatusModal({ open: false, type: "error", title: "", message: "" });
+
+    // Start fresh after a successful activation; keep values after an error
+    if (wasSuccess) handleReset();
   };
 
   // ---------------------------------------------------------
@@ -84,162 +359,83 @@ function ActivateCustomer() {
   // ---------------------------------------------------------
   return (
     <div className="w-full">
-
       {/* =====================================================
           PAGE HEADING
       ===================================================== */}
       <div className="flex items-center justify-between mb-3">
-
-        <h2
-          className="text-sm font-semibold"
-          style={{ color: "#9A3025" }}
-        >
+        <h2 className="text-sm font-semibold text-[#9A3025]">
           Activate Customer
         </h2>
-
       </div>
 
       {/* =====================================================
           ACTIVATION CARD
       ===================================================== */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-md overflow-hidden">
-
-        {/* ===================================================
-            CARD HEADER
-        =================================================== */}
-        <div className="bg-[#9A3025] px-5 py-4 text-white">
-
+      <div className="bg-white rounded-xl border border-rose-200 shadow-md overflow-hidden">
+        {/* CARD HEADER */}
+        <div className="bg-rose-50 border-b border-rose-200 px-5 py-4 text-[#9A3025]">
           <div className="flex items-center gap-3">
-
-            {/* Icon */}
-            <div className="w-10 h-10 rounded-lg bg-white/15 flex items-center justify-center">
-
+            <div className="w-10 h-10 rounded-lg bg-white flex items-center justify-center shadow-sm">
               <IoPersonAddOutline className="text-xl" />
-
             </div>
 
-            {/* Header Text */}
             <div>
-
-              <h2 className="text-lg font-semibold">
-                Activate Customer
-              </h2>
-
-              <p className="text-xs text-white/80">
-                Enter the company code and customer code
-                to activate the customer.
+              <h2 className="text-lg font-semibold">Activate Customer</h2>
+              <p className="text-xs text-gray-500">
+                Enter the company code and customer code to activate the
+                customer.
               </p>
-
             </div>
-
           </div>
-
         </div>
 
-        {/* ===================================================
-            FORM
-        =================================================== */}
+        {/* FORM */}
         <form onSubmit={handleActivate}>
-
           <div className="p-5">
-
-            {/* =================================================
-                INPUTS
-            ================================================= */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-              {/* =================================================
-                  COMPANY CODE
-              ================================================= */}
+              {/* COMPANY CODE */}
               <div>
-
                 <label className="block text-xs font-semibold text-gray-600 mb-1">
-
                   Company Code
-
-                  <span className="text-[#9A3025] ml-1">
-                    *
-                  </span>
-
+                  <span className="text-[#9A3025] ml-1">*</span>
                 </label>
 
                 <input
                   type="text"
+                  inputMode="numeric"
                   required
                   value={companyCode}
                   onChange={(e) =>
-                    setCompanyCode(e.target.value)
+                    setCompanyCode(e.target.value.replace(/\D/g, ""))
                   }
-                  placeholder="e.g. JALEEL01"
-                  className="
-                    w-full
-                    border
-                    border-gray-300
-                    rounded-lg
-                    px-3
-                    py-2
-                    text-sm
-                    outline-none
-                    focus:border-[#9A3025]
-                    focus:ring-2
-                    focus:ring-[#9A3025]/10
-                    transition
-                  "
+                  placeholder="e.g. 2100"
+                  className={inputClass}
                 />
-
               </div>
 
-              {/* =================================================
-                  CUSTOMER CODE
-              ================================================= */}
+              {/* CUSTOMER CODE */}
               <div>
-
                 <label className="block text-xs font-semibold text-gray-600 mb-1">
-
                   Customer Code
-
-                  <span className="text-[#9A3025] ml-1">
-                    *
-                  </span>
-
+                  <span className="text-[#9A3025] ml-1">*</span>
                 </label>
 
                 <input
                   type="text"
+                  inputMode="numeric"
                   required
                   value={customerCode}
                   onChange={(e) =>
-                    setCustomerCode(e.target.value)
+                    setCustomerCode(e.target.value.replace(/\D/g, ""))
                   }
-                  placeholder="e.g. CUST001"
-                  className="
-                    w-full
-                    border
-                    border-gray-300
-                    rounded-lg
-                    px-3
-                    py-2
-                    text-sm
-                    outline-none
-                    focus:border-[#9A3025]
-                    focus:ring-2
-                    focus:ring-[#9A3025]/10
-                    transition
-                  "
+                  placeholder="e.g. 1038432"
+                  className={inputClass}
                 />
-
               </div>
-
             </div>
 
-            {/* =================================================
-                BUTTONS
-            ================================================= */}
-            <div className="flex items-center gap-2 mt-5 pt-4 border-t border-gray-200">
-
-              {/* =================================================
-                  ACTIVATE BUTTON
-              ================================================= */}
+            {/* BUTTONS */}
+            <div className="flex items-center gap-2 mt-5 pt-4 border-t border-rose-100">
               <button
                 type="submit"
                 disabled={isPending}
@@ -247,299 +443,64 @@ function ActivateCustomer() {
                   flex
                   items-center
                   gap-2
-                  bg-[#9A3025]
-                  hover:bg-[#7A251F]
+                  bg-rose-50
+                  border
+                  border-rose-200
+                  text-[#9A3025]
+                  hover:bg-rose-100
+                  hover:border-rose-300
                   disabled:opacity-50
                   disabled:cursor-not-allowed
-                  text-white
                   px-5
                   py-2
-                  rounded-md
+                  rounded-lg
                   text-xs
                   font-semibold
-                  shadow
+                  shadow-sm
                   transition
                 "
               >
-
                 <IoPersonAddOutline />
-
-                {isPending
-                  ? "Activating..."
-                  : "Activate Customer"}
-
+                {isPending ? "Activating..." : "Activate Customer"}
               </button>
 
-              {/* =================================================
-                  RESET BUTTON
-              ================================================= */}
               <button
                 type="button"
                 onClick={handleReset}
+                disabled={isPending}
                 className="
                   px-5
                   py-2
-                  rounded-md
+                  rounded-lg
                   border
-                  border-gray-300
+                  border-rose-200
                   text-gray-600
-                  hover:bg-gray-50
+                  hover:bg-rose-50
+                  hover:border-rose-300
                   text-xs
                   font-medium
                   transition
+                  disabled:opacity-50
+                  disabled:cursor-not-allowed
                 "
               >
                 Reset
               </button>
-
             </div>
-
           </div>
-
         </form>
-
       </div>
 
       {/* =====================================================
-          SAP RESPONSE
+          STATUS MODAL (message only)
       ===================================================== */}
-      {sapResponse !== null && (
-
-        <div className="mt-4 bg-white rounded-xl border border-gray-200 shadow-md overflow-hidden">
-
-          {/* =================================================
-              RESPONSE HEADER
-          ================================================= */}
-          <div className="bg-[#9A3025] px-5 py-4 text-white">
-
-            <h2 className="text-sm font-semibold">
-              SAP Response
-            </h2>
-
-            <p className="text-xs text-white/80 mt-1">
-              Response received from SAP
-            </p>
-
-          </div>
-
-          {/* =================================================
-              RESPONSE CONTENT
-          ================================================= */}
-          <div className="p-5">
-
-            <div
-              className="
-                max-h-[400px]
-                overflow-auto
-                rounded-lg
-                border
-                border-gray-200
-                bg-gray-50
-                p-4
-              "
-            >
-
-              <pre
-                className="
-                  text-xs
-                  text-gray-800
-                  whitespace-pre-wrap
-                  break-words
-                  font-mono
-                "
-              >
-                {typeof sapResponse === "string"
-                  ? sapResponse
-                  : JSON.stringify(sapResponse, null, 2)}
-              </pre>
-
-            </div>
-
-          </div>
-
-        </div>
-
-      )}
-
-      {/* =====================================================
-          ERROR MODAL
-      ===================================================== */}
-      <AnimatePresence>
-
-        {errorModal.open && (
-
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="
-              fixed
-              inset-0
-              z-50
-              flex
-              items-center
-              justify-center
-              bg-black/40
-              backdrop-blur-sm
-            "
-            onClick={() =>
-              setErrorModal({
-                open: false,
-                message: "",
-              })
-            }
-          >
-
-            <motion.div
-              initial={{
-                opacity: 0,
-                scale: 0.85,
-                y: 12,
-              }}
-              animate={{
-                opacity: 1,
-                scale: 1,
-                y: 0,
-              }}
-              exit={{
-                opacity: 0,
-                scale: 0.9,
-                y: 8,
-              }}
-              transition={{
-                duration: 0.25,
-                ease: "easeOut",
-              }}
-              onClick={(e) =>
-                e.stopPropagation()
-              }
-              className="
-                bg-white
-                rounded-2xl
-                shadow-xl
-                px-8
-                py-8
-                flex
-                flex-col
-                items-center
-                max-w-xs
-                w-full
-                mx-4
-              "
-            >
-
-              {/* =================================================
-                  ERROR ICON
-              ================================================= */}
-              <svg
-                viewBox="0 0 52 52"
-                className="w-16 h-16 mb-4"
-              >
-
-                {/* Circle */}
-                <motion.circle
-                  cx="26"
-                  cy="26"
-                  r="24"
-                  fill="none"
-                  stroke="#9A3025"
-                  strokeWidth="2.5"
-                  initial={{
-                    pathLength: 0,
-                  }}
-                  animate={{
-                    pathLength: 1,
-                  }}
-                  transition={{
-                    duration: 0.45,
-                    ease: "easeOut",
-                  }}
-                />
-
-                {/* X */}
-                <motion.path
-                  d="M18 18l16 16"
-                  fill="none"
-                  stroke="#9A3025"
-                  strokeWidth="3.5"
-                  strokeLinecap="round"
-                  initial={{
-                    pathLength: 0,
-                  }}
-                  animate={{
-                    pathLength: 1,
-                  }}
-                  transition={{
-                    duration: 0.25,
-                    delay: 0.45,
-                    ease: "easeOut",
-                  }}
-                />
-
-                {/* X */}
-                <motion.path
-                  d="M34 18l-16 16"
-                  fill="none"
-                  stroke="#9A3025"
-                  strokeWidth="3.5"
-                  strokeLinecap="round"
-                  initial={{
-                    pathLength: 0,
-                  }}
-                  animate={{
-                    pathLength: 1,
-                  }}
-                  transition={{
-                    duration: 0.25,
-                    delay: 0.7,
-                    ease: "easeOut",
-                  }}
-                />
-
-              </svg>
-
-              {/* =================================================
-                  ERROR MESSAGE
-              ================================================= */}
-              <p className="text-sm font-semibold text-gray-800 text-center">
-                {errorModal.message}
-              </p>
-
-              {/* =================================================
-                  OK BUTTON
-              ================================================= */}
-              <button
-                type="button"
-                onClick={() =>
-                  setErrorModal({
-                    open: false,
-                    message: "",
-                  })
-                }
-                className="
-                  mt-5
-                  px-6
-                  py-2
-                  rounded-lg
-                  bg-[#9A3025]
-                  hover:bg-[#7A251F]
-                  text-white
-                  text-xs
-                  font-semibold
-                  transition-colors
-                "
-              >
-                OK
-              </button>
-
-            </motion.div>
-
-          </motion.div>
-
-        )}
-
-      </AnimatePresence>
-
+      <StatusModal
+        open={statusModal.open}
+        type={statusModal.type}
+        title={statusModal.title}
+        message={statusModal.message}
+        onClose={closeStatusModal}
+      />
     </div>
   );
 }
