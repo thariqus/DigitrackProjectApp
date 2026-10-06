@@ -1,7 +1,7 @@
 
 import frappe
 import json
-from frappe.utils import flt
+from frappe.utils import cint, flt
 
 # Report columns in workflow order: (summary key, column label). Each employee
 # is counted in exactly one column, based on where their evaluation is now.
@@ -90,6 +90,30 @@ def _summarize_employee_statuses(employees, year):
         summary[key] = len(summary[f"{key}_employees"])
 
     return summary
+
+
+def _get_not_participating_employees(manager_code):
+    """Active employees under the manager who are excluded from PMS (pms_employee = 0)."""
+    pms_emp = frappe.qb.DocType("PMS Employees")
+    user_master = frappe.qb.DocType("JH User Master")
+    return (
+        frappe.qb.from_(pms_emp)
+        .join(user_master)
+        .on(user_master.employee_code == pms_emp.employee_code)
+        .select(
+            pms_emp.employee_code,
+            pms_emp.full_name.as_("employee_name"),
+            pms_emp.pms_employee,
+            pms_emp.yearly_appraisal_employee,
+        )
+        .distinct()
+        .where(
+            (pms_emp.manager_code == manager_code)
+            & (pms_emp.pms_employee == 0)
+            & (user_master.active == 1)
+        )
+        .run(as_dict=True)
+    )
 
 
 @frappe.whitelist(methods=["GET"])
@@ -303,6 +327,7 @@ def get_goal_assessment_summary_admin(year=None, manager=None):
                     filters={"manager_code": mgr_code, "pms_employee": 1},
                     fields=["employee_code", "full_name as employee_name"]
                 )
+                not_participating = _get_not_participating_employees(mgr_code)
 
                 summary = {
                     "manager_email": mgr_email,
@@ -311,6 +336,8 @@ def get_goal_assessment_summary_admin(year=None, manager=None):
                     "department": department,
                     "employee_count": len(employees),
                     "employees_under_manager": employees,
+                    "not_participating": len(not_participating),
+                    "not_participating_employees": not_participating,
                 }
                 summary.update(_summarize_employee_statuses(employees, year))
 
@@ -333,6 +360,46 @@ def get_goal_assessment_summary_admin(year=None, manager=None):
     except Exception as e:
         frappe.log_error(frappe.get_traceback(), "get_goal_assessment_summary_admin_error")
         return {"error": str(e)}
+
+
+@frappe.whitelist(methods=["POST"])
+def update_pms_participation(updates):
+    """Set pms_employee / yearly_appraisal_employee for employees from the admin report.
+
+    updates: list of {employee_code, pms_employee, yearly_appraisal_employee}.
+    The session user may only change employees whose manager is in one of the
+    cost centers they administer (PMS Admin Access List), same scope as the report.
+    """
+    if isinstance(updates, str):
+        updates = json.loads(updates)
+    if not updates:
+        frappe.throw("Nothing to update")
+
+    admin_code = frappe.db.get_value("JH User Master", {"email": frappe.session.user}, "employee_code")
+    cost_centers = frappe.get_all(
+        "PMS Admin Access List", filters={"admin_emp_id": admin_code}, pluck="cost_center"
+    ) if admin_code else []
+    if not cost_centers:
+        frappe.throw("You do not have PMS admin access", frappe.PermissionError)
+
+    allowed_managers = set(frappe.get_all(
+        "PMS Employees",
+        filters={"cost_center_name": ["in", cost_centers], "pms_manager": 1},
+        pluck="employee_code",
+    ))
+
+    for row in updates:
+        employee_code = row.get("employee_code")
+        manager_code = frappe.db.get_value("PMS Employees", employee_code, "manager_code")
+        if manager_code not in allowed_managers:
+            frappe.throw(f"You cannot update employee {employee_code}", frappe.PermissionError)
+
+        frappe.db.set_value("PMS Employees", employee_code, {
+            "pms_employee": cint(row.get("pms_employee")),
+            "yearly_appraisal_employee": cint(row.get("yearly_appraisal_employee")),
+        })
+
+    return {"updated": len(updates)}
 
 
 @frappe.whitelist(methods=["GET"])

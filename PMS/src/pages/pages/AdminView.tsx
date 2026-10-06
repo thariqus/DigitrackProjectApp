@@ -7,11 +7,17 @@ import Pagination from "../../components/Pagination";
 import { useCurrentUser } from "../../hooks/auth";
 import frappeClient from "@/utils/frappe-client";
 import { BsGraphDown } from "react-icons/bs";
+import { toast } from "sonner";
 
 interface EmployeeSummary {
   employee_code: string;
   employee_name: string;
+  // Only present on not_participating_employees
+  pms_employee?: number;
+  yearly_appraisal_employee?: number;
 }
+
+type ParticipationFlags = Pick<EmployeeSummary, "pms_employee" | "yearly_appraisal_employee">;
 
 interface ManagerSummary {
   manager_email: string;
@@ -19,6 +25,9 @@ interface ManagerSummary {
   manager_code: string;
   department?: string;
   employee_count: number;
+
+  not_participating: number;
+  not_participating_employees: EmployeeSummary[];
 
   // goals_pending: number;
   // goals_pending_employees: EmployeeSummary[];
@@ -71,6 +80,10 @@ function AdminView() {
   const [selectedModalManager, setSelectedModalManager] =
     useState<ManagerSummary | null>(null);
   const [employeeSearch, setEmployeeSearch] = useState("");
+  // Checkbox state for the Not Participating modal, keyed by employee_code
+  const [participation, setParticipation] = useState<Record<string, ParticipationFlags>>({});
+  const [savingParticipation, setSavingParticipation] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   const dropdownRef = useRef<HTMLDivElement | null>(null);
 
@@ -126,6 +139,8 @@ function AdminView() {
           ...m,
           department: m.department || "Unknown",
           employees_under_manager: m.employees_under_manager || [],
+          not_participating: m.not_participating || 0,
+          not_participating_employees: m.not_participating_employees || [],
           goals_pending_employees: m.goals_pending_employees || [],
           goals_started_employees: m.goals_started_employees || [],
           goals_submitted_employees: m.goals_submitted_employees || [],
@@ -150,7 +165,7 @@ function AdminView() {
     };
 
     fetchData();
-  }, [currentUser]); 
+  }, [currentUser, reloadKey]);
   useEffect(() => {
     if (!selectedYear) return;
 
@@ -276,7 +291,59 @@ function AdminView() {
     setSelectedModalManager(manager);
     setModalType(type);
     setEmployeeSearch("");
+    if (type === "not_participating") {
+      setParticipation(
+        Object.fromEntries(
+          manager.not_participating_employees.map((e) => [
+            e.employee_code,
+            { pms_employee: e.pms_employee || 0, yearly_appraisal_employee: e.yearly_appraisal_employee || 0 },
+          ])
+        )
+      );
+    }
     setOpenModal(true);
+  };
+
+  const toggleParticipation = (empCode: string, field: keyof ParticipationFlags) => {
+    setParticipation((prev) => ({
+      ...prev,
+      [empCode]: { ...prev[empCode], [field]: prev[empCode]?.[field] ? 0 : 1 },
+    }));
+  };
+
+  const handleSaveParticipation = async () => {
+    if (!selectedModalManager) return;
+
+    const updates = selectedModalManager.not_participating_employees
+      .filter((e) => {
+        const flags = participation[e.employee_code];
+        return (
+          flags &&
+          (flags.pms_employee !== (e.pms_employee || 0) ||
+            flags.yearly_appraisal_employee !== (e.yearly_appraisal_employee || 0))
+        );
+      })
+      .map((e) => ({ employee_code: e.employee_code, ...participation[e.employee_code] }));
+
+    if (updates.length === 0) {
+      toast.info("No changes to save.");
+      return;
+    }
+
+    try {
+      setSavingParticipation(true);
+      const res = await frappeClient.api.post("jh_digitrack.api.pms_report.update_pms_participation", { updates });
+      // frappe-client's interceptor already toasts server errors and resolves with undefined
+      if (!res?.message) return;
+      toast.success(`Saved ${res.message.updated} ${res.message.updated === 1 ? "employee" : "employees"}.`);
+      setOpenModal(false);
+      setReloadKey((k) => k + 1);
+    } catch (err) {
+      console.error("Failed to update PMS participation", err);
+      toast.error("Failed to save. Please contact admin.");
+    } finally {
+      setSavingParticipation(false);
+    }
   };
 
   const getEmployeeList = (): EmployeeSummary[] => {
@@ -551,6 +618,7 @@ function AdminView() {
             <tr>
               <th className="py-3 px-1 text-left">Manager Name</th>
               <th className="py-3 px-1">No. of Employees</th>
+              <th className="py-3 px-1">Not Participating</th>
               {/* <th className="py-3 px-1">Goals Pending</th> */}
               <th className="py-3 px-1">Goals Started</th>
               <th className="py-3 px-1">Goals Submitted</th>
@@ -576,6 +644,9 @@ function AdminView() {
                 </td>
                 <td className="px-1 py-2">
                   {renderCountCell(manager.employee_count, manager, "employees")}
+                </td>
+                <td className="px-1 py-2">
+                  {renderCountCell(manager.not_participating, manager, "not_participating")}
                 </td>
                 {/* <td className="px-1 py-2">
                   {renderCountCell(manager.goals_pending, manager, "goals_pending")}
@@ -643,10 +714,16 @@ function AdminView() {
           <div className="bg-white rounded-xl shadow-lg w-[550px] mt-25 max-w-full h-[80vh] flex flex-col z-50 overflow-hidden">
             <div className="flex justify-between items-center border-b px-5 py-4">
               <h2 className=" font-semibold text-xs text-primary">{selectedModalManager.manager_name}</h2>
-              <div className="text-primary text-xs"> Total Number of Employees: {selectedModalManager.employee_count}</div>
-              <button onClick={() => setOpenModal(false)} className="text-gray-500 hover:text-black">
-                <IoMdClose className="text-md" />
-              </button>
+              <div className="ml-auto flex items-center gap-4">
+                <div className="text-primary text-xs">
+                  {modalType === "not_participating"
+                    ? `Total No. of Not Participating Employees: ${selectedModalManager.not_participating}`
+                    : `Total Number of Employees: ${selectedModalManager.employee_count}`}
+                </div>
+                <button onClick={() => setOpenModal(false)} className="text-gray-500 hover:text-black">
+                  <IoMdClose className="text-md" />
+                </button>
+              </div>
             </div>
 
             <div className="p-4 overflow-y-auto">
@@ -693,6 +770,29 @@ function AdminView() {
                       <span>
                         {emp.employee_name} ({emp.employee_code})
                       </span>
+
+                      {modalType === "not_participating" && (
+                        <div className="ml-auto flex items-center gap-4 shrink-0">
+                          <label className="flex items-center gap-1 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              className="accent-primary"
+                              checked={!!participation[emp.employee_code]?.yearly_appraisal_employee}
+                              onChange={() => toggleParticipation(emp.employee_code, "yearly_appraisal_employee")}
+                            />
+                            <span className="text-[0.65rem]">Yearly Appraisal</span>
+                          </label>
+                          <label className="flex items-center gap-1 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              className="accent-primary"
+                              checked={!!participation[emp.employee_code]?.pms_employee}
+                              onChange={() => toggleParticipation(emp.employee_code, "pms_employee")}
+                            />
+                            <span className="text-[0.65rem]">PMS Employee</span>
+                          </label>
+                        </div>
+                      )}
                     </li>
                   ))}
               </ul>
@@ -705,6 +805,18 @@ function AdminView() {
                 </div>
               )}
             </div>
+
+            {modalType === "not_participating" && (
+              <div className="mt-auto border-t px-5 py-3 flex justify-end">
+                <button
+                  onClick={handleSaveParticipation}
+                  disabled={savingParticipation}
+                  className="px-4 py-2 text-[0.65rem] bg-primary text-white rounded-md hover:bg-[#7d241f] disabled:opacity-60"
+                >
+                  {savingParticipation ? "Saving..." : "Save"}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

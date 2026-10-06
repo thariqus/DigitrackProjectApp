@@ -64,12 +64,17 @@ def download_excel(year=None, manager=None, view_type="team"):
         ws = wb.active
         ws.title = f"PMS Summary Report - {year}"
 
+        # Only the admin summary computes the not-participating count
+        show_not_participating = view_type == "admin"
+
         sheet1_headers = [
             "Year",
             "Manager Name",
             "Status",
             "No. of Employees",
-        ] + [label for _key, label in STATUS_BUCKETS]
+        ] + (["Not Participating"] if show_not_participating else []) + [
+            label for _key, label in STATUS_BUCKETS
+        ]
 
         ws.append(sheet1_headers)
 
@@ -94,7 +99,9 @@ def download_excel(year=None, manager=None, view_type="team"):
                 row.get("manager_name"),
                 status,
                 row.get("employee_count"),
-            ] + [row.get(key) or 0 for key, _label in STATUS_BUCKETS])
+            ] + ([row.get("not_participating") or 0] if show_not_participating else []) + [
+                row.get(key) or 0 for key, _label in STATUS_BUCKETS
+            ])
 
         # Auto width
         for i, col in enumerate(ws.columns, 1):
