@@ -379,14 +379,14 @@ function Reports() {
               <th>Employees</th>
               <th>Goals Started</th>
               <th>Goals Submitted</th>
-              <th>RPT Manager Started</th>
-              <th>RPT Manager Submitted</th>
-              <th>FM Manager Started</th>
-              <th>FM Manager Submitted</th>
-              <th>SM Manager Started</th>
-              <th>SM Manager Submitted</th>
-              <th>Eval Started</th>
-              <th>Eval Submitted</th>
+              <th>RPT MNGR Started</th>
+              <th>RPT MNGR Submitted</th>
+              <th>FM MNGR Started</th>
+              <th>FM MNGR Submitted</th>
+              <th>SM MNGR Started</th>
+              <th>SM MNGR Submitted</th>
+              <th>HR Started</th>
+              <th>HR Submitted</th>
             </tr>
           </thead>
           <tbody>
