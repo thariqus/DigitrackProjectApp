@@ -109,7 +109,7 @@ export default function SelfEvaluationHistory() {
           <thead className="bg-gray-100 text-xs text-gray-700">
             <tr>
               <th className="py-3 px-2 text-left w-[30%]">Year</th>
-              <th className="py-3 px-2 text-left w-[40%]">Final Rating</th>
+              <th className="py-3 px-2 text-left w-[70%]">Final Rating</th>
               {/* <th className="py-3 px-2 text-center w-[30%]">Download</th> */}
             </tr>
           </thead>
@@ -117,7 +117,7 @@ export default function SelfEvaluationHistory() {
           <tbody>
             {currentRows.length === 0 && (
               <tr>
-                <td colSpan={3}className="p-4 text-center text-gray-500">
+                <td colSpan={2}className="p-4 text-center text-gray-500">
                   No records found
                 </td>
               </tr>
@@ -131,7 +131,7 @@ export default function SelfEvaluationHistory() {
               >
                 <td className="px-2 py-2 w-[30%]">{row.year}</td>
 
-                <td className="px-2 py-2 w-[40%] text-left">
+                <td className="px-2 py-2 w-[70%] text-left">
                   {row.final_rating ? (
                     <div className="flex items-center gap-0.5" title={`${row.final_rating}/5`}>
                       {[1, 2, 3, 4, 5].map((star) => (
