@@ -612,7 +612,13 @@ function ManagerYearlySubmission() {
                   (emp.functional_manager_rating || 0) > 0;
                 const hasSkipLevelReview =
                   !!(emp.skip_level_manager_comment && emp.skip_level_manager_comment.trim()) ||
-                  (emp.skip_level_manager_rating || 0) > 0;
+                  (emp.skip_level_manager_rating || 0) > 0; 
+                const hasHRReview =
+                  emp.status === "Evaluation Submitted" &&
+                  (
+                    !!(emp.hr_comment && emp.hr_comment.trim()) ||
+                    (emp.hr_rating || 0) > 0
+                  );                                  
 
                 return (
                   <tr key={rowKey} className="border-b text-xs align-top transition">
@@ -664,6 +670,16 @@ function ManagerYearlySubmission() {
                                 }
                               : undefined
                           }
+                          hr={
+                            hasHRReview
+                              ? {
+                                  rating: emp.hr_rating || 0,
+                                  comment: emp.hr_comment || "",
+                                  submittedByName: emp.hr_submitted_by || "HR",
+                                  submittedOn: emp.hr_submitted_on,
+                                }
+                              : undefined
+                          }                          
                         />
                       ) : (
                         <div className="flex w-full flex-col divide-y divide-gray-100 rounded-xl border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md">

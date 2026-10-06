@@ -623,14 +623,14 @@ function AdminView() {
               <th className="py-3 px-1">Goals Started</th>
               <th className="py-3 px-1">Goals Submitted</th>
               {/* <th className="py-3 px-1">Evaluation Pending</th> */}
-              <th className="py-3 px-1">RPT Manager Started</th>
-              <th className="py-3 px-1">RPT Manager Submitted</th>
-              <th className="py-3 px-1">FM Manager Started</th>
-              <th className="py-3 px-1">FM Manager Submitted</th>
-              <th className="py-3 px-1">SM Manager Started</th>
-              <th className="py-3 px-1">SM Manager Submitted</th>
-              <th className="py-3 px-1">Evaluation Started</th>
-              <th className="py-3 px-1">Evaluation Submitted</th>
+              <th className="py-3 px-1">RPT MNGR Started</th>
+              <th className="py-3 px-1">RPT MNGR Submitted</th>
+              <th className="py-3 px-1">FM MNGR Started</th>
+              <th className="py-3 px-1">FM MNGR Submitted</th>
+              <th className="py-3 px-1">SM MNGR Started</th>
+              <th className="py-3 px-1">SM MNGR Submitted</th>
+              <th className="py-3 px-1">HR Started</th>
+              <th className="py-3 px-1">HR Submitted</th>
             </tr>
           </thead>
           <tbody>
