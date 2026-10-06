@@ -29,7 +29,7 @@ export interface ManagerReviewAttachment {
   file_name: string;
 }
 
-export type ReviewStage = "manager" | "functional" | "skip_level";
+export type ReviewStage = "manager" | "functional" | "skip_level"| "hr";
 
 const STAGE_CONFIG: Record<
   ReviewStage,
@@ -62,6 +62,15 @@ const STAGE_CONFIG: Record<
     avatarBg: "bg-amber-100",
     avatarText: "text-amber-600",
   },
+   hr: {
+    label: "HR Review",
+    icon: IoPersonOutline,
+    border: "border-l-rose-400",
+    badgeBg: "bg-rose-50",
+    badgeText: "text-rose-600",
+    avatarBg: "bg-rose-100",
+    avatarText: "text-rose-600",
+  }, 
 };
 
 export interface StageReviewData {
@@ -102,11 +111,13 @@ export function StageReviewCard({
   manager,
   functional,
   skipLevel,
+  hr,
   truncateComment = false,
 }: {
   manager: ManagerStageReviewData;
   functional?: StageReviewData;
   skipLevel?: StageReviewData;
+  hr?: StageReviewData;
   truncateComment?: boolean;
 }) {
   const rows: { stage: ReviewStage; data: StageReviewData }[] = [
@@ -114,6 +125,7 @@ export function StageReviewCard({
   ];
   if (functional) rows.push({ stage: "functional", data: functional });
   if (skipLevel) rows.push({ stage: "skip_level", data: skipLevel });
+  if (hr) rows.push({ stage: "hr", data: hr });
 
   return (
     <div className="flex w-full flex-col overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
