@@ -616,21 +616,57 @@ function AdminView() {
         <table className="w-full text-center text-sm">
           <thead className="bg-gray-100 text-xs text-gray-700">
             <tr>
-              <th className="py-3 px-1 text-left">Manager Name</th>
-              <th className="py-3 px-1">No. of Employees</th>
-              <th className="py-3 px-1">Not Participating</th>
-              {/* <th className="py-3 px-1">Goals Pending</th> */}
-              <th className="py-3 px-1">Goals Started</th>
-              <th className="py-3 px-1">Goals Submitted</th>
-              {/* <th className="py-3 px-1">Evaluation Pending</th> */}
-              <th className="py-3 px-1">RPT MNGR Started</th>
-              <th className="py-3 px-1">RPT MNGR Submitted</th>
-              <th className="py-3 px-1">FM MNGR Started</th>
-              <th className="py-3 px-1">FM MNGR Submitted</th>
-              <th className="py-3 px-1">SM MNGR Started</th>
-              <th className="py-3 px-1">SM MNGR Submitted</th>
-              <th className="py-3 px-1">HR Started</th>
-              <th className="py-3 px-1">HR Submitted</th>
+            <th className="py-3 px-1 text-left whitespace-nowrap leading-tight">
+              Manager<br />Name
+            </th>
+
+            <th className="py-3 px-1 whitespace-nowrap leading-tight">
+              No. of<br />Employees
+            </th>
+
+            <th className="py-3 px-1 whitespace-nowrap leading-tight">
+              Not<br />Participating
+            </th>
+
+            <th className="py-3 px-1 whitespace-nowrap leading-tight">
+              Goals<br />Started
+            </th>
+
+            <th className="py-3 px-1 whitespace-nowrap leading-tight">
+              Goals<br />Submitted
+            </th>
+
+            <th className="py-3 px-1 whitespace-nowrap leading-tight">
+              RPT MNGR<br />Started
+            </th>
+
+            <th className="py-3 px-1 whitespace-nowrap leading-tight">
+              RPT MNGR<br />Submitted
+            </th>
+
+            <th className="py-3 px-1 whitespace-nowrap leading-tight">
+              FM MNGR<br />Started
+            </th>
+
+            <th className="py-3 px-1 whitespace-nowrap leading-tight">
+              FM MNGR<br />Submitted
+            </th>
+
+            <th className="py-3 px-1 whitespace-nowrap leading-tight">
+              SM MNGR<br />Started
+            </th>
+
+            <th className="py-3 px-1 whitespace-nowrap leading-tight">
+              SM MNGR<br />Submitted
+            </th>
+
+            <th className="py-3 px-1 whitespace-nowrap leading-tight">
+              HR<br />Started
+            </th>
+
+            <th className="py-3 px-1 whitespace-nowrap leading-tight">
+              HR<br />Submitted
+            </th>              
             </tr>
           </thead>
           <tbody>
