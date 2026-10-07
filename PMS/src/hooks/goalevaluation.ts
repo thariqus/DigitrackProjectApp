@@ -24,6 +24,10 @@ export interface GoalAssessment {
   functional_manager_comment?: string;
   skip_level_manager_rating?: number;
   skip_level_manager_comment?: string;
+  hr_rating?: number;
+  hr_comment?: string;
+  hr_submitted_by?: string;
+  hr_submitted_on?: string;
   reviewer_role?: "functional" | "skip_level" | null;
 }
  

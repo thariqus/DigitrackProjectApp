@@ -1,5 +1,3 @@
- 
-
 import { useState, useRef, useEffect } from "react";
 import { HiOutlineSearch, HiChevronDown } from "react-icons/hi";
 import { IoMdClose } from "react-icons/io";
@@ -375,18 +373,47 @@ function Reports() {
           <thead className="bg-gray-100 text-xs text-gray-700">
             <tr>
               {/* <th className="text-left px-2 py-2">Manager Name</th> */}
-              <th className="py-3 px-1 text-left">Manager Name</th>
+              <th className="py-3 px-1 text-left whitespace-nowrap">Manager Name</th>              
               <th>Employees</th>
-              <th>Goals Started</th>
-              <th>Goals Submitted</th>
-              <th>RPT Manager Started</th>
-              <th>RPT Manager Submitted</th>
-              <th>FM Manager Started</th>
-              <th>FM Manager Submitted</th>
-              <th>SM Manager Started</th>
-              <th>SM Manager Submitted</th>
-              <th>Eval Started</th>
-              <th>Eval Submitted</th>
+              <th className="whitespace-nowrap leading-tight">
+                Goals<br />Started
+              </th>
+
+              <th className="whitespace-nowrap leading-tight">
+                Goals<br />Submitted
+              </th>
+
+              <th className="whitespace-nowrap leading-tight">
+                RPT Mgr<br />Started
+              </th>
+
+              <th className="whitespace-nowrap leading-tight">
+                RPT Mgr<br />Submitted
+              </th>
+
+              <th className="whitespace-nowrap leading-tight">
+                FM Mgr<br />Started
+              </th>
+
+              <th className="whitespace-nowrap leading-tight">
+                FM Mgr<br />Submitted
+              </th>
+
+              <th className="whitespace-nowrap leading-tight">
+                SM Mgr<br />Started
+              </th>
+
+              <th className="whitespace-nowrap leading-tight">
+                SM Mgr<br />Submitted
+              </th>
+
+              <th className="whitespace-nowrap leading-tight">
+                HR<br />Started
+              </th>
+
+              <th className="whitespace-nowrap leading-tight">
+                HR<br />Submitted
+              </th>              
             </tr>
           </thead>
           <tbody>

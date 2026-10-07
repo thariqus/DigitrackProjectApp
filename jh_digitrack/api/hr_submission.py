@@ -224,9 +224,28 @@ def _process_hr_excel(content, extension, year):
         # The "Rating" fieldtype stores a 0-1 fraction (5 stars = 1.0), but the
         # uploaded sheet works in a plain 1-5 scale, matching the manager/
         # functional-manager/skip-level-manager rating fields on this doctype.
+        # doc.hr_rating = rating / 5
+        # if comment_value not in (None, ""):
+        #     doc.hr_comment = str(comment_value).strip()
+
+        # # "Eval Started" on the reports; finalised when the appraisal cycle is closed
+        # doc.status = "HR Submitted"
         doc.hr_rating = rating / 5
+
         if comment_value not in (None, ""):
             doc.hr_comment = str(comment_value).strip()
+
+        # Store the HR user who submitted the review
+        user = frappe.session.user
+
+        doc.hr_submitted_by = frappe.db.get_value(
+            "User",
+            user,
+            "full_name"
+        ) or user
+
+        # Store the date and time of HR submission
+        doc.hr_submitted_on = frappe.utils.now_datetime()
 
         # "Eval Started" on the reports; finalised when the appraisal cycle is closed
         doc.status = "HR Submitted"
