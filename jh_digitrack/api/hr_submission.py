@@ -228,6 +228,11 @@ def _process_hr_excel(content, extension, year):
         if comment_value not in (None, ""):
             doc.hr_comment = str(comment_value).strip()
 
+        # Who uploaded this HR review, and when
+        user = frappe.session.user
+        doc.hr_submitted_by = frappe.db.get_value("User", user, "full_name") or user
+        doc.hr_submitted_on = frappe.utils.now_datetime()
+
         # "Eval Started" on the reports; finalised when the appraisal cycle is closed
         doc.status = "HR Submitted"
         doc.save(ignore_permissions=True, ignore_version=True)

@@ -35,7 +35,9 @@
   "section_break_uycd",
   "manager_submitted_on",
   "functional_manager_submitted_on",
-  "skip_level_manager_submitted_on"
+  "skip_level_manager_submitted_on",
+  "hr_submitted_by",
+  "hr_submitted_on"
  ],
  "fields": [
   {
@@ -193,12 +195,24 @@
    "fieldname": "hr_comment",
    "fieldtype": "Small Text",
    "label": "HR comment"
+  },
+  {
+   "fieldname": "hr_submitted_by",
+   "fieldtype": "Data",
+   "label": "HR Submitted By",
+   "read_only": 1
+  },
+  {
+   "fieldname": "hr_submitted_on",
+   "fieldtype": "Datetime",
+   "label": "HR Submitted On",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-09-29 15:15:41.579744",
+ "modified": "2026-10-06 17:45:30.943917",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "Goal Assessment",

@@ -30,7 +30,11 @@ GOAL_BASED_QUERY = """
         COALESCE(ga.skip_level_manager_rating, 0) * 5 AS skip_level_manager_rating,
         ga.skip_level_manager_comment,
         SM.full_name AS skip_level_manager_name,
-        ga.skip_level_manager_submitted_on
+        ga.skip_level_manager_submitted_on,
+        COALESCE(ga.hr_rating, 0) * 5 AS hr_rating,
+        ga.hr_comment,
+        ga.hr_submitted_by,
+        ga.hr_submitted_on
     FROM
         `tabGoal Assessment` ga
     LEFT JOIN
@@ -77,7 +81,11 @@ ALL_EMPLOYEES_QUERY = """
         COALESCE(ga.skip_level_manager_rating, 0) * 5 AS skip_level_manager_rating,
         ga.skip_level_manager_comment,
         SM.full_name AS skip_level_manager_name,
-        ga.skip_level_manager_submitted_on
+        ga.skip_level_manager_submitted_on,
+        COALESCE(ga.hr_rating, 0) * 5 AS hr_rating,
+        ga.hr_comment,
+        ga.hr_submitted_by,
+        ga.hr_submitted_on
     FROM
         `tabPMS Employees` pe
     LEFT JOIN
@@ -171,6 +179,26 @@ ALLOWED_EVALUATION_STATUSES = (
     "Goal Submitted",
 )
 
+HR_REVIEW_FIELDS = ("hr_rating", "hr_comment", "hr_submitted_by", "hr_submitted_on")
+
+
+def _is_hr_review_released(status, year):
+    """HR's review is shown only once Close Appraisal Cycle has submitted the evaluation."""
+    from jh_digitrack.api.hr_submission import _is_cycle_closed_for_year
+
+    return status == "Evaluation Submitted" and _is_cycle_closed_for_year(year)
+
+
+def _hide_unreleased_hr_reviews(result, year):
+    from jh_digitrack.api.hr_submission import _is_cycle_closed_for_year
+
+    cycle_closed = _is_cycle_closed_for_year(year)
+    for row in result:
+        if not (cycle_closed and row.get("status") == "Evaluation Submitted"):
+            for field in HR_REVIEW_FIELDS:
+                row[field] = None
+
+
 def _attach_documents(result):
     docnames = [row["docname"] for row in result if row["docname"]]
     attachments_by_parent = {}
@@ -244,6 +272,7 @@ def _fetch_evaluations(user, year, include_all_employees):
     for row in result:
         row.pop("yearly_appraisal_employee", None)
 
+    _hide_unreleased_hr_reviews(result, assessment_year)
     _attach_documents(result)
 
     return _evaluation_response(assessment_year, settings_row, enable_yearly_appraisal, result)
@@ -475,7 +504,7 @@ def get_employee_goals(employee_code, year):
         # so only expose it once the evaluation is submitted.
         hr_comment = (
             goal_assessment.hr_comment or ""
-            if goal_assessment.status == "Evaluation Submitted"
+            if _is_hr_review_released(goal_assessment.status, year)
             else ""
         )
 
