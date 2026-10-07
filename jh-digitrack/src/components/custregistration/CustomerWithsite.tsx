@@ -236,22 +236,19 @@ function checkSapResponse(res, fallbackSuccessMessage) {
   const sapResult = findSapResult(res);
   const rootFailed = res?.success === false || res?.data?.success === false;
 
-  // No SAP status in the response (e.g. the update API) → use the HTTP result
+  // No SAP status in the response → it's an error
   if (!sapResult) {
-    if (rootFailed) {
-      return {
-        ok: false,
-        title: "SAP Error",
-        message:
-          "SAP rejected the request. Please check the details and try again.",
-      };
-    }
-
-    return { ok: true, title: "Success", message: fallbackSuccessMessage };
+    return {
+      ok: false,
+      title: "SAP Error",
+      message:
+        "SAP rejected the request. Please check the details and try again.",
+    };
   }
 
   const status = sapResult.status.trim().toUpperCase();
-  const isSuccess = !rootFailed && SUCCESS_STATUSES.includes(status);
+  // SUCCESS ONLY IF STATUS IS "S" — ALL OTHER CASES FAIL
+  const isSuccess = status === "S";
 
   const sapMessage =
     (typeof sapResult.message === "string" && sapResult.message.trim()) ||

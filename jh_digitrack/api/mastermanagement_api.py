@@ -110,8 +110,8 @@ def send_customer_activation_to_sap(customer_code, company_code):
     """
 
     payload = {
-    "customer_code": customer_code,
-    "company_code": company_code,
+    "customercode": customer_code,
+    "Companycode": company_code,
 }
     
     try:
@@ -580,7 +580,6 @@ def get_customer_groups(search=None):
 # Customer Registration
 # ---------------------------------------------------------------------------
 
-
 @frappe.whitelist(methods=["POST"])
 def create_customer(**kwargs):
     try:
@@ -607,7 +606,6 @@ def create_customer(**kwargs):
 
         if duplicate:
             frappe.local.response["http_status_code"] = 409
-
             return {
                 "status_code": 409,
                 "message": "Customer already exists.",
@@ -646,14 +644,12 @@ def create_customer(**kwargs):
         # =====================================================
         # SEND CUSTOMER DATA TO SAP
         # =====================================================
-        kwargs["customer_group"] = cust_group  # Update customer group to name for SAP
+        kwargs["customer_group"] = cust_group
         sap_response = create_sap_customer(kwargs)
-
 
         # =====================================================
         # SAVE SAP RESPONSE
         # =====================================================
-
 
         doc.db_set(
             "customer_details",
@@ -675,220 +671,202 @@ def create_customer(**kwargs):
         customer_master_response = None
 
         if kwargs.get("site_code"):
+            # Site code to API URL mapping
+            site_api_mapping = {
+                "2112": "http://172.16.96.32/api/method/jaleel_ho.sap_outbound.customer.create_update_customer_master",
+                "2132": "http://172.16.10.9/api/method/jaleel_ho.sap_outbound.customer.create_update_customer_master",
+                "2113": "http://192.168.110.60/api/method/jaleel_ho.sap_outbound.customer.create_update_customer_master"
+            }
 
-            customer_master_url = (
-                "http://store1uaejccuat.jaleel.local"
-                "/api/method/jaleel_ho.sap_outbound.customer.create_update_customer_master"
-            )
+            site_code = str(doc.site_code)
+            customer_master_url = site_api_mapping.get(site_code)
 
-            print("1")
+            if not customer_master_url:
+                customer_master_response = {
+                    "success": False,
+                    "message": f"Unknown site code: {site_code}",
+                    "customer_master_called": False
+                }
+            else:
+                print(f"Routing to site {site_code}: {customer_master_url}")
+                print("1")
 
-            try:
-                # Get the exact SAP response saved in customer_details
-                saved_sap_response = json.loads(doc.customer_details)
+                try:
+                    # Get the exact SAP response saved in customer_details
+                    saved_sap_response = json.loads(doc.customer_details)
 
-                
-                print("1.5")
-                # ---------------------------------------------------------
-                # Extract SAP response
-                # ---------------------------------------------------------
-                                # ---------------------------------------------------------
-                # Extract SAP response (tolerates dict or list at each level)
-                # ---------------------------------------------------------
-                sap_response_data = saved_sap_response.get("data", {})
-
-                if isinstance(sap_response_data, list):
-                    sap_response_data = sap_response_data[0] if sap_response_data else {}
-
-                if not isinstance(sap_response_data, dict):
-                    sap_response_data = {}
-
-                sap_status = sap_response_data.get("status")
-                sap_message = sap_response_data.get("message")
-                sap_code = sap_response_data.get("code")
-
-                print("SAP STATUS:", sap_status)
-                print("SAP CODE:", sap_code)
-                print("SAP MESSAGE:", sap_message)
-
-                if sap_status == "E":
-
-                    print("SAP returned an error. Customer Master API will NOT be called.")
-
-                    customer_master_response = {
-                        "success": False,
-                        "message": sap_message,
-                        "code": sap_code,
-                        "sap_status": sap_status,
-                        "customer_master_called": False
-                    }
-
-                else:
-
+                    print("1.5")
                     # ---------------------------------------------------------
-                    # Get actual customer data:
-                    #   real SAP response -> sap_response_data["data"]
-                    #   test payload      -> sap_response_data is the customer itself
+                    # Extract SAP response (tolerates dict or list at each level)
                     # ---------------------------------------------------------
-                    customer_data = sap_response_data.get("data")
+                    sap_response_data = saved_sap_response.get("data", {})
 
-                    if customer_data is None and sap_response_data.get("custom_customer_code"):
-                        customer_data = sap_response_data
+                    if isinstance(sap_response_data, list):
+                        sap_response_data = sap_response_data[0] if sap_response_data else {}
 
-                    if isinstance(customer_data, list):
-                        customer_data = customer_data[0] if customer_data else {}
+                    if not isinstance(sap_response_data, dict):
+                        sap_response_data = {}
 
-                    if not isinstance(customer_data, dict):
+                    sap_status = sap_response_data.get("status")
+                    sap_message = sap_response_data.get("message")
+                    sap_code = sap_response_data.get("code")
+
+                    print("SAP STATUS:", sap_status)
+                    print("SAP CODE:", sap_code)
+                    print("SAP MESSAGE:", sap_message)
+
+                    if sap_status == "E":
+                        print("SAP returned an error. Customer Master API will NOT be called.")
 
                         customer_master_response = {
                             "success": False,
-                            "message": "Invalid customer data in saved SAP response",
+                            "message": sap_message,
+                            "code": sap_code,
+                            "sap_status": sap_status,
                             "customer_master_called": False
                         }
 
                     else:
-
                         # ---------------------------------------------------------
-                        # Validate customer code
+                        # Get actual customer data
                         # ---------------------------------------------------------
-                        custom_customer_code = customer_data.get(
-                            "custom_customer_code"
-                        )
+                        customer_data = sap_response_data.get("data")
 
-                        if not custom_customer_code:
+                        if customer_data is None and sap_response_data.get("custom_customer_code"):
+                            customer_data = sap_response_data
 
+                        if isinstance(customer_data, list):
+                            customer_data = customer_data[0] if customer_data else {}
+
+                        if not isinstance(customer_data, dict):
                             customer_master_response = {
                                 "success": False,
-                                "message": "custom_customer_code is missing from SAP response",
+                                "message": "Invalid customer data in saved SAP response",
                                 "customer_master_called": False
                             }
 
                         else:
-
                             # ---------------------------------------------------------
-                            # Convert fields to list format expected by
-                            # create_update_customer_master()
+                            # Validate customer code
                             # ---------------------------------------------------------
+                            custom_customer_code = customer_data.get("custom_customer_code")
 
-                            list_fields = [
-                                "credit_limits",
-                                "custom_customer_company",
-                                "custom_distribution_channel",
-                                "addr_list",
-                                "contact_list",
-                                "sales_team",
-                                "custom_mop"
-                            ]
-
-                            for field in list_fields:
-
-                                value = customer_data.get(field)
-
-                                if value is None:
-                                    customer_data[field] = []
-
-                                elif isinstance(value, dict):
-                                    customer_data[field] = [value]
-
-                                elif not isinstance(value, list):
-                                    customer_data[field] = []
-
-                            # ---------------------------------------------------------
-                            # Add source site
-                            # ---------------------------------------------------------
-
-                            customer_data["X-Source-Site"] = str(doc.site_code)
-
-                            # ---------------------------------------------------------
-                            # Create accepted Customer Master payload
-                            # ---------------------------------------------------------
-
-                            customer_master_payload = {
-                                "data": [
-                                    customer_data
-                                ]
-                            }
-
-                            print("CUSTOMER MASTER PAYLOAD:")
-                            print(
-                                json.dumps(
-                                    customer_master_payload,
-                                    indent=2,
-                                    ensure_ascii=False,
-                                    default=str
-                                )
-                            )
-
-                            # ---------------------------------------------------------
-                            # Call Customer Master API
-                            # ---------------------------------------------------------
-
-                            response = requests.post(
-                                customer_master_url,
-                                json=customer_master_payload,
-                                headers={
-                                    "Content-Type": "application/json",
-                                    "Accept": "application/json",
-                                },
-                                timeout=30
-                            )
-
-                            print(
-                                "CUSTOMER MASTER HTTP STATUS:",
-                                response.status_code
-                            )
-
-                            try:
-                                response_data = response.json()
-
-                            except ValueError:
-                                response_data = {
-                                    "raw_response": response.text
+                            if not custom_customer_code:
+                                customer_master_response = {
+                                    "success": False,
+                                    "message": "custom_customer_code is missing from SAP response",
+                                    "customer_master_called": False
                                 }
 
-                            customer_master_response = {
-                                "success": response.ok,
-                                "status_code": response.status_code,
-                                "data": response_data,
-                                "customer_master_called": True
-                            }
+                            else:
+                                # ---------------------------------------------------------
+                                # Convert fields to list format
+                                # ---------------------------------------------------------
 
-            except requests.exceptions.RequestException as e:
+                                list_fields = [
+                                    "credit_limits",
+                                    "custom_customer_company",
+                                    "custom_distribution_channel",
+                                    "addr_list",
+                                    "contact_list",
+                                    "sales_team",
+                                    "custom_mop"
+                                ]
 
-                frappe.log_error(
-                    frappe.get_traceback(),
-                    "Customer Master API Error"
-                )
+                                for field in list_fields:
+                                    value = customer_data.get(field)
 
-                customer_master_response = {
-                    "success": False,
-                    "status_code": 500,
-                    "message": str(e),
-                    "customer_master_called": True
-                }
+                                    if value is None:
+                                        customer_data[field] = []
+                                    elif isinstance(value, dict):
+                                        customer_data[field] = [value]
+                                    elif not isinstance(value, list):
+                                        customer_data[field] = []
 
-            except Exception as e:
+                                # ---------------------------------------------------------
+                                # Add source site
+                                # ---------------------------------------------------------
 
-                frappe.log_error(
-                    frappe.get_traceback(),
-                    "Customer Master Processing Error"
-                )
+                                customer_data["X-Source-Site"] = str(doc.site_code)
 
-                customer_master_response = {
-                    "success": False,
-                    "status_code": 500,
-                    "message": str(e),
-                    "customer_master_called": False
-                }
+                                # ---------------------------------------------------------
+                                # Create accepted Customer Master payload
+                                # ---------------------------------------------------------
+
+                                customer_master_payload = {
+                                    "data": [customer_data]
+                                }
+
+                                print("CUSTOMER MASTER PAYLOAD:")
+                                print(
+                                    json.dumps(
+                                        customer_master_payload,
+                                        indent=2,
+                                        ensure_ascii=False,
+                                        default=str
+                                    )
+                                )
+
+                                # ---------------------------------------------------------
+                                # Call Customer Master API
+                                # ---------------------------------------------------------
+
+                                response = requests.post(
+                                    customer_master_url,
+                                    json=customer_master_payload,
+                                    headers={
+                                        "Content-Type": "application/json",
+                                        "Accept": "application/json",
+                                    },
+                                    timeout=30
+                                )
+
+                                print("CUSTOMER MASTER HTTP STATUS:", response.status_code)
+
+                                try:
+                                    response_data = response.json()
+                                except ValueError:
+                                    response_data = {"raw_response": response.text}
+
+                                customer_master_response = {
+                                    "success": response.ok,
+                                    "status_code": response.status_code,
+                                    "data": response_data,
+                                    "customer_master_called": True
+                                }
+
+                except requests.exceptions.RequestException as e:
+                    frappe.log_error(
+                        frappe.get_traceback(),
+                        "Customer Master API Error"
+                    )
+
+                    customer_master_response = {
+                        "success": False,
+                        "status_code": 500,
+                        "message": str(e),
+                        "customer_master_called": True
+                    }
+
+                except Exception as e:
+                    frappe.log_error(
+                        frappe.get_traceback(),
+                        "Customer Master Processing Error"
+                    )
+
+                    customer_master_response = {
+                        "success": False,
+                        "status_code": 500,
+                        "message": str(e),
+                        "customer_master_called": False
+                    }
 
         else:
-
             customer_master_response = {
                 "success": False,
                 "message": "Site code not provided",
                 "customer_master_called": False
             }
-
 
         # =====================================================
         # RETURN RESPONSE
