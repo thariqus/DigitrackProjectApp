@@ -2086,11 +2086,11 @@ def run_post_hrms_sync():
             title="STEP 5-6: Sync & Insert PMS Employees",
             message="Updated tabPMS Employees from tabHRMS Users (name, email, band, manager, cost center, etc.); inserted new employees missing from PMS Employees"
         )
-        frappe.db.sql("UPDATE `tabPMS Employees` SET pms_employee = 0")
-        frappe.db.sql("""
-            UPDATE `tabPMS Employees`
-            SET pms_employee = 1, yearly_appraisal_employee = 1
-        """)
+        # frappe.db.sql("UPDATE `tabPMS Employees` SET pms_employee = 0")
+        # frappe.db.sql("""
+        #     UPDATE `tabPMS Employees`
+        #     SET pms_employee = 1, yearly_appraisal_employee = 1
+        # """)
         frappe.db.sql("UPDATE `tabPMS Employees` SET pms_manager = 0")
         frappe.db.sql("""
             UPDATE `tabPMS Employees` PMS
