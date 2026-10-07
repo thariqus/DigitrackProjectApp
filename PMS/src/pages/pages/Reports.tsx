@@ -377,16 +377,45 @@ function Reports() {
               {/* <th className="text-left px-2 py-2">Manager Name</th> */}
               <th className="py-3 px-1 text-left">Manager Name</th>
               <th>Employees</th>
-              <th>Goals Started</th>
-              <th>Goals Submitted</th>
-              <th>RPT MNGR Started</th>
-              <th>RPT MNGR Submitted</th>
-              <th>FM MNGR Started</th>
-              <th>FM MNGR Submitted</th>
-              <th>SM MNGR Started</th>
-              <th>SM MNGR Submitted</th>
-              <th>HR Started</th>
-              <th>HR Submitted</th>
+              <th className="whitespace-nowrap leading-tight">
+                Goals<br />Started
+              </th>
+
+              <th className="whitespace-nowrap leading-tight">
+                Goals<br />Submitted
+              </th>
+
+              <th className="whitespace-nowrap leading-tight">
+                RPT MNGR<br />Started
+              </th>
+
+              <th className="whitespace-nowrap leading-tight">
+                RPT MNGR<br />Submitted
+              </th>
+
+              <th className="whitespace-nowrap leading-tight">
+                FM MNGR<br />Started
+              </th>
+
+              <th className="whitespace-nowrap leading-tight">
+                FM MNGR<br />Submitted
+              </th>
+
+              <th className="whitespace-nowrap leading-tight">
+                SM MNGR<br />Started
+              </th>
+
+              <th className="whitespace-nowrap leading-tight">
+                SM MNGR<br />Submitted
+              </th>
+
+              <th className="whitespace-nowrap leading-tight">
+                HR<br />Started
+              </th>
+
+              <th className="whitespace-nowrap leading-tight">
+                HR<br />Submitted
+              </th>              
             </tr>
           </thead>
           <tbody>
