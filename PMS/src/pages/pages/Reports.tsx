@@ -1,5 +1,3 @@
- 
-
 import { useState, useRef, useEffect } from "react";
 import { HiOutlineSearch, HiChevronDown } from "react-icons/hi";
 import { IoMdClose } from "react-icons/io";
@@ -375,7 +373,7 @@ function Reports() {
           <thead className="bg-gray-100 text-xs text-gray-700">
             <tr>
               {/* <th className="text-left px-2 py-2">Manager Name</th> */}
-              <th className="py-3 px-1 text-left">Manager Name</th>
+              <th className="py-3 px-1 text-left whitespace-nowrap">Manager Name</th>              
               <th>Employees</th>
               <th className="whitespace-nowrap leading-tight">
                 Goals<br />Started
@@ -386,27 +384,27 @@ function Reports() {
               </th>
 
               <th className="whitespace-nowrap leading-tight">
-                RPT MNGR<br />Started
+                RPT Mgr<br />Started
               </th>
 
               <th className="whitespace-nowrap leading-tight">
-                RPT MNGR<br />Submitted
+                RPT Mgr<br />Submitted
               </th>
 
               <th className="whitespace-nowrap leading-tight">
-                FM MNGR<br />Started
+                FM Mgr<br />Started
               </th>
 
               <th className="whitespace-nowrap leading-tight">
-                FM MNGR<br />Submitted
+                FM Mgr<br />Submitted
               </th>
 
               <th className="whitespace-nowrap leading-tight">
-                SM MNGR<br />Started
+                SM Mgr<br />Started
               </th>
 
               <th className="whitespace-nowrap leading-tight">
-                SM MNGR<br />Submitted
+                SM Mgr<br />Submitted
               </th>
 
               <th className="whitespace-nowrap leading-tight">

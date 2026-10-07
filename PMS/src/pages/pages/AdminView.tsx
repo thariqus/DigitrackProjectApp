@@ -616,18 +616,13 @@ function AdminView() {
         <table className="w-full text-center text-sm">
           <thead className="bg-gray-100 text-xs text-gray-700">
             <tr>
-            <th className="py-3 px-1 text-left whitespace-nowrap leading-tight">
-              Manager<br />Name
-            </th>
-
-            <th className="py-3 px-1 whitespace-nowrap leading-tight">
-              No. of<br />Employees
-            </th>
-
+            <th className="py-3 px-1 text-left whitespace-nowrap">Manager Name</th>
             <th className="py-3 px-1 whitespace-nowrap leading-tight">
               Not<br />Participating
             </th>
-
+            <th className="py-3 px-1 whitespace-nowrap leading-tight">
+              No. of<br />Employees
+            </th>
             <th className="py-3 px-1 whitespace-nowrap leading-tight">
               Goals<br />Started
             </th>
@@ -637,27 +632,27 @@ function AdminView() {
             </th>
 
             <th className="py-3 px-1 whitespace-nowrap leading-tight">
-              RPT MNGR<br />Started
+              RPT Mgr<br />Started
             </th>
 
             <th className="py-3 px-1 whitespace-nowrap leading-tight">
-              RPT MNGR<br />Submitted
+              RPT Mgr<br />Submitted
             </th>
 
             <th className="py-3 px-1 whitespace-nowrap leading-tight">
-              FM MNGR<br />Started
+              FM Mgr<br />Started
             </th>
 
             <th className="py-3 px-1 whitespace-nowrap leading-tight">
-              FM MNGR<br />Submitted
+              FM Mgr<br />Submitted
             </th>
 
             <th className="py-3 px-1 whitespace-nowrap leading-tight">
-              SM MNGR<br />Started
+              SM Mgr<br />Started
             </th>
 
             <th className="py-3 px-1 whitespace-nowrap leading-tight">
-              SM MNGR<br />Submitted
+              SM Mgr<br />Submitted
             </th>
 
             <th className="py-3 px-1 whitespace-nowrap leading-tight">
@@ -679,11 +674,11 @@ function AdminView() {
                   {manager.manager_name}
                 </td>
                 <td className="px-1 py-2">
-                  {renderCountCell(manager.employee_count, manager, "employees")}
-                </td>
-                <td className="px-1 py-2">
                   {renderCountCell(manager.not_participating, manager, "not_participating")}
                 </td>
+                <td className="px-1 py-2">
+                  {renderCountCell(manager.employee_count, manager, "employees")}
+                </td>                
                 {/* <td className="px-1 py-2">
                   {renderCountCell(manager.goals_pending, manager, "goals_pending")}
                 </td> */}
