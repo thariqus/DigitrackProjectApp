@@ -37,7 +37,7 @@ const FIELDS = [
 
 {
   key: "business_name",
-  label: "Business Name",
+  label: "Customer Name 2",
   icon: LuUser,
   placeholder: "e.g. Al Maha Trading LLC",
   required: true,

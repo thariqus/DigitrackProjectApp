@@ -299,11 +299,11 @@ function CustomerList() {
 
               <tr>
 
-                <th className={thBase}>Customer</th>
+                <th className={thBase}>Customer Name 1</th>
 
                 <th className={thBase}>Type</th>
 
-                <th className={thBase}>Business</th>
+                <th className={thBase}>Customer Name 2</th>
 
                 <th className={`${thBase} text-right`}>
                   TR No.
