@@ -15,6 +15,8 @@ interface EmployeeSummary {
   // Only present on not_participating_employees
   pms_employee?: number;
   yearly_appraisal_employee?: number;
+  // Only present on employees_under_manager
+  evaluation_started?: boolean;
 }
 
 type ParticipationFlags = Pick<EmployeeSummary, "pms_employee" | "yearly_appraisal_employee">;
@@ -82,6 +84,8 @@ function AdminView() {
   const [employeeSearch, setEmployeeSearch] = useState("");
   // Checkbox state for the Not Participating modal, keyed by employee_code
   const [participation, setParticipation] = useState<Record<string, ParticipationFlags>>({});
+  // Employees ticked as "Not Participating" in the No. of Employees modal
+  const [markedNotParticipating, setMarkedNotParticipating] = useState<Record<string, boolean>>({});
   const [savingParticipation, setSavingParticipation] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
 
@@ -294,36 +298,48 @@ function AdminView() {
     if (type === "not_participating") {
       setParticipation(
         Object.fromEntries(
-          manager.not_participating_employees.map((e) => [
-            e.employee_code,
-            { pms_employee: e.pms_employee || 0, yearly_appraisal_employee: e.yearly_appraisal_employee || 0 },
-          ])
+          manager.not_participating_employees.map((e) => [e.employee_code, normalizeParticipation(e)])
         )
       );
+    }
+    if (type === "employees") {
+      setMarkedNotParticipating({});
     }
     setOpenModal(true);
   };
 
+  // Yearly Appraisal only applies to PMS employees, so it is off whenever PMS Employee is off
+  const normalizeParticipation = (flags: ParticipationFlags): ParticipationFlags => ({
+    pms_employee: flags.pms_employee ? 1 : 0,
+    yearly_appraisal_employee: flags.pms_employee && flags.yearly_appraisal_employee ? 1 : 0,
+  });
+
   const toggleParticipation = (empCode: string, field: keyof ParticipationFlags) => {
     setParticipation((prev) => ({
       ...prev,
-      [empCode]: { ...prev[empCode], [field]: prev[empCode]?.[field] ? 0 : 1 },
+      [empCode]: normalizeParticipation({ ...prev[empCode], [field]: prev[empCode]?.[field] ? 0 : 1 }),
     }));
   };
 
   const handleSaveParticipation = async () => {
     if (!selectedModalManager) return;
 
-    const updates = selectedModalManager.not_participating_employees
-      .filter((e) => {
-        const flags = participation[e.employee_code];
-        return (
-          flags &&
-          (flags.pms_employee !== (e.pms_employee || 0) ||
-            flags.yearly_appraisal_employee !== (e.yearly_appraisal_employee || 0))
-        );
-      })
-      .map((e) => ({ employee_code: e.employee_code, ...participation[e.employee_code] }));
+    const updates =
+      modalType === "employees"
+        ? Object.keys(markedNotParticipating)
+            .filter((code) => markedNotParticipating[code])
+            .map((code) => ({ employee_code: code, pms_employee: 0, yearly_appraisal_employee: 0 }))
+        : selectedModalManager.not_participating_employees
+            .filter((e) => {
+              const flags = participation[e.employee_code];
+              const original = normalizeParticipation(e);
+              return (
+                flags &&
+                (flags.pms_employee !== original.pms_employee ||
+                  flags.yearly_appraisal_employee !== original.yearly_appraisal_employee)
+              );
+            })
+            .map((e) => ({ employee_code: e.employee_code, ...participation[e.employee_code] }));
 
     if (updates.length === 0) {
       toast.info("No changes to save.");
@@ -808,21 +824,56 @@ function AdminView() {
                             <input
                               type="checkbox"
                               className="accent-primary"
-                              checked={!!participation[emp.employee_code]?.yearly_appraisal_employee}
-                              onChange={() => toggleParticipation(emp.employee_code, "yearly_appraisal_employee")}
-                            />
-                            <span className="text-[0.65rem]">Yearly Appraisal</span>
-                          </label>
-                          <label className="flex items-center gap-1 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              className="accent-primary"
                               checked={!!participation[emp.employee_code]?.pms_employee}
                               onChange={() => toggleParticipation(emp.employee_code, "pms_employee")}
                             />
                             <span className="text-[0.65rem]">PMS Employee</span>
                           </label>
+                          <label
+                            className={`flex items-center gap-1 ${
+                              participation[emp.employee_code]?.pms_employee
+                                ? "cursor-pointer"
+                                : "cursor-not-allowed opacity-50"
+                            }`}
+                            title={
+                              participation[emp.employee_code]?.pms_employee
+                                ? undefined
+                                : "Tick PMS Employee first"
+                            }
+                          >
+                            <input
+                              type="checkbox"
+                              className="accent-primary"
+                              disabled={!participation[emp.employee_code]?.pms_employee}
+                              checked={!!participation[emp.employee_code]?.yearly_appraisal_employee}
+                              onChange={() => toggleParticipation(emp.employee_code, "yearly_appraisal_employee")}
+                            />
+                            <span className="text-[0.65rem]">Yearly Appraisal</span>
+                          </label>
                         </div>
+                      )}
+
+                      {modalType === "employees" && (
+                        <label className="ml-auto flex items-center gap-1 cursor-pointer shrink-0">
+                          <input
+                            type="checkbox"
+                            className="accent-primary"
+                            checked={!!markedNotParticipating[emp.employee_code]}
+                            onChange={() => {
+                              if (emp.evaluation_started) {
+                                toast.error(
+                                  `${emp.employee_name}'s evaluation has already started, so they can't be marked as Not Participating.`
+                                );
+                                return;
+                              }
+                              setMarkedNotParticipating((prev) => ({
+                                ...prev,
+                                [emp.employee_code]: !prev[emp.employee_code],
+                              }));
+                            }}
+                          />
+                          <span className="text-[0.65rem]">Not Participating</span>
+                        </label>
                       )}
                     </li>
                   ))}
@@ -837,7 +888,7 @@ function AdminView() {
               )}
             </div>
 
-            {modalType === "not_participating" && (
+            {(modalType === "not_participating" || modalType === "employees") && (
               <div className="mt-auto border-t px-5 py-3 flex justify-end">
                 <button
                   onClick={handleSaveParticipation}

@@ -20,6 +20,18 @@ STATUS_BUCKETS = [
 ]
 
 
+# Once an evaluation reaches any of these, the employee can no longer be
+# taken out of PMS from the admin report.
+EVALUATION_STARTED_STATUSES = (
+    "Evaluation Started",
+    "Functional Manager Review",
+    "Skip Level Manager Review",
+    "HR Review",
+    "HR Submitted",
+    "Evaluation Submitted",
+)
+
+
 def _has_review(rating, comment):
     return bool(rating) or bool((comment or "").strip())
 
@@ -80,6 +92,7 @@ def _summarize_employee_statuses(employees, year):
 
     for emp in employees:
         ga = ga_by_code.get(emp.get("employee_code"))
+        emp["evaluation_started"] = bool(ga and ga.status in EVALUATION_STARTED_STATUSES)
         key = _status_bucket(ga)
         summary[f"{key}_employees"].append({
             "employee_code": emp.get("employee_code"),
@@ -388,15 +401,33 @@ def update_pms_participation(updates):
         pluck="employee_code",
     ))
 
+    current_year = get_pms_years()[0]
+
+    # Validate every row before writing, so a rejected request changes nothing
     for row in updates:
         employee_code = row.get("employee_code")
         manager_code = frappe.db.get_value("PMS Employees", employee_code, "manager_code")
         if manager_code not in allowed_managers:
             frappe.throw(f"You cannot update employee {employee_code}", frappe.PermissionError)
 
+        if not cint(row.get("pms_employee")) and frappe.db.exists("Goal Assessment", {
+            "employee_code": employee_code,
+            "year": current_year,
+            "status": ["in", EVALUATION_STARTED_STATUSES],
+        }):
+            employee_name = frappe.db.get_value("PMS Employees", employee_code, "full_name")
+            frappe.throw(
+                f"{employee_name} ({employee_code}): evaluation has already started, "
+                "so they can't be marked as Not Participating."
+            )
+
+    for row in updates:
+        employee_code = row.get("employee_code")
+        # Yearly appraisal only applies to PMS employees
+        pms_employee = 1 if cint(row.get("pms_employee")) else 0
         frappe.db.set_value("PMS Employees", employee_code, {
-            "pms_employee": cint(row.get("pms_employee")),
-            "yearly_appraisal_employee": cint(row.get("yearly_appraisal_employee")),
+            "pms_employee": pms_employee,
+            "yearly_appraisal_employee": 1 if pms_employee and cint(row.get("yearly_appraisal_employee")) else 0,
         })
 
     return {"updated": len(updates)}
