@@ -165,19 +165,12 @@ const emptyForm = FIELDS.reduce(
 // Works with any wrapper depth / field set returned by SAP.
 // =========================================================
 
-const SAP_STATUS_LABELS = {
-  S: "Success",
-  E: "Error",
-  W: "Warning",
-  A: "Abort",
-  I: "Info",
-};
+// =========================================================
+// SAP RESPONSE HELPERS
+// Only status "S" is success — anything else is shown as an error.
+// =========================================================
 
-const ERROR_STATUSES = ["E", "A", "ERROR", "FAILED", "FAILURE", "FAIL", "ABORT"];
-const WARNING_STATUSES = ["W", "WARNING"];
-
-// Keys that hold the echoed payload, not the SAP result — never shown.
-const SKIP_KEYS = ["data"];
+const SUCCESS_STATUSES = ["S", "SUCCESS"];
 
 function parseIfJson(value) {
   if (typeof value !== "string") return value;
@@ -225,115 +218,46 @@ function findSapResult(res) {
   );
 }
 
-function humanizeKey(key) {
-  return key
-    .replace(/[_-]+/g, " ")
-    .replace(/([a-z])([A-Z])/g, "$1 $2")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
-// Turns the SAP result into label/value rows, including nested objects.
-function buildSapRows(obj, prefix = "") {
-  const rows = [];
-
-  Object.entries(obj || {}).forEach(([key, rawValue]) => {
-    if (!prefix && SKIP_KEYS.includes(key)) return;
-    if (!prefix && key === "status") return; // shown separately
-
-    const value = parseIfJson(rawValue);
-    const label = prefix ? `${prefix} ${humanizeKey(key)}` : humanizeKey(key);
-
-    if (value == null) return;
-
-    if (Array.isArray(value)) {
-      const text = value
-        .map((v) => (typeof v === "object" ? JSON.stringify(v) : String(v)))
-        .filter((v) => v.trim() !== "")
-        .join(", ");
-      if (text) rows.push({ label, value: text });
-      return;
-    }
-
-    if (typeof value === "object") {
-      rows.push(...buildSapRows(value, label));
-      return;
-    }
-
-    const text = String(value).trim();
-    if (text) rows.push({ label, value: text });
-  });
-
-  return rows;
-}
-
 function checkSapResponse(res, fallbackSuccessMessage) {
   const sapResult = findSapResult(res);
   const rootFailed = res?.success === false || res?.data?.success === false;
 
+  // No SAP status in the response (e.g. the update API) → use the HTTP result
   if (!sapResult) {
-    console.warn("No SAP status found in response:", res);
-
     if (rootFailed) {
       return {
         ok: false,
         title: "SAP Error",
         message:
           "SAP rejected the request. Please check the details and try again.",
-        sap: null,
       };
     }
 
-    return {
-      ok: true,
-      title: "Success",
-      message: fallbackSuccessMessage,
-      sap: null,
-    };
+    return { ok: true, title: "Success", message: fallbackSuccessMessage };
   }
 
   const status = sapResult.status.trim().toUpperCase();
-  const statusLabel =
-    SAP_STATUS_LABELS[status] || humanizeKey(sapResult.status.trim());
-
-  const isError =
-    rootFailed ||
-    sapResult.success === false ||
-    ERROR_STATUSES.includes(status);
-  const isWarning = !isError && WARNING_STATUSES.includes(status);
+  const isSuccess = !rootFailed && SUCCESS_STATUSES.includes(status);
 
   const sapMessage =
     (typeof sapResult.message === "string" && sapResult.message.trim()) ||
     sapResult.error_details?.error_message ||
     "";
 
-  const sap = {
-    status,
-    statusLabel,
-    rows: [
-      {
-        label: "Status",
-        value: `${sapResult.status.trim()} - ${statusLabel}`,
-      },
-      ...buildSapRows(sapResult),
-    ],
-  };
-
-  if (isError) {
+  if (!isSuccess) {
     return {
       ok: false,
       title: sapResult.code ? `SAP Error (${sapResult.code})` : "SAP Error",
       message:
         sapMessage ||
         "SAP rejected the request. Please check the details and try again.",
-      sap,
     };
   }
 
   return {
     ok: true,
-    title: isWarning ? "Completed with Warning" : "Success",
+    title: "Success",
     message: sapMessage || fallbackSuccessMessage,
-    sap,
   };
 }
 
