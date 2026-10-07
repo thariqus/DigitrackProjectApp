@@ -110,8 +110,8 @@ def send_customer_activation_to_sap(customer_code, company_code):
     """
 
     payload = {
-    "customer_code": to_int_or_none(customer_code),
-    "company_code": to_int_or_none(company_code),
+    "customer_code": customer_code,
+    "company_code": company_code,
 }
     
     try:

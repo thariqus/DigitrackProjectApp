@@ -35,12 +35,12 @@
   {
    "fieldname": "customer_name",
    "fieldtype": "Data",
-   "label": "Customer Name"
+   "label": "Customer Name 1"
   },
   {
    "fieldname": "business_name",
    "fieldtype": "Data",
-   "label": "Business Name"
+   "label": "Customer Name 2"
   },
   {
    "fieldname": "tr_number",
@@ -135,7 +135,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-09-28 12:08:48.906857",
+ "modified": "2026-10-06 10:29:45.051410",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "Customer Registration",
