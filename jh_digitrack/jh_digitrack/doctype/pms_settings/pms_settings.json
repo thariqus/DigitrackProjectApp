@@ -17,7 +17,9 @@
   "column_break_cnza",
   "email_template",
   "section_break_mtvw",
-  "pms_settings_table"
+  "pms_settings_table",
+  "bell_curve_section",
+  "bell_curve_ratings"
  ],
  "fields": [
   {
@@ -83,13 +85,24 @@
    "fieldname": "enable_yearly_appraisal",
    "fieldtype": "Check",
    "label": "Enable Yearly Appraisal"
+  },
+  {
+   "fieldname": "bell_curve_section",
+   "fieldtype": "Section Break",
+   "label": "Bell Curve"
+  },
+  {
+   "fieldname": "bell_curve_ratings",
+   "fieldtype": "Table",
+   "label": "Bell Curve Ratings",
+   "options": "PMS Bell Curve Rating"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-09-08 10:10:24.068130",
+ "modified": "2026-10-08 11:56:54.859816",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "PMS Settings",
@@ -108,6 +121,7 @@
   }
  ],
  "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": []

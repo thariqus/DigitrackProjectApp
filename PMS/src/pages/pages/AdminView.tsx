@@ -4,6 +4,7 @@ import { IoMdClose } from "react-icons/io";
 import { IoCloseOutline, IoCloudDownloadOutline } from "react-icons/io5";
 import { CiMail, CiSearch } from "react-icons/ci";
 import Pagination from "../../components/Pagination";
+import BellCurveModal from "../../components/BellCurveModal";
 import { useCurrentUser } from "../../hooks/auth";
 import frappeClient from "@/utils/frappe-client";
 import { BsGraphDown } from "react-icons/bs";
@@ -88,6 +89,7 @@ function AdminView() {
   const [markedNotParticipating, setMarkedNotParticipating] = useState<Record<string, boolean>>({});
   const [savingParticipation, setSavingParticipation] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
+  const [showBellCurve, setShowBellCurve] = useState(false);
 
   const dropdownRef = useRef<HTMLDivElement | null>(null);
 
@@ -591,7 +593,7 @@ function AdminView() {
 
         <div className="flex items-center gap-3">
             <button
-            // onClick={handleBellCurve}
+            onClick={() => setShowBellCurve(true)}
             className="px-3 py-2 text-xs flex items-center gap-1 bg-primary text-white rounded-md hover:bg-[#7d241f]"
           >
             <BsGraphDown className="text-md" />
@@ -902,6 +904,14 @@ function AdminView() {
           </div>
         </div>
       )}
+
+      <BellCurveModal
+        open={showBellCurve}
+        onClose={() => setShowBellCurve(false)}
+        years={years}
+        departments={departments}
+        defaultYear={baseYear}
+      />
     </div>
   );
 }

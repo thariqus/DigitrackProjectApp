@@ -30,6 +30,13 @@ class JHTravelRequest(Document):
             self.virtual_name = self.name
             self.save()
 
+        # Sent from a background job only after this request is committed
+        frappe.enqueue(
+            "jh_digitrack.api.travel_notifications.notify_reporting_manager",
+            travel_request=self.name,
+            enqueue_after_commit=True,
+        )
+
     def before_save(self):
         for attachment in self.attachments:
             if not attachment.created_by:
