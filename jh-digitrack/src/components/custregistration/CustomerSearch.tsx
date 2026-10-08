@@ -113,11 +113,6 @@ function CustomerSearch() {
       return;
     }
 
-    if (tradeLicense && !/^\d+$/.test(tradeLicense)) {
-      showError("Trade License must contain numbers only.");
-      return;
-    }
-
     try {
       setLoading(true);
 
@@ -310,12 +305,14 @@ function CustomerSearch() {
                 </label>
                 <input
                   type="text"
-                  inputMode="numeric"
                   value={form.tradeLicense}
                   onChange={(e) =>
-                    handleNumericChange("tradeLicense", e.target.value)
+                    setForm((prev) => ({
+                      ...prev,
+                      tradeLicense: e.target.value,
+                    }))
                   }
-                  placeholder="e.g. 123456"
+                  placeholder="e.g. ABC-123456"
                   className={inputClass}
                 />
               </div>
