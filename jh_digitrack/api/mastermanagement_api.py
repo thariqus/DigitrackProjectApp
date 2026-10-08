@@ -675,11 +675,15 @@ def create_customer(**kwargs):
             site_api_mapping = {
                 "2112": "http://172.16.96.32/api/method/jaleel_ho.sap_outbound.customer.create_update_customer_master",
                 "2132": "http://172.16.10.9/api/method/jaleel_ho.sap_outbound.customer.create_update_customer_master",
-                "2113": "http://192.168.110.60/api/method/jaleel_ho.sap_outbound.customer.create_update_customer_master"
+                "2113": "http://192.168.110.60/api/method/jaleel_ho.sap_outbound.customer.create_update_customer_master",
+                "2117": "http://store1uaejccuat.jaleel.local/api/method/jaleel_ho.sap_outbound.customer.create_update_customer_master"
             }
+
 
             site_code = str(doc.site_code)
             customer_master_url = site_api_mapping.get(site_code)
+
+            print("the url **********",customer_master_url)
 
             if not customer_master_url:
                 customer_master_response = {
@@ -743,6 +747,8 @@ def create_customer(**kwargs):
                         else:
                             custom_customer_code = customer_data.get("custom_customer_code")
                             
+                            # After converting fields to lists, add defaults for mandatory fields
+
                             print(f"DEBUG: Customer Code: {custom_customer_code}")
 
                             if not custom_customer_code:
@@ -775,6 +781,24 @@ def create_customer(**kwargs):
                                     
                                     print(f"DEBUG: Field '{field}' converted to type: {type(customer_data[field])}, length: {len(customer_data[field])}")
 
+                                # ===== SET MANDATORY FIELD DEFAULTS =====
+                                # These fields are required by Frappe Customer doctype
+                                
+                                # Set default customer_type if missing
+                                if not customer_data.get("customer_type"):
+                                    customer_data["customer_type"] = "Company"  # or "Individual"
+                                    print(f"DEBUG: Set default customer_type: Company")
+                                
+                                # Set default currency if missing
+                                if not customer_data.get("default_currency"):
+                                    customer_data["default_currency"] = "AED"  # or get from settings
+                                    print(f"DEBUG: Set default default_currency: AED")
+                                
+                                # Set default customer_group if missing
+                                if not customer_data.get("customer_group"):
+                                    customer_data["customer_group"] = "Default"
+                                    print(f"DEBUG: Set default customer_group: Default")
+
                                 customer_data["X-Source-Site"] = str(doc.site_code)
 
                                 customer_master_payload = {
@@ -784,6 +808,8 @@ def create_customer(**kwargs):
                                 print(f"DEBUG: Routing to site {site_code}: {customer_master_url}")
                                 print("DEBUG: CUSTOMER MASTER PAYLOAD:")
                                 print(json.dumps(customer_master_payload, indent=2, ensure_ascii=False, default=str))
+
+                                # ... rest of the code
 
                                 # Call Customer Master API
                                 response = requests.post(
