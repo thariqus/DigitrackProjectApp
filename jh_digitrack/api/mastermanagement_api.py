@@ -112,7 +112,7 @@ def send_customer_activation_to_sap(customer_code, company_code):
     payload = {
     "customercode": customer_code,
     "Companycode": company_code,
-}
+    }
     
     try:
         print("SAP ACTIVATION PAYLOAD:", payload)
@@ -694,30 +694,27 @@ def create_customer(**kwargs):
                 try:
                     # Get the exact SAP response saved in customer_details
                     saved_sap_response = json.loads(doc.customer_details)
-
-                    print("1.5")
-                    # ---------------------------------------------------------
-                    # Extract SAP response (tolerates dict or list at each level)
-                    # ---------------------------------------------------------
+                    
+                    print(f"DEBUG: Raw SAP Response Structure: {json.dumps(saved_sap_response, indent=2, default=str)}")
+                    
                     sap_response_data = saved_sap_response.get("data", {})
-
+                    
                     if isinstance(sap_response_data, list):
                         sap_response_data = sap_response_data[0] if sap_response_data else {}
 
                     if not isinstance(sap_response_data, dict):
                         sap_response_data = {}
 
+                    print(f"DEBUG: SAP Response Data: {json.dumps(sap_response_data, indent=2, default=str)}")
+                    
                     sap_status = sap_response_data.get("status")
                     sap_message = sap_response_data.get("message")
                     sap_code = sap_response_data.get("code")
 
-                    print("SAP STATUS:", sap_status)
-                    print("SAP CODE:", sap_code)
-                    print("SAP MESSAGE:", sap_message)
+                    print(f"DEBUG: SAP Status={sap_status}, Code={sap_code}")
 
                     if sap_status == "E":
                         print("SAP returned an error. Customer Master API will NOT be called.")
-
                         customer_master_response = {
                             "success": False,
                             "message": sap_message,
@@ -725,18 +722,17 @@ def create_customer(**kwargs):
                             "sap_status": sap_status,
                             "customer_master_called": False
                         }
-
                     else:
-                        # ---------------------------------------------------------
-                        # Get actual customer data
-                        # ---------------------------------------------------------
+                        # Extract customer data - handle nested structure
                         customer_data = sap_response_data.get("data")
-
-                        if customer_data is None and sap_response_data.get("custom_customer_code"):
-                            customer_data = sap_response_data
+                        
+                        if customer_data is None:
+                            customer_data = sap_response_data  # Use the whole response if no nested "data"
 
                         if isinstance(customer_data, list):
                             customer_data = customer_data[0] if customer_data else {}
+
+                        print(f"DEBUG: Extracted Customer Data Keys: {list(customer_data.keys()) if isinstance(customer_data, dict) else 'NOT A DICT'}")
 
                         if not isinstance(customer_data, dict):
                             customer_master_response = {
@@ -744,12 +740,10 @@ def create_customer(**kwargs):
                                 "message": "Invalid customer data in saved SAP response",
                                 "customer_master_called": False
                             }
-
                         else:
-                            # ---------------------------------------------------------
-                            # Validate customer code
-                            # ---------------------------------------------------------
                             custom_customer_code = customer_data.get("custom_customer_code")
+                            
+                            print(f"DEBUG: Customer Code: {custom_customer_code}")
 
                             if not custom_customer_code:
                                 customer_master_response = {
@@ -757,12 +751,8 @@ def create_customer(**kwargs):
                                     "message": "custom_customer_code is missing from SAP response",
                                     "customer_master_called": False
                                 }
-
                             else:
-                                # ---------------------------------------------------------
-                                # Convert fields to list format
-                                # ---------------------------------------------------------
-
+                                # Convert dict fields to lists
                                 list_fields = [
                                     "credit_limits",
                                     "custom_customer_company",
@@ -775,42 +765,27 @@ def create_customer(**kwargs):
 
                                 for field in list_fields:
                                     value = customer_data.get(field)
-
+                                    
                                     if value is None:
                                         customer_data[field] = []
                                     elif isinstance(value, dict):
                                         customer_data[field] = [value]
                                     elif not isinstance(value, list):
                                         customer_data[field] = []
-
-                                # ---------------------------------------------------------
-                                # Add source site
-                                # ---------------------------------------------------------
+                                    
+                                    print(f"DEBUG: Field '{field}' converted to type: {type(customer_data[field])}, length: {len(customer_data[field])}")
 
                                 customer_data["X-Source-Site"] = str(doc.site_code)
-
-                                # ---------------------------------------------------------
-                                # Create accepted Customer Master payload
-                                # ---------------------------------------------------------
 
                                 customer_master_payload = {
                                     "data": [customer_data]
                                 }
 
-                                print("CUSTOMER MASTER PAYLOAD:")
-                                print(
-                                    json.dumps(
-                                        customer_master_payload,
-                                        indent=2,
-                                        ensure_ascii=False,
-                                        default=str
-                                    )
-                                )
+                                print(f"DEBUG: Routing to site {site_code}: {customer_master_url}")
+                                print("DEBUG: CUSTOMER MASTER PAYLOAD:")
+                                print(json.dumps(customer_master_payload, indent=2, ensure_ascii=False, default=str))
 
-                                # ---------------------------------------------------------
                                 # Call Customer Master API
-                                # ---------------------------------------------------------
-
                                 response = requests.post(
                                     customer_master_url,
                                     json=customer_master_payload,
@@ -821,7 +796,8 @@ def create_customer(**kwargs):
                                     timeout=30
                                 )
 
-                                print("CUSTOMER MASTER HTTP STATUS:", response.status_code)
+                                print(f"DEBUG: CUSTOMER MASTER HTTP STATUS: {response.status_code}")
+                                print(f"DEBUG: CUSTOMER MASTER RESPONSE: {response.text}")
 
                                 try:
                                     response_data = response.json()
@@ -836,19 +812,22 @@ def create_customer(**kwargs):
                                 }
 
                 except requests.exceptions.RequestException as e:
+                    print(f"DEBUG: Network Error: {str(e)}")
                     frappe.log_error(
                         frappe.get_traceback(),
-                        "Customer Master API Error"
+                        "Customer Master API Network Error"
                     )
 
                     customer_master_response = {
                         "success": False,
                         "status_code": 500,
-                        "message": str(e),
-                        "customer_master_called": True
+                        "message": f"Network error: {str(e)}",
+                        "customer_master_called": True,
+                        "error_type": type(e).__name__
                     }
 
                 except Exception as e:
+                    print(f"DEBUG: Processing Error: {str(e)}")
                     frappe.log_error(
                         frappe.get_traceback(),
                         "Customer Master Processing Error"
