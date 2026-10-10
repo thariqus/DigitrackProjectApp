@@ -1915,23 +1915,43 @@ def run_post_hrms_sync():
         """)
 
         # 3a. Sync updated name fields from JH User Master to Frappe User
+        #     last_name format: "<Last> - <Employee Code>" (or "- <Employee Code>")
+        #     The employee code lives in last_name because User.validate()
+        #     rebuilds full_name from first/middle/last on every save.
+        #     Match on the JH.user link (not JH.email) so users whose HRMS
+        #     email changed after their Frappe User was created still update.
         frappe.db.sql("""
             UPDATE `tabUser` U
             JOIN `tabJH User Master` JH
-              ON U.name = JH.email
+              ON U.name = JH.user
             JOIN `tabHRMS Users` HR
               ON JH.employee_code = HR.employee_code
             SET
                 U.first_name = JH.first_name,
                 U.middle_name = JH.middle_name,
-                U.last_name  = JH.last_name,
-                U.full_name  = TRIM(CONCAT_WS(' ',
-                    NULLIF(JH.first_name, ''),
-                    NULLIF(JH.middle_name, ''),
-                    NULLIF(JH.last_name, '')
+                U.last_name  = TRIM(CONCAT_WS(' ',
+                    NULLIF(TRIM(JH.last_name), ''),
+                    CONCAT('- ', NULLIF(TRIM(JH.employee_code), ''))
                 ))
             WHERE IFNULL(JH.email, '') <> ''
         """)
+
+        # 3b. Rebuild full_name from first/middle/last like User.set_full_name().
+        #     Separate statement: in a multi-table UPDATE, MariaDB reads the
+        #     old U.last_name, not the value assigned in the same statement.
+        frappe.db.sql("""
+            UPDATE `tabUser` U
+            JOIN `tabJH User Master` JH
+              ON U.name = JH.user
+            SET
+                U.full_name = TRIM(CONCAT_WS(' ',
+                    NULLIF(U.first_name, ''),
+                    NULLIF(U.middle_name, ''),
+                    NULLIF(U.last_name, '')
+                ))
+            WHERE IFNULL(JH.email, '') <> ''
+        """)
+
 
         # 4. Insert missing JH users
         frappe.db.sql("""

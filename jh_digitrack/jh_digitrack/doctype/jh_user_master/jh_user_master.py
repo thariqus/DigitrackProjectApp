@@ -26,6 +26,17 @@ class JHUserMaster(Document):
 def attach_user(jh_user_id: str, email: str):
     jh_user = frappe.get_doc("JH User Master", jh_user_id)
 
+    # User.validate() rebuilds full_name from first/middle/last name, so keep
+    # the employee code in last_name ("<Last> - <Employee Code>") to make the
+    # "<Full Name> - <Employee Code>" display name survive later saves.
+    employee_code = (jh_user.employee_code or "").strip()
+    last_name = " ".join(
+        part for part in [
+            (jh_user.last_name or "").strip(),
+            f"- {employee_code}" if employee_code else "",
+        ] if part
+    )
+
     if not frappe.db.exists("User", jh_user.email):
         user = frappe.new_doc("User")
         user.update(
@@ -34,7 +45,7 @@ def attach_user(jh_user_id: str, email: str):
                 "enabled": 1,
                 "first_name": jh_user.first_name,
                 "middle_name": jh_user.middle_name,
-                "last_name": jh_user.last_name,
+                "last_name": last_name,
                 "roles": [
                     {"role": "JH Digitrack Member"},
                     {"role": "Inbox User"},
@@ -52,6 +63,22 @@ def attach_user(jh_user_id: str, email: str):
         user.append("roles", {"role": "Inbox User"})
         user.append("roles", {"role": "JH Travel Workflow User"})
         user.default_app = "jh_digitrack"
+
+    # Existing users skip insert(), so write the name fields directly.
+    full_name = " ".join(
+        part for part in [
+            (jh_user.first_name or "").strip(),
+            (jh_user.middle_name or "").strip(),
+            last_name,
+        ] if part
+    )
+    if full_name:
+        frappe.db.set_value(
+            "User",
+            user.name,
+            {"last_name": last_name, "full_name": full_name},
+            update_modified=False,
+        )
 
     jh_user.user = user.name
     jh_user.save()

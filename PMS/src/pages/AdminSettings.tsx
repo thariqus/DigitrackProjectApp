@@ -135,6 +135,41 @@ const handleSaveSettings = async () => {
     });
     return;
   }
+const getDateYear = (date: string) => {
+  if (!date) return "";
+
+  const parts = date.split("-");
+
+  // YYYY-MM-DD
+  if (parts.length === 3 && parts[0].length === 4) {
+    return parts[0];
+  }
+
+  // MM/DD/YYYY
+  const slashParts = date.split("/");
+
+  if (slashParts.length === 3 && slashParts[2].length === 4) {
+    return slashParts[2];
+  }
+
+  return "";
+};
+
+const hasInvalidDateYear = rows.some((r) => {
+  const fromYear = getDateYear(r.from);
+  const toYear = getDateYear(r.to);
+
+  return fromYear !== r.year || toYear !== r.year;
+});
+
+  if (hasInvalidDateYear) {
+    setMessage({
+      text: "From and To dates must belong to the selected Year.",
+      type: "error",
+    });
+
+    return;
+  }  
 
   const seenQuarters = new Set<string>();
   const hasDuplicateQuarter = rows.some((r) => {
@@ -581,10 +616,12 @@ const deleteSelectedRows = async () => {
           type="date"
           className="w-full border rounded-sm px-2 py-1"
           value={row.from}
+          min={row.year ? `${row.year}-01-01` : undefined}
+          max={row.year ? `${row.year}-12-31` : undefined}
           onChange={(e) =>
             handleChange(index, 'from', e.target.value)
           }
-        />
+        />      
       </td>
 
       <td className="px-1 py-2">
@@ -592,10 +629,12 @@ const deleteSelectedRows = async () => {
           type="date"
           className="w-full border rounded-sm px-2 py-1"
           value={row.to}
+          min={row.year ? `${row.year}-01-01` : undefined}
+          max={row.year ? `${row.year}-12-31` : undefined}
           onChange={(e) =>
             handleChange(index, 'to', e.target.value)
           }
-        />
+        />     
       </td>
 
       <td className="px-1 py-2 text-center">
