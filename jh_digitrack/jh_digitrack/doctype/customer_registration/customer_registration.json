@@ -20,11 +20,13 @@
   "emirate_region",
   "city",
   "email_id",
+  "mobile_no",
   "po_box",
   "transportation_zone",
   "customer_group",
   "sales_district",
-  "sales_office"
+  "sales_office",
+  "status"
  ],
  "fields": [
   {
@@ -130,12 +132,22 @@
    "fieldname": "customer_details",
    "fieldtype": "Text Editor",
    "label": "Customer Details"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Data",
+   "label": "Status"
+  },
+  {
+   "fieldname": "mobile_no",
+   "fieldtype": "Data",
+   "label": "Mobile No"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-10-06 10:29:45.051410",
+ "modified": "2026-10-10 11:27:25.998933",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "Customer Registration",

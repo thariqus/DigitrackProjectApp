@@ -39,7 +39,6 @@ const FIELDS = [
   label: "Customer Name 2",
   icon: LuUser,
   placeholder: "e.g. Al Maha Trading LLC",
-  required: true,
   maxLength: 40,
 },
   {
@@ -112,6 +111,14 @@ const FIELDS = [
     icon: LuHash,
     placeholder: "e.g. abc@gmail.com",
     type: "email",
+  },
+   {
+    key: "mobile_no",
+    label: "Mobile No",
+    icon: LuHash,
+    placeholder: "e.g. +971501234567",
+    type: "tel",
+    maxLength: 20,
   },
   {
     key: "po_box",
@@ -714,6 +721,7 @@ function RegisterCustomer() {
         custom_region: customer.emirate_region || "",
         custom_city: customer.city || "",
         email_id: customer.email_id || "",
+        mobile_no: customer.mobile_no || "",
         po_box: customer.po_box || "",
         transportation_zone: customer.transportation_zone || "",
         customer_group:

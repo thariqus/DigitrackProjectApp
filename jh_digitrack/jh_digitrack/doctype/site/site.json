@@ -7,7 +7,8 @@
  "engine": "InnoDB",
  "field_order": [
   "site_code",
-  "site_name"
+  "site_name",
+  "url"
  ],
  "fields": [
   {
@@ -20,12 +21,17 @@
    "fieldname": "site_name",
    "fieldtype": "Data",
    "label": "Site Name"
+  },
+  {
+   "fieldname": "url",
+   "fieldtype": "Data",
+   "label": "url"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-09-28 11:06:12.795092",
+ "modified": "2026-10-10 12:44:37.819345",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "Site",
