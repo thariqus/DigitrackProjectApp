@@ -12,11 +12,35 @@ import { useGetCustomerList } from "../PropertyAutomation/hooks/useCustomerApi";
 
 const PAGE_SIZE = 20;
 
+type FilterStatus = "all" | "success" | "failed";
+
 const ROUTES = {
   registerWithoutSite: "/jh-digitrack/customer-registration/register-customer",
   registerWithSite: "/jh-digitrack/customer-registration/customer-with-site-code",
 };
 
+function renderStatusBadge(status: unknown) {
+  const value = String(status ?? "").trim().toUpperCase();
+  
+  const statusConfig = {
+    "S": { label: "Success", color: "bg-green-50 text-green-700 ring-1 ring-green-200" },
+    "E": { label: "Error", color: "bg-rose-50 text-[#9A3025] ring-1 ring-rose-200" },
+    "W": { label: "Warning", color: "bg-amber-50 text-amber-700 ring-1 ring-amber-200" },
+    "A": { label: "Abort", color: "bg-gray-50 text-gray-600 ring-1 ring-gray-200" },
+    "I": { label: "Info", color: "bg-blue-50 text-blue-700 ring-1 ring-blue-200" },
+  };
+
+  const config = statusConfig[value] || { label: value || "—", color: "bg-gray-50 text-gray-500 ring-1 ring-gray-200" };
+
+  return (
+    <span
+      className={`inline-block whitespace-nowrap rounded-full px-1.5 py-0.5 text-[9px] font-medium ${config.color}`}
+      title={config.label}
+    >
+      {value || "—"}
+    </span>
+  );
+}
 
 function CustomerList() {
   const outletContext = useOutletContext() ?? {};
@@ -26,6 +50,7 @@ function CustomerList() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [filterStatus, setFilterStatus] = useState<FilterStatus>("all");
 
   // SAP response viewer
   const [sapResponse, setSapResponse] = useState<unknown | null>(null);
@@ -109,7 +134,42 @@ function CustomerList() {
     debouncedSearch
   );
 
-  const customers = data?.data || [];
+  
+
+  let customers = data?.data || [];
+  
+  // ---------------------------------------------------------
+  // FILTER BY SAP STATUS
+  // ---------------------------------------------------------
+  
+  if (filterStatus !== "all") {
+    customers = customers.filter((customer) => {
+      const status = String(customer.status ?? "").trim().toUpperCase();
+      if (filterStatus === "success") {
+        return status === "S";
+      }
+      if (filterStatus === "failed") {
+        return ["E", "W", "A", "I"].includes(status);
+      }
+      return true;
+    });
+  }
+
+  // ---------------------------------------------------------
+  // SORT BY SAP STATUS (S first, then E, W, A, I)
+  // ---------------------------------------------------------
+
+  const statusOrder = { "S": 0, "E": 1, "W": 2, "A": 3, "I": 4 };
+  customers = [...customers].sort((a, b) => {
+    const statusA = String(a.status ?? "").trim().toUpperCase();
+    const statusB = String(b.status ?? "").trim().toUpperCase();
+    
+    const orderA = statusOrder[statusA] ?? 99;
+    const orderB = statusOrder[statusB] ?? 99;
+    
+    return orderA - orderB;
+  });
+
   const totalPages = data?.total_pages || 1;
   const isLastPage = page >= totalPages;
 
@@ -127,70 +187,121 @@ function CustomerList() {
   return (
     <div className="min-h-screen overflow-x-hidden rounded-xl bg-white p-3">
 
-            {/* =====================================================
+      {/* =====================================================
           HEADER
       ===================================================== */}
 
-      <div className="mb-2 flex items-center justify-between">
+      <div className="mb-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        
         <h2 className="text-sm font-semibold text-[#9A3025]">
           Registered Customers
         </h2>
 
-        <div className="flex items-center gap-2">
-          {/* REGISTER WITHOUT SITE CODE */}
-          <button
-            type="button"
-            onClick={() => navigate(ROUTES.registerWithoutSite)}
-            className="
-              flex
-              items-center
-              gap-1.5
-              rounded-md
-              border
-              border-rose-200
-              bg-white
-              px-2.5
-              py-1.5
-              text-[11px]
-              font-semibold
-              text-[#9A3025]
-              shadow-sm
-              transition
-              hover:bg-rose-50
-              hover:border-rose-300
-            "
-          >
-            <IoAdd className="text-sm" />
-            <span>Register without Site Code</span>
-          </button>
+        <div className="flex flex-wrap items-center gap-2">
+          
+         {/* STATUS FILTER */}
+          <div className="flex items-center gap-1.5">
+            <label
+              htmlFor="status-filter"
+              className="text-[10px] font-medium text-gray-500"
+            >
+              Filter:
+            </label>
 
-          {/* REGISTER WITH SITE CODE */}
-          <button
-            type="button"
-            onClick={() => navigate(ROUTES.registerWithSite)}
-            className="
-              flex
-              items-center
-              gap-1.5
-              rounded-md
-              border
-              border-rose-200
-              bg-rose-50
-              px-2.5
-              py-1.5
-              text-[11px]
-              font-semibold
-              text-[#9A3025]
-              shadow-sm
-              transition
-              hover:bg-rose-100
-              hover:border-rose-300
-            "
-          >
-            <IoAdd className="text-sm" />
-            <span>Register with Site Code</span>
-          </button>
+            <select
+              id="status-filter"
+              value={filterStatus}
+              onChange={(e) => {
+  setFilterStatus(e.target.value as FilterStatus);
+  setPage(1);
+}}
+              className="
+                rounded-md
+                border
+                border-rose-200
+                bg-white
+                py-1.5
+                pl-2
+                pr-7
+                text-[10px]
+                font-semibold
+                text-gray-700
+                shadow-sm
+                outline-none
+                transition
+                hover:border-rose-300
+                focus:border-rose-400
+                focus:ring-2
+                focus:ring-rose-100
+              "
+            >
+              <option value="all">All</option>
+              <option value="success">✓ Success</option>
+              <option value="failed">✕ Failed</option>
+            </select>
+          </div>
+
+          {/* REGISTER BUTTONS */}
+          <div className="flex items-center gap-2 sm:ml-auto">
+            
+            {/* REGISTER WITHOUT SITE CODE */}
+            <button
+              type="button"
+              onClick={() => navigate(ROUTES.registerWithoutSite)}
+              className="
+                flex
+                items-center
+                gap-1.5
+                rounded-md
+                border
+                border-rose-200
+                bg-white
+                px-2.5
+                py-1.5
+                text-[11px]
+                font-semibold
+                text-[#9A3025]
+                shadow-sm
+                transition
+                hover:bg-rose-50
+                hover:border-rose-300
+              "
+            >
+              <IoAdd className="text-sm" />
+              <span>Register without Site Code</span>
+            </button>
+
+            {/* REGISTER WITH SITE CODE */}
+            <button
+              type="button"
+              onClick={() => navigate(ROUTES.registerWithSite)}
+              className="
+                flex
+                items-center
+                gap-1.5
+                rounded-md
+                border
+                border-rose-200
+                bg-rose-50
+                px-2.5
+                py-1.5
+                text-[11px]
+                font-semibold
+                text-[#9A3025]
+                shadow-sm
+                transition
+                hover:bg-rose-100
+                hover:border-rose-300
+              "
+            >
+              <IoAdd className="text-sm" />
+              <span>Register with Site Code</span>
+            </button>
+
+          </div>
+
         </div>
+
       </div>
 
       {/* =====================================================
@@ -335,7 +446,7 @@ function CustomerList() {
 
                 <th className={thBase}>Office</th>
 
-                <th className={`${thBase} text-center`}>
+                <th className="px-1 py-2.5 text-center align-bottom text-[10px] font-semibold leading-tight">
                   Status
                 </th>
 
@@ -492,29 +603,10 @@ function CustomerList() {
 
                     {/* STATUS */}
 
-                    <td className="px-1 py-2 text-center">
-
-                      <span
-                        className={`
-                          inline-block
-                          max-w-full
-                          truncate
-                          rounded-full
-                          px-1.5
-                          py-0.5
-                          text-[9px]
-                          font-medium
-                          ${
-                            customer.status === "Active"
-                              ? "bg-green-50 text-green-700 ring-1 ring-green-200"
-                              : "bg-rose-50 text-[#9A3025] ring-1 ring-rose-200"
-                          }
-                        `}
-                        title={customer.status}
-                      >
-                        {customer.status}
-                      </span>
-
+                    <td className="px-1 py-2">
+                      <div className="flex justify-center">
+                        {renderStatusBadge(customer.status)}
+                      </div>
                     </td>
 
                     {/* EDIT */}

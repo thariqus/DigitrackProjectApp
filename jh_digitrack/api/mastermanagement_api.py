@@ -8,6 +8,22 @@ def to_int_or_none(value):
     value = str(value or "").strip()
     return int(value) if value.isdigit() else None
 
+
+
+def _get_sap_status(sap_response):
+    if not isinstance(sap_response, dict):
+        return None
+
+    data = sap_response.get("data")
+    if isinstance(data, list):
+        data = data[0] if data else None
+
+    if isinstance(data, dict):
+        return data.get("status")
+
+    return None
+
+
 # ---------------------------------------------------------------------------
 # Master Management API
 # Provides fetch endpoints for:
@@ -41,7 +57,8 @@ def create_sap_customer(data):
     },
 
     "contact": {
-        "email": data.get("email_id")
+        "email": data.get("email_id"),
+        "mobile": data.get("mobile_no")
     },
 
     "sales": {
@@ -239,11 +256,13 @@ def search_sap_customer(
                 "errorCode": str(response.status_code),
                 "message": response.text
             }
+            
 
         # ---------------------------------------------------------
         # SAP SUCCESS
         # ---------------------------------------------------------
 
+        
         if response.ok:
 
             return {
@@ -601,6 +620,7 @@ def create_customer(**kwargs):
                 "customer_group": cust_group,
                 "sales_district": kwargs.get("sales_district"),
                 "sales_office": kwargs.get("sales_office"),
+                "mobile_no": kwargs.get("mobile_no")
             },
         )
 
@@ -636,6 +656,7 @@ def create_customer(**kwargs):
             "sales_office": kwargs.get("sales_office"),
             "custom_customer_code": kwargs.get("customer_code"),
             "custom_company_code": kwargs.get("company_code"),
+            "mobile_no": kwargs.get("mobile_no")
         })
 
         doc.insert(ignore_permissions=True)
@@ -661,6 +682,13 @@ def create_customer(**kwargs):
             update_modified=True
         )
 
+           # Copy SAP's result code (data.status: "S" or "E") into Status
+        doc.db_set(
+            "status",
+            _get_sap_status(sap_response) or "",
+            update_modified=True
+        )
+
         frappe.db.commit()
 
         # =====================================================
@@ -671,46 +699,35 @@ def create_customer(**kwargs):
         customer_master_response = None
 
         if kwargs.get("site_code"):
-            # Site code to API URL mapping
-            site_api_mapping = {
-                "2112": "http://172.16.96.32/api/method/jaleel_ho.sap_outbound.customer.create_update_customer_master",
-                "2132": "http://172.16.10.9/api/method/jaleel_ho.sap_outbound.customer.create_update_customer_master",
-                "2113": "http://192.168.110.60/api/method/jaleel_ho.sap_outbound.customer.create_update_customer_master",
-                "2117": "http://store1uaejccuat.jaleel.local/api/method/jaleel_ho.sap_outbound.customer.create_update_customer_master"
-            }
+            site_code = str(doc.site_code or "").strip()
 
-
-            site_code = str(doc.site_code)
-            customer_master_url = site_api_mapping.get(site_code)
-
-            print("the url **********",customer_master_url)
+            # The Site doctype name is the site code. Its url field holds the full
+            # customer master endpoint, including the method path.
+            customer_master_url = (
+                frappe.db.get_value("Site", site_code, "url") or ""
+            ).strip()
 
             if not customer_master_url:
                 customer_master_response = {
                     "success": False,
-                    "message": f"Unknown site code: {site_code}",
-                    "customer_master_called": False
+                    "message": f"No URL configured for site {site_code} in the Site doctype",
+                    "customer_master_called": False,
                 }
             else:
                 print(f"Routing to site {site_code}: {customer_master_url}")
-                print("1")
 
                 try:
                     # Get the exact SAP response saved in customer_details
                     saved_sap_response = json.loads(doc.customer_details)
-                    
-                    print(f"DEBUG: Raw SAP Response Structure: {json.dumps(saved_sap_response, indent=2, default=str)}")
-                    
+
                     sap_response_data = saved_sap_response.get("data", {})
-                    
+
                     if isinstance(sap_response_data, list):
                         sap_response_data = sap_response_data[0] if sap_response_data else {}
 
                     if not isinstance(sap_response_data, dict):
                         sap_response_data = {}
 
-                    print(f"DEBUG: SAP Response Data: {json.dumps(sap_response_data, indent=2, default=str)}")
-                    
                     sap_status = sap_response_data.get("status")
                     sap_message = sap_response_data.get("message")
                     sap_code = sap_response_data.get("code")
@@ -724,41 +741,35 @@ def create_customer(**kwargs):
                             "message": sap_message,
                             "code": sap_code,
                             "sap_status": sap_status,
-                            "customer_master_called": False
+                            "customer_master_called": False,
                         }
                     else:
-                        # Extract customer data - handle nested structure
+                        # Extract customer data, handling the nested structure
                         customer_data = sap_response_data.get("data")
-                        
+
                         if customer_data is None:
-                            customer_data = sap_response_data  # Use the whole response if no nested "data"
+                            customer_data = sap_response_data
 
                         if isinstance(customer_data, list):
                             customer_data = customer_data[0] if customer_data else {}
-
-                        print(f"DEBUG: Extracted Customer Data Keys: {list(customer_data.keys()) if isinstance(customer_data, dict) else 'NOT A DICT'}")
 
                         if not isinstance(customer_data, dict):
                             customer_master_response = {
                                 "success": False,
                                 "message": "Invalid customer data in saved SAP response",
-                                "customer_master_called": False
+                                "customer_master_called": False,
                             }
                         else:
                             custom_customer_code = customer_data.get("custom_customer_code")
-                            
-                            # After converting fields to lists, add defaults for mandatory fields
-
-                            print(f"DEBUG: Customer Code: {custom_customer_code}")
 
                             if not custom_customer_code:
                                 customer_master_response = {
                                     "success": False,
                                     "message": "custom_customer_code is missing from SAP response",
-                                    "customer_master_called": False
+                                    "customer_master_called": False,
                                 }
                             else:
-                                # Convert dict fields to lists
+                                # Convert fields the Customer doctype expects as child tables into lists
                                 list_fields = [
                                     "credit_limits",
                                     "custom_customer_company",
@@ -766,52 +777,34 @@ def create_customer(**kwargs):
                                     "addr_list",
                                     "contact_list",
                                     "sales_team",
-                                    "custom_mop"
+                                    "custom_mop",
                                 ]
 
                                 for field in list_fields:
                                     value = customer_data.get(field)
-                                    
-                                    if value is None:
+
+                                    if value is None or not isinstance(value, (list, dict)):
                                         customer_data[field] = []
                                     elif isinstance(value, dict):
                                         customer_data[field] = [value]
-                                    elif not isinstance(value, list):
-                                        customer_data[field] = []
-                                    
-                                    print(f"DEBUG: Field '{field}' converted to type: {type(customer_data[field])}, length: {len(customer_data[field])}")
 
-                                # ===== SET MANDATORY FIELD DEFAULTS =====
-                                # These fields are required by Frappe Customer doctype
-                                
-                                # Set default customer_type if missing
+                                # Mandatory defaults for the Customer doctype
                                 if not customer_data.get("customer_type"):
-                                    customer_data["customer_type"] = "Company"  # or "Individual"
-                                    print(f"DEBUG: Set default customer_type: Company")
-                                
-                                # Set default currency if missing
+                                    customer_data["customer_type"] = "Company"
+
                                 if not customer_data.get("default_currency"):
-                                    customer_data["default_currency"] = "AED"  # or get from settings
-                                    print(f"DEBUG: Set default default_currency: AED")
-                                
-                                # Set default customer_group if missing
+                                    customer_data["default_currency"] = "AED"
+
                                 if not customer_data.get("customer_group"):
                                     customer_data["customer_group"] = "Default"
-                                    print(f"DEBUG: Set default customer_group: Default")
 
-                                customer_data["X-Source-Site"] = str(doc.site_code)
+                                customer_data["X-Source-Site"] = site_code
 
-                                customer_master_payload = {
-                                    "data": [customer_data]
-                                }
+                                customer_master_payload = {"data": [customer_data]}
 
-                                print(f"DEBUG: Routing to site {site_code}: {customer_master_url}")
-                                print("DEBUG: CUSTOMER MASTER PAYLOAD:")
+                                print(f"DEBUG: CUSTOMER MASTER PAYLOAD for {customer_master_url}:")
                                 print(json.dumps(customer_master_payload, indent=2, ensure_ascii=False, default=str))
 
-                                # ... rest of the code
-
-                                # Call Customer Master API
                                 response = requests.post(
                                     customer_master_url,
                                     json=customer_master_payload,
@@ -819,7 +812,7 @@ def create_customer(**kwargs):
                                         "Content-Type": "application/json",
                                         "Accept": "application/json",
                                     },
-                                    timeout=30
+                                    timeout=30,
                                 )
 
                                 print(f"DEBUG: CUSTOMER MASTER HTTP STATUS: {response.status_code}")
@@ -834,7 +827,7 @@ def create_customer(**kwargs):
                                     "success": response.ok,
                                     "status_code": response.status_code,
                                     "data": response_data,
-                                    "customer_master_called": True
+                                    "customer_master_called": True,
                                 }
 
                 except requests.exceptions.RequestException as e:
@@ -938,6 +931,7 @@ def get_customer_list(page=1, page_size=20, search=None):
                     ["customer_group", "like", like_search],
                     ["sales_district", "like", like_search],
                     ["sales_office", "like", like_search],
+                    ["status", "like", like_search],
                 ]
 
         # ---------------------------------------------------------
@@ -966,6 +960,7 @@ def get_customer_list(page=1, page_size=20, search=None):
                 "sales_district",
                 "sales_office",
                 "customer_details",
+                "status",
             ],
             order_by="creation desc",
             limit_start=offset,
@@ -1022,6 +1017,8 @@ def get_customer_list(page=1, page_size=20, search=None):
             "count": 0,
             "data": [],
         }
+
+
 
 def resolve_customer_group_code(value):
     """
