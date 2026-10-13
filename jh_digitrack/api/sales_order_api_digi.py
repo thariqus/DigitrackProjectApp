@@ -1,6 +1,8 @@
 import requests
 from typing import Dict, Any, Optional
 
+import frappe
+
 
 class JaleelPublicAPI:
     """
@@ -15,7 +17,11 @@ class JaleelPublicAPI:
         token: Optional[str] = None,
         timeout: int = 60
     ):
-        self.base_url = base_url.rstrip("/")
+        self.base_url =  frappe.db.get_value(
+            "Businesssiteurls",
+            {"sitecode": "2113"},
+            "baseapiurl"
+        )
         self.timeout = timeout
         self.token = token
 
@@ -58,7 +64,7 @@ class JaleelPublicAPI:
     # ==========================================
     # LOGIN
     # ==========================================
-
+    @frappe.whitelist()
     def erplogin(self, usr, pwd, mysitecode):
         return self._post(
             "erplogin",
@@ -72,40 +78,49 @@ class JaleelPublicAPI:
     # ==========================================
     # SALES ORDER
     # ==========================================
-
+    @frappe.whitelist()
     def create_sales_order_header(self, **kwargs):
         return self._post("create_sales_order_header", kwargs)
 
+    @frappe.whitelist()
     def add_sales_order_item(self, **kwargs):
         return self._post("add_sales_order_item", kwargs)
 
+    @frappe.whitelist()
     def trigger_stock_reservation(self, sales_order):
         return self._post(
             "trigger_stock_reservation",
             {"sales_order": sales_order}
         )
 
+    @frappe.whitelist()
     def get_sales_order_list(self, **kwargs):
         return self._get("get_sales_order_list", kwargs)
 
+    @frappe.whitelist()
     def get_express_order_list(self, **kwargs):
         return self._get("get_express_order_list", kwargs)
 
+    @frappe.whitelist()
     def submit_sales_order(self, **kwargs):
         return self._post("submit_sales_order", kwargs)
 
+    @frappe.whitelist()
     def get_sales_order(self, sales_order_id):
         return self._get(
             "get_sales_order_may",
             {"sales_order_id": sales_order_id}
         )
 
+    @frappe.whitelist()
     def delete_sales_order_item(self, **kwargs):
         return self._post("delete_sales_order_item", kwargs)
 
+    @frappe.whitelist()
     def manual_delete_row(self, **kwargs):
         return self._post("manual_delete_row", kwargs)
 
+    @frappe.whitelist()
     def update_sales_order_totals(self, docname):
         return self._post(
             "update_sales_order_totals",
@@ -115,19 +130,22 @@ class JaleelPublicAPI:
     # ==========================================
     # ITEMS
     # ==========================================
-
+    @frappe.whitelist()
     def get_item_by_barcode(self, **kwargs):
         return self._get("get_item_by_barcode", kwargs)
 
+    @frappe.whitelist()
     def get_price_by_barcode(self, **kwargs):
         return self._get("get_price_by_barcode", kwargs)
 
+    @frappe.whitelist()
     def get_stock_by_barcode(self, barcode):
         return self._get(
             "get_stock_by_barcode",
             {"barcode": barcode}
         )
 
+    @frappe.whitelist()
     def get_substitution_items(self, **kwargs):
         return self._get("get_substitution_items", kwargs)
 
@@ -135,12 +153,14 @@ class JaleelPublicAPI:
     # CUSTOMER
     # ==========================================
 
+    @frappe.whitelist()
     def get_customer_list(self, search):
         return self._get(
             "GetCustomerlist",
             {"search": search}
         )
 
+    @frappe.whitelist()
     def get_credit_balance(self, customer):
         return self._get(
             "get_credit_balance",
@@ -150,19 +170,21 @@ class JaleelPublicAPI:
     # ==========================================
     # PAYMENT
     # ==========================================
-
+    @frappe.whitelist()
     def create_payment_entry(self, **kwargs):
         return self._post(
             "create_payment_entry_v2",
             kwargs
         )
 
+    @frappe.whitelist()
     def get_so_payment_entries(self, sales_order):
         return self._get(
             "get_so_payment_entries",
             {"sales_order": sales_order}
         )
 
+    @frappe.whitelist()
     def get_card_authorization(
         self,
         name,
@@ -182,15 +204,18 @@ class JaleelPublicAPI:
     # INVOICE
     # ==========================================
 
+    @frappe.whitelist()
     def get_invoice_list(self, **kwargs):
         return self._get("get_invoice_list", kwargs)
 
+    @frappe.whitelist()
     def get_invoice(self, invoice_id):
         return self._get(
             "get_invoice",
             {"invoice_id": invoice_id}
         )
 
+    @frappe.whitelist()
     def get_invoice_name_by_sales_order(
         self,
         sales_order
@@ -204,6 +229,7 @@ class JaleelPublicAPI:
     # STOCK / UOM
     # ==========================================
 
+    @frappe.whitelist()
     def get_available_qty(
         self,
         item_code,
@@ -219,6 +245,7 @@ class JaleelPublicAPI:
             }
         )
 
+    @frappe.whitelist()
     def get_item_conversion_factor(
         self,
         item_code,
@@ -232,6 +259,7 @@ class JaleelPublicAPI:
             }
         )
 
+    @frappe.whitelist()
     def get_item_stock_uom(
         self,
         item_code
@@ -241,6 +269,7 @@ class JaleelPublicAPI:
             {"item_code": item_code}
         )
 
+    @frappe.whitelist()
     def validate_availability(
         self,
         item_code,
@@ -262,18 +291,23 @@ class JaleelPublicAPI:
     # SETTINGS
     # ==========================================
 
+    @frappe.whitelist()
     def get_jaleel_settings(self):
         return self._get("get_jaleel_settings")
 
+    @frappe.whitelist()
     def get_server_stats(self):
         return self._get("get_server_stats")
 
+    @frappe.whitelist()
     def get_database_health(self):
         return self._get("get_database_health")
 
+    @frappe.whitelist()
     def get_client_ip(self):
         return self._get("get_client_ip")
 
+    @frappe.whitelist()
     def get_bank_list(self):
         return self._get("get_bank_list")
 
@@ -281,6 +315,7 @@ class JaleelPublicAPI:
     # MAX ORDER / TAX
     # ==========================================
 
+    @frappe.whitelist()
     def get_max_order_qty(
         self,
         item_code,
@@ -298,6 +333,7 @@ class JaleelPublicAPI:
             }
         )
 
+    @frappe.whitelist()
     def get_item_tax_percent(
         self,
         item_tax_code,
