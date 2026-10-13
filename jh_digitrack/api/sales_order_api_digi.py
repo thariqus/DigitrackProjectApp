@@ -5,12 +5,7 @@ APP_PATH = "jaleel_ho.custom_selling.sales_order_api"
 
 SITE_CODE = "2113"
 
-BASE_URL = frappe.db.get_value(
-    "Businesssiteurls",
-    {"sitecode": SITE_CODE},
-    "baseapiurl"
-)
-
+BASE_URL = " http://172.16.51.67:8000/"
 TOKEN = None
 
 TIMEOUT = 60
