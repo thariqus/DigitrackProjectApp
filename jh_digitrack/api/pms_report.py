@@ -282,6 +282,44 @@ def get_goal_assessment_summary_org(year=None, manager=None):
 
 
 
+def _get_admin_cost_center_managers(admin_code):
+    """PMS managers in the cost centers an admin has access to.
+
+    PMS Admin Access List stores cost centers as codes (matching
+    JH User Master.cost_center), but older rows hold the cost center name
+    (matching PMS Employees.cost_center_name), so match on either.
+    """
+    if not admin_code:
+        return []
+
+    cost_centers = [
+        cc for cc in frappe.get_all(
+            "PMS Admin Access List", filters={"admin_emp_id": admin_code}, pluck="cost_center"
+        ) if cc
+    ]
+    if not cost_centers:
+        return []
+
+    pms = frappe.qb.DocType("PMS Employees")
+    jh = frappe.qb.DocType("JH User Master")
+
+    return (
+        frappe.qb.from_(pms)
+        .left_join(jh).on(jh.employee_code == pms.employee_code)
+        .select(
+            pms.employee_email.as_("manager_email"),
+            pms.full_name.as_("manager_name"),
+            pms.employee_code,
+            pms.department_name,
+        )
+        .distinct()
+        .where(pms.pms_manager == 1)
+        .where(jh.cost_center.isin(cost_centers) | pms.cost_center_name.isin(cost_centers))
+        .orderby(pms.full_name)
+        .run(as_dict=True)
+    )
+
+
 @frappe.whitelist(methods=["GET"])
 def get_goal_assessment_summary_admin(year=None, manager=None):
     try:
@@ -303,58 +341,35 @@ def get_goal_assessment_summary_admin(year=None, manager=None):
             "employee_code"
         )
 
-        admin_rows = frappe.db.get_all(
-            "PMS Admin Access List",
-            filters={"admin_emp_id": manager_code},
-            fields=["cost_center"]
-        )
-
-        if not admin_rows:
-            return {
-                "message": [],
-                "current_year": current_year,
-                "current_quarterly": current_quarterly,
-                "years": years,
-            }
-
         final_data = []
 
-        for row in admin_rows:
-            cost_center = row["cost_center"]
+        for mgr in _get_admin_cost_center_managers(manager_code):
+            mgr_email = mgr["manager_email"]
+            mgr_name = mgr["manager_name"]
+            mgr_code = mgr["employee_code"]
+            department = mgr["department_name"]
 
-            managers = frappe.db.get_all(
+
+            employees = frappe.db.get_all(
                 "PMS Employees",
-                filters={"cost_center_name": cost_center, "pms_manager": 1},
-                fields=["employee_email as manager_email", "full_name as manager_name", "employee_code", "department_name"]
+                filters={"manager_code": mgr_code, "pms_employee": 1},
+                fields=["employee_code", "full_name as employee_name"]
             )
+            not_participating = _get_not_participating_employees(mgr_code)
 
-            for mgr in managers:
-                mgr_email = mgr["manager_email"]
-                mgr_name = mgr["manager_name"]
-                mgr_code = mgr["employee_code"]
-                department = mgr["department_name"]
+            summary = {
+                "manager_email": mgr_email,
+                "manager_name": mgr_name,
+                "manager_code": mgr_code,
+                "department": department,
+                "employee_count": len(employees),
+                "employees_under_manager": employees,
+                "not_participating": len(not_participating),
+                "not_participating_employees": not_participating,
+            }
+            summary.update(_summarize_employee_statuses(employees, year))
 
-
-                employees = frappe.db.get_all(
-                    "PMS Employees",
-                    filters={"manager_code": mgr_code, "pms_employee": 1},
-                    fields=["employee_code", "full_name as employee_name"]
-                )
-                not_participating = _get_not_participating_employees(mgr_code)
-
-                summary = {
-                    "manager_email": mgr_email,
-                    "manager_name": mgr_name,
-                    "manager_code": mgr_code,
-                    "department": department,
-                    "employee_count": len(employees),
-                    "employees_under_manager": employees,
-                    "not_participating": len(not_participating),
-                    "not_participating_employees": not_participating,
-                }
-                summary.update(_summarize_employee_statuses(employees, year))
-
-                final_data.append(summary)
+            final_data.append(summary)
 
         # return {
         #     "message": final_data, 
@@ -389,17 +404,9 @@ def update_pms_participation(updates):
         frappe.throw("Nothing to update")
 
     admin_code = frappe.db.get_value("JH User Master", {"email": frappe.session.user}, "employee_code")
-    cost_centers = frappe.get_all(
-        "PMS Admin Access List", filters={"admin_emp_id": admin_code}, pluck="cost_center"
-    ) if admin_code else []
-    if not cost_centers:
+    allowed_managers = {m["employee_code"] for m in _get_admin_cost_center_managers(admin_code)}
+    if not allowed_managers:
         frappe.throw("You do not have PMS admin access", frappe.PermissionError)
-
-    allowed_managers = set(frappe.get_all(
-        "PMS Employees",
-        filters={"cost_center_name": ["in", cost_centers], "pms_manager": 1},
-        pluck="employee_code",
-    ))
 
     current_year = get_pms_years()[0]
 
