@@ -1778,6 +1778,37 @@ def run_post_hrms_sync():
             message="Set email='' in tabJH User Master for employees matched in tabHRMS Inactive Employees"
         )
         # ================================================================
+        # PRE-STEP 3c : Deactivate JH Users Missing from Active HRMS Data
+        # ----------------------------------------------------------------
+        # Any JH User Master record whose employee_code is not present
+        # among non-inactive HRMS Users is deactivated and its email
+        # cleared. NOT EXISTS is used instead of NOT IN so a NULL
+        # employee_code in HRMS Users can't silently match nothing.
+        # Skipped if HRMS Users has no active rows, to avoid wiping
+        # every user on an empty/failed sync.
+        # ================================================================
+        if frappe.db.sql("""
+            SELECT 1 FROM `tabHRMS Users`
+            WHERE active != 'Inactive'
+            LIMIT 1
+        """):
+            frappe.db.sql("""
+                UPDATE `tabJH User Master` PMUSER
+                SET PMUSER.active = 0, PMUSER.email = NULL, PMUSER.user = NULL
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM `tabHRMS Users` HR
+                    WHERE HR.employee_code = PMUSER.employee_code
+                      AND HR.active != 'Inactive'
+                )
+            """)
+            frappe.log_error(
+                title="PRE-STEP 3c: Deactivate JH Users Missing from HRMS",
+                message="Set active=0, email=NULL in tabJH User Master for employees not found among non-inactive tabHRMS Users"
+            )
+
+
+        
+        # ================================================================
         # PRE-STEP 4 : Disable PMS Access for Inactive Employees
         # ----------------------------------------------------------------
         # Clears employee email and removes all PMS access flags.
@@ -2311,6 +2342,24 @@ def run_post_hrms_sync():
         frappe.log_error(
             title="FINAL STEP: Disable unlinked frappe users",
             message="Disabled Frappe users (except Administrator/Guest) whose name is not linked as user in tabJH User Master"       )
+
+        # ================================================================
+        # FINAL STEP 2 : Unlink disabled Frappe users from JH User Master
+        # ----------------------------------------------------------------
+        # Clears the user link on JH User Master records whose linked
+        # Frappe User is disabled.
+        # ================================================================
+        frappe.db.sql("""
+            UPDATE `tabJH User Master` AS PMUSER
+            JOIN `tabUser` AS FPUSER
+              ON FPUSER.email = PMUSER.`user`
+            SET PMUSER.`user` = NULL
+            WHERE FPUSER.enabled = 0
+        """)
+        frappe.log_error(
+            title="FINAL STEP 2: Unlink disabled frappe users",
+            message="Set user=NULL in tabJH User Master where the linked Frappe User is disabled"
+        )
     except Exception:
         frappe.db.rollback()
         frappe.log_error(
