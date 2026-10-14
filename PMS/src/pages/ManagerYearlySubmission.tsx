@@ -725,7 +725,7 @@ function ManagerYearlySubmission() {
                             {/* Review checkboxes */}
                             <div className="flex flex-col gap-2 px-3 py-2.5">
                               <span className="text-[0.6rem] font-semibold uppercase tracking-wide text-gray-400">
-                                Checklist
+                                Recommendations
                               </span>
                               {REVIEW_CHECKBOXES.map(({ key, label }) => (
                                 <label
