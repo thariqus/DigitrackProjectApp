@@ -426,10 +426,10 @@ function FunctionalOrSkiplevelYearlysubmission() {
 
                 return (
                   <tr key={rowKey} className="border-b text-xs align-top transition">
-                    <td className="px-4 py-3 whitespace-nowrap" title={`${emp.employee_code} / ${emp.employee_name}`}>
+                    <td className="px-4 py-3 break-words" title={`${emp.employee_code} / ${emp.employee_name}`}>
                       {emp.employee_code} / {emp.employee_name}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap" title={emp.designation_name || "-"}>
+                    <td className="px-4 py-3 break-words" title={emp.designation_name || "-"}>
                       {emp.designation_name || "-"}
                     </td>
                     <td className="px-4 py-3">
