@@ -119,7 +119,7 @@ def get_credit_balance(customer):
     )
 
 
-@frappe.whitelist()
+@frappe.whitelist(allow_guest=True)
 def erplogin(
     usr,
     pwd,
