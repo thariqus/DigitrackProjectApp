@@ -50,7 +50,7 @@ function CustomerList() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [filterStatus, setFilterStatus] = useState<FilterStatus>("all");
+  const [filterStatus, setFilterStatus] = useState<FilterStatus>("success");
 
   // SAP response viewer
   const [sapResponse, setSapResponse] = useState<unknown | null>(null);
@@ -399,7 +399,7 @@ function CustomerList() {
               <col className="w-[5%]" />
               <col className="w-[6%]" />
               <col className="w-[3.5%]" />
-              <col className="w-[3.5%]" />
+              {/* <col className="w-[3.5%]" /> */}
             </colgroup>
 
             {/* =================================================
@@ -454,9 +454,9 @@ function CustomerList() {
                   Edit
                 </th>
 
-                <th className={`${thBase} text-center`}>
+                {/* <th className={`${thBase} text-center`}>
                   SAP
-                </th>
+                </th> */}
 
               </tr>
 
@@ -646,7 +646,7 @@ function CustomerList() {
 
                     </td>
 
-                    {/* SAP */}
+                    {/* SAP
 
                     <td className="px-1 py-2 text-center">
 
@@ -673,7 +673,7 @@ function CustomerList() {
                         SAP
                       </button>
 
-                    </td>
+                    </td> */}
 
                   </tr>
 
@@ -946,3 +946,6 @@ function CustomerList() {
 }
 
 export default CustomerList;
+
+
+

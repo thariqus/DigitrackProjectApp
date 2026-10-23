@@ -1,5 +1,6 @@
 import frappe from "@/utils/frappe-client";
 
+
 export interface CustomerPayload {
   [key: string]: string | undefined;
   name?: string;
@@ -22,6 +23,17 @@ export interface CustomerPayload {
   customer_code?: string;
   company_code?: string;
 }
+
+
+export const confirmCustomerSap = async (payload: CustomerPayload) => {
+  const res = await frappe.api.post(
+    `${MASTER_MANAGEMENT_API}.create_sap_customer_confirm`,
+    { data: payload }
+  );
+
+  return res.message;
+};
+
 
 export interface ActivateCustomerResponse {
   status_code: number;
@@ -53,6 +65,7 @@ export interface SalesDistrict {
  */
 export interface Emirate {
   name: string;
+  description?: string;
 }
 
 export interface SiteCode {

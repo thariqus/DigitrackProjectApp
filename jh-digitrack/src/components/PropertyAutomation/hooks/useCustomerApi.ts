@@ -10,7 +10,13 @@ import {
   CustomerPayload,
   getEmirates,
   getSiteCodes,
+  confirmCustomerSap,
 } from "../api/CustomerApi";
+
+export const useConfirmCustomerSap = () =>
+  useMutation({
+    mutationFn: (payload: CustomerPayload) => confirmCustomerSap(payload),
+  });
 
 export const useCreateCustomer = () =>
   useMutation({

@@ -43,10 +43,12 @@ def create_sap_customer(data):
     """
 
     payload = {
+    "type":"Y",
     "customerName": data.get("customer_name"),
     "businessName": data.get("business_name"),
     "trNumber": data.get("tr_number"),
     "tradeLicense": data.get("custom_trade_license_no"),
+    "tradeLicenseDate": _format_sap_date(data.get("trade_license_expiry")),
 
     "address": {
         "street": data.get("custom_street"),
@@ -58,7 +60,7 @@ def create_sap_customer(data):
 
     "contact": {
         "email": data.get("email_id"),
-        "mobile": data.get("mobile_no")
+        "mobileNo": data.get("mobile_no"),
     },
 
     "sales": {
@@ -108,6 +110,104 @@ def create_sap_customer(data):
                 "error": str(e)
             }
         }
+
+
+
+from datetime import datetime
+
+def _format_sap_date(value):
+    if not value:
+        return ""
+    try:
+        return datetime.strptime(value, "%Y-%m-%d").strftime("%d.%m.%Y")
+    except ValueError:
+        return value
+
+@frappe.whitelist(methods=["POST"])
+def create_sap_customer_confirm(data):
+    """
+    Send customer details to SAP.
+    """
+
+    # Resolve the Customer Group record ID to its readable name, as create_customer does
+    group_id = (data.get("customer_group") or "").strip()
+    data["customer_group"] = (
+        frappe.db.get_value("Customer Group", group_id, "customer_group_name")
+        or group_id
+    )
+
+    payload = {
+    "type":"X",
+    "customerName": data.get("customer_name"),
+    "businessName": data.get("business_name"),
+    "trNumber": data.get("tr_number"),
+    "tradeLicense": data.get("custom_trade_license_no"),
+    "tradeLicenseDate": _format_sap_date(data.get("trade_license_expiry")),
+
+    "address": {
+        "street": data.get("custom_street"),
+        "area": data.get("custom_area"),
+        "emirate": data.get("custom_region"),
+        "city": data.get("custom_city"),
+        "poBox": data.get("po_box")
+    },
+
+    "contact": {
+        "email": data.get("email_id"),
+        "mobileNo": data.get("mobile_no"),
+    },
+
+    "sales": {
+        "customerGroup": data.get("customer_group"),
+        "salesDistrict": data.get("sales_district"),
+        "salesOffice": data.get("sales_office"),
+        "transportationZone": data.get("transportation_zone")
+    }
+    }                                                                                                                                  
+    print("the payload *****:", payload)
+
+    try:
+        response = requests.post(
+            SAP_CUSTOMER_URL,
+            json=payload,
+            headers={
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            auth=("JHPIPODEV", "Jhpod!nt@1972#"),
+            timeout=30
+        )
+
+        try:
+            sap_data = response.json()
+            print("SAP CONFIRM HTTP:", response.status_code)
+            print("SAP RESPONSE:", sap_data)
+        except ValueError:
+            sap_data = {
+                "raw_response": response.text
+            }
+
+        return {
+            "success": response.ok,
+            "status_code": response.status_code,
+            "data": sap_data
+        }
+
+    except requests.exceptions.RequestException as e:
+        frappe.log_error(
+            frappe.get_traceback(),
+            "SAP Customer Create API Error"
+        )
+
+        return {
+            "success": False,
+            "status_code": 500,
+            "data": {
+                "error": str(e)
+            }
+        }
+
+
 
 
 # =========================================================
@@ -185,8 +285,10 @@ def search_sap_customer(
     customerName=None,
     customercode=None,
     trNumber=None,
-    tradeLicense=None
-):
+    tradeLicense=None,
+    address=None,
+    contact=None,
+ ):
     """
     Search customer details from SAP.
 
@@ -199,18 +301,37 @@ def search_sap_customer(
     sap_username = "JHPIPODEV"
     sap_password = "Jhpod!nt@1972#"
 
+
+
     # Clean input
     customerName = (customerName or "").strip()
     customercode = (customercode or "").strip()
     trNumber = (trNumber or "").strip()
     tradeLicense = (tradeLicense or "").strip()
 
+    # Extract nested address / contact sent by the frontend
+    address = frappe.parse_json(address) or {}
+    contact = frappe.parse_json(contact) or {}
+
+    street = (address.get("street") or "").strip()
+    area = (address.get("area") or "").strip()
+    emirate = (address.get("emirate") or "").strip()
+    city = (address.get("city") or "").strip()
+
+    mobileNo = (contact.get("mobileNo") or "").strip()
+
+
     # At least one field is required
     if not any([
         customerName,
         customercode,
         trNumber,
-        tradeLicense
+        tradeLicense,
+        street,
+        area,
+        emirate,
+        city,
+        mobileNo,
     ]):
         frappe.throw(
             "Please enter at least one customer detail."
@@ -219,11 +340,22 @@ def search_sap_customer(
     # Send all fields to SAP.
     # Empty fields are ignored by SAP if its API is designed
     # to treat empty values as no filter.
+
+    
     payload = {
     "customerName": customerName,
-    "customercode": to_int_or_none(customercode),
+    "customercode": (customercode),
     "trNumber": to_int_or_none(trNumber),
     "tradeLicense": tradeLicense,
+    "address": {
+        "street": street,
+        "area": area,
+        "emirate": emirate,
+        "city": city,
+    },
+    "contact": {
+        "mobileNo": mobileNo
+    }
     }
 
     print("======================================")
@@ -348,6 +480,8 @@ def search_sap_customer(
                 "message": str(e)
             }
         }
+
+
 
 # =========================================================
 # ACTIVATE CUSTOMER
@@ -611,6 +745,7 @@ def create_customer(**kwargs):
                 "business_name": kwargs.get("business_name"),
                 "tr_number": kwargs.get("tr_number"),
                 "trade_licence_number": kwargs.get("custom_trade_license_no"),
+                "trade_license_expiry": kwargs.get("trade_license_expiry"),
                 "street": kwargs.get("custom_street"),
                 "area": kwargs.get("custom_area"),
                 "emirate_region": kwargs.get("custom_region"),
@@ -642,6 +777,7 @@ def create_customer(**kwargs):
             "business_name": kwargs.get("business_name"),
             "tr_number": kwargs.get("tr_number"),
             "trade_licence_number": kwargs.get("custom_trade_license_no"),
+            "trade_license_expiry": kwargs.get("trade_license_expiry"),
             "address": kwargs.get("address"),
             "street": kwargs.get("custom_street"),
             "area": kwargs.get("custom_area"),
@@ -961,6 +1097,7 @@ def get_customer_list(page=1, page_size=20, search=None):
                 "sales_office",
                 "customer_details",
                 "status",
+                "trade_license_expiry",
             ],
             order_by="creation desc",
             limit_start=offset,
@@ -1044,6 +1181,7 @@ CUSTOMER_UPDATE_FIELD_MAP = {
     "business_name": "business_name",
     "tr_number": "tr_number",
     "custom_trade_license_no": "trade_licence_number",
+    "trade_license_expiry": "trade_license_expiry",
     "address": "address",
     "custom_street": "street",
     "custom_area": "area",
@@ -1119,7 +1257,6 @@ def update_customer(**kwargs):
 
 # Emirate Master API
 # ---------------------------------------------------------------------------
-
 @frappe.whitelist(methods=["GET"])
 def get_emirates(search=None):
     """
@@ -1128,7 +1265,7 @@ def get_emirates(search=None):
     Optional Parameters
     -------------------
     search : str
-        Filter emirates by name.
+        Filter emirates by name or description.
 
     Returns
     -------
@@ -1138,7 +1275,8 @@ def get_emirates(search=None):
         "count": <int>,
         "data": [
             {
-                "name": "Dubai"
+                "name": "AUH",
+                "description": "Abu Dhabi"
             },
             ...
         ]
@@ -1149,14 +1287,14 @@ def get_emirates(search=None):
         filters = {}
 
         if search:
-            filters = {
-                "name": ["like", f"%{search}%"]
-            }
+            filters = [
+                ["Emirate", "name", "like", f"%{search}%"],
+            ]
 
         data = frappe.db.get_all(
             "Emirate",
             filters=filters,
-            fields=["name"],
+            fields=["name", "description"],
             order_by="name asc",
         )
 
