@@ -6,7 +6,8 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
-  "emirate"
+  "emirate",
+  "description"
  ],
  "fields": [
   {
@@ -14,12 +15,17 @@
    "fieldtype": "Data",
    "label": "Emirate",
    "unique": 1
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Data",
+   "label": "description"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-09-02 15:45:42.961599",
+ "modified": "2026-10-23 11:35:16.530801",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "Emirate",

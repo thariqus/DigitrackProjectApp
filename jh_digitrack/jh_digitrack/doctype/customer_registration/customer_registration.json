@@ -11,6 +11,7 @@
   "business_name",
   "tr_number",
   "trade_licence_number",
+  "trade_license_expiry",
   "address",
   "street",
   "area",
@@ -142,12 +143,17 @@
    "fieldname": "mobile_no",
    "fieldtype": "Data",
    "label": "Mobile No"
+  },
+  {
+   "fieldname": "trade_license_expiry",
+   "fieldtype": "Data",
+   "label": "Trade License Expiry Date"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-10-10 11:27:25.998933",
+ "modified": "2026-10-21 15:07:10.341263",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "Customer Registration",

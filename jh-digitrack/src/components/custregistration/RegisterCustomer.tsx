@@ -16,6 +16,7 @@ import {
 import {
   useCreateCustomer,
   useUpdateCustomer,
+  useConfirmCustomerSap,
   useTransportationZones,
   useCustomerGroups,
   useSalesDistricts,
@@ -26,21 +27,20 @@ import { CustomerPayload } from "../PropertyAutomation/api/CustomerApi";
 
 const FIELDS = [
   {
-  key: "customer_name",
-  label: "Customer Name 1",
-  icon: LuUser,
-  placeholder: "e.g. Al Maha Trading LLC",
-  required: true,
-  maxLength: 40,
-},
-
-{
-  key: "business_name",
-  label: "Customer Name 2",
-  icon: LuUser,
-  placeholder: "e.g. Al Maha Trading LLC",
-  maxLength: 40,
-},
+    key: "customer_name",
+    label: "Customer Name 1",
+    icon: LuUser,
+    placeholder: "e.g. Al Maha Trading LLC",
+    required: true,
+    maxLength: 40,
+  },
+  {
+    key: "business_name",
+    label: "Customer Name 2",
+    icon: LuUser,
+    placeholder: "e.g. Al Maha Trading LLC",
+    maxLength: 40,
+  },
   {
     key: "customer_type",
     label: "Customer Type",
@@ -66,6 +66,12 @@ const FIELDS = [
     label: "Trade Licence Number",
     icon: LuFileText,
     placeholder: "e.g. 123456",
+  },
+  {
+    key: "trade_license_expiry",
+    label: "Trade Licence Expiry Date",
+    icon: LuFileText,
+    type: "date",
   },
   {
     key: "address",
@@ -112,7 +118,7 @@ const FIELDS = [
     placeholder: "e.g. abc@gmail.com",
     type: "email",
   },
-   {
+  {
     key: "mobile_no",
     label: "Mobile No",
     icon: LuHash,
@@ -167,17 +173,29 @@ const emptyForm = FIELDS.reduce(
   {} as CustomerPayload
 );
 
-// =========================================================
-// SAP RESPONSE HELPERS
-// Works with any wrapper depth / field set returned by SAP.
-// =========================================================
+const emptyResult = {
+  open: false,
+  ok: false,
+  title: "",
+  message: "",
+  status: "",
+  code: "",
+  sapRecord: null,
+  values: null,
+};
+
+const emptyNotice = {
+  open: false,
+  type: "error",
+  title: "",
+  message: "",
+  resetOnClose: false,
+};
 
 // =========================================================
 // SAP RESPONSE HELPERS
-// Only status "S" is success — anything else is shown as an error.
+// Only status "S" is success. Anything else is shown as an error.
 // =========================================================
-
-const SUCCESS_STATUSES = ["S", "SUCCESS"];
 
 function parseIfJson(value) {
   if (typeof value !== "string") return value;
@@ -227,7 +245,6 @@ function findSapResult(res) {
 
 function checkSapResponse(res, fallbackSuccessMessage) {
   const sapResult = findSapResult(res);
-  const rootFailed = res?.success === false || res?.data?.success === false;
 
   // No SAP status in the response → it's an error
   if (!sapResult) {
@@ -240,7 +257,7 @@ function checkSapResponse(res, fallbackSuccessMessage) {
   }
 
   const status = sapResult.status.trim().toUpperCase();
-  // SUCCESS ONLY IF STATUS IS "S" — ALL OTHER CASES FAIL
+  // SUCCESS ONLY IF STATUS IS "S". ALL OTHER CASES FAIL.
   const isSuccess = status === "S";
 
   const sapMessage =
@@ -265,21 +282,76 @@ function checkSapResponse(res, fallbackSuccessMessage) {
   };
 }
 
+// Formats "YYYY-MM-DD" as "DD/MM/YYYY" for display. Other values pass through.
+function formatDateForDisplay(value) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value ?? ""));
+  return match ? `${match[3]}/${match[2]}/${match[1]}` : value;
+}
+
+// Splits the flat field list into sections, each starting at a "section" field
+function groupFields(fields) {
+  const sections = [];
+  let current = {
+    key: "customer_details",
+    label: "Customer Details",
+    icon: LuUser,
+    rows: [],
+  };
+
+  fields.forEach((field) => {
+    if (field.type === "section") {
+      if (current.rows.length) sections.push(current);
+      current = { key: field.key, label: field.label, icon: field.icon, rows: [] };
+      return;
+    }
+    current.rows.push(field);
+  });
+  if (current.rows.length) sections.push(current);
+
+  return sections;
+}
+
 // =========================================================
-// STATUS MODAL (shared success / error)
+// RECEIVED DATA TABLE (SAP values only)
 // =========================================================
 
-function StatusModal({
-  open,
-  type = "error",
-  title,
-  message,
-  sap = null,
-  onClose,
-}) {
+const SAP_TABLE_COLUMNS = [
+  "Customer code",
+  "Name",
+  "TRN Number",
+  "Mobile No",
+  "Trade License No",
+  "City",
+  "Area",
+  "Street",
+];
+
+// Builds one row from the SAP record. Anything SAP did not return shows "—".
+function buildCustomerRow(rec) {
+  const pick = (...values) =>
+    values.find((v) => v != null && String(v).trim() !== "") ?? "—";
+
+  const source = rec ?? {};
+
+  return {
+    "Customer code": pick(source.custom_customer_code),
+    Name: pick(source.customer_name),
+    "TRN Number": pick(source.custom_vat_reg_no, source.tax_id),
+    "Mobile No": pick(source.mobile_no),
+    "Trade License No": pick(source.custom_trade_license_no),
+    City: pick(source.city),
+    Area: pick(source.area),
+    Street: pick(source.street),
+  };
+}
+
+// =========================================================
+// NOTICE MODAL (validation, registration result)
+// =========================================================
+
+function StatusModal({ open, type = "error", title, message, onClose }) {
   const isSuccess = type === "success";
   const stroke = isSuccess ? "#22c55e" : "#DC2626";
-  const sapRows = sap?.rows ?? [];
 
   return (
     <AnimatePresence>
@@ -384,43 +456,6 @@ function StatusModal({
                 {message}
               </p>
 
-              {/* SAP RESPONSE DETAILS */}
-              {sapRows.length > 0 && (
-                <div
-                  className={`mt-4 w-full overflow-hidden rounded-lg border text-left ${
-                    isSuccess
-                      ? "border-green-200 bg-green-50"
-                      : "border-rose-200 bg-rose-50"
-                  }`}
-                >
-                  <div
-                    className={`border-b px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide ${
-                      isSuccess
-                        ? "border-green-200 text-green-700"
-                        : "border-rose-200 text-[#9A3025]"
-                    }`}
-                  >
-                    SAP Response
-                  </div>
-
-                  <div className="max-h-48 space-y-1.5 overflow-y-auto px-3 py-2">
-                    {sapRows.map((row, i) => (
-                      <div
-                        key={`${row.label}-${i}`}
-                        className="flex gap-2 text-[11px]"
-                      >
-                        <span className="w-28 flex-shrink-0 font-semibold text-gray-500">
-                          {row.label}
-                        </span>
-                        <span className="min-w-0 break-words font-medium text-gray-800">
-                          {row.value}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               {/* DIVIDER */}
               <div className="my-6 h-px w-full bg-gray-100" />
 
@@ -445,37 +480,39 @@ function StatusModal({
 }
 
 // =========================================================
-// CONFIRM DETAILS MODAL
+// RESULT MODAL
+// SAP error: entered details, then SAP status, code and response.
+// SAP success: received data table, then SAP status.
+// Footer button registers the customer in both cases.
 // =========================================================
 
-// =========================================================
-// CONFIRM DETAILS MODAL
-// Label on the left, value on the right — grouped by section.
-// =========================================================
-
-function ConfirmDetailsModal({
+function ResultModal({
   open,
-  editMode,
-  fields,
+  ok,
+  title,
+  status,
+  code,
+  message,
+  sapRecord,
+  values,
   getDisplayValue,
-  isSubmitting,
+  editMode,
+  registering,
+  onRegister,
   onClose,
-  onConfirm,
 }) {
-  // Group fields into sections: everything before the first "section"
-  // field goes under "Customer Details".
-  const sections = [];
-  let current = { key: "customer_details", label: "Customer Details", icon: LuUser, rows: [] };
+  const accent = ok
+    ? "linear-gradient(90deg,#22c55e,#4ade80,#22c55e)"
+    : "linear-gradient(90deg,#9A3025,#c44738,#9A3025)";
 
-  fields.forEach((field) => {
-    if (field.type === "section") {
-      if (current.rows.length) sections.push(current);
-      current = { key: field.key, label: field.label, icon: field.icon, rows: [] };
-      return;
-    }
-    current.rows.push(field);
-  });
-  if (current.rows.length) sections.push(current);
+  const sapRows = [
+    { label: "Status", value: status },
+    { label: "Code", value: code },
+    { label: "Response", value: message },
+  ];
+
+  const sections = groupFields(FIELDS);
+  const row = buildCustomerRow(sapRecord);
 
   return (
     <AnimatePresence>
@@ -487,7 +524,7 @@ function ConfirmDetailsModal({
           transition={{ duration: 0.2 }}
           className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/50 backdrop-blur-[3px] p-4"
           onClick={() => {
-            if (!isSubmitting) onClose();
+            if (!registering) onClose();
           }}
         >
           <motion.div
@@ -499,97 +536,182 @@ function ConfirmDetailsModal({
             className="relative flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
           >
             {/* TOP ACCENT */}
-            <div
-              className="h-1.5 flex-shrink-0"
-              style={{
-                background: "linear-gradient(90deg,#9A3025,#c44738,#9A3025)",
-              }}
-            />
+            <div className="h-1.5 flex-shrink-0" style={{ background: accent }} />
+
+            {/* CLOSE BUTTON */}
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={registering}
+              aria-label="Close"
+              className="absolute right-3 top-4 flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition-all hover:bg-gray-100 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <LuX size={18} />
+            </button>
 
             {/* HEADER */}
-            <div className="flex items-start justify-between gap-4 border-b border-rose-100 bg-rose-50 px-6 py-4">
+            <div
+              className={`flex items-center gap-3 border-b px-6 py-4 ${
+                ok ? "border-green-100 bg-green-50" : "border-rose-100 bg-rose-50"
+              }`}
+            >
+              <div
+                className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full ${
+                  ok ? "bg-green-100 text-green-600" : "bg-rose-100 text-[#9A3025]"
+                }`}
+              >
+                {ok ? <LuCircleCheckBig size={20} /> : <LuX size={20} />}
+              </div>
               <div>
-                <h2 className="text-lg font-bold text-[#9A3025]">
-                  {editMode
-                    ? "Confirm Updated Details"
-                    : "Confirm Customer Details"}
+                <h2
+                  className={`text-lg font-bold ${
+                    ok ? "text-green-700" : "text-[#9A3025]"
+                  }`}
+                >
+                  {title}
                 </h2>
-                <p className="mt-1 text-sm text-gray-500">
-                  Please review the details below. Close this window to make
-                  changes.
+                <p className="mt-0.5 text-sm text-gray-500">
+                  {ok
+                    ? "SAP accepted the request. Review the received data below."
+                    : "SAP did not accept this request. Review the details below."}
                 </p>
               </div>
-
-              {/* CANCEL (X) — back to the form to edit */}
-              <button
-                type="button"
-                onClick={onClose}
-                disabled={isSubmitting}
-                aria-label="Cancel and edit"
-                title="Cancel and edit"
-                className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-gray-400 transition-all hover:bg-white hover:text-[#9A3025] disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <LuX size={20} />
-              </button>
             </div>
 
-            {/* DETAILS */}
+            {/* BODY */}
             <div className="space-y-5 overflow-y-auto px-6 py-5">
-              {sections.map((section) => {
-                const SectionIcon = section.icon;
+              {/* ENTERED DETAILS (error only) */}
+              {!ok &&
+                values &&
+                sections.map((section) => {
+                  const SectionIcon = section.icon;
 
-                return (
-                  <div key={section.key}>
-                    {/* SECTION TITLE */}
-                    <div className="mb-2 flex items-center gap-2 text-base font-semibold text-[#9A3025]">
-                      <SectionIcon size={17} />
-                      <span>{section.label}</span>
-                    </div>
+                  return (
+                    <div key={section.key}>
+                      <div className="mb-2 flex items-center gap-2 text-base font-semibold text-[#9A3025]">
+                        <SectionIcon size={17} />
+                        <span>{section.label}</span>
+                      </div>
 
-                    {/* KEY / VALUE ROWS */}
-                    <div className="overflow-hidden rounded-lg border border-rose-200">
-                      {section.rows.map((field, i) => {
-                        const displayValue = getDisplayValue(field);
-                        const isEmpty = displayValue === "—";
+                      <div className="overflow-hidden rounded-lg border border-rose-200">
+                        {section.rows.map((field, i) => {
+                          const displayValue = getDisplayValue(field, values);
+                          const isEmpty = displayValue === "—";
 
-                        return (
-                          <div
-                            key={field.key}
-                            className={`grid grid-cols-[170px_1fr] sm:grid-cols-[200px_1fr] ${
-                              i > 0 ? "border-t border-rose-100" : ""
-                            }`}
-                          >
-                            {/* LABEL (left) */}
-                            <div className="flex items-center bg-rose-50/70 px-4 py-2.5 text-sm font-medium text-gray-600">
-                              {field.label}
-                            </div>
-
-                            {/* VALUE (right) */}
+                          return (
                             <div
-                              className={`flex items-center break-words px-4 py-2.5 text-sm font-semibold ${
-                                isEmpty ? "text-gray-400" : "text-gray-900"
+                              key={field.key}
+                              className={`grid grid-cols-[170px_1fr] sm:grid-cols-[200px_1fr] ${
+                                i > 0 ? "border-t border-rose-100" : ""
                               }`}
                             >
-                              {displayValue}
+                              <div className="flex items-center bg-rose-50/70 px-4 py-2.5 text-sm font-medium text-gray-600">
+                                {field.label}
+                              </div>
+                              <div
+                                className={`flex items-center break-words px-4 py-2.5 text-sm font-semibold ${
+                                  isEmpty ? "text-gray-400" : "text-gray-900"
+                                }`}
+                              >
+                                {displayValue}
+                              </div>
                             </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
+                      </div>
                     </div>
+                  );
+                })}
+
+              {/* RECEIVED DATA (success only) */}
+              {ok && (
+                <div>
+                  <div className="mb-2 text-base font-semibold text-green-700">
+                    Received Data
                   </div>
-                );
-              })}
+
+                  <div className="w-full overflow-x-auto rounded-lg border border-green-200">
+                    <table className="w-full text-left text-[11px]">
+                      <thead className="bg-green-50">
+                        <tr>
+                          {SAP_TABLE_COLUMNS.map((col) => (
+                            <th
+                              key={col}
+                              className="whitespace-nowrap border-b border-green-200 px-2 py-1.5 font-semibold text-green-700"
+                            >
+                              {col}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          {SAP_TABLE_COLUMNS.map((col) => (
+                            <td
+                              key={col}
+                              className="break-words px-2 py-1.5 font-medium text-gray-800"
+                            >
+                              {row[col]}
+                            </td>
+                          ))}
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* SAP STATUS AND RESPONSE */}
+              <div>
+                <div
+                  className={`mb-2 text-base font-semibold ${
+                    ok ? "text-green-700" : "text-[#9A3025]"
+                  }`}
+                >
+                  SAP Status &amp; Response
+                </div>
+
+                <div
+                  className={`overflow-hidden rounded-lg border ${
+                    ok ? "border-green-200" : "border-rose-200"
+                  }`}
+                >
+                  {sapRows.map((r, i) => (
+                    <div
+                      key={r.label}
+                      className={`grid grid-cols-[170px_1fr] sm:grid-cols-[200px_1fr] ${
+                        i > 0
+                          ? ok
+                            ? "border-t border-green-100"
+                            : "border-t border-rose-100"
+                          : ""
+                      }`}
+                    >
+                      <div
+                        className={`flex items-center px-4 py-2.5 text-sm font-medium text-gray-600 ${
+                          ok ? "bg-green-50/70" : "bg-rose-50/70"
+                        }`}
+                      >
+                        {r.label}
+                      </div>
+                      <div className="flex items-center break-words px-4 py-2.5 text-sm font-semibold text-gray-900">
+                        {r.value}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
 
-            {/* FOOTER */}
+            {/* FOOTER: REGISTER BUTTON (runs the old create/update flow) */}
             <div className="flex flex-shrink-0 justify-end border-t border-rose-100 px-6 py-4">
               <button
                 type="button"
-                onClick={onConfirm}
-                disabled={isSubmitting}
+                onClick={onRegister}
+                disabled={registering}
                 className="flex items-center gap-2 rounded-lg bg-[#9A3025] px-6 py-2.5 text-sm font-semibold text-white shadow-md transition-all duration-200 hover:bg-[#832619] disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {isSubmitting ? (
+                {registering ? (
                   <>
                     <LuLoaderCircle size={16} className="animate-spin" />
                     {editMode ? "Updating..." : "Registering..."}
@@ -621,52 +743,38 @@ function RegisterCustomer() {
 
   const [form, setForm] = useState(emptyForm);
 
-  const [successModal, setSuccessModal] = useState({
-    open: false,
-    title: "",
-    message: "",
-    sap: null,
-  });
+  // SAP result card (error details or received data), with the submitted values
+  const [resultModal, setResultModal] = useState(emptyResult);
 
-  const [errorModal, setErrorModal] = useState({
-    open: false,
-    title: "",
-    message: "",
-    sap: null,
-    resetOnClose: false,
-  });
-
-  // Controls the "confirm details" popup shown before registering.
-  const [confirmOpen, setConfirmOpen] = useState(false);
+  // Validation and registration notices
+  const [notice, setNotice] = useState(emptyNotice);
 
   // Reference to the TR Number input.
   const trNumberRef = useRef<HTMLInputElement>(null);
 
-  // Tracks whether the error popup was previously open.
-  const errorModalWasOpenRef = useRef(false);
+  // Tracks whether the notice was previously open.
+  const noticeWasOpenRef = useRef(false);
 
-  // Whether the current error is about the TR Number (focus it on close).
+  // Whether the current notice is about the TR Number (focus it on close).
   const focusTrOnCloseRef = useRef(false);
 
   // =========================================================
-  // SHOW ERROR POPUP
+  // SHOW NOTICE (validation and registration messages)
   // =========================================================
 
-  const showError = (
+  const showNotice = (
     message,
-    { title = "", focusTr = false, sap = null, resetOnClose = false } = {}
+    { type = "error", title = "", focusTr = false, resetOnClose = false } = {}
   ) => {
     focusTrOnCloseRef.current = focusTr;
-    setErrorModal({ open: true, title, message, sap, resetOnClose });
+    setNotice({ open: true, type, title, message, resetOnClose });
   };
 
-  // Focus TR Number only after a TR-related popup has actually closed.
-  // This is more reliable than focusing directly inside onClose because
-  // StatusModal is animated and removed after the state changes.
+  // Focus TR Number only after a TR-related notice has actually closed.
   useEffect(() => {
     if (
-      errorModalWasOpenRef.current &&
-      !errorModal.open &&
+      noticeWasOpenRef.current &&
+      !notice.open &&
       focusTrOnCloseRef.current
     ) {
       focusTrOnCloseRef.current = false;
@@ -688,11 +796,11 @@ function RegisterCustomer() {
       });
     }
 
-    errorModalWasOpenRef.current = errorModal.open;
-  }, [errorModal.open]);
+    noticeWasOpenRef.current = notice.open;
+  }, [notice.open]);
 
   // =========================================================
-  // CREATE CUSTOMER
+  // CREATE / UPDATE CUSTOMER (old flow)
   // =========================================================
 
   const {
@@ -715,6 +823,7 @@ function RegisterCustomer() {
         business_name: customer.business_name || "",
         tr_number: customer.tr_number || "",
         custom_trade_license_no: customer.trade_licence_number || "",
+        trade_license_expiry: customer.trade_license_expiry || "",
         address: customer.address || "",
         custom_street: customer.street || "",
         custom_area: customer.area || "",
@@ -740,6 +849,8 @@ function RegisterCustomer() {
 
   const { mutate: updateCustomer, isPending: isUpdating } =
     useUpdateCustomer();
+
+  const { mutate: confirmSap, isPending: isConfirming } = useConfirmCustomerSap();
 
   // =========================================================
   // MASTER APIs
@@ -779,12 +890,12 @@ function RegisterCustomer() {
   }, [editMode, customerGroups, customer]);
 
   // =========================================================
-  // DISPLAY VALUE FOR CONFIRMATION POPUP
+  // DISPLAY VALUE FOR DETAIL CARDS
   // Shows readable labels (e.g. "A - Zone Title") instead of raw codes.
   // =========================================================
 
-  const getDisplayValue = (field) => {
-    const value = form[field.key];
+  const getDisplayValue = (field, values = form) => {
+    const value = values[field.key];
 
     if (
       value === undefined ||
@@ -795,6 +906,9 @@ function RegisterCustomer() {
     }
 
     switch (field.key) {
+      case "trade_license_expiry":
+        return formatDateForDisplay(value);
+
       case "transportation_zone": {
         const zone = transportationZones.find(
           (z) => z.transportation_zone_code === value
@@ -810,6 +924,14 @@ function RegisterCustomer() {
         return group.customer_group_title
           ? `${group.customer_group_name} - ${group.customer_group_title}`
           : group.customer_group_name;
+      }
+
+      case "custom_region": {
+        const emirate = emirates.find((e) => e.name === value);
+        if (!emirate) return value;
+        return emirate.description
+          ? `${emirate.name} - ${emirate.description}`
+          : emirate.name;
       }
 
       case "sales_district": {
@@ -872,7 +994,9 @@ function RegisterCustomer() {
           { value: "", label: "Select Emirate" },
           ...emirates.map((emirate) => ({
             value: emirate.name,
-            label: emirate.name,
+            label: emirate.description
+              ? `${emirate.name} - ${emirate.description}`
+              : emirate.name,
           })),
         ];
 
@@ -920,17 +1044,17 @@ function RegisterCustomer() {
   };
 
   // =========================================================
-  // SUBMIT (VALIDATE → OPEN CONFIRMATION POPUP)
+  // SUBMIT (VALIDATE → SEND TO SAP → SHOW RESULT)
   // =========================================================
 
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    // TR Number must contain exactly 10 digits
+    // TR Number must contain exactly 15 digits
     const trNumber = form.tr_number?.trim();
 
     if (trNumber && !/^\d{15}$/.test(trNumber)) {
-      showError("TR Number must contain exactly 15 digits.", {
+      showNotice("TR Number must contain exactly 15 digits.", {
         title: "Validation Required",
         focusTr: true,
       });
@@ -942,7 +1066,7 @@ function RegisterCustomer() {
       const tradeLicense = form.custom_trade_license_no?.trim();
 
       if (!trNumber && !tradeLicense) {
-        showError(
+        showNotice(
           "For B2B customers, either TR Number or Trade Licence Number is required.",
           { title: "Validation Required", focusTr: true }
         );
@@ -950,87 +1074,157 @@ function RegisterCustomer() {
       }
     }
 
-    // All validation passed → show confirmation popup
-    setConfirmOpen(true);
+    // Snapshot the values so the result card and Register button use what was submitted
+    const snapshot = { ...form };
+
+    confirmSap(form, {
+      onSuccess: (res) => handleSapResult(res, snapshot),
+      onError: (err) => handleSapError(err, snapshot),
+    });
   };
 
   // =========================================================
-  // HANDLE API RESULT (shared by create + update)
-  // SAP can return HTTP 200 with status "E", so check the body.
+  // HANDLE SAP RESULT
+  // Opens the result card: entered details + error on failure,
+  // received data on success.
   // =========================================================
 
-  const handleApiResult = (res, successMessage) => {
+  const handleSapResult = (res, values) => {
     console.log("SAP Response:", res);
-    setConfirmOpen(false);
 
-    const result = checkSapResponse(res, successMessage);
+    const sap = findSapResult(res);
+    const result = checkSapResponse(res, "Customer sent to SAP successfully.");
 
-    if (!result.ok) {
-      showError(result.message, {
-        title: result.title,
-        sap: result.sap,
-        resetOnClose: true, // create + edit → start a fresh registration
+    setResultModal({
+      open: true,
+      ok: result.ok,
+      title: result.title,
+      message: result.message,
+      status: sap?.status ? String(sap.status).trim() : "—",
+      code: sap?.code ? String(sap.code).trim() : "—",
+      sapRecord: sap ?? null,
+      values,
+    });
+  };
+
+  const handleSapError = (err, values) => {
+    console.error("CUSTOMER API ERROR:", err);
+
+    // Some backends return the SAP body inside the error (e.g. axios err.response.data)
+    const errorBody = err?.response?.data ?? err?.data;
+
+    if (errorBody && findSapResult(errorBody)) {
+      handleSapResult(errorBody, values);
+      return;
+    }
+
+    setResultModal({
+      open: true,
+      ok: false,
+      title: "Request Failed",
+      message: err?.message || "Failed to send customer to SAP. Please try again.",
+      status: "—",
+      code: "—",
+      sapRecord: null,
+      values,
+    });
+  };
+
+  // =========================================================
+  // REGISTER CUSTOMER (old create/update flow, runs after SAP result)
+  // =========================================================
+
+  const handleRegisterResult = (res) => {
+    setResultModal(emptyResult);
+
+    // Backend-level failure (validation, duplicate, server error)
+    if (res?.status_code && res.status_code !== 200) {
+      showNotice(res.message || "Customer registration failed.", {
+        title: res.status_code === 409 ? "Duplicate Customer" : "Registration Failed",
+        resetOnClose: false,
       });
       return;
     }
 
-    setSuccessModal({
-      open: true,
-      title: result.title,
-      message: result.message,
-      sap: result.sap,
-    });
-  };
-
-  const handleApiError = (err, fallbackMessage) => {
-    console.error("CUSTOMER API ERROR:", err);
-    setConfirmOpen(false);
-
-    // Some backends return the SAP body inside the error (e.g. axios err.response.data)
-    const errorBody = err?.response?.data ?? err?.data;
-    const result = errorBody ? checkSapResponse(errorBody, "") : null;
-
-    if (result && !result.ok) {
-      showError(result.message, {
-        title: result.title,
-        sap: result.sap,
+    // Update path returns no SAP status
+    if (editMode) {
+      showNotice("Customer updated successfully.", {
+        type: "success",
+        title: "Success",
         resetOnClose: true,
       });
       return;
     }
 
-    showError(err?.message || fallbackMessage, {
-      title: "Request Failed",
-      resetOnClose: true,
-    });
-  };
+    const sap = findSapResult(res?.sap_response);
 
-  // =========================================================
-  // FINAL REGISTER / UPDATE (from confirmation popup)
-  // =========================================================
-
-  const handleConfirmRegister = () => {
-    if (editMode) {
-      updateCustomer(form, {
-        onSuccess: (res) =>
-          handleApiResult(res, "Customer updated successfully."),
-        onError: (err) =>
-          handleApiError(err, "Failed to update customer. Please try again."),
+    if (!sap) {
+      showNotice("The customer was saved, but no SAP status was returned.", {
+        title: "Registration Incomplete",
+        resetOnClose: false,
       });
       return;
     }
 
-    createCustomer(form, {
-      onSuccess: (res) =>
-        handleApiResult(res, "Customer created successfully."),
-      onError: (err) =>
-        handleApiError(err, "Failed to register customer. Please try again."),
+    if (String(sap.status).trim().toUpperCase() === "S") {
+      showNotice(sap.message || "Customer registered successfully.", {
+        type: "success",
+        title: "Success",
+        resetOnClose: true,
+      });
+      return;
+    }
+
+    showNotice(
+      `The customer was saved, but SAP did not accept it: ${
+        sap.message || "no message returned."
+      }`,
+      {
+        title: sap.code ? `SAP Error (${sap.code})` : "SAP Error",
+        resetOnClose: false,
+      }
+    );
+  };
+
+  const handleRegisterError = (err) => {
+    setResultModal(emptyResult);
+
+    const errorBody = err?.response?.data ?? err?.data;
+    const sap = errorBody ? findSapResult(errorBody) : null;
+
+    showNotice(
+      sap?.message || err?.message || "Failed to register customer. Please try again.",
+      { title: "Request Failed", resetOnClose: false }
+    );
+  };
+
+  const handleRegister = () => {
+    const values = resultModal.values || form;
+
+    if (editMode) {
+      updateCustomer(values, {
+        onSuccess: handleRegisterResult,
+        onError: handleRegisterError,
+      });
+      return;
+    }
+
+    createCustomer(values, {
+      onSuccess: handleRegisterResult,
+      onError: handleRegisterError,
     });
+  };
+
+  // Closes the result card without registering. The form keeps its values.
+  const closeResult = () => {
+    setResultModal(emptyResult);
   };
 
   // =========================================================
   // RENDER
   // =========================================================
+
+  const isRegistering = isPending || isUpdating;
 
   return (
     <div className="min-h-full p-3 bg-white">
@@ -1195,7 +1389,7 @@ function RegisterCustomer() {
                           ))}
                         </select>
                       ) : (
-                        /* INPUT */
+                        /* INPUT (text, email, tel, date) */
                         <input
                           ref={
                             field.key === "tr_number" ? trNumberRef : undefined
@@ -1205,6 +1399,7 @@ function RegisterCustomer() {
                               ? "text"
                               : field.type || "text"
                           }
+                          lang={field.type === "date" ? "en-GB" : undefined}
                           inputMode={
                             field.key === "tr_number" ? "numeric" : undefined
                           }
@@ -1228,7 +1423,7 @@ function RegisterCustomer() {
 
                             handleChange(field.key, value);
                           }}
-                          className="
+                          className={`
                             w-full
                             pl-9
                             pr-3
@@ -1247,7 +1442,8 @@ function RegisterCustomer() {
                             focus:ring-2
                             focus:ring-rose-100
                             hover:border-rose-300
-                          "
+                            ${field.type === "date" && !form[field.key] ? "text-gray-400" : ""}
+                          `}
                         />
                       )}
                     </div>
@@ -1262,14 +1458,14 @@ function RegisterCustomer() {
           {/* ===================================== */}
 
           <div className="flex gap-2 mt-5 pt-4 border-t border-rose-100">
-            {/* CONFIRM BUTTON (opens review popup) */}
+            {/* CONFIRM BUTTON (sends to SAP) */}
             <button
               type="submit"
-              disabled={isPending || isUpdating}
+              disabled={isRegistering || isConfirming}
               className="flex items-center gap-1.5 bg-rose-50 border border-rose-200 text-[#9A3025] px-5 py-2 rounded-lg text-xs font-semibold shadow-sm hover:bg-rose-100 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <LuCircleCheckBig size={13} />
-              {editMode ? "Confirm Update" : "Confirm"}
+              {isConfirming ? "Sending..." : editMode ? "Confirm Update" : "Confirm"}
             </button>
 
             {/* RESET BUTTON */}
@@ -1286,56 +1482,37 @@ function RegisterCustomer() {
       </div>
 
       {/* ===================================== */}
-      {/* CONFIRM DETAILS MODAL */}
+      {/* RESULT MODAL (entered details + SAP error, or received data + Register button) */}
       {/* ===================================== */}
 
-      <ConfirmDetailsModal
-        open={confirmOpen}
-        editMode={editMode}
-        fields={FIELDS}
+      <ResultModal
+        open={resultModal.open}
+        ok={resultModal.ok}
+        title={resultModal.title}
+        status={resultModal.status}
+        code={resultModal.code}
+        message={resultModal.message}
+        sapRecord={resultModal.sapRecord}
+        values={resultModal.values}
         getDisplayValue={getDisplayValue}
-        isSubmitting={isPending || isUpdating}
-        onClose={() => setConfirmOpen(false)}
-        onConfirm={handleConfirmRegister}
+        editMode={editMode}
+        registering={isRegistering}
+        onRegister={handleRegister}
+        onClose={closeResult}
       />
 
       {/* ===================================== */}
-      {/* SUCCESS MODAL */}
+      {/* NOTICE MODAL (validation, registration result) */}
       {/* ===================================== */}
 
       <StatusModal
-        open={successModal.open}
-        type="success"
-        title={successModal.title || "Success"}
-        message={successModal.message}
-        sap={successModal.sap}
+        open={notice.open}
+        type={notice.type}
+        title={notice.title || (notice.type === "success" ? "Success" : "Validation Required")}
+        message={notice.message}
         onClose={() => {
-          setSuccessModal({ open: false, title: "", message: "", sap: null });
-          startNewRegistration();
-        }}
-      />
-
-      {/* ===================================== */}
-      {/* ERROR MODAL */}
-      {/* ===================================== */}
-
-      <StatusModal
-        open={errorModal.open}
-        type="error"
-        title={errorModal.title || "Validation Required"}
-        message={errorModal.message}
-        sap={errorModal.sap}
-        onClose={() => {
-          const shouldReset = errorModal.resetOnClose;
-
-          setErrorModal({
-            open: false,
-            title: "",
-            message: "",
-            sap: null,
-            resetOnClose: false,
-          });
-
+          const shouldReset = notice.resetOnClose;
+          setNotice(emptyNotice);
           if (shouldReset) startNewRegistration();
         }}
       />
