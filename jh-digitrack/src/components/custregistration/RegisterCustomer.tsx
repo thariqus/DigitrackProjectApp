@@ -505,11 +505,7 @@ function ResultModal({
     ? "linear-gradient(90deg,#22c55e,#4ade80,#22c55e)"
     : "linear-gradient(90deg,#9A3025,#c44738,#9A3025)";
 
-  const sapRows = [
-    { label: "Status", value: status },
-    { label: "Code", value: code },
-    { label: "Response", value: message },
-  ];
+   const sapRows = [{ label: "Response", value: message }];
 
   const sections = groupFields(FIELDS);
   const row = buildCustomerRow(sapRecord);
@@ -549,37 +545,10 @@ function ResultModal({
               <LuX size={18} />
             </button>
 
-            {/* HEADER */}
-            <div
-              className={`flex items-center gap-3 border-b px-6 py-4 ${
-                ok ? "border-green-100 bg-green-50" : "border-rose-100 bg-rose-50"
-              }`}
-            >
-              <div
-                className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full ${
-                  ok ? "bg-green-100 text-green-600" : "bg-rose-100 text-[#9A3025]"
-                }`}
-              >
-                {ok ? <LuCircleCheckBig size={20} /> : <LuX size={20} />}
-              </div>
-              <div>
-                <h2
-                  className={`text-lg font-bold ${
-                    ok ? "text-green-700" : "text-[#9A3025]"
-                  }`}
-                >
-                  {title}
-                </h2>
-                <p className="mt-0.5 text-sm text-gray-500">
-                  {ok
-                    ? "SAP accepted the request. Review the received data below."
-                    : "SAP did not accept this request. Review the details below."}
-                </p>
-              </div>
-            </div>
+            
 
             {/* BODY */}
-            <div className="space-y-5 overflow-y-auto px-6 py-5">
+              <div className="space-y-5 overflow-y-auto px-6 pb-5 pt-12">
               {/* ENTERED DETAILS (error only) */}
               {!ok &&
                 values &&
@@ -730,6 +699,14 @@ function ResultModal({
     </AnimatePresence>
   );
 }
+
+// Expiry date is required only when a trade licence number is entered
+const isFieldRequired = (field, values) => {
+  if (field.key === "trade_license_expiry") {
+    return Boolean(values.custom_trade_license_no?.trim());
+  }
+  return Boolean(field.required);
+};
 
 function RegisterCustomer() {
   const outletContext = useOutletContext() ?? {};
@@ -1073,6 +1050,17 @@ function RegisterCustomer() {
         return;
       }
     }
+        // Trade licence expiry is mandatory when a licence number is entered
+    if (
+      form.custom_trade_license_no?.trim() &&
+      !form.trade_license_expiry
+    ) {
+      showNotice(
+        "Trade Licence Expiry Date is required when a Trade Licence Number is entered.",
+        { title: "Validation Required" }
+      );
+      return;
+    }
 
     // Snapshot the values so the result card and Register button use what was submitted
     const snapshot = { ...form };
@@ -1299,9 +1287,9 @@ function RegisterCustomer() {
                   }
                 >
                   {/* LABEL */}
-                  <label className="text-[9px] font-semibold text-gray-500 uppercase tracking-wide block mb-0.5">
+                    <label className="text-[9px] font-semibold text-gray-500 uppercase tracking-wide block mb-0.5">
                     {field.label}
-                    {field.required && (
+                    {isFieldRequired(field, form) && (
                       <span className="text-rose-600 ml-1">*</span>
                     )}
                   </label>
@@ -1357,7 +1345,7 @@ function RegisterCustomer() {
                       {/* SELECT */}
                       {field.type === "select" ? (
                         <select
-                          required={field.required}
+                          required={isFieldRequired(field, form)}
                           value={form[field.key] || ""}
                           onChange={(e) =>
                             handleChange(field.key, e.target.value)
@@ -1410,7 +1398,7 @@ function RegisterCustomer() {
                                 ? 40
                                 : undefined
                           }
-                          required={field.required}
+                          required={isFieldRequired(field, form)}
                           placeholder={field.placeholder}
                           value={form[field.key] || ""}
                           onChange={(e) => {
