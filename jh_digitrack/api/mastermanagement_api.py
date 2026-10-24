@@ -3,6 +3,8 @@ import frappe
 import json
 
 import requests
+import re
+
 
 def to_int_or_none(value):
     value = str(value or "").strip()
@@ -23,6 +25,43 @@ def _get_sap_status(sap_response):
 
     return None
 
+
+def _get_sap_body(sap_response):
+    """Returns the SAP body (the dict holding status, code, message) or None."""
+    if not isinstance(sap_response, dict):
+        return None
+
+    data = sap_response.get("data")
+    if isinstance(data, list):
+        data = data[0] if data else None
+
+    return data if isinstance(data, dict) else None
+
+
+def _get_sap_customer_code(sap_response):
+    """
+    Returns the SAP customer code (e.g. '0001075719').
+    Checks custom_customer_code on the body, then on the nested record,
+    then parses "Customer Code: XXXX" from the message.
+    """
+    body = _get_sap_body(sap_response)
+    if not body:
+        return ""
+
+    code = str(body.get("custom_customer_code") or "").strip()
+
+    if not code:
+        nested = body.get("data")
+        if isinstance(nested, list):
+            nested = nested[0] if nested else {}
+        if isinstance(nested, dict):
+            code = str(nested.get("custom_customer_code") or "").strip()
+
+    if code:
+        return code
+
+    match = re.search(r"Customer Code:\s*(\w+)", str(body.get("message") or ""))
+    return match.group(1) if match else ""
 
 # ---------------------------------------------------------------------------
 # Master Management API
@@ -344,7 +383,7 @@ def search_sap_customer(
     
     payload = {
     "customerName": customerName,
-    "customercode": (customercode),
+    "customercode": to_int_or_none(customercode),
     "trNumber": to_int_or_none(trNumber),
     "tradeLicense": tradeLicense,
     "address": {
@@ -824,6 +863,11 @@ def create_customer(**kwargs):
             _get_sap_status(sap_response) or "",
             update_modified=True
         )
+        doc.db_set(
+            "custom_customer_code",
+            _get_sap_customer_code(sap_response) or doc.custom_customer_code or "",
+            update_modified=True
+        )
 
         frappe.db.commit()
 
@@ -1068,6 +1112,7 @@ def get_customer_list(page=1, page_size=20, search=None):
                     ["sales_district", "like", like_search],
                     ["sales_office", "like", like_search],
                     ["status", "like", like_search],
+                    ["custom_customer_code", "like", like_search],
                 ]
 
         # ---------------------------------------------------------
@@ -1098,6 +1143,7 @@ def get_customer_list(page=1, page_size=20, search=None):
                 "customer_details",
                 "status",
                 "trade_license_expiry",
+                "custom_customer_code",
             ],
             order_by="creation desc",
             limit_start=offset,
