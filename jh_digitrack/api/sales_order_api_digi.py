@@ -36,10 +36,12 @@ def get_headers():
     return headers
 
 def api_get(method_name, params=None,mysitecode=None):
+    print("mysitecodein get", mysitecode)
     set_cors_headers()
     if not mysitecode:
         frappe.throw(("mysitecode is required."))
-        BASE_URL=frappe.db.get_value("Businesssiteurls", mysitecode, "base_url")
+    BASE_URL=frappe.db.get_value("Site", mysitecode, "url")
+    print("BASE_URL", BASE_URL)
     url = f"{BASE_URL}/api/method/{APP_PATH}.{method_name}"
 
     response = requests.get(
@@ -56,7 +58,7 @@ def api_get1(method_name, params=None, mysitecode=None):
     set_cors_headers()
     if not mysitecode:
         frappe.throw(("mysitecode is required."))
-        BASE_URL=frappe.db.get_value("Businesssiteurls", mysitecode, "base_url")
+    BASE_URL=frappe.db.get_value("Site", mysitecode, "url")
     url = f"{BASE_URL}/api/method/{APP_PATH1}.{method_name}"
 
     response = requests.get(
@@ -72,7 +74,7 @@ def api_get2(method_name, params=None,mysitecode=None):
     set_cors_headers()
     if not mysitecode:
         frappe.throw(("mysitecode is required."))
-        BASE_URL=frappe.db.get_value("Businesssiteurls", mysitecode, "base_url")
+    BASE_URL=frappe.db.get_value("Site", mysitecode, "url")
     url = f"{BASE_URL}/api/method/{APP_PATH2}.{method_name}"
 
     response = requests.get(
@@ -89,7 +91,7 @@ def api_get3(method_name, params=None, mysitecode=None):
     set_cors_headers()
     if not mysitecode:
         frappe.throw(("mysitecode is required."))
-        BASE_URL=frappe.db.get_value("Businesssiteurls", mysitecode, "base_url")
+    BASE_URL=frappe.db.get_value("Site", mysitecode, "url")
     url = f"{BASE_URL}/api/method/{APP_PATH3}.{method_name}"
 
     response = requests.get(
@@ -105,7 +107,7 @@ def api_get4(method_name, params=None, mysitecode=None):
     set_cors_headers()
     if not mysitecode:
         frappe.throw(("mysitecode is required."))
-        BASE_URL=frappe.db.get_value("Site", mysitecode, "url")
+    BASE_URL=frappe.db.get_value("Site", mysitecode, "url")
     url = f"{BASE_URL}/api/method/{APP_PATH4}.{method_name}"
 
     response = requests.get(
@@ -122,7 +124,7 @@ def api_get5(method_name, params=None, mysitecode=None):
     set_cors_headers()
     if not mysitecode:
         frappe.throw(("mysitecode is required."))
-        BASE_URL=frappe.db.get_value("Businesssiteurls", mysitecode, "base_url")    
+    BASE_URL=frappe.db.get_value("Site", mysitecode, "url")    
     url = f"{BASE_URL}/api/method/{APP_PATH6}.{method_name}"
 
     response = requests.get(
@@ -139,7 +141,7 @@ def api_get6(method_name, params=None, mysitecode=None):
     set_cors_headers()
     if not mysitecode:
         frappe.throw(("mysitecode is required."))
-        BASE_URL=frappe.db.get_value("Businesssiteurls", mysitecode, "base_url")
+    BASE_URL=frappe.db.get_value("Site", mysitecode, "url")
     url = f"{BASE_URL}/api/method/{APP_PATH7}.{method_name}"
 
     response = requests.get(
@@ -157,7 +159,7 @@ def api_post(method_name, data=None,mysitecode=None):
     set_cors_headers()
     if not mysitecode:
         frappe.throw(("mysitecode is required."))
-        BASE_URL=frappe.db.get_value("Businesssiteurls", mysitecode, "base_url")
+    BASE_URL=frappe.db.get_value("Site", mysitecode, "url")
     url = f"{BASE_URL}/api/method/{APP_PATH}.{method_name}"
 
     response = requests.post(
@@ -174,7 +176,7 @@ def api_post1(method_name, data=None, mysitecode=None):
     set_cors_headers()
     if not mysitecode:
         frappe.throw(("mysitecode is required."))
-        BASE_URL=frappe.db.get_value("Businesssiteurls", mysitecode, "base_url")
+    BASE_URL=frappe.db.get_value("Site", mysitecode, "url")
 
     url = f"{BASE_URL}/api/method/{APP_PATH1}.{method_name}"
 
@@ -192,7 +194,7 @@ def api_post2(method_name, data=None, mysitecode=None):
     set_cors_headers()
     if not mysitecode:
         frappe.throw(("mysitecode is required."))
-        BASE_URL=frappe.db.get_value("Businesssiteurls", mysitecode, "base_url")
+    BASE_URL=frappe.db.get_value("Site", mysitecode, "url")
     url = f"{BASE_URL}/api/method/{APP_PATH5}.{method_name}"
 
     response = requests.post(
@@ -208,6 +210,7 @@ def api_post2(method_name, data=None, mysitecode=None):
 
 @frappe.whitelist(allow_guest=True)
 def get_client_ip(mysitecode=None):
+    print("mysitecode", mysitecode)
     response = api_get("get_client_ip", mysitecode=mysitecode)
 
     if isinstance(response, str):
