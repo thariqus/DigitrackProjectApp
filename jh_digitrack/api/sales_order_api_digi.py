@@ -155,8 +155,9 @@ def api_get6(method_name, params=None, mysitecode=None):
     return response.json()
 
 
-def api_post(method_name, data=None,mysitecode=None):
+def api_post(method_name, data=None):
     set_cors_headers()
+    mysitecode = data.get("mysitecode")
     if not mysitecode:
         frappe.throw(("mysitecode is required."))
     BASE_URL=frappe.db.get_value("Site", mysitecode, "url")
