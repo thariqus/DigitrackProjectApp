@@ -909,7 +909,6 @@ function AdminView() {
         open={showBellCurve}
         onClose={() => setShowBellCurve(false)}
         years={years}
-        departments={departments}
         defaultYear={baseYear}
       />
     </div>

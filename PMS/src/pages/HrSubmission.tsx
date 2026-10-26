@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { CiCalendar } from "react-icons/ci";
-import { MdOutlineFileUpload } from "react-icons/md";
+import { MdOutlineFileDownload, MdOutlineFileUpload } from "react-icons/md";
 import { FiEye } from "react-icons/fi";
 import { HiArrowNarrowDown } from "react-icons/hi";
 import frappe from "@/utils/frappe-client";
@@ -539,7 +539,22 @@ const sortedSubmissions = [...submissions].sort((a, b) => {
         </div>
  
         <div className="flex flex-col gap-2 items-start">
-          <p className="text-sm">HR Review Excel File</p>
+          <div className="flex items-center gap-3">
+            <p className="text-sm">HR Review Excel File</p>
+            <button
+              type="button"
+              onClick={() =>
+                window.open(
+                  "/api/method/jh_digitrack.api.hr_submission.download_hr_template",
+                  "_blank"
+                )
+              }
+              className="flex items-center gap-1 text-xs text-primary underline cursor-pointer"
+            >
+              <MdOutlineFileDownload size={16} />
+              Download Template
+            </button>
+          </div>
           <div className="flex items-center gap-3">
             <label
               className={`flex items-center gap-2 px-4 py-2.5 border border-gray-300 rounded-md text-sm ${

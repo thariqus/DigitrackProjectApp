@@ -284,6 +284,63 @@ def get_hr_submission_access():
 
 
 @frappe.whitelist(methods=["GET"])
+def download_hr_template():
+    """Blank HR review sheet with the headers submit_hr_excel expects."""
+    if not _is_super_admin(frappe.session.user):
+        frappe.throw(_("You are not allowed to download the HR template."), frappe.PermissionError)
+
+    from openpyxl import Workbook
+    from openpyxl.styles import Alignment, Font, PatternFill
+    from openpyxl.worksheet.datavalidation import DataValidation
+    from werkzeug.wrappers import Response
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "HR Review"
+
+    headers = ["Emp ID", "Manager ID", "HR Rating", "HR Comment"]
+    ws.append(headers)
+    header_fill = PatternFill(start_color="D9D9D9", end_color="D9D9D9", fill_type="solid")
+    for cell in ws[1]:
+        cell.font = Font(bold=True)
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal="center")
+
+    for col, width in zip("ABCD", (15, 15, 12, 60)):
+        ws.column_dimensions[col].width = width
+    ws.freeze_panes = "A2"
+
+    # Codes as text so Excel keeps them exactly as typed
+    for row in ws.iter_rows(min_row=2, max_row=1000, min_col=1, max_col=2):
+        for cell in row:
+            cell.number_format = "@"
+
+    rating_rule = DataValidation(
+        type="whole",
+        operator="between",
+        formula1="1",
+        formula2="5",
+        showErrorMessage=True,
+        errorTitle="Invalid HR Rating",
+        error="HR Rating must be a whole number from 1 to 5.",
+        showInputMessage=True,
+        promptTitle="HR Rating",
+        prompt="Enter a rating from 1 to 5.",
+    )
+    ws.add_data_validation(rating_rule)
+    rating_rule.add("C2:C1000")
+
+    output = BytesIO()
+    wb.save(output)
+
+    response = Response(output.getvalue())
+    response.headers["Content-Type"] = \
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    response.headers["Content-Disposition"] = 'attachment; filename="HR_Review_Template.xlsx"'
+    return response
+
+
+@frappe.whitelist(methods=["GET"])
 def get_pending_reviews(year=None):
     """Evaluations for the year that will NOT be submitted when the appraisal
     cycle is closed (HR has not uploaded for them yet), shown as a warning."""

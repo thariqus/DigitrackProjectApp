@@ -16,7 +16,9 @@ interface BellCurveRow {
 
 interface BellCurveData {
   year: string;
-  department: string | null;
+  business_unit: string | null;
+  // Business units in the admin's scope, for the filter dropdown
+  business_units: string[];
   configured: boolean;
   total: number;
   rows: BellCurveRow[];
@@ -26,7 +28,6 @@ interface BellCurveModalProps {
   open: boolean;
   onClose: () => void;
   years: string[];
-  departments: string[];
   defaultYear: string;
 }
 
@@ -37,21 +38,21 @@ const formatGap = (gap: number | null) =>
 const gapClass = (gap: number | null) =>
   gap !== null && gap > 0 ? "text-red-600" : gap !== null && gap < 0 ? "text-amber-600" : "text-gray-500";
 
-function BellCurveModal({ open, onClose, years, departments, defaultYear }: BellCurveModalProps) {
+function BellCurveModal({ open, onClose, years, defaultYear }: BellCurveModalProps) {
   const [year, setYear] = useState(defaultYear);
-  const [department, setDepartment] = useState("All");
+  const [businessUnit, setBusinessUnit] = useState("All");
   const [data, setData] = useState<BellCurveData | null>(null);
   const [loading, setLoading] = useState(false);
 
   // PMS Settings has one row per quarter, so the same year can repeat
   const uniqueYears = useMemo(() => Array.from(new Set(years)), [years]);
 
-  const fetchBellCurve = async (y: string, dept: string) => {
+  const fetchBellCurve = async (y: string, bu: string) => {
     try {
       setLoading(true);
       const res = await frappeClient.api.get("jh_digitrack.api.pms_bell_curve.get_bell_curve", {
         year: y,
-        department: dept,
+        business_unit: bu,
       });
       setData(res?.message || null);
     } catch (err) {
@@ -62,11 +63,11 @@ function BellCurveModal({ open, onClose, years, departments, defaultYear }: Bell
     }
   };
 
-  // Each time the popup opens, start from the current year and all departments
+  // Each time the popup opens, start from the current year and all business units
   useEffect(() => {
     if (!open) return;
     setYear(defaultYear);
-    setDepartment("All");
+    setBusinessUnit("All");
     fetchBellCurve(defaultYear, "All");
   }, [open, defaultYear]);
 
@@ -145,20 +146,20 @@ function BellCurveModal({ open, onClose, years, departments, defaultYear }: Bell
             </select>
 
             <select
-              value={department}
-              onChange={(e) => setDepartment(e.target.value)}
+              value={businessUnit}
+              onChange={(e) => setBusinessUnit(e.target.value)}
               className="px-2 py-1 border rounded-md text-[0.65rem] focus:outline-none"
             >
-              <option value="All">All Departments</option>
-              {departments.map((dept) => (
-                <option key={dept} value={dept}>
-                  {dept}
+              <option value="All">All Business Units</option>
+              {(data?.business_units || []).map((bu) => (
+                <option key={bu} value={bu}>
+                  {bu}
                 </option>
               ))}
             </select>
 
             <button
-              onClick={() => fetchBellCurve(year, department)}
+              onClick={() => fetchBellCurve(year, businessUnit)}
               disabled={loading}
               className="px-3 py-1 text-[0.65rem] bg-primary text-white rounded-md hover:bg-[#7d241f] disabled:opacity-60"
             >

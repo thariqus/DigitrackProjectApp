@@ -2,7 +2,7 @@ import frappe
 from frappe import _
 from frappe.utils import cint, flt
 
-from jh_digitrack.api.pms_report import get_pms_years
+from jh_digitrack.api.pms_report import _get_admin_cost_center_managers, get_pms_years
 
 RATINGS = (1, 2, 3, 4, 5)
 
@@ -27,36 +27,24 @@ def _get_expected_percentages():
     return {cint(row.rating): flt(row.expected_percentage) for row in rows}
 
 
-def _get_scoped_employee_codes(admin_code, department=None):
+def _get_scoped_employees(admin_code):
     """Employees the admin sees in the admin report: PMS employees under
-    PMS managers in the admin's cost centers, filtered by manager department."""
-    cost_centers = frappe.db.get_all(
-        "PMS Admin Access List",
-        filters={"admin_emp_id": admin_code},
-        pluck="cost_center",
-    )
-    if not cost_centers:
-        return []
-
-    manager_filters = {"cost_center_name": ["in", cost_centers], "pms_manager": 1}
-    if department:
-        manager_filters["department_name"] = department
-
-    manager_codes = frappe.db.get_all(
-        "PMS Employees", filters=manager_filters, pluck="employee_code"
-    )
+    PMS managers in the admin's cost centers, with their business unit."""
+    # Same manager lookup as the admin report, so both count the same people
+    manager_codes = [m.employee_code for m in _get_admin_cost_center_managers(admin_code)]
     if not manager_codes:
         return []
 
-    return list(set(frappe.db.get_all(
+    return frappe.db.get_all(
         "PMS Employees",
         filters={"manager_code": ["in", manager_codes], "pms_employee": 1},
-        pluck="employee_code",
-    )))
+        fields=["employee_code", "business_unit"],
+        distinct=True,
+    )
 
 
 @frappe.whitelist(methods=["GET"])
-def get_bell_curve(year=None, department=None):
+def get_bell_curve(year=None, business_unit=None):
     admin_code = _get_pms_admin_code()
 
     current_year, _current_quarterly, _years = get_pms_years()
@@ -64,11 +52,21 @@ def get_bell_curve(year=None, department=None):
     if not year:
         frappe.throw(_("Assessment year not found in PMS Settings"))
 
-    if department in (None, "", "All"):
-        department = None
+    if business_unit in (None, "", "All"):
+        business_unit = None
+
+    scoped_employees = _get_scoped_employees(admin_code)
+    # Filter options cover the admin's whole scope, not just the selected unit
+    business_units = sorted(
+        {e.business_unit for e in scoped_employees if e.business_unit}, key=str.casefold
+    )
+    employee_codes = list({
+        e.employee_code
+        for e in scoped_employees
+        if not business_unit or e.business_unit == business_unit
+    })
 
     counts = dict.fromkeys(RATINGS, 0)
-    employee_codes = _get_scoped_employee_codes(admin_code, department)
     if employee_codes:
         for ga in frappe.db.get_all(
             "Goal Assessment",
@@ -103,7 +101,8 @@ def get_bell_curve(year=None, department=None):
 
     return {
         "year": year,
-        "department": department,
+        "business_unit": business_unit,
+        "business_units": business_units,
         "configured": configured,
         "total": total,
         "rows": rows,
