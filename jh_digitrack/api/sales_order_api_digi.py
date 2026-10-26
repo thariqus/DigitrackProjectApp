@@ -35,10 +35,11 @@ def get_headers():
 
     return headers
 
-
-def api_get(method_name, params=None):
+def api_get(method_name, params=None,mysitecode=None):
     set_cors_headers()
-
+    if not mysitecode:
+        frappe.throw(("mysitecode is required."))
+        BASE_URL=frappe.db.get_value("Businesssiteurls", mysitecode, "base_url")
     url = f"{BASE_URL}/api/method/{APP_PATH}.{method_name}"
 
     response = requests.get(
@@ -51,9 +52,11 @@ def api_get(method_name, params=None):
     response.raise_for_status()
     return response.json()
 
-def api_get1(method_name, params=None):
+def api_get1(method_name, params=None, mysitecode=None):
     set_cors_headers()
-
+    if not mysitecode:
+        frappe.throw(("mysitecode is required."))
+        BASE_URL=frappe.db.get_value("Businesssiteurls", mysitecode, "base_url")
     url = f"{BASE_URL}/api/method/{APP_PATH1}.{method_name}"
 
     response = requests.get(
@@ -65,9 +68,11 @@ def api_get1(method_name, params=None):
 
     response.raise_for_status()
     return response.json()
-def api_get2(method_name, params=None):
+def api_get2(method_name, params=None,mysitecode=None):
     set_cors_headers()
-
+    if not mysitecode:
+        frappe.throw(("mysitecode is required."))
+        BASE_URL=frappe.db.get_value("Businesssiteurls", mysitecode, "base_url")
     url = f"{BASE_URL}/api/method/{APP_PATH2}.{method_name}"
 
     response = requests.get(
@@ -80,9 +85,11 @@ def api_get2(method_name, params=None):
     response.raise_for_status()
     return response.json()
 
-def api_get3(method_name, params=None):
+def api_get3(method_name, params=None, mysitecode=None):
     set_cors_headers()
-
+    if not mysitecode:
+        frappe.throw(("mysitecode is required."))
+        BASE_URL=frappe.db.get_value("Businesssiteurls", mysitecode, "base_url")
     url = f"{BASE_URL}/api/method/{APP_PATH3}.{method_name}"
 
     response = requests.get(
@@ -94,9 +101,11 @@ def api_get3(method_name, params=None):
 
     response.raise_for_status()
     return response.json()
-def api_get4(method_name, params=None):
+def api_get4(method_name, params=None, mysitecode=None):
     set_cors_headers()
-
+    if not mysitecode:
+        frappe.throw(("mysitecode is required."))
+        BASE_URL=frappe.db.get_value("Site", mysitecode, "url")
     url = f"{BASE_URL}/api/method/{APP_PATH4}.{method_name}"
 
     response = requests.get(
@@ -109,9 +118,11 @@ def api_get4(method_name, params=None):
     response.raise_for_status()
     return response.json()
 
-def api_get5(method_name, params=None):
+def api_get5(method_name, params=None, mysitecode=None):
     set_cors_headers()
-
+    if not mysitecode:
+        frappe.throw(("mysitecode is required."))
+        BASE_URL=frappe.db.get_value("Businesssiteurls", mysitecode, "base_url")    
     url = f"{BASE_URL}/api/method/{APP_PATH6}.{method_name}"
 
     response = requests.get(
@@ -124,9 +135,11 @@ def api_get5(method_name, params=None):
     response.raise_for_status()
     return response.json()
 
-def api_get6(method_name, params=None):
+def api_get6(method_name, params=None, mysitecode=None):
     set_cors_headers()
-
+    if not mysitecode:
+        frappe.throw(("mysitecode is required."))
+        BASE_URL=frappe.db.get_value("Businesssiteurls", mysitecode, "base_url")
     url = f"{BASE_URL}/api/method/{APP_PATH7}.{method_name}"
 
     response = requests.get(
@@ -140,9 +153,11 @@ def api_get6(method_name, params=None):
     return response.json()
 
 
-def api_post(method_name, data=None):
+def api_post(method_name, data=None,mysitecode=None):
     set_cors_headers()
-
+    if not mysitecode:
+        frappe.throw(("mysitecode is required."))
+        BASE_URL=frappe.db.get_value("Businesssiteurls", mysitecode, "base_url")
     url = f"{BASE_URL}/api/method/{APP_PATH}.{method_name}"
 
     response = requests.post(
@@ -155,11 +170,13 @@ def api_post(method_name, data=None):
     response.raise_for_status()
     return response.json()
 
-def api_post1(method_name, data=None):
+def api_post1(method_name, data=None, mysitecode=None):
     set_cors_headers()
+    if not mysitecode:
+        frappe.throw(("mysitecode is required."))
+        BASE_URL=frappe.db.get_value("Businesssiteurls", mysitecode, "base_url")
 
     url = f"{BASE_URL}/api/method/{APP_PATH1}.{method_name}"
-    #url = "http://store1uaejccuat.jaleel.local/api/method/jaleel_ho.rct_api.sales_order_header.create_sales_order_header"
 
     response = requests.post(
         url,
@@ -171,11 +188,12 @@ def api_post1(method_name, data=None):
     response.raise_for_status()
     return response.json()
 
-def api_post2(method_name, data=None):
+def api_post2(method_name, data=None, mysitecode=None):
     set_cors_headers()
-
+    if not mysitecode:
+        frappe.throw(("mysitecode is required."))
+        BASE_URL=frappe.db.get_value("Businesssiteurls", mysitecode, "base_url")
     url = f"{BASE_URL}/api/method/{APP_PATH5}.{method_name}"
-    #url = "http://store1uaejccuat.jaleel.local/api/method/jaleel_ho.rct_api.sales_order_header.create_sales_order_header"
 
     response = requests.post(
         url,
@@ -188,9 +206,9 @@ def api_post2(method_name, data=None):
     return response.json()
 
 
-@frappe.whitelist()
-def get_client_ip():
-    response = api_get("get_client_ip")
+@frappe.whitelist(allow_guest=True)
+def get_client_ip(mysitecode=None):
+    response = api_get("get_client_ip", mysitecode=mysitecode)
 
     if isinstance(response, str):
         response = json.loads(response)
@@ -201,9 +219,9 @@ def get_client_ip():
     return response
 
 
-@frappe.whitelist()
-def get_bank_list():
-    response = api_get("get_bank_list")
+@frappe.whitelist(allow_guest=True)
+def get_bank_list(mysitecode=None):
+    response = api_get("get_bank_list", mysitecode=mysitecode)
 
     if isinstance(response, str):
         response = json.loads(response)
@@ -214,9 +232,9 @@ def get_bank_list():
     return response
 
 
-@frappe.whitelist()
-def get_server_stats():
-    response = api_get("get_server_stats")
+@frappe.whitelist(allow_guest=True)
+def get_server_stats(mysitecode=None):
+    response = api_get("get_server_stats", mysitecode=mysitecode)
 
     if isinstance(response, str):
         response = json.loads(response)
@@ -227,9 +245,9 @@ def get_server_stats():
     return response
 
 
-@frappe.whitelist()
-def get_database_health():
-    response = api_get("get_database_health")
+@frappe.whitelist(allow_guest=True)
+def get_database_health(mysitecode=None):
+    response = api_get("get_database_health", mysitecode=mysitecode)
 
     if isinstance(response, str):
         response = json.loads(response)
@@ -240,8 +258,8 @@ def get_database_health():
     return response
 
 
-@frappe.whitelist()
-def get_customer_list(search):
+@frappe.whitelist(allow_guest=True)
+def get_customer_list(search, mysitecode=None):
     response = api_get(
         "GetCustomerlist",
         {
@@ -258,13 +276,14 @@ def get_customer_list(search):
     return response
 
 
-@frappe.whitelist()
-def get_credit_balance(customer):
+@frappe.whitelist(allow_guest=True)
+def get_credit_balance(customer, mysitecode=None):
     response = api_get(
         "get_credit_balance",
         {
             "customer": customer
-        }
+        },
+        mysitecode=mysitecode
     )
 
     if isinstance(response, str):
@@ -295,9 +314,9 @@ def erplogin(usr, pwd, mysitecode):
 
     return response
 
-@frappe.whitelist()
-def get_app_version():
-    response = api_get("get_app_version")
+@frappe.whitelist(allow_guest=True)
+def get_app_version(mysitecode=None):
+    response = api_get("get_app_version", mysitecode=mysitecode)
 
     if isinstance(response, str):
         response = json.loads(response)
@@ -307,13 +326,14 @@ def get_app_version():
 
     return response
 
-@frappe.whitelist()
-def get_sales_order_may(sales_order_id):
+@frappe.whitelist(allow_guest=True)
+def get_sales_order_may(sales_order_id, mysitecode=None):
     response = api_get(
         "get_sales_order_may",
         {
             "sales_order_id": sales_order_id
-        }
+        },
+        mysitecode=mysitecode
     )
 
     if isinstance(response, str):
@@ -336,6 +356,7 @@ def get_sales_order_list(
     distribution_channel_code=None,
     biller_email=None,
     biller_user=None,
+    mysitecode=None
 ):
     response = api_get(
         "get_sales_order_list",
@@ -350,7 +371,8 @@ def get_sales_order_list(
             "distribution_channel_code": distribution_channel_code,
             "biller_email": biller_email,
             "biller_user": biller_user,
-        }
+        },
+        mysitecode=mysitecode
     )
 
     if isinstance(response, str):
@@ -361,9 +383,9 @@ def get_sales_order_list(
 
     return response
 
-@frappe.whitelist()
-def getdccode():
-    response = api_get1("getdccode")
+@frappe.whitelist(allow_guest=True)
+def getdccode(mysitecode=None):
+    response = api_get1("getdccode",mysitecode=mysitecode)
 
     if isinstance(response, str):
         response = json.loads(response)
@@ -373,32 +395,15 @@ def getdccode():
 
     return response
 
-
-
-# @frappe.whitelist()
-# def get_customer_credit_data(customer):
-#     response = api_get2(
-#         "get_customer_credit_data",
-#         {
-#             "customer": customer
-#         }
-#     )
-
-#     if isinstance(response, str):
-#         response = json.loads(response)
-
-#     if isinstance(response, dict) and "message" in response:
-#         return response["message"]
-
-#     return response
-@frappe.whitelist()
-def get_customer_credit_data(customer):
+@frappe.whitelist(allow_guest=True)
+def get_customer_credit_data(customer, mysitecode=None):
     print("customer", customer)
     response = api_get2(
         "get_customer_credit_data",
         {
             "customer": customer
-        }
+        },
+        mysitecode=mysitecode
     )
 
     frappe.log_error(
@@ -407,128 +412,18 @@ def get_customer_credit_data(customer):
     )
 
     return response
-# @frappe.whitelist()
-# def create_sales_order_header(
-#     customer,
-#     transaction_date=None,
-#     delivery_date=None,
-#     company=None,
-#     currency=None,
-#     selling_price_list=None,
-#     custom_distribution_channel_code=None,
-#     custom_sales_organization_code=None,
-#     custom_customer_no=None,
-#     custom_location_code=None,
-#     custom_transportation_zone_code=None,
-#     custom_region_code=None,
-#     custom_description=None,
-#     custom_mobile_order=0,
-#     custom_reference_code_1=None,
-#     custom_reference_code_2=None,
-#     custom_reference_code_3=None,
-#     custom_reference_code_4=None,
-#     taxes_and_charges=None,
-#     set_warehouse=None,sales_order_api
-#     payment_method=None,
-#     customername=None,
-#     custom_biller=None,
-#     custom_customer_discounting_percentage=0
-# ):
-#     response = api_post1(
-#         "create_sales_order_header",
-#         {
-#             "customer": customer,
-#             "transaction_date": transaction_date,
-#             "delivery_date": delivery_date,
-#             "company": company,
-#             "currency": currency,
-#             "selling_price_list": selling_price_list,
-#             "custom_distribution_channel_code": custom_distribution_channel_code,
-#             "custom_sales_organization_code": custom_sales_organization_code,
-#             "custom_customer_no": custom_customer_no,
-#             "custom_location_code": custom_location_code,
-#             "custom_transportation_zone_code": custom_transportation_zone_code,
-#             "custom_region_code": custom_region_code,
-#             "custom_description": custom_description,
-#             "custom_mobile_order": custom_mobile_order,
-#             "custom_reference_code_1": custom_reference_code_1,
-#             "custom_reference_code_2": custom_reference_code_2,
-#             "custom_reference_code_3": custom_reference_code_3,
-#             "custom_reference_code_4": custom_reference_code_4,
-#             "taxes_and_charges": taxes_and_charges,
-#             "set_warehouse": set_warehouse,
-#             "payment_method": payment_method,
-#             "customername": customername,
-#             "custom_biller": custom_biller,
-#             "custom_customer_discounting_percentage": custom_customer_discounting_percentage
-#         }
-#     )
 
-#     if isinstance(response, str):
-#         response = json.loads(response)
 
-#     if isinstance(response, dict) and "message" in response:
-#         return response["message"]
-
-#     return response
-
-# @frappe.whitelist()
-# def create_sales_order_header(**kwargs):
-
-#     payload = {
-#         "customer": kwargs.get("customer"),
-#         "transaction_date": kwargs.get("transaction_date"),
-#         "delivery_date": kwargs.get("delivery_date"),
-#         "company": kwargs.get("company"),
-#         "currency": kwargs.get("currency"),
-#         "selling_price_list": kwargs.get("selling_price_list"),
-#         "custom_distribution_channel_code": kwargs.get("custom_distribution_channel_code"),
-#         "custom_sales_organization_code": kwargs.get("custom_sales_organization_code"),
-#         "custom_customer_no": kwargs.get("custom_customer_no"),
-#         "custom_location_code": kwargs.get("custom_location_code"),
-#         "custom_transportation_zone_code": kwargs.get("custom_transportation_zone_code"),
-#         "custom_region_code": kwargs.get("custom_region_code"),
-#         "custom_description": kwargs.get("custom_description"),
-#         "custom_mobile_order": kwargs.get("custom_mobile_order", 0),
-#         "custom_reference_code_1": kwargs.get("custom_reference_code_1"),
-#         "custom_reference_code_2": kwargs.get("custom_reference_code_2"),
-#         "custom_reference_code_3": kwargs.get("custom_reference_code_3"),
-#         "custom_reference_code_4": kwargs.get("custom_reference_code_4"),
-#         "taxes_and_charges": kwargs.get("taxes_and_charges"),
-#         "set_warehouse": kwargs.get("set_warehouse"),
-#         "payment_method": kwargs.get("payment_method"),
-#         "customername": kwargs.get("customername"),
-#         "custom_biller": kwargs.get("custom_biller"),
-#         "custom_customer_discounting_percentage": kwargs.get(
-#             "custom_customer_discounting_percentage", 0
-#         )
-#     }
-#     print("payload", payload)
-#     if not payload["customer"]:
-#         frappe.throw("Customer is mandatory")
-
-#     response = api_post1(
-#         "create_sales_order_header",
-#         payload
-#     )
-
-#     if isinstance(response, str):
-#         response = json.loads(response)
-
-#     if isinstance(response, dict) and "message" in response:
-#         return response["message"]
-
-#     return response
-
-@frappe.whitelist()
-def create_sales_order_header():
+@frappe.whitelist(allow_guest=True)
+def create_sales_order_header(mysitecode=None):
 
     data = json.loads(frappe.request.data or "{}")
     print("data", data)
 
     response = api_post1(
         "create_sales_order_header",
-        data
+        data,
+        mysitecode=mysitecode
     )
 
     if isinstance(response, str):
@@ -539,15 +434,16 @@ def create_sales_order_header():
 
     return response
 
-@frappe.whitelist()
-def GetCustomerlist(search, dccode=None):
+@frappe.whitelist(allow_guest=True)
+def GetCustomerlist(search, dccode=None, mysitecode=None):
 
     response = api_get(
         "GetCustomerlist",
         {
             "search": search,
             "dccode": dccode
-        }
+        },
+        mysitecode=mysitecode
     )
 
     if isinstance(response, str):
@@ -562,15 +458,16 @@ def GetCustomerlist(search, dccode=None):
 
     return response
 
-@frappe.whitelist()
-def get_item_details(txt="", dccode=None):
+@frappe.whitelist(allow_guest=True)
+def get_item_details(txt="", dccode=None, mysitecode=None):
 
     response = api_get3(
         "get_item_details",
         {
             "txt": txt,
             "dccode": dccode
-        }
+        },
+        mysitecode=mysitecode
     )
 
     if isinstance(response, str):
@@ -581,13 +478,14 @@ def get_item_details(txt="", dccode=None):
 
     return response
 
-@frappe.whitelist()
+@frappe.whitelist(allow_guest=True)
 def get_item_price(
     sales_order,
     item_code,
     uom,
     customer=None,
-    qty=None
+    qty=None,
+    mysitecode=None
 ):
     response = api_get4(
         "get_item_price",
@@ -597,7 +495,8 @@ def get_item_price(
             "uom": uom,
             "customer": customer,
             "qty": qty
-        }
+        },
+        mysitecode=mysitecode
     )
 
     if isinstance(response, str):
@@ -620,7 +519,8 @@ def get_item_by_barcode(
     user=None,
     type=None,
     new_uom=None,
-    new_item_code=None
+    new_item_code=None,
+    mysitecode=None
 ):
     response = api_get(
         "get_item_by_barcode",
@@ -636,53 +536,8 @@ def get_item_by_barcode(
             "type": type,
             "new_uom": new_uom,
             "new_item_code": new_item_code
-        }
-    )
-
-    if isinstance(response, str):
-        response = json.loads(response)
-
-    if isinstance(response, dict) and "message" in response:
-        return response["message"]
-
-    return response
-
-@frappe.whitelist()
-def items_substitution(item_code, site=None, date_time=None):
-    response = api_get3(
-        "items_substitution",
-        {
-            "item_code": item_code,
-            "site": site,
-            "date_time": date_time
-        }
-    )
-
-    if isinstance(response, str):
-        response = json.loads(response)
-
-    if isinstance(response, dict) and "message" in response:
-        return response["message"]
-
-    return response
-
-@frappe.whitelist()
-def submit_sales_order(
-    salesorder,
-    user=None,
-    custom_customer_name=None,
-    external_doc_no=None,
-    tzc=None
-):
-    response = api_post2(
-        "submit_sales_order",
-        {
-            "salesorder": salesorder,
-            "user": user,
-            "custom_customer_name": custom_customer_name,
-            "external_doc_no": external_doc_no,
-            "tzc": tzc
-        }
+        },
+        mysitecode=mysitecode
     )
 
     if isinstance(response, str):
@@ -694,12 +549,62 @@ def submit_sales_order(
     return response
 
 @frappe.whitelist(allow_guest=True)
-def get_invoice(invoice_id):
+def items_substitution(item_code, site=None, date_time=None, mysitecode=None):
+    response = api_get3(
+        "items_substitution",
+        {
+            "item_code": item_code,
+            "site": site,
+            "date_time": date_time
+        },
+        mysitecode=mysitecode
+    )
+
+    if isinstance(response, str):
+        response = json.loads(response)
+
+    if isinstance(response, dict) and "message" in response:
+        return response["message"]
+
+    return response
+
+@frappe.whitelist(allow_guest=True)
+def submit_sales_order(
+    salesorder,
+    user=None,
+    custom_customer_name=None,
+    external_doc_no=None,
+    tzc=None,
+    mysitecode=None
+):
+    response = api_post2(
+        "submit_sales_order",
+        {
+            "salesorder": salesorder,
+            "user": user,
+            "custom_customer_name": custom_customer_name,
+            "external_doc_no": external_doc_no,
+            "tzc": tzc
+        },
+        mysitecode=mysitecode
+    )
+
+    if isinstance(response, str):
+        response = json.loads(response)
+
+    if isinstance(response, dict) and "message" in response:
+        return response["message"]
+
+    return response
+
+@frappe.whitelist(allow_guest=True)
+def get_invoice(invoice_id, mysitecode=None):
     response = api_get(
         "get_invoice",
         {
             "invoice_id": invoice_id
-        }
+        },
+        mysitecode=mysitecode
     )
 
     if isinstance(response, str):
@@ -719,6 +624,7 @@ def get_invoice_list(
     from_date=None,
     to_date=None,
     distribution_channel_code=None,
+    mysitecode=None
 ):
     response = api_get(
         "get_invoice_list",
@@ -730,7 +636,8 @@ def get_invoice_list(
             "from_date": from_date,
             "to_date": to_date,
             "distribution_channel_code": distribution_channel_code,
-        }
+        },
+        mysitecode=mysitecode
     )
 
     if isinstance(response, str):
@@ -741,7 +648,7 @@ def get_invoice_list(
 
     return response
 
-@frappe.whitelist()
+@frappe.whitelist(allow_guest=True)
 def get_express_order_list(
     user=None,
     page=1,
@@ -753,6 +660,7 @@ def get_express_order_list(
     distribution_channel_code=None,
     biller_email=None,
     biller_user=None,
+    mysitecode=None
 ):
     response = api_get(
         "get_express_order_list",
@@ -767,7 +675,8 @@ def get_express_order_list(
             "distribution_channel_code": distribution_channel_code,
             "biller_email": biller_email,
             "biller_user": biller_user,
-        }
+        },
+        mysitecode=mysitecode
     )
 
     if isinstance(response, str):
@@ -782,7 +691,8 @@ def get_express_order_list(
 def get_customer_purchase_trend(
     customer_id=None,
     months=12,
-    dc_code=None
+    dc_code=None,
+    mysitecode=None
 ):
     response = api_get5(
         "get_customer_purchase_trend",
@@ -790,7 +700,8 @@ def get_customer_purchase_trend(
             "customer_id": customer_id,
             "months": months,
             "dc_code": dc_code
-        }
+        },
+        mysitecode=mysitecode
     )
 
     if isinstance(response, str):
@@ -801,36 +712,15 @@ def get_customer_purchase_trend(
 
     return response
 
-# @frappe.whitelist(allow_guest=True)
-# def get_customer_purchase_trend(
-#     customer_id=None,
-#     months=12,
-#     dc_code=None
-# ):
-#     response = api_get(
-#         "get_customer_purchase_trend",
-#         {
-#             "customer_id": customer_id,
-#             "months": months,
-#             "dc_code": dc_code
-#         }
-#     )
-
-#     if isinstance(response, str):
-#         response = json.loads(response)
-
-#     if isinstance(response, dict) and "message" in response:
-#         return response["message"]
-
-#     return response
 
 @frappe.whitelist(allow_guest=True)
-def get_stock_by_barcode(barcode):
+def get_stock_by_barcode(barcode, mysitecode=None):
     response = api_get(
         "get_stock_by_barcode",
         {
             "barcode": barcode
-        }
+        },
+        mysitecode=mysitecode
     )
 
     if isinstance(response, str):
@@ -845,7 +735,8 @@ def get_stock_by_barcode(barcode):
 def get_price_by_barcode(
     barcode,
     customer=None,
-    distribution_channel=None
+    distribution_channel=None,
+    mysitecode=None
 ):
     response = api_get(
         "get_price_by_barcode",
@@ -853,7 +744,8 @@ def get_price_by_barcode(
             "barcode": barcode,
             "customer": customer,
             "distribution_channel": distribution_channel
-        }
+        },
+        mysitecode=mysitecode
     )
 
     if isinstance(response, str):
@@ -874,7 +766,8 @@ def create_payment_entry_v2(
     card_bank=None,
     rrn_number=None,
     authorization_code=None,
-    cash_received_amount=None
+    cash_received_amount=None,
+    mysitecode=None
 ):
     response = api_post(
         "create_payment_entry_v2",
@@ -888,7 +781,8 @@ def create_payment_entry_v2(
             "rrn_number": rrn_number,
             "authorization_code": authorization_code,
             "cash_received_amount": cash_received_amount
-        }
+        },
+        mysitecode=mysitecode
     )
 
     if isinstance(response, str):
@@ -900,12 +794,13 @@ def create_payment_entry_v2(
     return response
 
 @frappe.whitelist(allow_guest=True)
-def get_so_payment_entries(sales_order):
+def get_so_payment_entries(sales_order, mysitecode=None):
     response = api_get(
         "get_so_payment_entries",
         {
             "sales_order": sales_order
-        }
+        },
+        mysitecode=mysitecode
     )
 
     if isinstance(response, str):
@@ -917,12 +812,13 @@ def get_so_payment_entries(sales_order):
     return response
 
 @frappe.whitelist(allow_guest=True)
-def GetCustomerlist1(search):
+def GetCustomerlist1(search, mysitecode=None):
     response = api_get6(
         "GetCustomerlist",
         {
             "search": search
-        }
+        },
+        mysitecode=mysitecode
     )
 
     if isinstance(response, str):
@@ -934,12 +830,13 @@ def GetCustomerlist1(search):
     return response
 
 @frappe.whitelist(allow_guest=True)
-def Get_allitems(search):
+def Get_allitems(search, mysitecode=None):
     response = api_get6(
         "Get_allitems",
         {
             "search": search
-        }
+        },
+        mysitecode=mysitecode
     )
 
     if isinstance(response, str):
@@ -951,12 +848,13 @@ def Get_allitems(search):
     return response
 
 @frappe.whitelist(allow_guest=True)
-def get_invoice_name_by_sales_order(sales_order):
+def get_invoice_name_by_sales_order(sales_order, mysitecode=None):
     response = api_get(
         "get_invoice_name_by_sales_order",
         {
             "sales_order": sales_order
-        }
+        },
+        mysitecode=mysitecode
     )
 
     if isinstance(response, str):
