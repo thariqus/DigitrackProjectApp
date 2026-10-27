@@ -12,7 +12,7 @@ APP_PATH6 = "jaleel_ho.custom_selling.customer_api"
 APP_PATH7 = "jaleel_ho.custom_selling.report.business_instant_insights.business_instant_insights"
 SITE_CODE = "2113"
 BASE_URL = "http://store1uaejccuat.jaleel.local"
-TOKEN = "10c944b5d516e9d:e77d840bdf7a9c8"
+TOKEN = "10c944b5d516e9d:8bd739aaf3daa47"
 TIMEOUT = 60
 
 
