@@ -41,7 +41,7 @@ def api_get(method_name, params=None,mysitecode=None):
     if not mysitecode:
         frappe.throw(("mysitecode is required."))
     BASE_URL=frappe.db.get_value("Site", mysitecode, "url")
-    print("BASE_URL", BASE_URL)
+    print("url", BASE_URL)
     url = f"{BASE_URL}/api/method/{APP_PATH}.{method_name}"
 
     response = requests.get(
@@ -173,8 +173,9 @@ def api_post(method_name, data=None):
     response.raise_for_status()
     return response.json()
 
-def api_post1(method_name, data=None, mysitecode=None):
+def api_post1(method_name, data=None):
     set_cors_headers()
+    mysitecode = data.get("mysitecode")
     if not mysitecode:
         frappe.throw(("mysitecode is required."))
     BASE_URL=frappe.db.get_value("Site", mysitecode, "url")
@@ -191,8 +192,9 @@ def api_post1(method_name, data=None, mysitecode=None):
     response.raise_for_status()
     return response.json()
 
-def api_post2(method_name, data=None, mysitecode=None):
+def api_post2(method_name, data=None):
     set_cors_headers()
+    mysitecode = data.get("mysitecode")
     if not mysitecode:
         frappe.throw(("mysitecode is required."))
     BASE_URL=frappe.db.get_value("Site", mysitecode, "url")
@@ -419,15 +421,14 @@ def get_customer_credit_data(customer, mysitecode=None):
 
 
 @frappe.whitelist(allow_guest=True)
-def create_sales_order_header(mysitecode=None):
+def create_sales_order_header():
 
     data = json.loads(frappe.request.data or "{}")
     print("data", data)
 
     response = api_post1(
         "create_sales_order_header",
-        data,
-        mysitecode=mysitecode
+        data
     )
 
     if isinstance(response, str):
