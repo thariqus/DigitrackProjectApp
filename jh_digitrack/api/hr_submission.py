@@ -5,19 +5,39 @@ from frappe import _
 from frappe.utils import flt
 from frappe.utils.file_manager import save_file
 
+from jh_digitrack.api.pms_report import _get_admin_scoped_employees
+
 ALLOWED_EXTENSIONS = {"xlsx", "xls"}
 ALL_SUCCESS_MESSAGE = "All records have been successfully updated"
 
+# The upload is the Goal Assessment Details sheet from download_hr_review_sheet,
+# which also has Rating, Manager Comment, Functional Manager Code, etc. Only these
+# exact headers are read, so the manager's "Rating" is never taken as the HR rating.
 HEADER_ALIASES = {
-    "employee_code": {"employee code", "emp code", "employee id", "emp id", "employee_code"},
-    "manager_code": {"manager code", "mgr code", "manager id", "mgr id", "manager_code"},
-    "hr_rating": {"hr rating", "rating", "hr_rating"},
-    "hr_comment": {"hr comment", "comment", "comments", "remarks", "hr_comment"},
+    "employee_code": {"employee code"},
+    "manager_code": {"manager code"},
+    "hr_rating": {"hr rating"},
+    "hr_comment": {"hr comment"},
 }
 
 
+def _get_pms_user(user):
+    return frappe.db.get_value(
+        "PMS Employees",
+        {"employee_email": user},
+        ["employee_code", "full_name", "pms_admin", "super_admin"],
+        as_dict=True,
+    ) or frappe._dict()
+
+
 def _is_super_admin(user):
-    return frappe.db.get_value("PMS Employees", {"employee_email": user}, "super_admin") == 1
+    return _get_pms_user(user).super_admin == 1
+
+
+# HR submission is done by PMS Admins (each HR for their own cost centers);
+# only Super Admins can close the appraisal cycle.
+def _is_pms_admin(user):
+    return _get_pms_user(user).pms_admin == 1
 
 
 def _is_yearly_appraisal_enabled():
@@ -106,7 +126,7 @@ def _map_columns(header_row):
     return column_map
 
 
-def _process_hr_excel(content, extension, year):
+def _process_hr_excel(content, extension, year, allowed_employee_codes):
     rows = _read_excel_rows(content, extension)
     rows = [row for row in rows if any(cell not in (None, "") for cell in row)]
 
@@ -123,8 +143,19 @@ def _process_hr_excel(content, extension, year):
             )
         )
 
+    # Rows HR actually filled in and that change something; blank and unchanged
+    # rows of the downloaded sheet are ignored and not counted
+    total_rows = 0
     updated = 0
     skipped = []
+
+    # Same uploader for every row, so look up their employee code and name once.
+    # Only PMS admins can upload, and that flag lives on PMS Employees, so the
+    # uploader always has a record there.
+    user = frappe.session.user
+    hr_user = _get_pms_user(user)
+    hr_code = hr_user.employee_code or user
+    hr_name = hr_user.full_name or frappe.db.get_value("User", user, "full_name") or user
 
     for row_num, row in enumerate(rows[1:], start=2):
 
@@ -139,6 +170,12 @@ def _process_hr_excel(content, extension, year):
         manager_code_in_file = _normalize_code(cell("manager_code"))
         rating_value = cell("hr_rating")
         comment_value = cell("hr_comment")
+        comment_text = str(comment_value).strip() if comment_value not in (None, "") else ""
+
+        # The downloaded sheet lists every employee; rows HR left empty are not uploads
+        if not flt(rating_value) and not comment_text:
+            continue
+        total_rows += 1
 
         pms_employee = frappe.db.get_value(
             "PMS Employees", employee_code, ["name", "manager_code"], as_dict=True
@@ -146,6 +183,18 @@ def _process_hr_excel(content, extension, year):
         if not pms_employee:
             skipped.append(
                 {"row": row_num, "employee_code": employee_code, "reason": _("Employee code not found.")}
+            )
+            continue
+
+        if pms_employee.name not in allowed_employee_codes:
+            skipped.append(
+                {
+                    "row": row_num,
+                    "employee_code": employee_code,
+                    "reason": _(
+                        "You can't upload this employee's rating because they are not in your Admin View employee list."
+                    ),
+                }
             )
             continue
 
@@ -196,6 +245,17 @@ def _process_hr_excel(content, extension, year):
             continue
 
         doc = frappe.get_doc("Goal Assessment", goal_assessment_name)
+
+        # Re-uploading the sheet repeats ratings already saved; leave those rows
+        # alone so their HR Code / Submitted On are not overwritten
+        if (
+            doc.status in ("HR Submitted", "Evaluation Submitted")
+            and round(flt(doc.hr_rating) * 5) == rating
+            and comment_text in ("", (doc.hr_comment or "").strip())
+        ):
+            total_rows -= 1
+            continue
+
         # HR is the last review stage: evaluations waiting for HR (HR Review) or
         # already HR-rated but not yet finalised (HR Submitted) can be updated.
         # HR rating/comment lock once Close Appraisal Cycle submits the evaluation.
@@ -228,32 +288,29 @@ def _process_hr_excel(content, extension, year):
         # if comment_value not in (None, ""):
         #     doc.hr_comment = str(comment_value).strip()
 
-        # # "Eval Started" on the reports; finalised when the appraisal cycle is closed
+        # # "HR Started" on the reports; finalised when the appraisal cycle is closed
         # doc.status = "HR Submitted"
         doc.hr_rating = rating / 5
 
-        if comment_value not in (None, ""):
-            doc.hr_comment = str(comment_value).strip()
+        if comment_text:
+            doc.hr_comment = comment_text
 
         # Store the HR user who submitted the review
-        user = frappe.session.user
+        doc.hr_submitted_by = hr_name
 
-        doc.hr_submitted_by = frappe.db.get_value(
-            "User",
-            user,
-            "full_name"
-        ) or user
+        # Employee code of the HR user; user ID when they have no employee record
+        doc.hr_code = hr_code
 
         # Store the date and time of HR submission
         doc.hr_submitted_on = frappe.utils.now_datetime()
 
-        # "Eval Started" on the reports; finalised when the appraisal cycle is closed
+        # "HR Started" on the reports; finalised when the appraisal cycle is closed
         doc.status = "HR Submitted"
         doc.save(ignore_permissions=True, ignore_version=True)
         updated += 1
 
     return {
-        "total_rows": len(rows) - 1,
+        "total_rows": total_rows,
         "updated": updated,
         "skipped": skipped,
     }
@@ -271,16 +328,85 @@ def has_super_admin_role():
 def get_hr_submission_access():
     user = frappe.session.user
     if user == "Guest":
-        return {"has_access": False, "yearly_appraisal_enabled": False, "cycle_closed": False}
+        return {
+            "has_access": False,
+            "can_upload": False,
+            "can_close_cycle": False,
+            "yearly_appraisal_enabled": False,
+            "cycle_closed": False,
+        }
+
+    pms_user = _get_pms_user(user)
+    can_upload = pms_user.pms_admin == 1
+    can_close_cycle = pms_user.super_admin == 1
 
     current_row = _get_current_settings_row()
     cycle_closed = bool(current_row and current_row.check_appraisal_cycle)
     return {
-        "has_access": bool(_is_super_admin(user)),
+        "has_access": can_upload or can_close_cycle,
+        "can_upload": can_upload,
+        "can_close_cycle": can_close_cycle,
         "yearly_appraisal_enabled": _is_yearly_appraisal_enabled(),
         "cycle_closed": cycle_closed,
         "closed_info": _closed_cycle_info(current_row) if cycle_closed else None,
     }
+
+
+@frappe.whitelist(methods=["GET"])
+def download_hr_review_sheet():
+    """Goal Assessment Details for the current year, for the employees in the
+    admin's Admin View list. HR fills in HR Rating / HR Comment and uploads the
+    same file back through submit_hr_excel."""
+    pms_user = _get_pms_user(frappe.session.user)
+    if pms_user.pms_admin != 1:
+        frappe.throw(_("You are not allowed to download the HR review sheet."), frappe.PermissionError)
+
+    current_row = _get_current_settings_row()
+    year = current_row.year if current_row else None
+    if not year:
+        frappe.throw(_("No current appraisal period is configured in PMS Settings."))
+
+    from openpyxl import Workbook
+    from openpyxl.utils import get_column_letter
+    from openpyxl.worksheet.datavalidation import DataValidation
+    from werkzeug.wrappers import Response
+
+    from jh_digitrack.api.report_download import write_goal_assessment_details
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = f"Goal Assessment Details - {year}"
+
+    employee_codes = {e.employee_code for e in _get_admin_scoped_employees(pms_user.employee_code)}
+    write_goal_assessment_details(ws, year, employee_codes)
+
+    # Keep Year / Employee Code / Employee Name and the header visible while scrolling
+    ws.freeze_panes = "D2"
+
+    hr_rating_col = get_column_letter([c.value for c in ws[1]].index("HR Rating") + 1)
+    rating_rule = DataValidation(
+        type="whole",
+        operator="between",
+        formula1="1",
+        formula2="5",
+        showErrorMessage=True,
+        errorTitle="Invalid HR Rating",
+        error="HR Rating must be a whole number from 1 to 5.",
+        showInputMessage=True,
+        promptTitle="HR Rating",
+        prompt="Enter a rating from 1 to 5.",
+    )
+    ws.add_data_validation(rating_rule)
+    rating_rule.add(f"{hr_rating_col}2:{hr_rating_col}{max(ws.max_row, 2)}")
+
+    output = BytesIO()
+    wb.save(output)
+
+    response = Response(output.getvalue())
+    response.headers["Content-Type"] = \
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    response.headers["Content-Disposition"] = f'attachment; filename="HR_Review_{year}.xlsx"'
+    return response
 
 
 @frappe.whitelist(methods=["GET"])
@@ -337,7 +463,7 @@ def close_appraisal_cycle():
         f"By: {user_name}\n"
         f"At: {timestamp}"
     )    
-    # Finalise every evaluation HR has rated ("Eval Started" -> "Eval Submitted").
+    # Finalise every evaluation HR has rated ("HR Started" -> "HR Submitted").
     # Evaluations still in an earlier stage are left as they are. All-or-nothing:
     # any failure rolls back the whole close.
     submitted = 0
@@ -379,7 +505,7 @@ def submit_hr_excel():
     if user == "Guest":
         frappe.throw(_("You must be logged in to upload files."))
 
-    if not _is_super_admin(user):
+    if not _is_pms_admin(user):
         frappe.throw(_("You are not allowed to submit HR data."))
 
     if not _is_yearly_appraisal_enabled():
@@ -412,7 +538,12 @@ def submit_hr_excel():
     #         "uploaded_by": user,
     #     }
     # )
-    result = _process_hr_excel(content, extension, year)
+    # Each HR admin can only rate employees in their own cost centers,
+    # the same people they see in the admin report
+    allowed_employee_codes = {
+        e.employee_code for e in _get_admin_scoped_employees(_get_pms_user(user).employee_code)
+    }
+    result = _process_hr_excel(content, extension, year, allowed_employee_codes)
 
     # Create Result text using pipe (|)
     result_lines = [
@@ -469,12 +600,16 @@ def submit_hr_excel():
 @frappe.whitelist(methods=["GET"])
 def get_hr_submissions(year=None):
     user = frappe.session.user
-    if not _is_super_admin(user):
+    pms_user = _get_pms_user(user)
+    if not (pms_user.pms_admin or pms_user.super_admin):
         frappe.throw(_("You are not allowed to view HR submissions."))
 
     filters = {}
     if year:
         filters["assessment_year"] = year
+    # Super admins see every HR's uploads; other admins only their own
+    if not pms_user.super_admin:
+        filters["uploaded_by"] = user
 
     return frappe.get_all(
         "JH HR Submission",

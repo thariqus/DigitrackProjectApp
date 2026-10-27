@@ -2,12 +2,25 @@ import frappe
 from frappe import _
 from frappe.utils import cint, flt
 
-from jh_digitrack.api.pms_report import get_pms_years
+from jh_digitrack.api.pms_report import _get_admin_scoped_employees, get_pms_years
 
 RATINGS = (1, 2, 3, 4, 5)
 
-# Goal Assessment statuses that mean HR has uploaded the final rating
-HR_RATED_STATUSES = ("HR Submitted", "Evaluation Submitted")
+# Rating basis the bell curve can be drawn on: Goal Assessment rating field
+# and the statuses at which that rating is final
+RATING_TYPES = {
+    # HR has uploaded the final rating
+    "hr": {
+        "field": "hr_rating",
+        "statuses": ("HR Submitted", "Evaluation Submitted"),
+    },
+    # Skip-level manager has submitted; the evaluation has moved on to HR.
+    # Evaluations that skipped the skip-level stage have no rating and drop out.
+    "skip_level": {
+        "field": "skip_level_manager_rating",
+        "statuses": ("HR Review", "HR Submitted", "Evaluation Submitted"),
+    },
+}
 
 
 def _get_pms_admin_code():
@@ -27,60 +40,48 @@ def _get_expected_percentages():
     return {cint(row.rating): flt(row.expected_percentage) for row in rows}
 
 
-def _get_scoped_employee_codes(admin_code, department=None):
-    """Employees the admin sees in the admin report: PMS employees under
-    PMS managers in the admin's cost centers, filtered by manager department."""
-    cost_centers = frappe.db.get_all(
-        "PMS Admin Access List",
-        filters={"admin_emp_id": admin_code},
-        pluck="cost_center",
-    )
-    if not cost_centers:
-        return []
-
-    manager_filters = {"cost_center_name": ["in", cost_centers], "pms_manager": 1}
-    if department:
-        manager_filters["department_name"] = department
-
-    manager_codes = frappe.db.get_all(
-        "PMS Employees", filters=manager_filters, pluck="employee_code"
-    )
-    if not manager_codes:
-        return []
-
-    return list(set(frappe.db.get_all(
-        "PMS Employees",
-        filters={"manager_code": ["in", manager_codes], "pms_employee": 1},
-        pluck="employee_code",
-    )))
-
-
 @frappe.whitelist(methods=["GET"])
-def get_bell_curve(year=None, department=None):
+def get_bell_curve(year=None, business_unit=None, rating_type="hr"):
     admin_code = _get_pms_admin_code()
+
+    rating_type = rating_type or "hr"
+    if rating_type not in RATING_TYPES:
+        frappe.throw(_("Invalid rating type: {0}").format(rating_type))
+    rating_field = RATING_TYPES[rating_type]["field"]
 
     current_year, _current_quarterly, _years = get_pms_years()
     year = year or current_year
     if not year:
         frappe.throw(_("Assessment year not found in PMS Settings"))
 
-    if department in (None, "", "All"):
-        department = None
+    if business_unit in (None, "", "All"):
+        business_unit = None
+
+    scoped_employees = _get_admin_scoped_employees(admin_code)
+    # Filter options cover the admin's whole scope, not just the selected unit
+    business_units = sorted(
+        {e.business_unit for e in scoped_employees if e.business_unit}, key=str.casefold
+    )
+    employee_codes = list({
+        e.employee_code
+        for e in scoped_employees
+        if not business_unit or e.business_unit == business_unit
+    })
 
     counts = dict.fromkeys(RATINGS, 0)
-    employee_codes = _get_scoped_employee_codes(admin_code, department)
     if employee_codes:
         for ga in frappe.db.get_all(
             "Goal Assessment",
             filters={
                 "year": year,
-                "status": ["in", HR_RATED_STATUSES],
+                "status": ["in", RATING_TYPES[rating_type]["statuses"]],
                 "employee_code": ["in", employee_codes],
+                rating_field: [">", 0],
             },
-            fields=["hr_rating"],
+            fields=[rating_field],
         ):
             # Rating fieldtype stores a 0-1 fraction (5 stars = 1.0)
-            rating = round(flt(ga.hr_rating) * 5)
+            rating = round(flt(ga[rating_field]) * 5)
             if rating in counts:
                 counts[rating] += 1
 
@@ -103,7 +104,9 @@ def get_bell_curve(year=None, department=None):
 
     return {
         "year": year,
-        "department": department,
+        "business_unit": business_unit,
+        "rating_type": rating_type,
+        "business_units": business_units,
         "configured": configured,
         "total": total,
         "rows": rows,

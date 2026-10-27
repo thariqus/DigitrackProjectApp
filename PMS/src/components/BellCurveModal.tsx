@@ -14,9 +14,19 @@ interface BellCurveRow {
   gap: number | null;
 }
 
+type RatingType = "hr" | "skip_level";
+
+const RATING_TYPES: { value: RatingType; label: string }[] = [
+  { value: "hr", label: "HR Rating" },
+  { value: "skip_level", label: "Skip Level Manager Rating" },
+];
+
 interface BellCurveData {
   year: string;
-  department: string | null;
+  business_unit: string | null;
+  rating_type: RatingType;
+  // Business units in the admin's scope, for the filter dropdown
+  business_units: string[];
   configured: boolean;
   total: number;
   rows: BellCurveRow[];
@@ -26,7 +36,6 @@ interface BellCurveModalProps {
   open: boolean;
   onClose: () => void;
   years: string[];
-  departments: string[];
   defaultYear: string;
 }
 
@@ -37,21 +46,23 @@ const formatGap = (gap: number | null) =>
 const gapClass = (gap: number | null) =>
   gap !== null && gap > 0 ? "text-red-600" : gap !== null && gap < 0 ? "text-amber-600" : "text-gray-500";
 
-function BellCurveModal({ open, onClose, years, departments, defaultYear }: BellCurveModalProps) {
+function BellCurveModal({ open, onClose, years, defaultYear }: BellCurveModalProps) {
   const [year, setYear] = useState(defaultYear);
-  const [department, setDepartment] = useState("All");
+  const [businessUnit, setBusinessUnit] = useState("All");
+  const [ratingType, setRatingType] = useState<RatingType>("hr");
   const [data, setData] = useState<BellCurveData | null>(null);
   const [loading, setLoading] = useState(false);
 
   // PMS Settings has one row per quarter, so the same year can repeat
   const uniqueYears = useMemo(() => Array.from(new Set(years)), [years]);
 
-  const fetchBellCurve = async (y: string, dept: string) => {
+  const fetchBellCurve = async (y: string, bu: string, rt: RatingType) => {
     try {
       setLoading(true);
       const res = await frappeClient.api.get("jh_digitrack.api.pms_bell_curve.get_bell_curve", {
         year: y,
-        department: dept,
+        business_unit: bu,
+        rating_type: rt,
       });
       setData(res?.message || null);
     } catch (err) {
@@ -62,16 +73,25 @@ function BellCurveModal({ open, onClose, years, departments, defaultYear }: Bell
     }
   };
 
-  // Each time the popup opens, start from the current year and all departments
+  // Each time the popup opens, start from the current year, all business units and HR rating
   useEffect(() => {
     if (!open) return;
     setYear(defaultYear);
-    setDepartment("All");
-    fetchBellCurve(defaultYear, "All");
+    setBusinessUnit("All");
+    setRatingType("hr");
+    fetchBellCurve(defaultYear, "All", "hr");
   }, [open, defaultYear]);
+
+  // Switching the rating basis reloads the chart straight away
+  const handleRatingTypeChange = (rt: RatingType) => {
+    setRatingType(rt);
+    fetchBellCurve(year, businessUnit, rt);
+  };
 
   const rows = data?.rows || [];
   const configured = !!data?.configured;
+  // Label follows the loaded data, not the radio, so it never mismatches the chart mid-load
+  const ratedLabel = data?.rating_type === "skip_level" ? "Skip Level Manager Rated" : "HR Rated";
 
   // Expected line is drawn only once the bell curve is set up in PMS Settings
   const series = [
@@ -121,7 +141,7 @@ function BellCurveModal({ open, onClose, years, departments, defaultYear }: Bell
           <h2 className="font-semibold text-xs text-primary">Bell Curve</h2>
           <div className="ml-auto flex items-center gap-4">
             {data && (
-              <div className="text-primary text-xs">Total HR Rated Employees: {data.total}</div>
+              <div className="text-primary text-xs">Total {ratedLabel} Employees: {data.total}</div>
             )}
             <button onClick={onClose} className="text-gray-500 hover:text-black">
               <IoMdClose className="text-md" />
@@ -130,6 +150,24 @@ function BellCurveModal({ open, onClose, years, departments, defaultYear }: Bell
         </div>
 
         <div className="p-4 overflow-y-auto">
+          {/* Rating basis */}
+          <div className="flex items-center gap-4 mb-3">
+            {RATING_TYPES.map((rt) => (
+              <label key={rt.value} className="flex items-center gap-1.5 text-[0.65rem] cursor-pointer">
+                <input
+                  type="radio"
+                  name="bell-curve-rating-type"
+                  value={rt.value}
+                  checked={ratingType === rt.value}
+                  onChange={() => handleRatingTypeChange(rt.value)}
+                  disabled={loading}
+                  className="accent-primary"
+                />
+                {rt.label}
+              </label>
+            ))}
+          </div>
+
           {/* Filters */}
           <div className="flex items-center gap-3 mb-3">
             <select
@@ -145,20 +183,20 @@ function BellCurveModal({ open, onClose, years, departments, defaultYear }: Bell
             </select>
 
             <select
-              value={department}
-              onChange={(e) => setDepartment(e.target.value)}
+              value={businessUnit}
+              onChange={(e) => setBusinessUnit(e.target.value)}
               className="px-2 py-1 border rounded-md text-[0.65rem] focus:outline-none"
             >
-              <option value="All">All Departments</option>
-              {departments.map((dept) => (
-                <option key={dept} value={dept}>
-                  {dept}
+              <option value="All">All Business Units</option>
+              {(data?.business_units || []).map((bu) => (
+                <option key={bu} value={bu}>
+                  {bu}
                 </option>
               ))}
             </select>
 
             <button
-              onClick={() => fetchBellCurve(year, department)}
+              onClick={() => fetchBellCurve(year, businessUnit, ratingType)}
               disabled={loading}
               className="px-3 py-1 text-[0.65rem] bg-primary text-white rounded-md hover:bg-[#7d241f] disabled:opacity-60"
             >
@@ -174,7 +212,9 @@ function BellCurveModal({ open, onClose, years, departments, defaultYear }: Bell
 
           {data && data.total === 0 && !loading && (
             <div className="text-center text-gray-500 italic text-xs mb-2">
-              No HR ratings uploaded yet for this selection.
+              {data.rating_type === "skip_level"
+                ? "No skip level manager ratings submitted yet for this selection."
+                : "No HR ratings uploaded yet for this selection."}
             </div>
           )}
 

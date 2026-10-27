@@ -622,10 +622,10 @@ function ManagerYearlySubmission() {
 
                 return (
                   <tr key={rowKey} className="border-b text-xs align-top transition">
-                    <td className="px-4 py-3 whitespace-nowrap" title={`${emp.employee_code} / ${emp.employee_name}`}>
+                    <td className="px-4 py-3 break-words" title={`${emp.employee_code} / ${emp.employee_name}`}>
                       {emp.employee_code} / {emp.employee_name}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap" title={emp.designation_name || "-"}>
+                    <td className="px-4 py-3 break-words" title={emp.designation_name || "-"}>
                       {emp.designation_name || "-"}
                     </td>
                     <td className="px-4 py-3" colSpan={isSubmitted ? 2 : 1}>
@@ -725,7 +725,7 @@ function ManagerYearlySubmission() {
                             {/* Review checkboxes */}
                             <div className="flex flex-col gap-2 px-3 py-2.5">
                               <span className="text-[0.6rem] font-semibold uppercase tracking-wide text-gray-400">
-                                Checklist
+                                Recommendations
                               </span>
                               {REVIEW_CHECKBOXES.map(({ key, label }) => (
                                 <label
