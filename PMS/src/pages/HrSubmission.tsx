@@ -48,6 +48,10 @@ const isAllowedExcelFile = (file: File) => {
 function HrSubmission() {
   const [selectedYear, setSelectedYear] = useState<string>("");
   const [appraisalEnabled, setAppraisalEnabled] = useState<boolean | null>(null);
+  // PMS Admins upload HR ratings for their cost centers; only Super Admins close the cycle
+  const [hasAccess, setHasAccess] = useState(false);
+  const [canUpload, setCanUpload] = useState(false);
+  const [canCloseCycle, setCanCloseCycle] = useState(false);
   const [cycleClosed, setCycleClosed] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -105,8 +109,11 @@ function HrSubmission() {
     const fetchAccess = async () => {
       try {
         const res = await frappe.api.get<{
-          message: { has_access: boolean; yearly_appraisal_enabled: boolean; cycle_closed: boolean; closed_info?: { year: string;closed_by: string;closed_at: string;remarks: string;}; };
+          message: { has_access: boolean; can_upload: boolean; can_close_cycle: boolean; yearly_appraisal_enabled: boolean; cycle_closed: boolean; closed_info?: { year: string;closed_by: string;closed_at: string;remarks: string;}; };
         }>("jh_digitrack.api.hr_submission.get_hr_submission_access");
+        setHasAccess(!!res.message?.has_access);
+        setCanUpload(!!res.message?.can_upload);
+        setCanCloseCycle(!!res.message?.can_close_cycle);
         setAppraisalEnabled(!!res.message?.yearly_appraisal_enabled);
         setCycleClosed(!!res.message?.cycle_closed);
         if (res.message?.closed_info) {
@@ -365,6 +372,8 @@ function HrSubmission() {
       setMessage({
         text: allSucceeded
           ? ALL_SUCCESS_MESSAGE
+          : total_rows === 0
+          ? "No new HR Rating or HR Comment found in the file."
           : `HR data updated for ${updated} of ${total_rows} employee(s).`,
         type: updated > 0 ? "success" : "error",
       });
@@ -423,6 +432,21 @@ function HrSubmission() {
     );
   }
  
+  if (!hasAccess) {
+    return (
+      <div className="bg-white min-h-screen border rounded-lg px-6 py-2 h-full relative overflow-hidden">
+        <div className="flex justify-between items-center">
+          <h1 className="text-primary font-medium">HR Submission</h1>
+        </div>
+        <div className="flex flex-col items-center justify-center gap-2 py-24 text-center">
+          <p className="text-sm font-medium text-gray-700">
+            You do not have access to HR Submission.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   if (appraisalEnabled === false) {
     return (
       <div className="bg-white min-h-screen border rounded-lg px-6 py-2 h-full relative overflow-hidden">
@@ -538,6 +562,7 @@ const sortedSubmissions = [...submissions].sort((a, b) => {
           </div>
         </div>
  
+        {canUpload && (
         <div className="flex flex-col gap-2 items-start">
           <div className="flex items-center gap-3">
             <p className="text-sm">HR Review Excel File</p>
@@ -545,14 +570,14 @@ const sortedSubmissions = [...submissions].sort((a, b) => {
               type="button"
               onClick={() =>
                 window.open(
-                  "/api/method/jh_digitrack.api.hr_submission.download_hr_template",
+                  "/api/method/jh_digitrack.api.hr_submission.download_hr_review_sheet",
                   "_blank"
                 )
               }
               className="flex items-center gap-1 text-xs text-primary underline cursor-pointer"
             >
               <MdOutlineFileDownload size={16} />
-              Download Template
+              Download
             </button>
           </div>
           <div className="flex items-center gap-3">
@@ -591,7 +616,12 @@ const sortedSubmissions = [...submissions].sort((a, b) => {
               The appraisal cycle for {selectedYear} is closed. Uploads are disabled.
             </p>
           )}
+          <p className="text-xs text-gray-500">
+            Download your employees' Goal Assessment Details, fill in HR Rating and HR Comment, then upload the same file.
+            Rows left empty are ignored; employees outside your Admin View list are skipped.
+          </p>
         </div>
+        )}
       </div>
  
       {lastResult && (
@@ -766,16 +796,18 @@ const sortedSubmissions = [...submissions].sort((a, b) => {
         </table>
       </div>
  
-      <div className="flex justify-end mt-6">
-        <button
-          type="button"
-          onClick={handleCloseAppraisalCycle}
-          disabled={isClosingCycle || cycleClosed}
-          className="text-white text-sm bg-primary px-5 py-2.5 rounded-md cursor-pointer disabled:opacity-50"
-        >
-          {cycleClosed ? "Appraisal Cycle Closed" : isClosingCycle ? "Closing..." : "Close Appraisal Cycle"}
-        </button>
-      </div>
+      {canCloseCycle && (
+        <div className="flex justify-end mt-6">
+          <button
+            type="button"
+            onClick={handleCloseAppraisalCycle}
+            disabled={isClosingCycle || cycleClosed}
+            className="text-white text-sm bg-primary px-5 py-2.5 rounded-md cursor-pointer disabled:opacity-50"
+          >
+            {cycleClosed ? "Appraisal Cycle Closed" : isClosingCycle ? "Closing..." : "Close Appraisal Cycle"}
+          </button>
+        </div>
+      )}
       {showClosePopup && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/40 px-4">
           <div className="flex w-full max-w-[720px] max-h-[95vh] flex-col rounded-lg bg-white shadow-2xl">

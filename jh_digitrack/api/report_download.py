@@ -15,7 +15,8 @@ RATING_FIELDS = {"rating", "functional_manager_rating", "skip_level_manager_rati
 
 
 def _to_star_rating(value):
-    if value in (None, ""):
+    # 0 means the stage has not rated (or was skipped), so leave the cell empty
+    if not flt(value):
         return ""
     return round(flt(value) * 5)
 
@@ -24,7 +25,155 @@ RECOMMENDATION_FIELDS = {"eligible_for_increment", "training_requirement_identif
 
 
 def _to_recommendation(value):
-    return "Yes Recommended" if cint(value) else "Not Applicable"
+    return "Yes" if cint(value) else "No"
+
+
+# Goal Assessment Details sheet: one row per employee, each review stage grouped
+# together in workflow order: manager -> functional manager -> skip level manager -> HR.
+# The HR Submission upload reads this same sheet back, matching the Employee Code,
+# Manager Code, HR Rating and HR Comment headers, so keep those labels in sync with
+# HEADER_ALIASES in hr_submission.py.
+GOAL_ASSESSMENT_DETAIL_FIELDS = {
+    "year": "Year",
+    "employee_code": "Employee Code",
+    "employee_name": "Employee Name",
+    "status": "Status",
+    # "total_score": "Total Score",
+
+    "manager_code": "Manager Code",
+    "manager_name": "Manager Name",
+    "rating": "Rating",
+    "comment": "Manager Comment",
+    "eligible_for_increment": "Eligible for Increment",
+    "training_requirement_identified": "Training Requirement Identified",
+    "eligible_for_promotion": "Eligible for Promotion",
+    "manager_submitted_on": "Manager Submitted On",
+
+    "functional_manager_code": "Functional Manager Code",
+    "functional_manager_name": "Functional Manager Name",
+    "functional_manager_rating": "Functional Manager Rating",
+    "functional_manager_comment": "Functional Manager Comment",
+    "functional_manager_submitted_on": "Functional Manager Submitted On",
+
+    "skip_level_manager_code": "Skip Level Manager Code",
+    "skip_level_manager_name": "Skip Level Manager Name",
+    "skip_level_manager_rating": "Skip Level Manager Rating",
+    "skip_level_manager_comment": "Skip Level Manager Comment",
+    "skip_level_manager_submitted_on": "Skip Level Manager Submitted On",
+
+    "hr_code": "HR Code",
+    "hr_submitted_by": "HR Name",
+    "hr_rating": "HR Rating",
+    "hr_comment": "HR Comment",
+    "hr_submitted_on": "HR Submitted On",
+
+    # Not needed on this sheet
+    # "goal_name_for_yearly_assesment": "Goal Name for Yearly Assessment",
+}
+
+# Goal-level columns are not needed on this sheet, so it no longer
+# repeats each employee once per goal
+# GOAL_ASSESSMENT_DETAIL_CHILD_FIELDS = {
+#     "goal_id": "Goal ID",
+#     "goal_name": "Goal Name",
+#     "description": "Description",
+#     "measurement_criteria": "Measurement Criteria",
+#     "uom": "UOM",
+#     "target": "Target",
+#     "weightage": "Weightage",
+#     "achievement_score": "Achievement Value",
+#     "achieved_score": "Achieved Score",
+#     "upwarddownward": "Upward Downward",
+#     "remark": "Remark"
+# }
+
+
+def write_goal_assessment_details(ws, year, employee_codes):
+    """Fill ws with the Goal Assessment Details sheet for the given employees.
+    Used by the PMS report download and the HR Submission download."""
+    employee_codes = list(employee_codes)
+    header_fill = PatternFill(start_color="D9D9D9", end_color="D9D9D9", fill_type="solid")
+
+    ws.append(list(GOAL_ASSESSMENT_DETAIL_FIELDS.values()))
+    for cell in ws[1]:
+        cell.font = Font(bold=True)
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal="center")
+
+    ga_docs = frappe.get_all(
+        "Goal Assessment",
+        filters={"year": year, "employee_code": ["in", employee_codes]},
+        fields="*",
+        order_by="employee_code asc",
+    ) if employee_codes else []
+
+    # PMS Employees *_name fields hold the employee code (Link to JH User Master),
+    # so display names are resolved from JH User Master in one query
+    review_managers = {
+        e.name: e
+        for e in frappe.get_all(
+            "PMS Employees",
+            filters={"name": ["in", employee_codes]},
+            fields=["name", "functional_manager_code", "skip_level_manager_code"]
+        )
+    } if employee_codes else {}
+    review_manager_codes = {
+        code
+        for e in review_managers.values()
+        for code in (e.functional_manager_code, e.skip_level_manager_code)
+        if code
+    }
+    review_manager_names = dict(frappe.get_all(
+        "JH User Master",
+        filters={"name": ["in", list(review_manager_codes)]},
+        fields=["name", "full_name"],
+        as_list=True
+    )) if review_manager_codes else {}
+
+    for ga in ga_docs:
+        mdata = frappe.db.get_value(
+            "JH User Master",
+            {"email": ga.manager},
+            ["employee_code", "full_name"],
+            as_dict=True
+        ) or {}
+
+        emp_managers = review_managers.get(ga.employee_code) or {}
+        fm_code = emp_managers.get("functional_manager_code") or ""
+        sm_code = emp_managers.get("skip_level_manager_code") or ""
+
+        # Not stored on Goal Assessment; filled in from JH User Master / PMS Employees
+        review_values = {
+            "manager_code": mdata.get("employee_code", ""),
+            "manager_name": mdata.get("full_name", ""),
+            "functional_manager_code": fm_code,
+            "functional_manager_name": review_manager_names.get(fm_code, ""),
+            "skip_level_manager_code": sm_code,
+            "skip_level_manager_name": review_manager_names.get(sm_code, ""),
+        }
+        ws.append([
+            review_values[f] if f in review_values
+            else _to_star_rating(ga.get(f)) if f in RATING_FIELDS
+            else _to_recommendation(ga.get(f)) if f in RECOMMENDATION_FIELDS
+            else ga.get(f)
+            for f in GOAL_ASSESSMENT_DETAIL_FIELDS
+        ])
+
+        # Goal rows are no longer listed on this sheet
+        # child_rows = frappe.get_all(
+        #     "Employee Goals",
+        #     filters={"parent": ga.name},
+        #     fields="*"
+        # )
+        # for child in child_rows:
+        #     ws.append(parent_values + [child.get(f) for f in GOAL_ASSESSMENT_DETAIL_CHILD_FIELDS])
+        #     for col in decimal_cols:  # weightage, achievement_score, achieved_score
+        #         set_two_decimal(ws.cell(row=ws.max_row, column=col))
+
+    for i, col in enumerate(ws.columns, 1):
+        max_length = max(len(str(cell.value or "")) for cell in col)
+        # Capped so long comment columns don't become unreadably wide
+        ws.column_dimensions[get_column_letter(i)].width = min(max_length + 3, 60)
 
 @frappe.whitelist(methods=["GET"])
 def download_excel(year=None, manager=None, view_type="team"):
@@ -128,8 +277,9 @@ def download_excel(year=None, manager=None, view_type="team"):
             "Manager Code",
             "Manager Name",
             "Status",
-            "Total Score",
-            "Comment",
+            # Not needed on this sheet
+            # "Total Score",
+            # "Comment",
             "Cost Center",
             "Designation",
             "Entity",
@@ -147,11 +297,12 @@ def download_excel(year=None, manager=None, view_type="team"):
 
         for row in data:
             manager_name = row.get("manager_name")
-            manager_email = row.get("manager")
 
-            manager_code = frappe.db.get_value(
+            # Admin and org summaries carry the manager code; the team summary
+            # only has the manager's email, so look the code up from that
+            manager_code = row.get("manager_code") or frappe.db.get_value(
                 "PMS Employees",
-                {"employee_email": manager_email},
+                {"employee_email": row.get("manager_email")},
                 "name"
             ) or ""
 
@@ -186,18 +337,19 @@ def download_excel(year=None, manager=None, view_type="team"):
                     ou = emp_details.get("ou_name") or ""
                     grade = emp_details.get("grade_name") or ""
 
-                    assessment = frappe.db.get_value(
-                        "Goal Assessment",
-                        {"employee_code": employee_code, "year": year},
-                        ["comment", "total_score"],
-                        as_dict=True
-                    ) or {}
-
-                    comment = assessment.get("comment") or ""
-                    total_score = ""
-
-                    if status_key == "evaluation_submitted":
-                        total_score = assessment.get("total_score") or ""
+                    # Total Score and Comment are no longer shown on this sheet
+                    # assessment = frappe.db.get_value(
+                    #     "Goal Assessment",
+                    #     {"employee_code": employee_code, "year": year},
+                    #     ["comment", "total_score"],
+                    #     as_dict=True
+                    # ) or {}
+                    #
+                    # comment = assessment.get("comment") or ""
+                    # total_score = ""
+                    #
+                    # if status_key == "evaluation_submitted":
+                    #     total_score = assessment.get("total_score") or ""
 
                     ws2.append([
                         year,
@@ -206,8 +358,8 @@ def download_excel(year=None, manager=None, view_type="team"):
                         manager_code,
                         manager_name,
                         status_label,
-                        total_score,
-                        comment,
+                        # total_score,
+                        # comment,
                         cost_center,
                         designation,
                         entity,
@@ -215,8 +367,8 @@ def download_excel(year=None, manager=None, view_type="team"):
                         ou,
                         grade,
                     ])
-                    row_idx = ws2.max_row
-                    set_two_decimal(ws2.cell(row=row_idx, column=7))  # Total Score
+                    # row_idx = ws2.max_row
+                    # set_two_decimal(ws2.cell(row=row_idx, column=7))  # Total Score
 
         for i, col in enumerate(ws2.columns, 1):
             max_length = max(len(str(cell.value or "")) for cell in col)
@@ -228,69 +380,6 @@ def download_excel(year=None, manager=None, view_type="team"):
         # =====================================================
         ws3 = wb.create_sheet(f"Goal Assessment Details - {year}")
 
-        manager_fields = {
-            "manager_code": "Manager Code",
-            "manager_name": "Manager Name"
-        }
-
-        parent_fields = {
-            "year": "Year",
-            "employee_code": "Employee Code",
-            "employee_name": "Employee Name",
-            "status": "Status",
-            # "total_score": "Total Score",
-
-            "eligible_for_increment": "Eligible for Increment",
-            "training_requirement_identified": "Training Requirement Identified",
-            "eligible_for_promotion": "Eligible for Promotion",
-            "goal_name_for_yearly_assesment": "Goal Name for Yearly Assessment",
-            "rating": "Rating",
-            "comment": "Manager Comment",
-            "functional_manager_code": "Functional Manager Code",
-            "functional_manager_name": "Functional Manager Name",
-            "functional_manager_rating": "Functional Manager Rating",
-            "functional_manager_comment": "Functional Manager Comment",
-            "skip_level_manager_code": "Skip Level Manager Code",
-            "skip_level_manager_name": "Skip Level Manager Name",
-            "skip_level_manager_rating": "Skip Level Manager Rating",
-            "skip_level_manager_comment": "Skip Level Manager Comment",
-            "hr_rating": "HR Rating",
-            "hr_comment": "HR Comment",
-            "functional_manager_submitted_on": "Functional Manager Submitted On",
-            "skip_level_manager_submitted_on": "Skip Level Manager Submitted On",
-            "manager_submitted_on": "Manager Submitted On"
-        }                                                                                                                                                                                                                                                                   
-
-        child_fields = {
-            "goal_id": "Goal ID",
-            "goal_name": "Goal Name",
-            "description": "Description",
-            "measurement_criteria": "Measurement Criteria",
-            "uom": "UOM",
-            "target": "Target",
-            "weightage": "Weightage",
-            "achievement_score": "Achievement Value",
-            "achieved_score": "Achieved Score",
-            "upwarddownward": "Upward Downward",
-            "remark": "Remark"
-        }
-
-        headers = list(manager_fields.values()) + list(parent_fields.values()) + list(child_fields.values())
-        ws3.append(headers)
-
-        # 1-based column positions of the numeric columns shown with two decimals
-        field_order = list(manager_fields) + list(parent_fields) + list(child_fields)
-        # total_score_col = field_order.index("total_score") + 1
-        # decimal_cols = [total_score_col] + [
-        decimal_cols = [
-            field_order.index(f) + 1 for f in ("weightage", "achievement_score", "achieved_score")
-        ]
-
-        for cell in ws3[1]:
-            cell.font = Font(bold=True)
-            cell.fill = header_fill
-            cell.alignment = Alignment(horizontal="center")
-
         all_emp_codes = set()
         for row in data:
             groups = [row.get(f"{key}_employees") or [] for key, _label in STATUS_BUCKETS]
@@ -298,95 +387,7 @@ def download_excel(year=None, manager=None, view_type="team"):
                 for e in grp:
                     all_emp_codes.add(e["employee_code"])
 
-        ga_docs = frappe.get_all(
-            "Goal Assessment",
-            filters={"year": year, "employee_code": ["in", list(all_emp_codes)]},
-            fields="*"
-        )
-
-        # PMS Employees *_name fields hold the employee code (Link to JH User Master),
-        # so display names are resolved from JH User Master in one query
-        review_managers = {
-            e.name: e
-            for e in frappe.get_all(
-                "PMS Employees",
-                filters={"name": ["in", list(all_emp_codes)]},
-                fields=["name", "functional_manager_code", "skip_level_manager_code"]
-            )
-        }
-        review_manager_codes = {
-            code
-            for e in review_managers.values()
-            for code in (e.functional_manager_code, e.skip_level_manager_code)
-            if code
-        }
-        review_manager_names = dict(frappe.get_all(
-            "JH User Master",
-            filters={"name": ["in", list(review_manager_codes)]},
-            fields=["name", "full_name"],
-            as_list=True
-        )) if review_manager_codes else {}
-
-        for ga in ga_docs:
-            mdata = frappe.db.get_value(
-                "JH User Master",
-                {"email": ga.manager},
-                ["employee_code", "full_name"],
-                as_dict=True
-            ) or {}
-
-            manager_code = mdata.get("employee_code", "")
-            manager_name = mdata.get("full_name", "")
-
-            emp_managers = review_managers.get(ga.employee_code) or {}
-            fm_code = emp_managers.get("functional_manager_code") or ""
-            sm_code = emp_managers.get("skip_level_manager_code") or ""
-
-            manager_values = [manager_code, manager_name]
-
-            # Not stored on Goal Assessment; filled in from PMS Employees
-            review_values = {
-                "functional_manager_code": fm_code,
-                "functional_manager_name": review_manager_names.get(fm_code, ""),
-                "skip_level_manager_code": sm_code,
-                "skip_level_manager_name": review_manager_names.get(sm_code, ""),
-            }
-            parent_values = [
-                review_values[f] if f in review_values
-                else _to_star_rating(ga.get(f)) if f in RATING_FIELDS
-                else _to_recommendation(ga.get(f)) if f in RECOMMENDATION_FIELDS
-                else ga.get(f)
-                for f in parent_fields.keys()
-            ]
-
-            child_rows = frappe.get_all(
-                "Employee Goals",
-                filters={"parent": ga.name},
-                fields="*"
-            )
-
-            if child_rows:
-                for child in child_rows:
-                    ws3.append(
-                        manager_values +
-                        parent_values +
-                        [child.get(f) for f in child_fields.keys()]
-                    )
-
-                    row_idx = ws3.max_row
-                    for col in decimal_cols:
-                        set_two_decimal(ws3.cell(row=row_idx, column=col))
-
-            else:
-                ws3.append(manager_values + parent_values + [""] * len(child_fields))
-
-                # row_idx = ws3.max_row
-                # set_two_decimal(ws3.cell(row=row_idx, column=total_score_col))
-
-        for i, col in enumerate(ws3.columns, 1):
-            max_length = max(len(str(cell.value or "")) for cell in col)
-            # Capped so long comment columns don't become unreadably wide
-            ws3.column_dimensions[get_column_letter(i)].width = min(max_length + 3, 60)
+        write_goal_assessment_details(ws3, year, all_emp_codes)
 
         # =====================================================
         # OUTPUT FILE

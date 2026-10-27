@@ -94,8 +94,15 @@ const adminItems: NavItem[] = [
     name: "Settings",
     path: "/adminsettings",
   },
+  {
+    icon: <IoClipboardOutline />,
+    name: "HR Submission",
+    path: "/hrsubmission",
+  },
 ];
- 
+
+// HR Submission is listed under Admin; super admins who are not PMS admins
+// still need the page to close the appraisal cycle
 const superAdminItems: NavItem[] = [
   {
     icon: <IoClipboardOutline />,
@@ -287,7 +294,7 @@ const AppSidebar: React.FC = () => {
             </div>
           ) : null}
  
-          {employee?.super_admin ? (
+          {employee?.super_admin && !employee?.pms_admin ? (
             <div className="mt-8">
               {renderSectionHeader("Super Admin")}
               {renderMenuItems(superAdminItems)}
