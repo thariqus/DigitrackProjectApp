@@ -63,13 +63,13 @@ const FIELDS = [
   },
   {
     key: "custom_trade_license_no",
-    label: "Trade Licence Number",
+    label: "Trade License Number",
     icon: LuFileText,
     placeholder: "e.g. 123456",
   },
   {
     key: "trade_license_expiry",
-    label: "Trade Licence Expiry Date",
+    label: "Trade License Expiry Date",
     icon: LuFileText,
     type: "date",
   },
@@ -280,6 +280,16 @@ function checkSapResponse(res, fallbackSuccessMessage) {
     title: "Success",
     message: sapMessage || fallbackSuccessMessage,
   };
+}
+
+// Splits a SAP message into separate lines.
+// Breaks on "|" and on a sentence that starts right after a closing ")".
+function splitSapMessage(message) {
+  if (typeof message !== "string") return [];
+  return message
+    .split(/\s*\|\s*|(?<=\))\s+(?=[A-Z])/)
+    .map((line) => line.trim())
+    .filter(Boolean);
 }
 
 // Formats "YYYY-MM-DD" as "DD/MM/YYYY" for display. Other values pass through.
@@ -663,9 +673,11 @@ function ResultModal({
                       >
                         {r.label}
                       </div>
-                      <div className="flex items-center break-words px-4 py-2.5 text-sm font-semibold text-gray-900">
-                        {r.value}
-                      </div>
+                      <div className="flex flex-col justify-center gap-1.5 break-words px-4 py-2.5 text-sm font-semibold text-gray-900">
+                    {splitSapMessage(r.value).map((line, idx) => (
+                      <div key={idx}>{line}</div>
+                    ))}
+                  </div>
                     </div>
                   ))}
                 </div>
@@ -700,10 +712,12 @@ function ResultModal({
   );
 }
 
-// Expiry date is required only when a trade licence number is entered
 const isFieldRequired = (field, values) => {
   if (field.key === "trade_license_expiry") {
     return Boolean(values.custom_trade_license_no?.trim());
+  }
+  if (field.key === "tr_number" || field.key === "custom_trade_license_no") {
+    return values.customer_type === "B2B" || Boolean(field.required);
   }
   return Boolean(field.required);
 };
@@ -1038,25 +1052,32 @@ function RegisterCustomer() {
       return;
     }
 
-    // B2B: TR Number OR Trade Licence is mandatory
-    if (form.customer_type === "B2B") {
-      const tradeLicense = form.custom_trade_license_no?.trim();
+    // B2B: TR Number AND Trade License Number are both mandatory
+if (form.customer_type === "B2B") {
+  const tradeLicense = form.custom_trade_license_no?.trim();
 
-      if (!trNumber && !tradeLicense) {
-        showNotice(
-          "For B2B customers, either TR Number or Trade Licence Number is required.",
-          { title: "Validation Required", focusTr: true }
-        );
-        return;
-      }
-    }
-        // Trade licence expiry is mandatory when a licence number is entered
+  if (!trNumber) {
+    showNotice("TR Number is required for B2B customers.", {
+      title: "Validation Required",
+      focusTr: true,
+    });
+    return;
+  }
+
+  if (!tradeLicense) {
+    showNotice("Trade License Number is required for B2B customers.", {
+      title: "Validation Required",
+    });
+    return;
+  }
+}
+        // Trade license expiry is mandatory when a license number is entered
     if (
       form.custom_trade_license_no?.trim() &&
       !form.trade_license_expiry
     ) {
       showNotice(
-        "Trade Licence Expiry Date is required when a Trade Licence Number is entered.",
+        "Trade License Expiry Date is required when a Trade License Number is entered.",
         { title: "Validation Required" }
       );
       return;
