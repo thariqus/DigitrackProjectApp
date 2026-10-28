@@ -12,7 +12,11 @@ APP_PATH6 = "jaleel_ho.custom_selling.customer_api"
 APP_PATH7 = "jaleel_ho.custom_selling.report.business_instant_insights.business_instant_insights"
 SITE_CODE = "2113"
 BASE_URL = "http://store1uaejccuat.jaleel.local"
-TOKEN = "10c944b5d516e9d:8bd739aaf3daa47"
+#TOKEN = "10c944b5d516e9d:e77d840bdf7a9c8"
+#TOKEN = "10c944b5d516e9d:8bd739aaf3daa47"
+TOKEN = "10c944b5d516e9d:87ccf9ad4d07cd3"
+
+
 TIMEOUT = 60
 
 
@@ -29,7 +33,7 @@ def get_headers():
     headers = {
         "Content-Type": "application/json"
     }
-
+    
     if TOKEN:
         headers["Authorization"] = f"Token {TOKEN}"
 
@@ -40,8 +44,8 @@ def api_get(method_name, params=None,mysitecode=None):
     set_cors_headers()
     if not mysitecode:
         frappe.throw(("mysitecode is required."))
-    BASE_URL=frappe.db.get_value("Site", mysitecode, "url")
-    print("url", BASE_URL)
+    BASE_URL=frappe.db.get_value("NewBusinessurls", mysitecode, "base_url")
+    print("base_url", BASE_URL)
     url = f"{BASE_URL}/api/method/{APP_PATH}.{method_name}"
 
     response = requests.get(
@@ -58,7 +62,7 @@ def api_get1(method_name, params=None, mysitecode=None):
     set_cors_headers()
     if not mysitecode:
         frappe.throw(("mysitecode is required."))
-    BASE_URL=frappe.db.get_value("Site", mysitecode, "url")
+    BASE_URL=frappe.db.get_value("NewBusinessurls", mysitecode, "base_url")
     url = f"{BASE_URL}/api/method/{APP_PATH1}.{method_name}"
 
     response = requests.get(
@@ -74,7 +78,7 @@ def api_get2(method_name, params=None,mysitecode=None):
     set_cors_headers()
     if not mysitecode:
         frappe.throw(("mysitecode is required."))
-    BASE_URL=frappe.db.get_value("Site", mysitecode, "url")
+    BASE_URL=frappe.db.get_value("NewBusinessurls", mysitecode, "base_url")
     url = f"{BASE_URL}/api/method/{APP_PATH2}.{method_name}"
 
     response = requests.get(
@@ -91,7 +95,7 @@ def api_get3(method_name, params=None, mysitecode=None):
     set_cors_headers()
     if not mysitecode:
         frappe.throw(("mysitecode is required."))
-    BASE_URL=frappe.db.get_value("Site", mysitecode, "url")
+    BASE_URL=frappe.db.get_value("NewBusinessurls", mysitecode, "base_url")
     url = f"{BASE_URL}/api/method/{APP_PATH3}.{method_name}"
 
     response = requests.get(
@@ -107,7 +111,7 @@ def api_get4(method_name, params=None, mysitecode=None):
     set_cors_headers()
     if not mysitecode:
         frappe.throw(("mysitecode is required."))
-    BASE_URL=frappe.db.get_value("Site", mysitecode, "url")
+    BASE_URL=frappe.db.get_value("NewBusinessurls", mysitecode, "base_url")
     url = f"{BASE_URL}/api/method/{APP_PATH4}.{method_name}"
 
     response = requests.get(
@@ -124,7 +128,7 @@ def api_get5(method_name, params=None, mysitecode=None):
     set_cors_headers()
     if not mysitecode:
         frappe.throw(("mysitecode is required."))
-    BASE_URL=frappe.db.get_value("Site", mysitecode, "url")    
+    BASE_URL=frappe.db.get_value("NewBusinessurls", mysitecode, "base_url")    
     url = f"{BASE_URL}/api/method/{APP_PATH6}.{method_name}"
 
     response = requests.get(
@@ -141,7 +145,7 @@ def api_get6(method_name, params=None, mysitecode=None):
     set_cors_headers()
     if not mysitecode:
         frappe.throw(("mysitecode is required."))
-    BASE_URL=frappe.db.get_value("Site", mysitecode, "url")
+    BASE_URL=frappe.db.get_value("NewBusinessurls", mysitecode, "base_url")
     url = f"{BASE_URL}/api/method/{APP_PATH7}.{method_name}"
 
     response = requests.get(
@@ -160,7 +164,7 @@ def api_post(method_name, data=None):
     mysitecode = data.get("mysitecode")
     if not mysitecode:
         frappe.throw(("mysitecode is required."))
-    BASE_URL=frappe.db.get_value("Site", mysitecode, "url")
+    BASE_URL=frappe.db.get_value("NewBusinessurls", mysitecode, "base_url")
     url = f"{BASE_URL}/api/method/{APP_PATH}.{method_name}"
 
     response = requests.post(
@@ -178,7 +182,7 @@ def api_post1(method_name, data=None):
     mysitecode = data.get("mysitecode")
     if not mysitecode:
         frappe.throw(("mysitecode is required."))
-    BASE_URL=frappe.db.get_value("Site", mysitecode, "url")
+    BASE_URL=frappe.db.get_value("NewBusinessurls", mysitecode, "base_url")
 
     url = f"{BASE_URL}/api/method/{APP_PATH1}.{method_name}"
 
@@ -197,7 +201,7 @@ def api_post2(method_name, data=None):
     mysitecode = data.get("mysitecode")
     if not mysitecode:
         frappe.throw(("mysitecode is required."))
-    BASE_URL=frappe.db.get_value("Site", mysitecode, "url")
+    BASE_URL=frappe.db.get_value("NewBusinessurls", mysitecode, "base_url")
     url = f"{BASE_URL}/api/method/{APP_PATH5}.{method_name}"
 
     response = requests.post(
@@ -303,6 +307,7 @@ def get_credit_balance(customer, mysitecode=None):
 
 @frappe.whitelist(allow_guest=True)
 def erplogin(usr, pwd, mysitecode):
+    global TOKEN
     response = api_post(
         "erplogin",
         {
@@ -311,14 +316,20 @@ def erplogin(usr, pwd, mysitecode):
             "mysitecode": mysitecode
         }
     )
-
+    
     if isinstance(response, str):
         response = json.loads(response)
+
+    message = response.get("message") if isinstance(response, dict) else None
+    if isinstance(message, dict) and message.get("token"):
+        TOKEN = message["token"]
+    print("Updated TOKEN:", TOKEN)
 
     if isinstance(response, dict) and "message" in response:
         return response["message"]
 
     return response
+
 
 @frappe.whitelist(allow_guest=True)
 def get_app_version(mysitecode=None):
@@ -559,7 +570,7 @@ def items_substitution(item_code, site=None, date_time=None, mysitecode=None):
         "items_substitution",
         {
             "item_code": item_code,
-            "site": site,
+            "NewBusinessurls": site,
             "date_time": date_time
         },
         mysitecode=mysitecode
