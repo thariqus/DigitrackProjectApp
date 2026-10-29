@@ -71,10 +71,12 @@ def _get_sap_customer_code(sap_response):
 # 3. Customer Groups
 # ----------------------------------------------------------------------
 
+# =========================================================
+# SAP CUSTOMER CREATE
+# =========================================================
 
 
-SAP_CUSTOMER_URL = "http://10.10.10.74:50000/RESTAdapter/sap/customer/create"
-
+SAP_CUSTOMER_URL = "prdapi.jaleelholdings.com/RESTAdapter/sap/customer/create"
 
 def create_sap_customer(data):
     """
@@ -162,6 +164,7 @@ def _format_sap_date(value):
     except ValueError:
         return value
 
+
 @frappe.whitelist(methods=["POST"])
 def create_sap_customer_confirm(data):
     """
@@ -248,14 +251,11 @@ def create_sap_customer_confirm(data):
 
 
 
-
 # =========================================================
 # SAP CUSTOMER ACTIVATION
 # =========================================================
 
-SAP_CUSTOMER_ACTIVATION_URL = "http://10.10.10.74:50000/RESTAdapter/sap/customer/activation"
-
-
+SAP_CUSTOMER_ACTIVATION_URL = "prdapi.jaleelholdings.com/RESTAdapter/sap/customer/activation"
 
 def send_customer_activation_to_sap(customer_code, company_code):
     """
@@ -318,6 +318,9 @@ def send_customer_activation_to_sap(customer_code, company_code):
         }
 
 
+# =========================================================
+# SAP CUSTOMER SEARCH
+# =========================================================
 
 @frappe.whitelist()
 def search_sap_customer(
@@ -335,7 +338,7 @@ def search_sap_customer(
     Multiple fields can also be provided.
     """
 
-    sap_url = "http://10.10.10.74:50000/RESTAdapter/sap/customer/customerdetails"
+    sap_url = "prdapi.jaleelholdings.com/RESTAdapter/sap/customer/customerdetails"
 
     sap_username = "JHPIPODEV"
     sap_password = "Jhpod!nt@1972#"

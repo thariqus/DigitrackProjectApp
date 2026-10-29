@@ -1,7 +1,7 @@
 import frappe
 import requests
 import json
-
+from frappe import _
 APP_PATH = "jaleel_ho.custom_selling.sales_order_api"
 APP_PATH1= "jaleel_ho.rct_api.sales_order_header"
 APP_PATH2= "jaleel_ho.rct_api.customer"
@@ -11,8 +11,15 @@ APP_PATH5= "jaleel_ho.rct_api.submit_so"
 APP_PATH6 = "jaleel_ho.custom_selling.customer_api"
 APP_PATH7 = "jaleel_ho.custom_selling.report.business_instant_insights.business_instant_insights"
 SITE_CODE = "2113"
-BASE_URL = "http://store1uaejccuat.jaleel.local"
-TOKEN = "10c944b5d516e9d:8bd739aaf3daa47"
+# BASE_URL = "http://store1uaejccuat.jaleel.local"
+
+BASE_URL = ""
+#TOKEN = "10c944b5d516e9d:e77d840bdf7a9c8"
+#TOKEN = "10c944b5d516e9d:0e46796513b4761"
+#TOKEN = "10c944b5d516e9d:87ccf9ad4d07cd3"
+TOKEN=""
+
+
 TIMEOUT = 60
 
 
@@ -29,7 +36,7 @@ def get_headers():
     headers = {
         "Content-Type": "application/json"
     }
-
+    
     if TOKEN:
         headers["Authorization"] = f"Token {TOKEN}"
 
@@ -43,7 +50,7 @@ def api_get(method_name, params=None,mysitecode=None):
     BASE_URL=frappe.db.get_value("Site", mysitecode, "url")
     print("url", BASE_URL)
     url = f"{BASE_URL}/api/method/{APP_PATH}.{method_name}"
-
+    print("params", params)
     response = requests.get(
         url,
         params=params,
@@ -303,6 +310,7 @@ def get_credit_balance(customer, mysitecode=None):
 
 @frappe.whitelist(allow_guest=True)
 def erplogin(usr, pwd, mysitecode):
+    global TOKEN
     response = api_post(
         "erplogin",
         {
@@ -311,14 +319,20 @@ def erplogin(usr, pwd, mysitecode):
             "mysitecode": mysitecode
         }
     )
-
+    
     if isinstance(response, str):
         response = json.loads(response)
+
+    message = response.get("message") if isinstance(response, dict) else None
+    if isinstance(message, dict) and message.get("token"):
+        TOKEN = message["token"]
+    print("Updated TOKEN:", TOKEN)
 
     if isinstance(response, dict) and "message" in response:
         return response["message"]
 
     return response
+
 
 @frappe.whitelist(allow_guest=True)
 def get_app_version(mysitecode=None):
@@ -512,6 +526,51 @@ def get_item_price(
 
     return response
 
+# @frappe.whitelist(allow_guest=True)
+# def get_item_by_barcode(
+#     barcode=None,
+#     uom=None,
+#     warehouse=None,
+#     requested_qty=None,
+#     customer=None,
+#     distribution_channel=None,
+#     sales_order=None,
+#     user=None,
+#     type=None,
+#     new_uom=None,
+#     new_item_code=None,
+#     mysitecode=None
+# ):
+#     response = api_get(
+#         "get_item_by_barcode",
+#         {
+#             "barcode": barcode,
+#             "uom": uom,
+#             "warehouse": warehouse,
+#             "requested_qty": requested_qty,
+#             "customer": customer,
+#             "distribution_channel": distribution_channel,
+#             "sales_order": sales_order,
+#             "user": user,
+#             "type": type,
+#             "new_uom": new_uom,
+#             "new_item_code": new_item_code
+            
+#         },
+#         mysitecode=mysitecode
+       
+#     )
+
+#     if isinstance(response, str):
+#         response = json.loads(response)
+
+#     if isinstance(response, dict) and "message" in response:
+#         return response["message"]
+
+#     return response
+
+EMPTY = (None, "", "None", "null", "undefined")
+
 @frappe.whitelist(allow_guest=True)
 def get_item_by_barcode(
     barcode=None,
@@ -525,41 +584,57 @@ def get_item_by_barcode(
     type=None,
     new_uom=None,
     new_item_code=None,
-    mysitecode=None
+    barcode_event=None,      # new: sent by the frontend
+    mysitecode=None,
+    siteCode=None,           # safety-net alias
 ):
-    response = api_get(
-        "get_item_by_barcode",
-        {
-            "barcode": barcode,
-            "uom": uom,
-            "warehouse": warehouse,
-            "requested_qty": requested_qty,
-            "customer": customer,
-            "distribution_channel": distribution_channel,
-            "sales_order": sales_order,
-            "user": user,
-            "type": type,
-            "new_uom": new_uom,
-            "new_item_code": new_item_code
-        },
-        mysitecode=mysitecode
-    )
+    mysitecode = mysitecode or siteCode
+
+    # 1. Barcode is required for every task
+    barcode = (barcode or "").strip()
+    if not barcode:
+        frappe.throw(_("Barcode is required"))
+
+    # 2. Only validation that is always true
+    if new_uom not in EMPTY and uom in EMPTY:
+        frappe.throw(_("UOM is required when changing UOM"))
+
+    # 3. Send only the values that were actually provided
+    payload = {
+        "barcode": barcode,
+        "uom": uom,
+        "warehouse": warehouse,
+        "requested_qty": requested_qty,
+        "customer": customer,
+        "distribution_channel": distribution_channel,
+        "sales_order": sales_order,
+        "user": user,
+        "type": type,
+        "new_uom": new_uom,
+        "new_item_code": new_item_code,
+        "barcode_event": barcode_event,
+    }
+    payload = {k: v for k, v in payload.items() if v not in EMPTY}
+
+    response = api_get("get_item_by_barcode", payload, mysitecode=mysitecode)
 
     if isinstance(response, str):
         response = json.loads(response)
 
+    # 4. Don't pass downstream errors through as data
+    if isinstance(response, dict) and (response.get("exception") or response.get("exc")):
+        frappe.throw(response.get("exception") or _("Item lookup failed on the site"))
+
     if isinstance(response, dict) and "message" in response:
         return response["message"]
-
     return response
-
 @frappe.whitelist(allow_guest=True)
 def items_substitution(item_code, site=None, date_time=None, mysitecode=None):
     response = api_get3(
         "items_substitution",
         {
             "item_code": item_code,
-            "site": site,
+            "Site": site,
             "date_time": date_time
         },
         mysitecode=mysitecode
@@ -589,9 +664,9 @@ def submit_sales_order(
             "user": user,
             "custom_customer_name": custom_customer_name,
             "external_doc_no": external_doc_no,
-            "tzc": tzc
-        },
-        mysitecode=mysitecode
+            "tzc": tzc,
+            "mysitecode":mysitecode
+        }
     )
 
     if isinstance(response, str):
@@ -785,9 +860,10 @@ def create_payment_entry_v2(
             "card_bank": card_bank,
             "rrn_number": rrn_number,
             "authorization_code": authorization_code,
-            "cash_received_amount": cash_received_amount
-        },
-        mysitecode=mysitecode
+            "cash_received_amount": cash_received_amount,
+            "mysitecode": mysitecode
+        }
+        
     )
 
     if isinstance(response, str):
