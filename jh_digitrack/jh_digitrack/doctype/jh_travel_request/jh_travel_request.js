@@ -113,6 +113,7 @@ frappe.ui.form.on("JH Travel Request", {
                         fieldtype: "Link",
                         options: "JH User Master",
                         reqd: 1,
+                        get_query: () => ({ filters: { active: 1 } }),
                       },
                       {
                         label: "Final Amount",
@@ -177,6 +178,7 @@ frappe.ui.form.on("JH Travel Request", {
                       fieldtype: "Link",
                       options: "JH User Master",
                       reqd: 1,
+                      get_query: () => ({ filters: { active: 1 } }),
                     },
                     {
                       label: "PO / IEM",
