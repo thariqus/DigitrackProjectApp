@@ -1,37 +1,38 @@
+
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router";
-import JHICON from "../images/JH.png";
-import jaleelholdings from "../images/jaleel holdings.png";
+import JHICON from "../images/j-reflect-icon.png";
+import jaleelholdings from "../images/j-reflect-icon.png";
 import { useCurrentPmsEmployee } from "../hooks/auth";
-
+import { CiCalendar } from "react-icons/ci";
 import {
   ChevronDown,
   MoreHorizontal,
 } from "lucide-react";
-
+ 
 import { useSidebar } from "../context/SidebarContext";
 import { IoClipboardOutline } from "react-icons/io5";
 import { MdOutlineAssignmentTurnedIn, MdOutlineAssessment } from "react-icons/md";
 import { FaRegChartBar } from "react-icons/fa";
 import { IoSettingsOutline } from "react-icons/io5";
 import { FaTasks } from "react-icons/fa";
-import { AiOutlineEye } from "react-icons/ai"; 
-
+import { AiOutlineEye } from "react-icons/ai";
+ 
 type NavItem = {
   name: string;
   icon: React.ReactNode;
   path?: string;
   fromAdmin?: boolean;
 };
-
-const masterItems: NavItem[] = [
-  {
-    icon: <IoClipboardOutline />,
-    name: "Goal",
-    path: "/goalmaster",
-  },
-];
-
+ 
+// const masterItems: NavItem[] = [
+//   {
+//     icon: <IoClipboardOutline />,
+//     name: "Goal",
+//     // path: "/goalmaster",
+//   },
+// ];
+ 
 const managerItems: NavItem[] = [
   {
     icon: <FaRegChartBar />,
@@ -39,18 +40,31 @@ const managerItems: NavItem[] = [
     path: "/reports",
     fromAdmin: false,
   },
-  {
-    icon: <MdOutlineAssignmentTurnedIn />,
-    name: "Goal Assignment",
-    path: "/goalassignment",
-  },
-  {
-    icon: <MdOutlineAssessment />,
-    name: "Goal Evaluation",
-    path: "/goalevaluation",
+  // {
+  //   icon: <MdOutlineAssignmentTurnedIn />,
+  //   name: "Goal Assignment",
+  //   // path: "/goalassignment",
+  // },
+  // {
+  //   icon: <MdOutlineAssessment />,
+  //   name: "Goal Evaluation",
+  //   // path: "/goalevaluation",
+  // },
+   {
+    icon: <CiCalendar />,
+    name: "Yearly Submission",
+    path: "/yearlysubmission",
   },
 ];
-
+ 
+const functionalSkipLevelItems: NavItem[] = [
+  {
+    icon: <CiCalendar />,
+    name: "Functional/Skip level Yearly Submission",
+    path: "/functionalorskiplevelyearlysubmission",
+  },
+];
+ 
 const selfItems: NavItem[] = [
   {
     icon: <FaRegChartBar />,
@@ -58,16 +72,16 @@ const selfItems: NavItem[] = [
     path: "/self-evaluation",
     fromAdmin: false,
   },
-  {
-    icon: <MdOutlineAssignmentTurnedIn />,
-    name: "Goal Assignment",
-  },
-  {
-    icon: <MdOutlineAssessment />,
-    name: "Self Assessment",
-  },
+  // {
+  //   icon: <MdOutlineAssignmentTurnedIn />,
+  //   name: "Goal Assignment",
+  // },
+  // {
+  //   icon: <MdOutlineAssessment />,
+  //   name: "Self Assessment",
+  // },
 ];
-
+ 
 const adminItems: NavItem[] = [
   {
     icon: <FaRegChartBar />,
@@ -80,13 +94,28 @@ const adminItems: NavItem[] = [
     name: "Settings",
     path: "/adminsettings",
   },
+  {
+    icon: <IoClipboardOutline />,
+    name: "HR Submission",
+    path: "/hrsubmission",
+  },
 ];
 
+// HR Submission is listed under Admin; super admins who are not PMS admins
+// still need the page to close the appraisal cycle
+const superAdminItems: NavItem[] = [
+  {
+    icon: <IoClipboardOutline />,
+    name: "HR Submission",
+    path: "/hrsubmission",
+  },
+];
+ 
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered } = useSidebar();
   const location = useLocation();
   const { data: employee } = useCurrentPmsEmployee();
-
+ 
   // const isActive = useCallback(
   //   (path: string) => location.pathname === path,
   //   [location.pathname]
@@ -100,29 +129,29 @@ const AppSidebar: React.FC = () => {
   //   },
   //   [location.pathname, location.state]
   // );
-
+ 
   const isActive = useCallback(
     (nav: NavItem) => {
       if (!nav.path) return false;
-
+ 
       if (nav.path.startsWith("/self")) {
         return location.pathname.startsWith(nav.path);
       }
-
+ 
       if (nav.fromAdmin !== undefined) {
         return (
           location.pathname === nav.path &&
           (location.state?.fromAdmin ?? false) === nav.fromAdmin
         );
       }
-
+ 
       return location.pathname === nav.path;
     },
     [location.pathname, location.state]
   );
-
-
-
+ 
+ 
+ 
   const renderMenuItems = (items: NavItem[], hasLink = true) => (
     <ul className="flex flex-col gap-4">
       {items.map((nav) => (
@@ -143,7 +172,7 @@ const AppSidebar: React.FC = () => {
                 isActive(nav) ? "menu-item-active" : "menu-item-inactive"
               }`}
             >
-
+ 
               <span
                 className={`menu-item-icon-size ${
                   isActive(nav)
@@ -159,7 +188,7 @@ const AppSidebar: React.FC = () => {
             </Link>
           ) : (
             <div
-              className={`menu-item group menu-item-inactive cursor-default`}
+              className={`menu-item group text-xs menu-item-inactive cursor-default`}
             >
               <span className="menu-item-icon-size text-gray-500">
                 {nav.icon}
@@ -173,7 +202,7 @@ const AppSidebar: React.FC = () => {
       ))}
     </ul>
   );
-
+ 
   const renderSectionHeader = (title: string) => (
     <h2
       className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${
@@ -187,10 +216,10 @@ const AppSidebar: React.FC = () => {
       )}
     </h2>
   );
-
+ 
   return (
     <aside
-      className={`fixed mt-3 flex flex-col lg:mt-0 top-0 px-2 left-0 bg-white dark:bg-gray-900 dark:border-gray-800 text-gray-900 h-screen transition-all duration-300 ease-in-out z-50 border-r border-gray-200 
+      className={`fixed mt-3 flex flex-col lg:mt-0 top-0 px-2 left-0 bg-white dark:bg-gray-900 dark:border-gray-800 text-gray-900 h-screen transition-all duration-300 ease-in-out z-50 border-r border-gray-200
         ${
           isExpanded || isMobileOpen
             ? "w-[200px]"
@@ -202,9 +231,7 @@ const AppSidebar: React.FC = () => {
         lg:translate-x-0`}
     >
       <div
-        className={`py-5 flex ${
-          !isExpanded && !isHovered ? "lg:justify-center" : "justify-start"
-        }`}
+        className="py-5 flex justify-center"
       >
         <Link to="/">
           {isExpanded || isHovered || isMobileOpen ? (
@@ -229,41 +256,57 @@ const AppSidebar: React.FC = () => {
           )}
         </Link>
       </div>
-
+ 
       <div className="flex flex-col text-sm overflow-y-auto duration-300 ease-linear no-scrollbar">
         <nav className="mb-6">
           {/* Conditionally render based on PMS Employee flags */}
-          {employee?.pms_master ? (
+          {/* {employee?.pms_master ? (
             <>
               {renderSectionHeader("Master")}
               {renderMenuItems(masterItems)}
             </>
-          ) : null}
-
-          {employee?.pms_manager ? (
-            <div className="mt-8">
-              {renderSectionHeader("Manager")}
-              {renderMenuItems(managerItems)}
-            </div>
-          ) : null}
-
+          ) : null} */}
+ 
           {employee?.pms_employee || employee?.self_assessment ? (
             <div className="mt-8">
               {renderSectionHeader("Self")}
               {renderMenuItems(selfItems)}
             </div>
           ) : null}
-
+ 
+          {employee?.pms_manager ? (
+            <div className="mt-8">
+              {renderSectionHeader("Manager")}
+              {renderMenuItems(managerItems)}
+            </div>
+          ) : null}
+ 
+          {employee?.is_functional_or_skip_level_manager ? (
+            <div className="mt-3">
+              {renderMenuItems(functionalSkipLevelItems)}
+            </div>
+          ) : null}
+ 
           {employee?.pms_admin ? (
             <div className="mt-8">
               {renderSectionHeader("Admin")}
               {renderMenuItems(adminItems)}
             </div>
           ) : null}
+ 
+          {employee?.super_admin && !employee?.pms_admin ? (
+            <div className="mt-8">
+              {renderSectionHeader("Super Admin")}
+              {renderMenuItems(superAdminItems)}
+            </div>
+          ) : null}
+ 
         </nav>
       </div>
     </aside>
   );
 };
-
+ 
 export default AppSidebar;
+ 
+ 

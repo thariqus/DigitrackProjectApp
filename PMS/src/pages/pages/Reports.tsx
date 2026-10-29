@@ -1,5 +1,3 @@
- 
-
 import { useState, useRef, useEffect } from "react";
 import { HiOutlineSearch, HiChevronDown } from "react-icons/hi";
 import { IoMdClose } from "react-icons/io";
@@ -26,13 +24,14 @@ function Reports() {
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
   const [selectedYear, setSelectedYear] = useState("");
+  const [selectedQuarterly, setSelectedQuarterly] = useState("");
   const [selectedManager, setSelectedManager] = useState("All");
   const [reportMode, setReportMode] = useState<"team" | "org">("team");
 
   const dropdownRef = useRef<HTMLDivElement | null>(null);
 
-  const { managers, baseYear, years, fromDate, toDate } =
-    useGoalAssessment(selectedYear, reportMode);
+  const { managers, baseYear, baseQuarterly, periods, fromDate, toDate } =
+    useGoalAssessment(selectedYear, reportMode, selectedQuarterly);
 
   const { data: currentUser } = useCurrentUser();
 
@@ -56,6 +55,12 @@ function Reports() {
       setSelectedYear(baseYear);
     }
   }, [baseYear]);
+
+  useEffect(() => {
+    if (baseQuarterly && !selectedQuarterly) {
+      setSelectedQuarterly(baseQuarterly);
+    }
+  }, [baseQuarterly]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -82,7 +87,7 @@ function Reports() {
   const filteredManagers = managers.filter((m) => {
     if (
       selectedManager !== "All" &&
-      m.manager_name.toLowerCase() !== selectedManager.toLowerCase()
+      (m.manager_name || "").toLowerCase() !== selectedManager.toLowerCase()
     ) {
       return false;
     }
@@ -152,22 +157,16 @@ function Reports() {
   ): EmployeeSummary[] => {
     if (!manager) return [];
     switch (type) {
-      case "goals_pending":
-        return manager.goals_pending_employees;
       case "goals_started":
         return manager.goals_started_employees;
-      case "goals_submitted":
-        return manager.goals_submitted_employees;
-      case "evaluation_pending":
-        return manager.evaluation_pending_employees;
-      case "evaluation_started":
-        return manager.evaluation_started_employees;
-      case "evaluation_submitted":
-        return manager.evaluation_submitted_employees;
       case "employees":
         return manager.employees_under_manager || [];
-      default:
-        return [];
+      default: {
+        // Every status column ("goals_started", "rpt_manager_submitted", ...) has a
+        // matching "<column>_employees" list in the summary
+        const list = (manager as unknown as Record<string, unknown>)[`${type}_employees`];
+        return Array.isArray(list) ? (list as EmployeeSummary[]) : [];
+      }
     }
   };
 
@@ -190,6 +189,7 @@ function Reports() {
   const clearFilters = () => {
     if (!baseYear) return;
     setSelectedYear(baseYear);
+    setSelectedQuarterly(baseQuarterly);
     setSelectedManager("All");
     setManagerSearch("");
   };
@@ -252,13 +252,18 @@ function Reports() {
       <div className="flex justify-between pb-3">
         <div className="flex gap-3">
           <select
-            value={selectedYear}
-            onChange={(e) => setSelectedYear(e.target.value)}
+            value={selectedQuarterly}
+            onChange={(e) => {
+              const quaterly = e.target.value;
+              const period = periods.find((p) => p.quaterly === quaterly);
+              setSelectedQuarterly(quaterly);
+              if (period) setSelectedYear(period.year);
+            }}
             className="px-2 py-1 border rounded-md text-[0.65rem]"
           >
-            {years.map((y) => (
-              <option key={y} value={y}>
-                {y}
+            {periods.map((p) => (
+              <option key={p.quaterly || p.year} value={p.quaterly || p.year}>
+                {p.quaterly || p.year}
               </option>
             ))}
           </select>
@@ -309,7 +314,7 @@ function Reports() {
 
                   {managers
                     .filter((m) =>
-                      m.manager_name
+                      (m.manager_name || "")
                         .toLowerCase()
                         .includes(managerSearch.toLowerCase())
                     )
@@ -332,7 +337,7 @@ function Reports() {
           </div>
 
           {(selectedManager !== "All" ||
-            selectedYear !== baseYear) && (
+            selectedQuarterly !== baseQuarterly) && (
             <button
               onClick={clearFilters}
               className="text-red-500 text-xs flex items-center gap-1"
@@ -368,14 +373,47 @@ function Reports() {
           <thead className="bg-gray-100 text-xs text-gray-700">
             <tr>
               {/* <th className="text-left px-2 py-2">Manager Name</th> */}
-              <th className="py-3 px-1 text-left">Manager Name</th>
+              <th className="py-3 px-1 text-left whitespace-nowrap">Manager Name</th>              
               <th>Employees</th>
-              <th>Goals Pending</th>
-              <th>Goals Started</th>
-              <th>Goals Submitted</th>
-              <th>Eval Pending</th>
-              <th>Eval Started</th>
-              <th>Eval Submitted</th>
+              <th className="whitespace-nowrap leading-tight">
+                Goals<br />Started
+              </th>
+
+              <th className="whitespace-nowrap leading-tight">
+                Goals<br />Submitted
+              </th>
+
+              <th className="whitespace-nowrap leading-tight">
+                RPT Mgr<br />Started
+              </th>
+
+              <th className="whitespace-nowrap leading-tight">
+                RPT Mgr<br />Submitted
+              </th>
+
+              <th className="whitespace-nowrap leading-tight">
+                FM Mgr<br />Started
+              </th>
+
+              <th className="whitespace-nowrap leading-tight">
+                FM Mgr<br />Submitted
+              </th>
+
+              <th className="whitespace-nowrap leading-tight">
+                SM Mgr<br />Started
+              </th>
+
+              <th className="whitespace-nowrap leading-tight">
+                SM Mgr<br />Submitted
+              </th>
+
+              <th className="whitespace-nowrap leading-tight">
+                HR<br />Started
+              </th>
+
+              <th className="whitespace-nowrap leading-tight">
+                HR<br />Submitted
+              </th>              
             </tr>
           </thead>
           <tbody>
@@ -391,10 +429,18 @@ function Reports() {
                   {m.manager_name}
                 </td>
                 <td>{renderCountCell(m.employee_count, m, "employees")}</td>
-                <td>{renderCountCell(m.goals_pending, m, "goals_pending")}</td>
                 <td>{renderCountCell(m.goals_started, m, "goals_started")}</td>
                 <td>{renderCountCell(m.goals_submitted, m, "goals_submitted")}</td>
-                <td>{renderCountCell(m.evaluation_pending, m, "evaluation_pending")}</td>
+
+                <td>{renderCountCell(m.rpt_manager_started, m, "rpt_manager_started")}</td>
+                <td>{renderCountCell(m.rpt_manager_submitted, m, "rpt_manager_submitted")}</td>
+
+                <td>{renderCountCell(m.fm_manager_started, m, "fm_manager_started")}</td>
+                <td>{renderCountCell(m.fm_manager_submitted, m, "fm_manager_submitted")}</td>
+
+                <td>{renderCountCell(m.sm_manager_started, m, "sm_manager_started")}</td>
+                <td>{renderCountCell(m.sm_manager_submitted, m, "sm_manager_submitted")}</td>
+
                 <td>{renderCountCell(m.evaluation_started, m, "evaluation_started")}</td>
                 <td>{renderCountCell(m.evaluation_submitted, m, "evaluation_submitted")}</td>
               </tr>
@@ -444,7 +490,7 @@ function Reports() {
               <ul className="space-y-2">
                 {employeeListForModal(selectedModalManager, modalType)
                   .filter((emp) =>
-                    emp.employee_name.toLowerCase().includes(employeeSearch.toLowerCase())
+                    (emp.employee_name || "").toLowerCase().includes(employeeSearch.toLowerCase())
                   )
                   .map((emp) => (
                     // <li
@@ -486,7 +532,7 @@ function Reports() {
               </ul>
  
               {employeeListForModal(selectedModalManager, modalType).filter((emp) =>
-                emp.employee_name.toLowerCase().includes(employeeSearch.toLowerCase())
+                (emp.employee_name || "").toLowerCase().includes(employeeSearch.toLowerCase())
               ).length === 0 && (
                   <div className="text-center text-gray-500 italic mt-10">
                     No employees found.

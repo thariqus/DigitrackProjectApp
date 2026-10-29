@@ -141,6 +141,10 @@ permission_query_conditions = {
 # 	"ToDo": "custom_app.overrides.CustomToDo"
 # }
 
+override_whitelisted_methods = {
+    "frappe.core.doctype.user.user.update_password": "jh_digitrack.setup.user_events.update_password",
+}
+
 # Document Events
 # ---------------
 # Hook on document methods and events
@@ -188,6 +192,15 @@ scheduler_events = {
         ],
         "0 0 * * *": [
             "jh_digitrack.api.helpers.delegation.check_delegation_expiry"
+        ],
+        "*/10 * * * *": [
+            "jh_digitrack.api.email_gateway.flush_pending_emails"
+        ],
+        "0 2 * * *": [
+            "jh_digitrack.api.email_gateway.purge_old_emails"
+        ],
+        "0 3 * * *": [
+            "jh_digitrack.api.password_policy.flag_users_for_password_reset"
         ]
     },
     # "hourly": [
@@ -288,7 +301,7 @@ fixtures = [
     },
     {
         "doctype": "Role",
-        "filters": [["role_name", "in", ["JRC Permission","JH Property Department","JH Licensing Team","JH GL Team"]]],
+        "filters": [["role_name", "in", ["JRC Permission","JH Property Department","JH Licensing Team","JH GL Team","idle asset","Customer Registration","PMS Manager"]]],
     },
     {
         "doctype": "Print Format",

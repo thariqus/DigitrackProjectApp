@@ -61,7 +61,9 @@ class GoalAssessment(Document):
 
 
     def on_update(self):
-        self.send_status_based_email()
+        # Goal Submitted / Evaluation Submitted emails are disabled for now.
+        # Re-enable by calling self.send_status_based_email() here.
+        pass
 
     def send_status_based_email(self):
         if self.status not in ("Goal Submitted", "Evaluation Submitted"):
@@ -90,7 +92,7 @@ class GoalAssessment(Document):
         portal_url = f"{base_url}/PMS/self-evaluation-history"
 
         if self.status == "Goal Submitted":
-            subject = "PMSLite – Goal Submission Completed"
+            subject = "J-Reflect – Goal Submission Completed"
             message_body = (
                 f"Dear {self.employee_name or 'Employee'},<br><br>"
                 "Your goals have been successfully submitted for the current assessment period.<br><br>"
@@ -99,11 +101,11 @@ class GoalAssessment(Document):
                 "Note:This email inbox is not actively monitored."
                 "</p><br>"
                 "Best regards,<br>"
-                "PMSLite"
+                "J-Reflect"
             )
 
         elif self.status == "Evaluation Submitted":
-            subject = "PMSLite – Evaluation Submission Completed"
+            subject = "J-Reflect – Evaluation Submission Completed"
             message_body = (
                 f"Dear {self.employee_name or 'Employee'},<br><br>"
                 "Your performance evaluation has been successfully submitted.<br><br>"
@@ -112,7 +114,7 @@ class GoalAssessment(Document):
                 "Note:This email inbox is not actively monitored."
                 "</p><br>"
                 "Best regards,<br>"
-                "PMSLite"
+                "J-Reflect"
             )
 
         try:

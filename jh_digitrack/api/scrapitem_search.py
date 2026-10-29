@@ -110,6 +110,10 @@ def create_scrap_item(
     API to create a Scrap Item in Frappe
     """
 
+    user_roles = frappe.get_roles(frappe.session.user)
+    if "idle asset" not in user_roles and "System Manager" not in user_roles:
+        frappe.throw(_("Not permitted to create idle assets."), frappe.PermissionError)
+
     if not title:
         frappe.throw(_("Item Name is required"))
     if not quantity or int(quantity) < 1:

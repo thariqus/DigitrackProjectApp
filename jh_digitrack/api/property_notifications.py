@@ -8,6 +8,7 @@ Single scheduler entry point that processes:
 
 import frappe
 from frappe.utils import today, date_diff, getdate
+from jh_digitrack.api.helpers.email import send_notification_email
 from jh_digitrack.api.helpers.property_email import generate_property_notification_email
 from jh_digitrack.api.property_management import _get_property_approvers_list
 
@@ -130,17 +131,12 @@ def _send_pre_renewal_notification(prop, rule, recipients, days_until_renewal):
         },
     )
 
-    try:
-        frappe.sendmail(
-            expose_recipients="header",
-            recipients=recipients,
-            subject=subject,
-            message=message,
-        )
-        return True
-    except Exception:
-        frappe.logger().error(frappe.get_traceback())
-        return False
+    return send_notification_email(
+        source_document="Property Pre-Renewal Reminder",
+        recipients=recipients,
+        subject=subject,
+        message=message,
+    )
 
 
 def _process_workflow_tat(settings):
@@ -281,17 +277,12 @@ def _send_tat_notification(renewal, assignee, notification_type, config):
         context={"renewal": renewal, "config": config},
     )
 
-    try:
-        frappe.sendmail(
-            expose_recipients="header",
-            recipients=recipients,
-            subject=subject,
-            message=message,
-        )
-        return True
-    except Exception:
-        frappe.logger().error(frappe.get_traceback())
-        return False
+    return send_notification_email(
+        source_document="Property Workflow TAT",
+        recipients=recipients,
+        subject=subject,
+        message=message,
+    )
 
 
 def _send_tat_escalation(renewal, assignee, config, days_in_step):
@@ -312,14 +303,9 @@ def _send_tat_escalation(renewal, assignee, config, days_in_step):
         },
     )
 
-    try:
-        frappe.sendmail(
-            expose_recipients="header",
-            recipients=recipients,
-            subject=subject,
-            message=message,
-        )
-        return True
-    except Exception:
-        frappe.logger().error(frappe.get_traceback())
-        return False
+    return send_notification_email(
+        source_document="Property Workflow TAT Escalation",
+        recipients=recipients,
+        subject=subject,
+        message=message,
+    )

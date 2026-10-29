@@ -25,6 +25,8 @@
   "last_name",
   "full_name",
   "reporting_manager",
+  "funcational_reporting_manager",
+  "skip_level_reporting_manager",
   "business",
   "division",
   "user",
@@ -165,11 +167,23 @@
   {
    "fieldname": "column_break_txyx",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "skip_level_reporting_manager",
+   "fieldtype": "Link",
+   "label": "Skip Level Reporting Manager",
+   "options": "JH User Master"
+  },
+  {
+   "fieldname": "funcational_reporting_manager",
+   "fieldtype": "Link",
+   "label": "Functional Reporting Manager",
+   "options": "JH User Master"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-01-22 15:15:02.824111",
+ "modified": "2026-09-14 10:54:43.487565",
  "modified_by": "Administrator",
  "module": "JH Digitrack",
  "name": "JH User Master",

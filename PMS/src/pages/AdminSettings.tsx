@@ -1,20 +1,30 @@
 import React, { useState } from 'react'
 import { AiOutlineDelete } from 'react-icons/ai';
+import { FiSave } from 'react-icons/fi';
 import "../pages/AdminSettings.css"
 import { useEffect } from "react";
 import frappeClient from "@/utils/frappe-client";
 type Row = {
   year: string;
+  quaterly: string;
   from: string;
   to: string;
   current: boolean;
 };
+
+const getQuarterOptions = (year: string) =>
+  year.trim() === ""
+    ? []
+    : [1, 2, 3, 4].map((q) => `${year} Q${q}`);
+
+const YEAR_OPTIONS = Array.from({ length: 2030 - 2020 + 1 }, (_, i) => String(2020 + i));
 
 
 
 function AdminSettings() {
  const [enableGoalSubmission, setEnableGoalSubmission] = useState(false);
  const [enableGoalEvaluation, setEnableGoalEvaluation] = useState(false);
+ const [enableYearlyAppraisal, setEnableYearlyAppraisal] = useState(false);
  const [emailTemplate, setEmailTemplate] = useState("");
 
  const [minNoOfGoals,setMinNoOfGoals] = useState<number | "">("");
@@ -23,6 +33,7 @@ function AdminSettings() {
  const [rows, setRows] = useState<Row[]>([
   {
     year: '',
+    quaterly: '',
     from: '',
     to: '',
     current: false,
@@ -35,6 +46,7 @@ function AdminSettings() {
     ...rows,
     {
       year: '',
+      quaterly: '',
       from: '',
       to: '',
       current: false,
@@ -45,7 +57,7 @@ const [message, setMessage] = useState<{
   text: string;
   type: "success" | "error" | "";
 }>({ text: "", type: "" });
-
+const [showSavePopup, setShowSavePopup] = useState(false);
 useEffect(() => {
   if (message.text) {
     const timer = setTimeout(() => {
@@ -71,11 +83,13 @@ useEffect(() => {
 
       setEnableGoalSubmission(!!data.enable_goal_submission);
       setEnableGoalEvaluation(!!data.enable_goal_evaluation);
+      setEnableYearlyAppraisal(!!data.enable_yearly_appraisal);
       setEmailTemplate(data.email_template ?? "");
 
       setRows(
         (data.rows || []).map((r: any) => ({
           year: r.year ?? "",
+          quaterly: r.quaterly ?? "",
           from: r.from ?? "",
           to: r.to ?? "",
           current: !!r.current,
@@ -101,8 +115,79 @@ const handleChange = (
   };
   setRows(updatedRows);
 };
+const handleSave = () => {
+  setShowSavePopup(true);
+};
+const handleSaveSettings = async () => {
 
-const handleSave = async () => {
+  const hasIncompleteRow = rows.some(
+    (r) =>
+      !r.year.trim() ||
+      !r.quaterly.trim() ||
+      !r.from.trim() ||
+      !r.to.trim()
+  );
+
+  if (hasIncompleteRow) {
+    setMessage({
+      text: "Please fill in Year, Quarterly, From and To for all rows before saving.",
+      type: "error",
+    });
+    return;
+  }
+const getDateYear = (date: string) => {
+  if (!date) return "";
+
+  const parts = date.split("-");
+
+  // YYYY-MM-DD
+  if (parts.length === 3 && parts[0].length === 4) {
+    return parts[0];
+  }
+
+  // MM/DD/YYYY
+  const slashParts = date.split("/");
+
+  if (slashParts.length === 3 && slashParts[2].length === 4) {
+    return slashParts[2];
+  }
+
+  return "";
+};
+
+const hasInvalidDateYear = rows.some((r) => {
+  const fromYear = getDateYear(r.from);
+  const toYear = getDateYear(r.to);
+
+  return fromYear !== r.year || toYear !== r.year;
+});
+
+  if (hasInvalidDateYear) {
+    setMessage({
+      text: "From and To dates must belong to the selected Year.",
+      type: "error",
+    });
+
+    return;
+  }  
+
+  const seenQuarters = new Set<string>();
+  const hasDuplicateQuarter = rows.some((r) => {
+    const key = `${r.year.trim()}|${r.quaterly.trim()}`;
+    if (seenQuarters.has(key)) {
+      return true;
+    }
+    seenQuarters.add(key);
+    return false;
+  });
+
+  if (hasDuplicateQuarter) {
+    setMessage({
+      text: "Duplicate Year and Quarterly combination found. Each row must have a unique Year and Quarterly.",
+      type: "error",
+    });
+    return;
+  }
 
   const hasValidCurrentRow = rows.some(
     (r) => r.current && r.year.trim() !== ""
@@ -115,9 +200,23 @@ const handleSave = async () => {
     });
     return;
   }
-  if (!window.confirm("Are you sure you want to save these settings?")) {
-    return;
+
+  if (enableYearlyAppraisal) {
+    const currentRow = rows.find((r) => r.current);
+    const isCurrentQuarterQ4 = !!currentRow && /Q4$/.test(currentRow.quaterly.trim());
+
+    if (!isCurrentQuarterQ4) {
+      setMessage({
+        text: "Enable Yearly Appraisal can only be turned on when the current row's Quarterly is Q4.",
+        type: "error",
+      });
+      return;
+    }
   }
+
+  // if (!window.confirm("Are you sure you want to save these settings?")) {
+  //   return;
+  // }
 
   const payload = {
     min_no_of_goals: minNoOfGoals,
@@ -125,6 +224,7 @@ const handleSave = async () => {
     max_value: maxValue,
     enable_goal_submission: enableGoalSubmission ? 1 : 0,
     enable_goal_evaluation: enableGoalEvaluation ? 1 : 0,
+    enable_yearly_appraisal: enableYearlyAppraisal ? 1 : 0,
     email_template: emailTemplate,
     rows,
   };
@@ -149,6 +249,60 @@ const handleSave = async () => {
   }
 };
 
+
+const handleDeleteRow = async (index: number) => {
+  const rowToDelete = rows[index];
+
+  if (rowToDelete.current) {
+    setMessage({
+      text: "You cannot delete the current row. Please change the current year first.",
+      type: "error",
+    });
+    return;
+  }
+
+  if (rows.length <= 1) {
+    setMessage({
+      text: "At least one row must exist and be marked as current.",
+      type: "error",
+    });
+    return;
+  }
+
+  if (!window.confirm("Are you sure you want to delete this row?")) {
+    return;
+  }
+
+  const updatedRows = rows.filter((_, i) => i !== index);
+  setRows(updatedRows);
+
+  try {
+    await frappeClient.api.post(
+      "jh_digitrack.api.pms_admin_settings.save_pms_settings",
+      {
+        min_no_of_goals: minNoOfGoals,
+        min_value: minValue,
+        max_value: maxValue,
+        enable_goal_submission: enableGoalSubmission ? 1 : 0,
+        enable_goal_evaluation: enableGoalEvaluation ? 1 : 0,
+        enable_yearly_appraisal: enableYearlyAppraisal ? 1 : 0,
+        email_template: emailTemplate,
+        rows: updatedRows,
+      }
+    );
+
+    setMessage({
+      text: "Deleted successfully.",
+      type: "success",
+    });
+  } catch (err) {
+    console.error(err);
+    setMessage({
+      text: "Failed to delete row.",
+      type: "error",
+    });
+  }
+};
 
 const deleteSelectedRows = async () => {
   const rowsToDelete = rows.filter((_, index) =>
@@ -202,6 +356,7 @@ const deleteSelectedRows = async () => {
         max_value: maxValue,
         enable_goal_submission: enableGoalSubmission ? 1 : 0,
         enable_goal_evaluation: enableGoalEvaluation ? 1 : 0,
+        enable_yearly_appraisal: enableYearlyAppraisal ? 1 : 0,
         email_template: emailTemplate,
         rows: updatedRows,
       }
@@ -238,13 +393,15 @@ const deleteSelectedRows = async () => {
 
       </div>
         
-        <form className="flex gap-5 pt-5">
+        <form>
+  <fieldset className="flex gap-5 pt-5">
           <div className='flex w-[20%] flex-col gap-2'>
              <div className="flex flex-col gap-2 items-start">
                 <p className="text-xs">Minimum No. of Goals</p>
                     <input type="text" inputMode="numeric"        
                       pattern="[0-9]*"
                       value={minNoOfGoals}
+                      disabled
                       onChange={(e) => {
                         const value = e.target.value;
 
@@ -266,7 +423,7 @@ const deleteSelectedRows = async () => {
                           e.preventDefault();
                         }
                       }}
-                      className="w-30 no-spinner px-1 border border-gray-300 rounded-sm focus:outline-none"
+                      className="w-30 no-spinner px-1 border border-gray-300 rounded-sm bg-gray-100 text-gray-400 opacity-60 cursor-not-allowed"
                     />
               </div>
 
@@ -277,6 +434,7 @@ const deleteSelectedRows = async () => {
                   inputMode="numeric"
                   pattern="[0-9]*"
                   value={minValue}
+                  disabled
                   onChange={(e) => {
                     const value = e.target.value;
 
@@ -297,7 +455,7 @@ const deleteSelectedRows = async () => {
                       e.preventDefault();
                     }
                   }}
-                  className="w-30 px-1 no-spinner border border-gray-300 rounded-sm focus:outline-none"
+                  className="w-30 px-1 no-spinner border border-gray-300 rounded-sm bg-gray-100 text-gray-400 opacity-60 cursor-not-allowed focus:outline-none"
                 />
 
             </div>
@@ -307,6 +465,7 @@ const deleteSelectedRows = async () => {
                pattern="[0-9]*"
                 value={maxValue}
                 max={110}
+                disabled
                 onChange={(e) => {
                 const value = e.target.value;
                 if (value.length <= 3) {
@@ -322,7 +481,7 @@ const deleteSelectedRows = async () => {
                   setMaxValue(110);
                 }
               }}
-                className='w-30 px-1 no-spinner border border-gray-300  rounded-sm focus:outline-none' />
+                className="w-30 px-1 no-spinner border border-gray-300 rounded-sm bg-gray-100 text-gray-400 opacity-60 cursor-not-allowed focus:outline-none"/>
             </div>
 
               <div className="flex flex-col gap-4 py-2">
@@ -331,8 +490,9 @@ const deleteSelectedRows = async () => {
                   <input
                     type="checkbox"
                     checked={enableGoalSubmission}
+                    disabled
                     onChange={(e) => setEnableGoalSubmission(e.target.checked)}
-                    className="border"
+                    className="border cursor-not-allowed opacity-60"
                   />
                   <p className='text-xs '>Enable Goal Submission</p>
                 </div>
@@ -341,11 +501,22 @@ const deleteSelectedRows = async () => {
                   <input
                     type="checkbox"
                     checked={enableGoalEvaluation}
+                    disabled
                     onChange={(e) => setEnableGoalEvaluation(e.target.checked)}
-                    className="border"
+                    className="border cursor-not-allowed opacity-60"
                   />
                   <p className='text-xs '>Enable Goal Evaluation</p>
                 </div>
+                {/* <div className="flex gap-2">
+                  <input
+                    type="checkbox"
+                    checked={enableYearlyAppraisal}
+                    disabled
+                    onChange={(e) => setEnableYearlyAppraisal(e.target.checked)}
+                    className="border cursor-not-allowed opacity-50"
+                  />
+                  <p className='text-xs '>Enable Yearly Appraisal</p>
+                </div> */}
             </div>
           
           </div>
@@ -357,13 +528,24 @@ const deleteSelectedRows = async () => {
               <textarea
                 value={emailTemplate}
                 maxLength={500}
+                disabled
                 onChange={(e) => setEmailTemplate(e.target.value)}
-                className="w-full px-1 rounded-sm h-56 border focus:outline-none"
+                className="w-full px-1 rounded-sm h-56 border border-gray-300 bg-gray-100 text-gray-400 opacity-60 cursor-not-allowed focus:outline-none"
               name="" id=""></textarea>
 
              </div>
             
-        </div>      
+        </div>   
+        </fieldset>   
+      <div className="flex gap-2 mt-2">
+        <input
+          type="checkbox"
+          checked={enableYearlyAppraisal}
+          onChange={(e) => setEnableYearlyAppraisal(e.target.checked)}
+          className="border"
+        />
+        <p className="text-xs">Enable Yearly Appraisal</p>
+      </div>        
       </form>
 
         <div className="border rounded-lg w-full mt-5">
@@ -372,9 +554,11 @@ const deleteSelectedRows = async () => {
               <tr>
                 <th className="py-2 px-2  w-[10%]">No</th>
                 <th className="py-2 px-1   w-[15%]">Year</th>
+                <th className="py-2 px-1  w-[15%]">Quarterly</th>
                 <th className="py-2 px-1  w-[25%]">From</th>
                 <th className="py-2 px-1  w-[25%]">To</th>
                 <th className="py-2 px-1  text-center  w-[15%]">Current</th>
+                <th className="py-2 px-1  text-center  w-[10%]">Action</th>
               </tr>
             </thead>
            <tbody>
@@ -388,24 +572,43 @@ const deleteSelectedRows = async () => {
 
     
       <td className="px-1 py-2">
-        <input
-          type="text"
-          maxLength={10}
+        <select
           className="w-full rounded-sm px-2 py-1 border border-gray-300 focus:outline-none"
           value={row.year}
           onChange={(e) => {
             const value = e.target.value;
-
-            if (value.length <= 10) {
-              const updatedRows = [...rows];
-              updatedRows[index] = {
-                ...updatedRows[index],
-                year: value,
-              };
-              setRows(updatedRows);
-            }
+            const updatedRows = [...rows];
+            updatedRows[index] = {
+              ...updatedRows[index],
+              year: value,
+              quaterly: '',
+            };
+            setRows(updatedRows);
           }}
-        />
+        >
+          <option value="">Select</option>
+          {YEAR_OPTIONS.map((y) => (
+            <option key={y} value={y}>
+              {y}
+            </option>
+          ))}
+        </select>
+      </td>
+
+      <td className="px-1 py-2">
+        <select
+          className="w-full rounded-sm px-2 py-1 border border-gray-300 focus:outline-none"
+          value={row.quaterly}
+          disabled={row.year.trim() === ""}
+          onChange={(e) => handleChange(index, 'quaterly', e.target.value)}
+        >
+          <option value="">Select</option>
+          {getQuarterOptions(row.year).map((q) => (
+            <option key={q} value={q}>
+              {q}
+            </option>
+          ))}
+        </select>
       </td>
 
       <td className="px-1 py-2">
@@ -413,10 +616,12 @@ const deleteSelectedRows = async () => {
           type="date"
           className="w-full border rounded-sm px-2 py-1"
           value={row.from}
+          min={row.year ? `${row.year}-01-01` : undefined}
+          max={row.year ? `${row.year}-12-31` : undefined}
           onChange={(e) =>
             handleChange(index, 'from', e.target.value)
           }
-        />
+        />      
       </td>
 
       <td className="px-1 py-2">
@@ -424,10 +629,12 @@ const deleteSelectedRows = async () => {
           type="date"
           className="w-full border rounded-sm px-2 py-1"
           value={row.to}
+          min={row.year ? `${row.year}-01-01` : undefined}
+          max={row.year ? `${row.year}-12-31` : undefined}
           onChange={(e) =>
             handleChange(index, 'to', e.target.value)
           }
-        />
+        />     
       </td>
 
       <td className="px-1 py-2 text-center">
@@ -446,9 +653,19 @@ const deleteSelectedRows = async () => {
           }}
         />
       </td>
-    </tr>
-  ))}
-</tbody>
+
+      <td className="px-1 py-2 text-center">
+              <button
+                type="button"
+                onClick={() => handleDeleteRow(index)}
+                className="text-red-600 hover:text-red-800"
+              >
+                <AiOutlineDelete size={16} />
+              </button>
+            </td>
+          </tr>
+        ))}
+      </tbody>      
 
 
       <div className="flex gap-3 items-center m-2">
@@ -463,6 +680,43 @@ const deleteSelectedRows = async () => {
 
 
       </div>
+{showSavePopup && (
+  <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/40">
+    <div className="w-[400px] rounded-lg bg-white p-6 shadow-2xl">
+      <div className="mb-4 flex items-center gap-2">
+        <FiSave className="text-primary" size={18} />
+        <h2 className="text-base font-semibold text-primary">
+          Save Changes
+        </h2>
+      </div>      
+
+      <p className="mb-2 text-left text-sm font-medium text-gray-800">
+        Are you sure you want to save these settings?
+      </p>         
+
+      <div className="mt-5 flex justify-end gap-3">
+        <button
+          type="button"
+          onClick={() => setShowSavePopup(false)}
+          className="rounded-md bg-gray-200 px-4 py-2 text-xs text-gray-700"
+        >
+          Cancel
+        </button>
+
+        <button
+          type="button"
+          onClick={async () => {
+            setShowSavePopup(false);
+            await handleSaveSettings();
+          }}
+          className="rounded-md bg-primary px-4 py-2 text-xs text-white"
+        >
+          OK
+        </button>
+      </div>
+    </div>
+  </div>
+)}      
 {message.text && (
   <div
     className={`fixed top-5 right-5 flex items-center justify-between gap-3 px-6 py-3 rounded-lg shadow-xl text-sm font-medium z-[9999]

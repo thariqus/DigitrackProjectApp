@@ -81,10 +81,21 @@ export const useCurrentPmsEmployee = () => {
         }
       );
 
+      const [functionalReporteeCount, skipLevelReporteeCount] = await Promise.all([
+        frappe.db.getCount("PMS Employees", [
+          ["functional_manager_code", "=", jhUser.employee_code],
+        ]),
+        frappe.db.getCount("PMS Employees", [
+          ["skip_level_manager_code", "=", jhUser.employee_code],
+        ]),
+      ]);
+
       return {
         ...pmsEmployee,
         full_name: jhUser.full_name,
         designation_name: jhUser.designation_name,
+        is_functional_or_skip_level_manager:
+          functionalReporteeCount > 0 || skipLevelReporteeCount > 0,
         email: jhUser.email,
       };
     },

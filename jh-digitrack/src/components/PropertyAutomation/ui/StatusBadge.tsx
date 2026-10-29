@@ -35,6 +35,8 @@ export const StatusBadge = ({ status, approverName }: StatusBadgeProps) => {
         return "bg-green-100 text-green-800 hover:bg-green-100";
       case "rejected":
         return "bg-red-muted text-red-800 hover:bg-red-100";
+      case "withdrawn":
+        return "bg-orange-100 text-orange-800 hover:bg-orange-100";
       case "draft":
         return "bg-gray-100 text-gray-800 hover:bg-gray-100";
       case "expired":

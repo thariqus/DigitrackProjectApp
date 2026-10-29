@@ -1,0 +1,186 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-08-17 15:52:38.620833",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "customer_details_section",
+  "customer_name",
+  "customer_type",
+  "business_name",
+  "tr_number",
+  "trade_licence_number",
+  "trade_license_expiry",
+  "address",
+  "street",
+  "area",
+  "site_code",
+  "customer_details",
+  "column_break_ukbc",
+  "emirate_region",
+  "city",
+  "email_id",
+  "mobile_no",
+  "po_box",
+  "transportation_zone",
+  "customer_group",
+  "sales_district",
+  "sales_office",
+  "status",
+  "custom_customer_code"
+ ],
+ "fields": [
+  {
+   "fieldname": "customer_details_section",
+   "fieldtype": "Section Break",
+   "label": "Customer Details"
+  },
+  {
+   "fieldname": "customer_name",
+   "fieldtype": "Data",
+   "label": "Customer Name 1"
+  },
+  {
+   "fieldname": "business_name",
+   "fieldtype": "Data",
+   "label": "Customer Name 2"
+  },
+  {
+   "fieldname": "tr_number",
+   "fieldtype": "Data",
+   "label": "TR Number"
+  },
+  {
+   "fieldname": "trade_licence_number",
+   "fieldtype": "Data",
+   "label": "Trade Licence Number"
+  },
+  {
+   "fieldname": "address",
+   "fieldtype": "Small Text",
+   "label": "Address"
+  },
+  {
+   "fieldname": "street",
+   "fieldtype": "Data",
+   "label": "Street"
+  },
+  {
+   "fieldname": "area",
+   "fieldtype": "Data",
+   "label": "Area"
+  },
+  {
+   "fieldname": "column_break_ukbc",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "emirate_region",
+   "fieldtype": "Link",
+   "label": "Emirate (Region)",
+   "options": "Emirate"
+  },
+  {
+   "fieldname": "city",
+   "fieldtype": "Data",
+   "label": "City"
+  },
+  {
+   "fieldname": "email_id",
+   "fieldtype": "Data",
+   "label": "Email Id"
+  },
+  {
+   "fieldname": "po_box",
+   "fieldtype": "Data",
+   "label": "PO Box"
+  },
+  {
+   "fieldname": "transportation_zone",
+   "fieldtype": "Link",
+   "label": "Transportation Zone",
+   "options": "Transportation Zone Code"
+  },
+  {
+   "fieldname": "customer_group",
+   "fieldtype": "Data",
+   "label": "Customer Group"
+  },
+  {
+   "fieldname": "sales_district",
+   "fieldtype": "Link",
+   "label": "Sales District",
+   "options": "Sales District Code"
+  },
+  {
+   "fieldname": "sales_office",
+   "fieldtype": "Data",
+   "label": "Sales Office"
+  },
+  {
+   "fieldname": "site_code",
+   "fieldtype": "Link",
+   "label": "Site code ",
+   "options": "Site"
+  },
+  {
+   "fieldname": "customer_type",
+   "fieldtype": "Select",
+   "label": "Customer Type",
+   "options": "B2B\nB2C"
+  },
+  {
+   "fieldname": "customer_details",
+   "fieldtype": "Text Editor",
+   "label": "Customer Details"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Data",
+   "label": "Status"
+  },
+  {
+   "fieldname": "mobile_no",
+   "fieldtype": "Data",
+   "label": "Mobile No"
+  },
+  {
+   "fieldname": "trade_license_expiry",
+   "fieldtype": "Data",
+   "label": "Trade License Expiry Date"
+  },
+  {
+   "fieldname": "custom_customer_code",
+   "fieldtype": "Data",
+   "label": "Customer code"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-10-24 11:36:10.535978",
+ "modified_by": "Administrator",
+ "module": "JH Digitrack",
+ "name": "Customer Registration",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

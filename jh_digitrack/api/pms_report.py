@@ -1,12 +1,140 @@
 
 import frappe
 import json
+from frappe.utils import cint, flt
+
+# Report columns in workflow order: (summary key, column label). Each employee
+# is counted in exactly one column, based on where their evaluation is now.
+STATUS_BUCKETS = [
+    ("goals_pending", "Goals Pending"),
+    ("goals_started", "Goals Started"),
+    ("goals_submitted", "Goals Submitted"),
+    ("rpt_manager_started", "RPT Manager Started"),
+    ("rpt_manager_submitted", "RPT Manager Submitted"),
+    ("fm_manager_started", "FM Manager Started"),
+    ("fm_manager_submitted", "FM Manager Submitted"),
+    ("sm_manager_started", "SM Manager Started"),
+    ("sm_manager_submitted", "SM Manager Submitted"),
+    # Same names as the Admin View columns
+    ("evaluation_started", "HR Started"),
+    ("evaluation_submitted", "HR Submitted"),
+]
+
+
+# Once an evaluation reaches any of these, the employee can no longer be
+# taken out of PMS from the admin report.
+EVALUATION_STARTED_STATUSES = (
+    "Evaluation Started",
+    "Functional Manager Review",
+    "Skip Level Manager Review",
+    "HR Review",
+    "HR Submitted",
+    "Evaluation Submitted",
+)
+
+
+def _has_review(rating, comment):
+    return bool(rating) or bool((comment or "").strip())
+
+
+def _status_bucket(ga):
+    """Report column for one Goal Assessment (None = no assessment yet)."""
+    status = ga.status if ga else None
+
+    if status == "Goal Started":
+        return "goals_started"
+    if status == "Goal Submitted":
+        return "goals_submitted"
+    if status == "Evaluation Started":
+        return "rpt_manager_started"
+    if status == "Functional Manager Review":
+        # Reporting manager has submitted; "started" once the functional manager saves
+        if _has_review(ga.functional_manager_rating, ga.functional_manager_comment):
+            return "fm_manager_started"
+        return "rpt_manager_submitted"
+    if status == "Skip Level Manager Review":
+        # Functional stage done; "started" once the skip-level manager saves
+        if _has_review(ga.skip_level_manager_rating, ga.skip_level_manager_comment):
+            return "sm_manager_started"
+        return "fm_manager_submitted"
+    if status == "HR Review":
+        return "sm_manager_submitted"
+    if status == "HR Submitted":
+        return "evaluation_started"
+    if status == "Evaluation Submitted":
+        return "evaluation_submitted"
+    return "goals_pending"
+
+
+def _summarize_employee_statuses(employees, year):
+    """Counts and employee lists per report column for the given employees
+    (list of {employee_code, employee_name})."""
+    summary = {}
+    for key, _label in STATUS_BUCKETS:
+        summary[key] = 0
+        summary[f"{key}_employees"] = []
+    # No longer a separate stage; kept so older consumers still get the keys
+    summary["evaluation_pending"] = 0
+    summary["evaluation_pending_employees"] = []
+
+    codes = [e["employee_code"] for e in employees if e.get("employee_code")]
+    ga_by_code = {}
+    if codes:
+        for ga in frappe.get_all(
+            "Goal Assessment",
+            filters={"year": year, "employee_code": ["in", codes]},
+            fields=[
+                "employee_code", "employee_name", "status",
+                "functional_manager_rating", "functional_manager_comment",
+                "skip_level_manager_rating", "skip_level_manager_comment",
+            ],
+        ):
+            ga_by_code[ga.employee_code] = ga
+
+    for emp in employees:
+        ga = ga_by_code.get(emp.get("employee_code"))
+        emp["evaluation_started"] = bool(ga and ga.status in EVALUATION_STARTED_STATUSES)
+        key = _status_bucket(ga)
+        summary[f"{key}_employees"].append({
+            "employee_code": emp.get("employee_code"),
+            "employee_name": emp.get("employee_name") or (ga.employee_name if ga else ""),
+        })
+
+    for key, _label in STATUS_BUCKETS:
+        summary[key] = len(summary[f"{key}_employees"])
+
+    return summary
+
+
+def _get_not_participating_employees(manager_code):
+    """Active employees under the manager who are excluded from PMS (pms_employee = 0)."""
+    pms_emp = frappe.qb.DocType("PMS Employees")
+    user_master = frappe.qb.DocType("JH User Master")
+    return (
+        frappe.qb.from_(pms_emp)
+        .join(user_master)
+        .on(user_master.employee_code == pms_emp.employee_code)
+        .select(
+            pms_emp.employee_code,
+            pms_emp.full_name.as_("employee_name"),
+            pms_emp.pms_employee,
+            pms_emp.yearly_appraisal_employee,
+        )
+        .distinct()
+        .where(
+            (pms_emp.manager_code == manager_code)
+            & (pms_emp.pms_employee == 0)
+            & (user_master.active == 1)
+        )
+        .run(as_dict=True)
+    )
+
 
 @frappe.whitelist(methods=["GET"])
 def get_goal_assessment_summary(year=None, manager=None):
     try:
 
-        current_year, years = get_pms_years()
+        current_year, current_quarterly, years = get_pms_years()
         if year is None:
             year = current_year
 
@@ -27,25 +155,10 @@ def get_goal_assessment_summary(year=None, manager=None):
                 u.name AS manager_email,
                 (SELECT full_name FROM `tabJH User Master` WHERE email = u.name LIMIT 1) AS manager_name,
                 COALESCE(emp.employee_count, 0) AS employee_count,
-                emp.employees_under_manager,
-
-                COALESCE(gp.goals_pending, 0) AS goals_pending,
-                COALESCE(gs.goals_started, 0) AS goals_started,
-                COALESCE(gsu.goals_submitted, 0) AS goals_submitted,
-                COALESCE(ep.evaluation_pending, 0) AS evaluation_pending,
-                COALESCE(es.evaluation_started, 0) AS evaluation_started,
-                COALESCE(esu.evaluation_submitted, 0) AS evaluation_submitted,
-
-                gp.goals_pending_employees,
-                gs.goals_started_employees,
-                gsu.goals_submitted_employees,
-                ep.evaluation_pending_employees,
-                es.evaluation_started_employees,
-                esu.evaluation_submitted_employees
-
+                emp.employees_under_manager
             FROM `tabUser` u
             LEFT JOIN (
-                SELECT 
+                SELECT
                     manager_email,
                     COUNT(employee_code) AS employee_count,
                     JSON_ARRAYAGG(
@@ -55,63 +168,14 @@ def get_goal_assessment_summary(year=None, manager=None):
                 WHERE pms_employee = 1
                 GROUP BY manager_email
             ) AS emp ON emp.manager_email = u.name
-
-            LEFT JOIN (
-                SELECT manager, COUNT(*) AS goals_pending,
-                    JSON_ARRAYAGG(JSON_OBJECT('employee_code', employee_code, 'employee_name', employee_name)) AS goals_pending_employees
-                FROM `tabGoal Assessment`
-                WHERE year = %s AND status = 'Goals Pending'
-                GROUP BY manager
-            ) AS gp ON gp.manager = u.name
-
-            LEFT JOIN (
-                SELECT manager, COUNT(*) AS goals_started,
-                    JSON_ARRAYAGG(JSON_OBJECT('employee_code', employee_code, 'employee_name', employee_name)) AS goals_started_employees
-                FROM `tabGoal Assessment`
-                WHERE year = %s AND status = 'Goal Started'
-                GROUP BY manager
-            ) AS gs ON gs.manager = u.name
-
-            LEFT JOIN (
-                SELECT manager, COUNT(*) AS goals_submitted,
-                    JSON_ARRAYAGG(JSON_OBJECT('employee_code', employee_code, 'employee_name', employee_name)) AS goals_submitted_employees
-                FROM `tabGoal Assessment`
-                WHERE year = %s AND status = 'Goal Submitted'
-                GROUP BY manager
-            ) AS gsu ON gsu.manager = u.name
-
-            LEFT JOIN (
-                SELECT manager, COUNT(*) AS evaluation_pending,
-                    JSON_ARRAYAGG(JSON_OBJECT('employee_code', employee_code, 'employee_name', employee_name)) AS evaluation_pending_employees
-                FROM `tabGoal Assessment`
-                WHERE year = %s AND status = 'Evaluation Pending'
-                GROUP BY manager
-            ) AS ep ON ep.manager = u.name
-
-            LEFT JOIN (
-                SELECT manager, COUNT(*) AS evaluation_started,
-                    JSON_ARRAYAGG(JSON_OBJECT('employee_code', employee_code, 'employee_name', employee_name)) AS evaluation_started_employees
-                FROM `tabGoal Assessment`
-                WHERE year = %s AND status = 'Evaluation Started'
-                GROUP BY manager
-            ) AS es ON es.manager = u.name
-
-            LEFT JOIN (
-                SELECT manager, COUNT(*) AS evaluation_submitted,
-                    JSON_ARRAYAGG(JSON_OBJECT('employee_code', employee_code, 'employee_name', employee_name)) AS evaluation_submitted_employees
-                FROM `tabGoal Assessment`
-                WHERE year = %s AND status = 'Evaluation Submitted'
-                GROUP BY manager
-            ) AS esu ON esu.manager = u.name
-
             WHERE u.name IN (
-                SELECT parent 
+                SELECT parent
                 FROM `tabHas Role`
                 WHERE role = 'PMS User'
             )
         """
 
-        params = [year] * 6
+        params = []
         if not has_pms_manager_role:
             query += " AND u.name = %s"
             params.append(manager)
@@ -119,47 +183,12 @@ def get_goal_assessment_summary(year=None, manager=None):
         data = frappe.db.sql(query, tuple(params), as_dict=True)
 
         for d in data:
+            try:
+                d["employees_under_manager"] = json.loads(d.get("employees_under_manager") or "[]")
+            except Exception:
+                d["employees_under_manager"] = []
 
-            json_fields = [
-                "employees_under_manager",
-                "goals_started_employees",
-                "goals_submitted_employees",
-                "evaluation_pending_employees",
-                "evaluation_started_employees",
-                "evaluation_submitted_employees",
-            ]
-            for field in json_fields:
-                if d.get(field):
-                    try:
-                        d[field] = json.loads(d[field])
-                    except:
-                        d[field] = []
-                else:
-                    d[field] = []
-
-            all_emps = {emp["employee_code"]: emp for emp in d["employees_under_manager"]}
-
-            ga_lists = [
-                d["goals_started_employees"],
-                d["goals_submitted_employees"],
-                d["evaluation_pending_employees"],
-                d["evaluation_started_employees"],
-                d["evaluation_submitted_employees"],
-            ]
-
-            ga_employees = set()
-            for grp in ga_lists:
-                for emp in grp:
-                    ga_employees.add(emp["employee_code"])
-
-            pending = []
-            for code, emp in all_emps.items():
-                if code not in ga_employees:
-                    pending.append(emp)
-
-            d["goals_pending"] = len(pending)
-            d["goals_pending_employees"] = pending
-
+            d.update(_summarize_employee_statuses(d["employees_under_manager"], year))
 
         # return {
         #     "message": data, 
@@ -170,6 +199,7 @@ def get_goal_assessment_summary(year=None, manager=None):
         return {
             "message": data,
             "current_year": current_year,
+            "current_quarterly": current_quarterly,
             "years": years,
         }
 
@@ -182,7 +212,7 @@ def get_goal_assessment_summary(year=None, manager=None):
 def get_goal_assessment_summary_org(year=None, manager=None):
     try:
 
-        current_year, years = get_pms_years()
+        current_year, current_quarterly, years = get_pms_years()
         if year is None:
             year = current_year
 
@@ -208,6 +238,7 @@ def get_goal_assessment_summary_org(year=None, manager=None):
             return {
                 "message": [],
                 "current_year": current_year,
+                "current_quarterly": current_quarterly,
                 "years": years,
             }
 
@@ -223,75 +254,13 @@ def get_goal_assessment_summary_org(year=None, manager=None):
                 fields=["employee_code", "full_name as employee_name"]
             )
 
-            employee_codes = [e["employee_code"] for e in employees]
-
             summary = {
                 "manager_name": mgr_name,
-                "manager_code": mgr_code,     
-
+                "manager_code": mgr_code,
                 "employee_count": len(employees),
                 "employees_under_manager": employees,
-
-                "goals_pending": 0,
-                "goals_started": 0,
-                "goals_submitted": 0,
-                "evaluation_pending": 0,
-                "evaluation_started": 0,
-                "evaluation_submitted": 0,
-
-                "goals_pending_employees": [],
-                "goals_started_employees": [],
-                "goals_submitted_employees": [],
-                "evaluation_pending_employees": [],
-                "evaluation_started_employees": [],
-                "evaluation_submitted_employees": [],
             }
-
-            if not employee_codes:
-                final_data.append(summary)
-                continue
-
-            ga_records = frappe.db.get_all(
-                "Goal Assessment",
-                filters={"year": year, "employee_code": ["in", employee_codes]},
-                fields=["employee_code", "employee_name", "status"]
-            )
-
-            classified = {
-                "Goal Started": "goals_started_employees",
-                "Goal Submitted": "goals_submitted_employees",
-                "Evaluation Pending": "evaluation_pending_employees",
-                "Evaluation Started": "evaluation_started_employees",
-                "Evaluation Submitted": "evaluation_submitted_employees",
-            }
-
-            for ga in ga_records:
-                emp = {"employee_code": ga["employee_code"], "employee_name": ga["employee_name"]}
-                key = classified.get(ga["status"])
-                if key:
-                    summary[key].append(emp)
-
-            summary["goals_started"] = len(summary["goals_started_employees"])
-            summary["goals_submitted"] = len(summary["goals_submitted_employees"])
-            summary["evaluation_pending"] = len(summary["evaluation_pending_employees"])
-            summary["evaluation_started"] = len(summary["evaluation_started_employees"])
-            summary["evaluation_submitted"] = len(summary["evaluation_submitted_employees"])
-
-            taken = set()
-            for key in [
-                "goals_started_employees",
-                "goals_submitted_employees",
-                "evaluation_pending_employees",
-                "evaluation_started_employees",
-                "evaluation_submitted_employees",
-            ]:
-                for e in summary[key]:
-                    taken.add(e["employee_code"])
-
-            pending = [e for e in employees if e["employee_code"] not in taken]
-
-            summary["goals_pending"] = len(pending)
-            summary["goals_pending_employees"] = pending
+            summary.update(_summarize_employee_statuses(employees, year))
 
             final_data.append(summary)
 
@@ -305,6 +274,7 @@ def get_goal_assessment_summary_org(year=None, manager=None):
         return {
             "message": final_data,
             "current_year": current_year,
+            "current_quarterly": current_quarterly,
             "years": years,
         }
     except Exception as e:
@@ -313,11 +283,65 @@ def get_goal_assessment_summary_org(year=None, manager=None):
 
 
 
+def _get_admin_cost_center_managers(admin_code):
+    """PMS managers in the cost centers an admin has access to.
+
+    PMS Admin Access List stores cost centers as codes (matching
+    JH User Master.cost_center), but older rows hold the cost center name
+    (matching PMS Employees.cost_center_name), so match on either.
+    """
+    if not admin_code:
+        return []
+
+    cost_centers = [
+        cc for cc in frappe.get_all(
+            "PMS Admin Access List", filters={"admin_emp_id": admin_code}, pluck="cost_center"
+        ) if cc
+    ]
+    if not cost_centers:
+        return []
+
+    pms = frappe.qb.DocType("PMS Employees")
+    jh = frappe.qb.DocType("JH User Master")
+
+    return (
+        frappe.qb.from_(pms)
+        .left_join(jh).on(jh.employee_code == pms.employee_code)
+        .select(
+            pms.employee_email.as_("manager_email"),
+            pms.full_name.as_("manager_name"),
+            pms.employee_code,
+            pms.department_name,
+        )
+        .distinct()
+        .where(pms.pms_manager == 1)
+        .where(jh.cost_center.isin(cost_centers) | pms.cost_center_name.isin(cost_centers))
+        .orderby(pms.full_name)
+        .run(as_dict=True)
+    )
+
+
+def _get_admin_scoped_employees(admin_code):
+    """Employees the admin sees in the admin report: PMS employees under
+    PMS managers in the admin's cost centers, with their business unit.
+    Shared by the bell curve and HR submission so all three cover the same people."""
+    manager_codes = [m.employee_code for m in _get_admin_cost_center_managers(admin_code)]
+    if not manager_codes:
+        return []
+
+    return frappe.db.get_all(
+        "PMS Employees",
+        filters={"manager_code": ["in", manager_codes], "pms_employee": 1},
+        fields=["employee_code", "business_unit"],
+        distinct=True,
+    )
+
+
 @frappe.whitelist(methods=["GET"])
 def get_goal_assessment_summary_admin(year=None, manager=None):
     try:
 
-        current_year, years = get_pms_years()
+        current_year, current_quarterly, years = get_pms_years()
         if year is None:
             year = current_year
 
@@ -334,116 +358,35 @@ def get_goal_assessment_summary_admin(year=None, manager=None):
             "employee_code"
         )
 
-        admin_rows = frappe.db.get_all(
-            "PMS Admin Access List",
-            filters={"admin_emp_id": manager_code},
-            fields=["cost_center"]
-        )
-
-        if not admin_rows:
-            return {
-                "message": [],
-                "current_year": current_year,
-                "years": years,
-            }
-
         final_data = []
 
-        for row in admin_rows:
-            cost_center = row["cost_center"]
+        for mgr in _get_admin_cost_center_managers(manager_code):
+            mgr_email = mgr["manager_email"]
+            mgr_name = mgr["manager_name"]
+            mgr_code = mgr["employee_code"]
+            department = mgr["department_name"]
 
-            managers = frappe.db.get_all(
+
+            employees = frappe.db.get_all(
                 "PMS Employees",
-                filters={"cost_center_name": cost_center, "pms_manager": 1},
-                fields=["employee_email as manager_email", "full_name as manager_name", "employee_code", "department_name"]
+                filters={"manager_code": mgr_code, "pms_employee": 1},
+                fields=["employee_code", "full_name as employee_name"]
             )
+            not_participating = _get_not_participating_employees(mgr_code)
 
-            for mgr in managers:
-                mgr_email = mgr["manager_email"]
-                mgr_name = mgr["manager_name"]
-                mgr_code = mgr["employee_code"]
-                department = mgr["department_name"]
+            summary = {
+                "manager_email": mgr_email,
+                "manager_name": mgr_name,
+                "manager_code": mgr_code,
+                "department": department,
+                "employee_count": len(employees),
+                "employees_under_manager": employees,
+                "not_participating": len(not_participating),
+                "not_participating_employees": not_participating,
+            }
+            summary.update(_summarize_employee_statuses(employees, year))
 
-
-                employees = frappe.db.get_all(
-                    "PMS Employees",
-                    filters={"manager_code": mgr_code, "pms_employee": 1},
-                    fields=["employee_code", "full_name as employee_name"]
-                )
-
-                employee_codes = [e["employee_code"] for e in employees]
-
-                summary = {
-                    "manager_email": mgr_email,
-                    "manager_name": mgr_name,
-                    "manager_code": mgr_code,
-                    "department": department,
-
-                    "employee_count": len(employees),
-                    "employees_under_manager": employees,
-
-                    "goals_pending": 0,
-                    "goals_started": 0,
-                    "goals_submitted": 0,
-                    "evaluation_pending": 0,
-                    "evaluation_started": 0,
-                    "evaluation_submitted": 0,
-
-                    "goals_pending_employees": [],
-                    "goals_started_employees": [],
-                    "goals_submitted_employees": [],
-                    "evaluation_pending_employees": [],
-                    "evaluation_started_employees": [],
-                    "evaluation_submitted_employees": [],
-                }
-
-                if not employee_codes:
-                    final_data.append(summary)
-                    continue
-
-                ga_records = frappe.db.get_all(
-                    "Goal Assessment",
-                    filters={"year": year, "employee_code": ["in", employee_codes]},
-                    fields=["employee_code", "employee_name", "status"]
-                )
-
-                classified = {
-                    "Goal Started": "goals_started_employees",
-                    "Goal Submitted": "goals_submitted_employees",
-                    "Evaluation Pending": "evaluation_pending_employees",
-                    "Evaluation Started": "evaluation_started_employees",
-                    "Evaluation Submitted": "evaluation_submitted_employees",
-                }
-
-                for ga in ga_records:
-                    emp = {"employee_code": ga["employee_code"], "employee_name": ga["employee_name"]}
-                    key = classified.get(ga["status"])
-                    if key:
-                        summary[key].append(emp)
-
-                summary["goals_started"] = len(summary["goals_started_employees"])
-                summary["goals_submitted"] = len(summary["goals_submitted_employees"])
-                summary["evaluation_pending"] = len(summary["evaluation_pending_employees"])
-                summary["evaluation_started"] = len(summary["evaluation_started_employees"])
-                summary["evaluation_submitted"] = len(summary["evaluation_submitted_employees"])
-
-                taken = set()
-                for key in [
-                    "goals_started_employees",
-                    "goals_submitted_employees",
-                    "evaluation_pending_employees",
-                    "evaluation_started_employees",
-                    "evaluation_submitted_employees",
-                ]:
-                    for e in summary[key]:
-                        taken.add(e["employee_code"])
-
-                pending = [e for e in employees if e["employee_code"] not in taken]
-
-                summary["goals_pending"] = len(pending)
-                summary["goals_pending_employees"] = pending
-
-                final_data.append(summary)
+            final_data.append(summary)
 
         # return {
         #     "message": final_data, 
@@ -454,6 +397,7 @@ def get_goal_assessment_summary_admin(year=None, manager=None):
         return {
             "message": final_data,
             "current_year": current_year,
+            "current_quarterly": current_quarterly,
             "years": years,
         }
 
@@ -461,6 +405,56 @@ def get_goal_assessment_summary_admin(year=None, manager=None):
     except Exception as e:
         frappe.log_error(frappe.get_traceback(), "get_goal_assessment_summary_admin_error")
         return {"error": str(e)}
+
+
+@frappe.whitelist(methods=["POST"])
+def update_pms_participation(updates):
+    """Set pms_employee / yearly_appraisal_employee for employees from the admin report.
+
+    updates: list of {employee_code, pms_employee, yearly_appraisal_employee}.
+    The session user may only change employees whose manager is in one of the
+    cost centers they administer (PMS Admin Access List), same scope as the report.
+    """
+    if isinstance(updates, str):
+        updates = json.loads(updates)
+    if not updates:
+        frappe.throw("Nothing to update")
+
+    admin_code = frappe.db.get_value("JH User Master", {"email": frappe.session.user}, "employee_code")
+    allowed_managers = {m["employee_code"] for m in _get_admin_cost_center_managers(admin_code)}
+    if not allowed_managers:
+        frappe.throw("You do not have PMS admin access", frappe.PermissionError)
+
+    current_year = get_pms_years()[0]
+
+    # Validate every row before writing, so a rejected request changes nothing
+    for row in updates:
+        employee_code = row.get("employee_code")
+        manager_code = frappe.db.get_value("PMS Employees", employee_code, "manager_code")
+        if manager_code not in allowed_managers:
+            frappe.throw(f"You cannot update employee {employee_code}", frappe.PermissionError)
+
+        if not cint(row.get("pms_employee")) and frappe.db.exists("Goal Assessment", {
+            "employee_code": employee_code,
+            "year": current_year,
+            "status": ["in", EVALUATION_STARTED_STATUSES],
+        }):
+            employee_name = frappe.db.get_value("PMS Employees", employee_code, "full_name")
+            frappe.throw(
+                f"{employee_name} ({employee_code}): evaluation has already started, "
+                "so they can't be marked as Not Participating."
+            )
+
+    for row in updates:
+        employee_code = row.get("employee_code")
+        # Yearly appraisal only applies to PMS employees
+        pms_employee = 1 if cint(row.get("pms_employee")) else 0
+        frappe.db.set_value("PMS Employees", employee_code, {
+            "pms_employee": pms_employee,
+            "yearly_appraisal_employee": 1 if pms_employee and cint(row.get("yearly_appraisal_employee")) else 0,
+        })
+
+    return {"updated": len(updates)}
 
 
 @frappe.whitelist(methods=["GET"])
@@ -490,8 +484,18 @@ def get_self_evaluation_history(current_user=None):
                 "employee_code": employee_code,
                 "status": ["not in", ["Goal Pending", "Goal Started"]]
             },
-            fields=["name", "employee_code", "year", "status", "total_score", "comment"]
+            fields=["name", "employee_code", "year", "status", "total_score", "comment", "hr_rating"]
         )
+
+        # HR rating is the final rating, but HR can still change it until the
+        # appraisal cycle is closed, so only expose it once the evaluation is submitted.
+        # The "Rating" fieldtype stores a 0-1 fraction (5 stars = 1.0); return it on a 1-5 scale.
+        for assessment in assessments:
+            if assessment.status == "Evaluation Submitted" and assessment.hr_rating:
+                assessment.final_rating = round(flt(assessment.hr_rating) * 5, 1)
+            else:
+                assessment.final_rating = None
+            assessment.pop("hr_rating", None)
 
         return {
             "employee_code": employee_code,
@@ -504,26 +508,34 @@ def get_self_evaluation_history(current_user=None):
 
 @frappe.whitelist(allow_guest=True,methods=["GET"])
 def get_pms_years():
+    # Each PMS Settings Table row is one (year, quarter) period, e.g.
+    # year="2026", quaterly="2026 Q1". The dropdown lists these quarterly
+    # periods; the "year" filter used against Goal Assessment stays the
+    # plain year of whichever period is selected.
     rows = frappe.db.get_all(
         "PMS Settings Table",
         filters={"parent": "PMS Settings"},
-        fields=["year", "from_date", "to_date", "is_current"],
-        order_by="year desc",
+        fields=["year", "quaterly", "from_date", "to_date", "is_current"],
+        order_by="year desc, quaterly desc",
         ignore_permissions=True
     )
     current_year = None
+    current_quarterly = None
     years = []
 
     for r in rows:
         years.append({
             "year": r.year,
+            "quaterly": r.quaterly,
             "from_date": r.from_date,
             "to_date": r.to_date,
+            "is_current": bool(r.is_current),
         })
         if r.is_current:
             current_year = r.year
+            current_quarterly = r.quaterly
 
-    return current_year, years
+    return current_year, current_quarterly, years
 
 
 from frappe.utils import get_url
@@ -559,7 +571,7 @@ def send_pending_evaluation_emails(emails, year, cc_email=None):
             expose_recipients="header",
             recipients=[email],
             cc=[cc_email] if cc_email else None,
-            subject="PMSLite Reminder",  
+            subject="J-Reflect Reminder",  
             message=message,
             delayed=False,
             now=True,  

@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router";
+// import { useNavigate } from "react-router";
+import { FaStar } from "react-icons/fa";
 import Pagination from "../../components/Pagination";
 import { useCurrentUser, useCurrentPmsEmployee } from "../../hooks/auth";
 import frappeClient from "@/utils/frappe-client";
 
 export default function SelfEvaluationHistory() {
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
   const { data: currentEmployee } = useCurrentPmsEmployee();
   const { data: currentUser } = useCurrentUser();
 
@@ -27,8 +28,7 @@ export default function SelfEvaluationHistory() {
         const formatted = message.assessments.map((a: any) => ({
           year: a.year,
           status: a.status,
-          final_score: formatTwoDecimals(a.total_score),
-          final_comment: a.comment,
+          final_rating: a.final_rating,
         }));
 
         setRows(formatted);
@@ -38,21 +38,21 @@ export default function SelfEvaluationHistory() {
     loadData();
   }, [currentUser]);
 
-  const handleRowClick = (row: any) => {
-    localStorage.setItem(
-      "SelectedEmployee",
-      JSON.stringify({
-        id: currentEmployee?.employee_code,
-        name: currentEmployee?.full_name,
-      })
-    );
+  // const handleRowClick = (row: any) => {
+  //   localStorage.setItem(
+  //     "SelectedEmployee",
+  //     JSON.stringify({
+  //       id: currentEmployee?.employee_code,
+  //       name: currentEmployee?.full_name,
+  //     })
+  //   );
 
-    localStorage.setItem("SelectedYear", row.year);
-    localStorage.setItem("SelectedStatus", row.status);
-    localStorage.setItem("CameFromView", "1");
+  //   localStorage.setItem("SelectedYear", row.year);
+  //   localStorage.setItem("SelectedStatus", row.status);
+  //   localStorage.setItem("CameFromView", "1");
 
-    navigate("/employeegoalevaluation");
-  };
+  //   navigate("/employeegoalevaluation");
+  // };
 
   // Pagination Logic
   const totalPages = Math.ceil(rows.length / rowsPerPage);
@@ -65,39 +65,33 @@ export default function SelfEvaluationHistory() {
       setCurrentPage(page);
     }
   };
-  const handleDownload = (
-    e: React.MouseEvent,
-    row: any,
-    type: "xlsx" | "pdf"
-  ) => {
-    e.stopPropagation();
+  // const handleDownload = (
+  //   e: React.MouseEvent,
+  //   row: any,
+  //   type: "xlsx" | "pdf"
+  // ) => {
+  //   e.stopPropagation();
 
-    if (!currentEmployee?.employee_code) return;
+  //   if (!currentEmployee?.employee_code) return;
 
-    if (type === "xlsx") {
-      const url =
-        `/api/method/jh_digitrack.api.report_download.download_self_evaluation_excel` +
-        `?year=${row.year}&employee_code=${currentEmployee.employee_code}`;
+  //   if (type === "xlsx") {
+  //     const url =
+  //       `/api/method/jh_digitrack.api.report_download.download_self_evaluation_excel` +
+  //       `?year=${row.year}&employee_code=${currentEmployee.employee_code}`;
 
-      window.open(url, "_blank");
-    }
+  //     window.open(url, "_blank");
+  //   }
     
-    if (type === "pdf") {
-      const url =
-        `/api/method/jh_digitrack.api.report_download.download_self_evaluation_pdf` +
-        `?year=${row.year}&employee_code=${currentEmployee.employee_code}`;
+  //   if (type === "pdf") {
+  //     const url =
+  //       `/api/method/jh_digitrack.api.report_download.download_self_evaluation_pdf` +
+  //       `?year=${row.year}&employee_code=${currentEmployee.employee_code}`;
 
-      window.open(url, "_blank");
-    } else {
-        console.warn("PDF download not implemented");
-      }
-  };
-
-  const formatTwoDecimals = (value: any) => {
-    if (value === null || value === undefined || value === "") return "0.00";
-    const num = Number(value);
-    return isNaN(num) ? "0.00" : num.toFixed(2);
-  };
+  //     window.open(url, "_blank");
+  //   } else {
+  //       console.warn("PDF download not implemented");
+  //     }
+  // };
 
   return (
     <div className="bg-white min-h-screen border rounded-lg px-6 py-4">
@@ -114,18 +108,16 @@ export default function SelfEvaluationHistory() {
 
           <thead className="bg-gray-100 text-xs text-gray-700">
             <tr>
-              <th className="py-3 px-2 text-left w-[10%]">Year</th>
-              <th className="py-3 px-2 text-left w-[12%]">Status</th>
-              <th className="py-3 px-2 text-left w-[10%]">Final Score</th>
-              <th className="py-3 px-2 text-left w-[48%]">Final Comment</th>
-              <th className="py-3 px-2 text-center w-[20%]">Download</th>
+              <th className="py-3 px-2 text-left w-[30%]">Year</th>
+              <th className="py-3 px-2 text-left w-[70%]">Final Rating</th>
+              {/* <th className="py-3 px-2 text-center w-[30%]">Download</th> */}
             </tr>
           </thead>
 
           <tbody>
             {currentRows.length === 0 && (
               <tr>
-                <td colSpan={5} className="p-4 text-center text-gray-500">
+                <td colSpan={2}className="p-4 text-center text-gray-500">
                   No records found
                 </td>
               </tr>
@@ -135,25 +127,26 @@ export default function SelfEvaluationHistory() {
               <tr
                 key={i}
                 className="border-b hover:bg-gray-50 cursor-pointer text-xs"
-                onClick={() => handleRowClick(row)}
+                // onClick={() => handleRowClick(row)}
               >
-                <td className="px-2 py-2 w-[10%]">{row.year}</td>
+                <td className="px-2 py-2 w-[30%]">{row.year}</td>
 
-                <td className="px-2 py-2 w-[12%] truncate">
-                  {row.status}
+                <td className="px-2 py-2 w-[70%] text-left">
+                  {row.final_rating ? (
+                    <div className="flex items-center gap-0.5" title={`${row.final_rating}/5`}>
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <FaStar
+                          key={star}
+                          className={`h-3.5 w-3.5 ${star <= Math.round(row.final_rating) ? "text-amber-400" : "text-gray-200"}`}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    "-"
+                  )}
                 </td>
 
-                <td className="px-2 py-2 w-[10%] text-left">
-                  {row.final_score}
-                </td>
-
-                <td className="px-2 py-2 w-[48%]">
-                  <div className="line-clamp-2">
-                    {row.final_comment}
-                  </div>
-                </td>
-
-                <td className="px-2 py-2 w-[20%] text-center whitespace-nowrap">
+                {/* <td className="px-2 py-2 w-[30%] text-center whitespace-nowrap">
                   <span
                     className="text-primary hover:underline cursor-pointer"
                     onClick={(e) => handleDownload(e, row, "xlsx")}
@@ -167,7 +160,7 @@ export default function SelfEvaluationHistory() {
                   >
                     .pdf
                   </span>
-                </td>
+                </td> */}
               </tr>
 
             ))}
