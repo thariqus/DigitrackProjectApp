@@ -41,7 +41,7 @@ def _get_expected_percentages():
 
 
 @frappe.whitelist(methods=["GET"])
-def get_bell_curve(year=None, business_unit=None, rating_type="hr"):
+def get_bell_curve(year=None, entity=None, business_unit=None, rating_type="hr"):
     admin_code = _get_pms_admin_code()
 
     rating_type = rating_type or "hr"
@@ -54,18 +54,29 @@ def get_bell_curve(year=None, business_unit=None, rating_type="hr"):
     if not year:
         frappe.throw(_("Assessment year not found in PMS Settings"))
 
+    if entity in (None, "", "All"):
+        entity = None
     if business_unit in (None, "", "All"):
         business_unit = None
 
     scoped_employees = _get_admin_scoped_employees(admin_code)
-    # Filter options cover the admin's whole scope, not just the selected unit
-    business_units = sorted(
-        {e.business_unit for e in scoped_employees if e.business_unit}, key=str.casefold
+    # Filter options cover the admin's whole scope, not just the selected entity / unit
+    entities = sorted(
+        {e.entity_name for e in scoped_employees if e.entity_name}, key=str.casefold
     )
+    # Unit-entity pairs let the frontend narrow the unit dropdown to the chosen entity
+    business_units = [
+        {"business_unit": bu, "entity": ent}
+        for bu, ent in sorted(
+            {(e.business_unit, e.entity_name or "") for e in scoped_employees if e.business_unit},
+            key=lambda pair: (pair[0].casefold(), pair[1].casefold()),
+        )
+    ]
     employee_codes = list({
         e.employee_code
         for e in scoped_employees
-        if not business_unit or e.business_unit == business_unit
+        if (not entity or e.entity_name == entity)
+        and (not business_unit or e.business_unit == business_unit)
     })
 
     counts = dict.fromkeys(RATINGS, 0)
@@ -104,8 +115,10 @@ def get_bell_curve(year=None, business_unit=None, rating_type="hr"):
 
     return {
         "year": year,
+        "entity": entity,
         "business_unit": business_unit,
         "rating_type": rating_type,
+        "entities": entities,
         "business_units": business_units,
         "configured": configured,
         "total": total,

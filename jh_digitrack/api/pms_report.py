@@ -323,7 +323,7 @@ def _get_admin_cost_center_managers(admin_code):
 
 def _get_admin_scoped_employees(admin_code):
     """Employees the admin sees in the admin report: PMS employees under
-    PMS managers in the admin's cost centers, with their business unit.
+    PMS managers in the admin's cost centers, with their business unit and entity.
     Shared by the bell curve and HR submission so all three cover the same people."""
     manager_codes = [m.employee_code for m in _get_admin_cost_center_managers(admin_code)]
     if not manager_codes:
@@ -332,7 +332,7 @@ def _get_admin_scoped_employees(admin_code):
     return frappe.db.get_all(
         "PMS Employees",
         filters={"manager_code": ["in", manager_codes], "pms_employee": 1},
-        fields=["employee_code", "business_unit"],
+        fields=["employee_code", "business_unit", "entity_name"],
         distinct=True,
     )
 
