@@ -1,15 +1,30 @@
-import frappe
-
+import os
 import json
-
-import requests
 import re
+from datetime import datetime
+
+import frappe
+import requests
+from dotenv import load_dotenv
+
+# api/ -> jh_digitrack/ (inner package) -> jh_digitrack/ (app root)
+ENV_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
+load_dotenv(ENV_PATH)
+
+SAP_USERNAME = os.getenv("SAP_USERNAME")
+SAP_PASSWORD = os.getenv("SAP_PASSWORD")
+
+
+def _sap_auth():
+    """Return SAP credentials, or fail with a clear message instead of sending empty ones."""
+    if not SAP_USERNAME or not SAP_PASSWORD:
+        raise RuntimeError(f"SAP credentials not loaded. Expected them in {ENV_PATH}")
+    return (SAP_USERNAME, SAP_PASSWORD)
 
 
 def to_int_or_none(value):
     value = str(value or "").strip()
     return int(value) if value.isdigit() else None
-
 
 
 def _get_sap_status(sap_response):
@@ -63,6 +78,7 @@ def _get_sap_customer_code(sap_response):
     match = re.search(r"Customer Code:\s*(\w+)", str(body.get("message") or ""))
     return match.group(1) if match else ""
 
+
 # ---------------------------------------------------------------------------
 # Master Management API
 # Provides fetch endpoints for:
@@ -76,7 +92,8 @@ def _get_sap_customer_code(sap_response):
 # =========================================================
 
 
-SAP_CUSTOMER_URL = "prdapi.jaleelholdings.com/RESTAdapter/sap/customer/create"
+SAP_CUSTOMER_URL = "https://prdapi.jaleelholdings.com/RESTAdapter/sap/customer/create"
+
 
 def create_sap_customer(data):
     """
@@ -84,32 +101,32 @@ def create_sap_customer(data):
     """
 
     payload = {
-    "type":"Y",
-    "customerName": data.get("customer_name"),
-    "businessName": data.get("business_name"),
-    "trNumber": data.get("tr_number"),
-    "tradeLicense": data.get("custom_trade_license_no"),
-    "tradeLicenseDate": _format_sap_date(data.get("trade_license_expiry")),
+        "type": "Y",
+        "customerName": data.get("customer_name"),
+        "businessName": data.get("business_name"),
+        "trNumber": data.get("tr_number"),
+        "tradeLicense": data.get("custom_trade_license_no"),
+        "tradeLicenseDate": _format_sap_date(data.get("trade_license_expiry")),
 
-    "address": {
-        "street": data.get("custom_street"),
-        "area": data.get("custom_area"),
-        "emirate": data.get("custom_region"),
-        "city": data.get("custom_city"),
-        "poBox": data.get("po_box")
-    },
+        "address": {
+            "street": data.get("custom_street"),
+            "area": data.get("custom_area"),
+            "emirate": data.get("custom_region"),
+            "city": data.get("custom_city"),
+            "poBox": data.get("po_box")
+        },
 
-    "contact": {
-        "email": data.get("email_id"),
-        "mobileNo": data.get("mobile_no"),
-    },
+        "contact": {
+            "email": data.get("email_id"),
+            "mobileNo": data.get("mobile_no"),
+        },
 
-    "sales": {
-        "customerGroup": data.get("customer_group"),
-        "salesDistrict": data.get("sales_district"),
-        "salesOffice": data.get("sales_office"),
-        "transportationZone": data.get("transportation_zone")
-    }
+        "sales": {
+            "customerGroup": data.get("customer_group"),
+            "salesDistrict": data.get("sales_district"),
+            "salesOffice": data.get("sales_office"),
+            "transportationZone": data.get("transportation_zone")
+        }
     }
     print("the payload *****:", payload)
 
@@ -121,7 +138,7 @@ def create_sap_customer(data):
                 "Content-Type": "application/json",
                 "Accept": "application/json"
             },
-            auth=("JHPIPODEV", "Jhpod!nt@1972#"),
+            auth=_sap_auth(),
             timeout=30
         )
 
@@ -153,9 +170,6 @@ def create_sap_customer(data):
         }
 
 
-
-from datetime import datetime
-
 def _format_sap_date(value):
     if not value:
         return ""
@@ -179,33 +193,33 @@ def create_sap_customer_confirm(data):
     )
 
     payload = {
-    "type":"X",
-    "customerName": data.get("customer_name"),
-    "businessName": data.get("business_name"),
-    "trNumber": data.get("tr_number"),
-    "tradeLicense": data.get("custom_trade_license_no"),
-    "tradeLicenseDate": _format_sap_date(data.get("trade_license_expiry")),
+        "type": "X",
+        "customerName": data.get("customer_name"),
+        "businessName": data.get("business_name"),
+        "trNumber": data.get("tr_number"),
+        "tradeLicense": data.get("custom_trade_license_no"),
+        "tradeLicenseDate": _format_sap_date(data.get("trade_license_expiry")),
 
-    "address": {
-        "street": data.get("custom_street"),
-        "area": data.get("custom_area"),
-        "emirate": data.get("custom_region"),
-        "city": data.get("custom_city"),
-        "poBox": data.get("po_box")
-    },
+        "address": {
+            "street": data.get("custom_street"),
+            "area": data.get("custom_area"),
+            "emirate": data.get("custom_region"),
+            "city": data.get("custom_city"),
+            "poBox": data.get("po_box")
+        },
 
-    "contact": {
-        "email": data.get("email_id"),
-        "mobileNo": data.get("mobile_no"),
-    },
+        "contact": {
+            "email": data.get("email_id"),
+            "mobileNo": data.get("mobile_no"),
+        },
 
-    "sales": {
-        "customerGroup": data.get("customer_group"),
-        "salesDistrict": data.get("sales_district"),
-        "salesOffice": data.get("sales_office"),
-        "transportationZone": data.get("transportation_zone")
+        "sales": {
+            "customerGroup": data.get("customer_group"),
+            "salesDistrict": data.get("sales_district"),
+            "salesOffice": data.get("sales_office"),
+            "transportationZone": data.get("transportation_zone")
+        }
     }
-    }                                                                                                                                  
     print("the payload *****:", payload)
 
     try:
@@ -216,7 +230,7 @@ def create_sap_customer_confirm(data):
                 "Content-Type": "application/json",
                 "Accept": "application/json"
             },
-            auth=("JHPIPODEV", "Jhpod!nt@1972#"),
+            auth=_sap_auth(),
             timeout=30
         )
 
@@ -250,12 +264,12 @@ def create_sap_customer_confirm(data):
         }
 
 
-
 # =========================================================
 # SAP CUSTOMER ACTIVATION
 # =========================================================
 
-SAP_CUSTOMER_ACTIVATION_URL = "prdapi.jaleelholdings.com/RESTAdapter/sap/customer/activation"
+SAP_CUSTOMER_ACTIVATION_URL = "https://prdapi.jaleelholdings.com/RESTAdapter/sap/customer/activation"
+
 
 def send_customer_activation_to_sap(customer_code, company_code):
     """
@@ -266,10 +280,10 @@ def send_customer_activation_to_sap(customer_code, company_code):
     """
 
     payload = {
-    "customercode": customer_code,
-    "Companycode": company_code,
+        "customercode": customer_code,
+        "Companycode": company_code,
     }
-    
+
     try:
         print("SAP ACTIVATION PAYLOAD:", payload)
 
@@ -280,7 +294,7 @@ def send_customer_activation_to_sap(customer_code, company_code):
                 "Content-Type": "application/json",
                 "Accept": "application/json"
             },
-            auth=("JHPIPODEV", "Jhpod!nt@1972#"),
+            auth=_sap_auth(),
             timeout=30,
         )
 
@@ -330,7 +344,7 @@ def search_sap_customer(
     tradeLicense=None,
     address=None,
     contact=None,
- ):
+):
     """
     Search customer details from SAP.
 
@@ -338,12 +352,7 @@ def search_sap_customer(
     Multiple fields can also be provided.
     """
 
-    sap_url = "prdapi.jaleelholdings.com/RESTAdapter/sap/customer/customerdetails"
-
-    sap_username = "JHPIPODEV"
-    sap_password = "Jhpod!nt@1972#"
-
-
+    sap_url = "https://prdapi.jaleelholdings.com/RESTAdapter/sap/customer/customerdetails"
 
     # Clean input
     customerName = (customerName or "").strip()
@@ -361,7 +370,6 @@ def search_sap_customer(
     city = (address.get("city") or "").strip()
 
     mobileNo = (contact.get("mobileNo") or "").strip()
-
 
     # At least one field is required
     if not any([
@@ -383,21 +391,20 @@ def search_sap_customer(
     # Empty fields are ignored by SAP if its API is designed
     # to treat empty values as no filter.
 
-    
     payload = {
-    "customerName": customerName,
-    "customercode": to_int_or_none(customercode),
-    "trNumber": to_int_or_none(trNumber),
-    "tradeLicense": tradeLicense,
-    "address": {
-        "street": street,
-        "area": area,
-        "emirate": emirate,
-        "city": city,
-    },
-    "contact": {
-        "mobileNo": mobileNo
-    }
+        "customerName": customerName,
+        "customercode": to_int_or_none(customercode),
+        "trNumber": to_int_or_none(trNumber),
+        "tradeLicense": tradeLicense,
+        "address": {
+            "street": street,
+            "area": area,
+            "emirate": emirate,
+            "city": city,
+        },
+        "contact": {
+            "mobileNo": mobileNo
+        }
     }
 
     print("======================================")
@@ -414,7 +421,7 @@ def search_sap_customer(
                 "Content-Type": "application/json",
                 "Accept": "application/json",
             },
-            auth=(sap_username, sap_password),
+            auth=_sap_auth(),
             timeout=30,
         )
 
@@ -430,13 +437,11 @@ def search_sap_customer(
                 "errorCode": str(response.status_code),
                 "message": response.text
             }
-            
 
         # ---------------------------------------------------------
         # SAP SUCCESS
         # ---------------------------------------------------------
 
-        
         if response.ok:
 
             return {
@@ -522,7 +527,6 @@ def search_sap_customer(
                 "message": str(e)
             }
         }
-
 
 
 # =========================================================
@@ -665,6 +669,7 @@ def get_transportation_zones(search=None):
             "data": [],
         }
 
+
 # ---------------------------------------------------------------------------
 
 @frappe.whitelist(methods=["GET"])
@@ -724,6 +729,7 @@ def get_sales_districts(search=None):
             "count": 0,
             "data": [],
         }
+
 
 # ---------------------------------------------------------------------------
 
@@ -860,7 +866,7 @@ def create_customer(**kwargs):
             update_modified=True
         )
 
-           # Copy SAP's result code (data.status: "S" or "E") into Status
+        # Copy SAP's result code (data.status: "S" or "E") into Status
         doc.db_set(
             "status",
             _get_sap_status(sap_response) or "",
@@ -1166,12 +1172,6 @@ def get_customer_list(page=1, page_size=20, search=None):
 
         total = len(all_data)
 
-
-        # =====================================================
-        # RETURN EXISTING RESPONSE
-        # =====================================================
-
-
         # ---------------------------------------------------------
         # Response
         # ---------------------------------------------------------
@@ -1203,7 +1203,6 @@ def get_customer_list(page=1, page_size=20, search=None):
             "count": 0,
             "data": [],
         }
-
 
 
 def resolve_customer_group_code(value):
@@ -1303,7 +1302,6 @@ def update_customer(**kwargs):
         }
 
 
-
 # Emirate Master API
 # ---------------------------------------------------------------------------
 @frappe.whitelist(methods=["GET"])
@@ -1369,7 +1367,8 @@ def get_emirates(search=None):
             "data": [],
         }
 
-# site code 
+
+# site code
 
 @frappe.whitelist(methods=["GET"])
 def get_site_code(search=None):
