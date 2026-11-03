@@ -7,3 +7,4 @@ node_modules
 __pycache__
 jh_digitrack/public/jh-digitrack/
 jh_digitrack/www/jh-digitrack.html
+.env
