@@ -15,7 +15,7 @@ import {
   Warehouse,
   LayoutGrid,
   ChevronDown,
-  Mail,
+  // Mail,
   UserPlus,
 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router";
@@ -208,7 +208,7 @@ export function MainNav() {
                   </span>
                   <span className="text-xs font-medium text-gray-700">Idle Assets</span>
                 </Link>
-                <Link
+                {/* <Link
                   to="email"
                   onClick={() => setIsAppsOpen(false)}
                   className="group flex items-center gap-2 rounded-xl p-1 text-center transition-all duration-200 hover:bg-white/50 hover:shadow-sm hover:backdrop-blur-md"
@@ -217,7 +217,7 @@ export function MainNav() {
                     <Mail className="h-5 w-5" />
                   </span>
                   <span className="text-xs font-medium text-gray-700">Email</span>
-                </Link>
+                </Link> */}
                
                
               </div>
