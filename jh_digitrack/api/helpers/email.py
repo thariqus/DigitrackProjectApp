@@ -29,6 +29,10 @@ STUCK_AFTER_SECONDS = 15 * 60
 # it - there's no real address behind it.
 NO_EMAIL_PLACEHOLDER = "No Email Found to Send"
 
+# Shared subject/body templates for every module, so email text lives in data
+# (editable from the desk) instead of in code. Looked up by template name.
+EMAIL_TEMPLATE_DOCTYPE = "JH Email Template"
+
 
 def get_display_status(raw_status, creation, now):
     """Shared Sent/Pending/Failed classification for a Scheduled Emails row.
@@ -136,3 +140,50 @@ def send_notification_email(source_document, recipients, subject, message, cc=No
     frappe.db.commit()
 
     return True
+
+
+def render_email_template(template_name, context):
+    """
+    Render a JH Email Template's subject and body with the given context.
+
+    Returns (subject, message), or None if the template doesn't exist or is
+    disabled (an Error Log entry is written so it doesn't go unnoticed).
+    Raises if the template's Jinja is broken, so the caller can decide whether
+    to retry later.
+
+    Templates are rendered without autoescaping: escape any value that came
+    from user input (frappe.utils.escape_html) before putting it in context.
+    """
+    template = frappe.db.get_value(
+        EMAIL_TEMPLATE_DOCTYPE, {"name": template_name, "enabled": 1}, ["subject", "body"], as_dict=True
+    )
+    if not template:
+        frappe.log_error(
+            f"{EMAIL_TEMPLATE_DOCTYPE} '{template_name}' is missing or disabled; email not sent.",
+            "Email template missing",
+        )
+        return None
+
+    return (
+        frappe.render_template(template.subject, context).strip(),
+        frappe.render_template(template.body, context),
+    )
+
+
+def send_template_email(template_name, context, source_document, recipients, cc=None, sender=None):
+    """
+    Render a JH Email Template and send it through send_notification_email
+    (so it's logged to JH Emails like every other notification). Never
+    raises - returns False if the template is missing/disabled/broken or the
+    send fails, True on success.
+    """
+    try:
+        rendered = render_email_template(template_name, context)
+    except Exception:
+        frappe.log_error(frappe.get_traceback(), f"Email template error ({template_name})")
+        return False
+    if not rendered:
+        return False
+
+    subject, message = rendered
+    return send_notification_email(source_document, recipients, subject, message, cc=cc, sender=sender)

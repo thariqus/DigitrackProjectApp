@@ -1,0 +1,123 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:template_name",
+ "creation": "2026-11-02 20:20:36.794085",
+ "description": "Shared email subject/body templates for every DigiTrack module, so email text is never hard-coded.",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "template_name",
+  "module",
+  "column_break_head",
+  "enabled",
+  "description",
+  "section_content",
+  "subject",
+  "body",
+  "section_help",
+  "variables",
+  "help_html"
+ ],
+ "fields": [
+  {
+   "fieldname": "template_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Template Name",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "module",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Module",
+   "options": "J-Reflect\nTasks\nAudits\nMeetings\nTravel\nProperty\nDelegation\nGeneral",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_head",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Enabled"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  },
+  {
+   "fieldname": "section_content",
+   "fieldtype": "Section Break",
+   "label": "Content"
+  },
+  {
+   "fieldname": "subject",
+   "fieldtype": "Data",
+   "label": "Subject",
+   "length": 255,
+   "reqd": 1
+  },
+  {
+   "fieldname": "body",
+   "fieldtype": "Code",
+   "label": "Body",
+   "options": "Jinja",
+   "reqd": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_help",
+   "fieldtype": "Section Break",
+   "label": "Help"
+  },
+  {
+   "description": "Variables the sending feature passes to this template (for reference).",
+   "fieldname": "variables",
+   "fieldtype": "Small Text",
+   "label": "Available Variables"
+  },
+  {
+   "fieldname": "help_html",
+   "fieldtype": "HTML",
+   "label": "Template Help",
+   "options": "<div class=\"small text-muted\">\n<p><b>Subject and Body are Jinja templates</b> - e.g. <code>{{ receiver_name }}</code>,\n<code>{% for e in employees %}...{% endfor %}</code>, <code>{{ 's' if count != 1 else '' }}</code>.</p>\n<p>The variables available depend on the feature that sends this template; they are listed in\n<b>Available Variables</b> below. The <b>Template Name</b> is what the code looks the template up by,\nso do not rename a template that is in use.</p>\n</div>"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-11-02 20:20:36.794085",
+ "modified_by": "Administrator",
+ "module": "JH Digitrack",
+ "name": "JH Email Template",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
