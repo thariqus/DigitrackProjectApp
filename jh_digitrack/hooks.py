@@ -307,6 +307,10 @@ fixtures = [
         "doctype": "Print Format",
         "filters": [["name", "in", ["Property Template"]]],
     },
+    {
+        "doctype": "JH Email Template",
+        "filters": [["name", "in", ["Task Email Me"]]],
+    },
 ]
 
 website_route_rules = [

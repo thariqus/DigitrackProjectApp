@@ -6,8 +6,8 @@ from datetime import datetime, timedelta
 import json
 import frappe
 from werkzeug.wrappers import Response
-from .helpers.email_html import generate_task_reminder_email
-from .helpers.email import send_notification_email
+from .helpers.email_html import generate_task_reminder_email, get_task_comments
+from .helpers.email import send_notification_email, send_template_email
 from frappe.utils import cint
 import io
 from .helpers.wrap_text import wrap_text
@@ -241,6 +241,9 @@ def escalate(task_id: str):
 
     return "Escalation sent successfully"
 
+EMAIL_ME_TEMPLATE = "Task Email Me"
+
+
 @frappe.whitelist(methods=["POST"])
 def email_me(task_id: str):
 
@@ -262,16 +265,17 @@ def email_me(task_id: str):
     task = task_list[0]
 
     if should_send_email(task.email_me_at):
-        sent = send_notification_email(
+        task.recent_comments = get_task_comments(task.name, limit=3)
+        # Subject and body come from the JH Email Template EMAIL_ME_TEMPLATE.
+        sent = send_template_email(
+            EMAIL_ME_TEMPLATE,
+            {
+                "recipient_name": current_jh_user.full_name,
+                "task": task,
+                "tasks_url": frappe.utils.get_url("/jh-digitrack/tasks/"),
+            },
             source_document="JH Task Master",
             recipients=[current_jh_user.email],
-            subject=f"DigiTrack : Email Me - {task.name} ",
-            message=generate_task_reminder_email(
-                tasks=[task],
-                type="email_me",
-                initiator_name=current_jh_user.full_name,
-                recipient_name=current_jh_user.full_name,
-            ),
         )
         if not sent:
             return Response(
