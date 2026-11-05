@@ -1,0 +1,185 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "PMSREQ-.YYYY.-.#####",
+ "creation": "2026-11-02 20:01:27.267810",
+ "description": "Review notifications queued when a J-Reflect rating is submitted; sent grouped per reviewer by a scheduler.",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "goal_assessment",
+  "year",
+  "employee_code",
+  "employee_name",
+  "column_break_emp",
+  "reporting_manager_code",
+  "reporting_manager_name",
+  "submitted_by",
+  "section_receiver",
+  "review_stage",
+  "receiver_code",
+  "column_break_rcv",
+  "receiver_name",
+  "receiver_email",
+  "section_status",
+  "email_status",
+  "created_on",
+  "column_break_status",
+  "sent_on",
+  "remarks"
+ ],
+ "fields": [
+  {
+   "fieldname": "goal_assessment",
+   "fieldtype": "Link",
+   "label": "Goal Assessment",
+   "options": "Goal Assessment",
+   "reqd": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "year",
+   "fieldtype": "Data",
+   "label": "Year"
+  },
+  {
+   "fieldname": "employee_code",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Employee ID",
+   "options": "PMS Employees",
+   "reqd": 1
+  },
+  {
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Employee Name"
+  },
+  {
+   "fieldname": "column_break_emp",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "reporting_manager_code",
+   "fieldtype": "Data",
+   "label": "Reporting Manager ID"
+  },
+  {
+   "fieldname": "reporting_manager_name",
+   "fieldtype": "Data",
+   "label": "Reporting Manager Name"
+  },
+  {
+   "fieldname": "submitted_by",
+   "fieldtype": "Link",
+   "label": "Submitted By",
+   "options": "User"
+  },
+  {
+   "fieldname": "section_receiver",
+   "fieldtype": "Section Break",
+   "label": "Receiver"
+  },
+  {
+   "fieldname": "review_stage",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Review Stage",
+   "options": "Functional Manager Review\nSkip Level Manager Review",
+   "reqd": 1
+  },
+  {
+   "fieldname": "receiver_code",
+   "fieldtype": "Data",
+   "label": "Receiver Employee ID"
+  },
+  {
+   "fieldname": "column_break_rcv",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "receiver_name",
+   "fieldtype": "Data",
+   "label": "Receiver Name"
+  },
+  {
+   "fieldname": "receiver_email",
+   "fieldtype": "Data",
+   "in_standard_filter": 1,
+   "label": "Receiver Email",
+   "options": "Email",
+   "search_index": 1
+  },
+  {
+   "fieldname": "section_status",
+   "fieldtype": "Section Break",
+   "label": "Email Status"
+  },
+  {
+   "default": "Pending",
+   "fieldname": "email_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Email Send Status",
+   "options": "Pending\nSent\nSkipped\nFailed",
+   "search_index": 1
+  },
+  {
+   "default": "Now",
+   "fieldname": "created_on",
+   "fieldtype": "Datetime",
+   "label": "Created On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_status",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "sent_on",
+   "fieldtype": "Datetime",
+   "label": "Sent On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks",
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-11-02 20:01:27.267810",
+ "modified_by": "Administrator",
+ "module": "JH Digitrack",
+ "name": "PMS Review Email Queue",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "employee_name"
+}

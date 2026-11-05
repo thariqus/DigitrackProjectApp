@@ -11,5 +11,31 @@
   "subject": "DigiTrack : Email Me - {{ task.name }}",
   "template_name": "Task Email Me",
   "variables": "recipient_name - name of the person who clicked Email Me (they receive it)\ntask - the task; has name, task_name, description, creation, creator_name, assigned_to_name,\n  due_date, revised_due_date, status, completion_date, effort_hrs,\n  recent_comments (list of the last 3 comments as text)\n  (dates are date objects: use e.g. task.due_date.strftime(\"%d %b %Y\"))\ntasks_url - link to the tasks page in JH DigiTrack"
+ },
+ {
+  "body": "<div style=\"font-family: Arial, sans-serif; font-size: 14px; color: #333;\">\n<p>Dear {{ receiver_name }},</p>\n<p>The following {{ employee_count }} J-Reflect evaluation{{ 's' if employee_count != 1 else '' }}\n{{ 'are' if employee_count != 1 else 'is' }} waiting for your <b>functional manager</b> rating.</p>\n<table style=\"border-collapse: collapse; width: 100%; margin-top: 10px;\">\n  <tr>\n    <th style=\"border: 1px solid #ccc; padding: 8px; background: #f5f5f5; text-align: left;\">Employee ID</th>\n    <th style=\"border: 1px solid #ccc; padding: 8px; background: #f5f5f5; text-align: left;\">Employee Name</th>\n    <th style=\"border: 1px solid #ccc; padding: 8px; background: #f5f5f5; text-align: left;\">Reporting Manager</th>\n    <th style=\"border: 1px solid #ccc; padding: 8px; background: #f5f5f5; text-align: left;\">Submitted On</th>\n  </tr>\n  {% for e in employees %}\n  <tr>\n    <td style=\"border: 1px solid #ccc; padding: 8px;\">{{ e.employee_code }}</td>\n    <td style=\"border: 1px solid #ccc; padding: 8px;\">{{ e.employee_name }}</td>\n    <td style=\"border: 1px solid #ccc; padding: 8px;\">{{ e.reporting_manager_name or e.reporting_manager_code }}</td>\n    <td style=\"border: 1px solid #ccc; padding: 8px;\">{{ e.submitted_on }}</td>\n  </tr>\n  {% endfor %}\n</table>\n<p>Please log in to <a href=\"{{ digitrack_url }}\">JH DigiTrack</a> and open <b>J-Reflect</b> to submit your rating and comments.</p>\n<p style=\"color: #888; font-size: 12px;\">This is an automated message. This email inbox is not actively monitored.</p>\n<p>Best regards,<br>J-Reflect</p>\n</div>",
+  "description": "Functional manager review reminder - one email per functional manager listing every employee waiting on their rating.",
+  "docstatus": 0,
+  "doctype": "JH Email Template",
+  "enabled": 1,
+  "modified": "2026-11-02 20:20:37.192590",
+  "module": "J-Reflect",
+  "name": "J-Reflect Functional Manager Review",
+  "subject": "J-Reflect: {{ employee_count }} evaluation(s) awaiting your functional manager rating",
+  "template_name": "J-Reflect Functional Manager Review",
+  "variables": "receiver_name, receiver_email - the manager receiving the email\nreview_stage - Functional Manager Review / Skip Level Manager Review\nemployee_count - number of employees in this email\ndigitrack_url - link to JH DigiTrack\nreview_url - direct link to the J-Reflect review page\nemployees - list; each has employee_code, employee_name, year, reporting_manager_code, reporting_manager_name, submitted_by, submitted_on"
+ },
+ {
+  "body": "<div style=\"font-family: Arial, sans-serif; font-size: 14px; color: #333;\">\n<p>Dear {{ receiver_name }},</p>\n<p>The following {{ employee_count }} J-Reflect evaluation{{ 's' if employee_count != 1 else '' }}\n{{ 'are' if employee_count != 1 else 'is' }} waiting for your <b>skip-level manager</b> rating.</p>\n<table style=\"border-collapse: collapse; width: 100%; margin-top: 10px;\">\n  <tr>\n    <th style=\"border: 1px solid #ccc; padding: 8px; background: #f5f5f5; text-align: left;\">Employee ID</th>\n    <th style=\"border: 1px solid #ccc; padding: 8px; background: #f5f5f5; text-align: left;\">Employee Name</th>\n    <th style=\"border: 1px solid #ccc; padding: 8px; background: #f5f5f5; text-align: left;\">Reporting Manager</th>\n    <th style=\"border: 1px solid #ccc; padding: 8px; background: #f5f5f5; text-align: left;\">Submitted On</th>\n  </tr>\n  {% for e in employees %}\n  <tr>\n    <td style=\"border: 1px solid #ccc; padding: 8px;\">{{ e.employee_code }}</td>\n    <td style=\"border: 1px solid #ccc; padding: 8px;\">{{ e.employee_name }}</td>\n    <td style=\"border: 1px solid #ccc; padding: 8px;\">{{ e.reporting_manager_name or e.reporting_manager_code }}</td>\n    <td style=\"border: 1px solid #ccc; padding: 8px;\">{{ e.submitted_on }}</td>\n  </tr>\n  {% endfor %}\n</table>\n<p>Please log in to <a href=\"{{ digitrack_url }}\">JH DigiTrack</a> and open <b>J-Reflect</b> to submit your rating and comments.</p>\n<p style=\"color: #888; font-size: 12px;\">This is an automated message. This email inbox is not actively monitored.</p>\n<p>Best regards,<br>J-Reflect</p>\n</div>",
+  "description": "Skip-level manager review reminder - one email per skip-level manager listing every employee waiting on their rating.",
+  "docstatus": 0,
+  "doctype": "JH Email Template",
+  "enabled": 1,
+  "modified": "2026-11-02 20:20:37.215217",
+  "module": "J-Reflect",
+  "name": "J-Reflect Skip Level Manager Review",
+  "subject": "J-Reflect: {{ employee_count }} evaluation(s) awaiting your skip-level manager rating",
+  "template_name": "J-Reflect Skip Level Manager Review",
+  "variables": "receiver_name, receiver_email - the manager receiving the email\nreview_stage - Functional Manager Review / Skip Level Manager Review\nemployee_count - number of employees in this email\ndigitrack_url - link to JH DigiTrack\nreview_url - direct link to the J-Reflect review page\nemployees - list; each has employee_code, employee_name, year, reporting_manager_code, reporting_manager_name, submitted_by, submitted_on"
  }
 ]
