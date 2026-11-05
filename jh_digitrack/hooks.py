@@ -313,7 +313,6 @@ fixtures = [
     {
         "doctype": "JH Email Template",
         "filters": [["name", "in", [
-            "Task Email Me",
             "J-Reflect Functional Manager Review",
             "J-Reflect Skip Level Manager Review",
         ]]],
