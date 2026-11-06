@@ -1,6 +1,8 @@
 import frappe
 from frappe import _
 
+from jh_digitrack.api.pms_review_notifications import queue_review_notification
+
 GOAL_BASED_QUERY = """
     SELECT
         ga.name AS docname,
@@ -649,6 +651,7 @@ def submit_goal_evaluation(employee_code, year, rating=None, comment=None):
 
         next_status = _status_after_functional_review(employee_code)
         _finalize_or_save(doc, next_status)
+        queue_review_notification(doc.name, next_status)
 
         return {"message": "Functional manager review submitted successfully.", "docname": doc.name, "status": next_status}
 
@@ -668,6 +671,7 @@ def submit_goal_evaluation(employee_code, year, rating=None, comment=None):
         # The evaluation is finalised (submitted) only after HR uploads its
         # rating/comment via the HR Submission Excel upload.
         _finalize_or_save(doc, "HR Review")
+        queue_review_notification(doc.name, "HR Review")
 
         return {"message": "Skip-level manager review submitted successfully.", "docname": doc.name, "status": "HR Review"}
 
@@ -679,6 +683,7 @@ def submit_goal_evaluation(employee_code, year, rating=None, comment=None):
 
     next_status = _status_after_manager_review(employee_code)
     _finalize_or_save(doc, next_status)
+    queue_review_notification(doc.name, next_status)
 
     return {"message": "Goal Evaluation submitted successfully.", "docname": doc.name, "status": next_status}
 

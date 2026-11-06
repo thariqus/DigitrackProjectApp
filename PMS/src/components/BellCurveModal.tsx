@@ -21,12 +21,19 @@ const RATING_TYPES: { value: RatingType; label: string }[] = [
   { value: "skip_level", label: "Skip Level Manager Rating" },
 ];
 
+interface BusinessUnitOption {
+  business_unit: string;
+  entity: string;
+}
+
 interface BellCurveData {
   year: string;
+  entity: string | null;
   business_unit: string | null;
   rating_type: RatingType;
-  // Business units in the admin's scope, for the filter dropdown
-  business_units: string[];
+  // Entities and business units in the admin's scope, for the filter dropdowns
+  entities: string[];
+  business_units: BusinessUnitOption[];
   configured: boolean;
   total: number;
   rows: BellCurveRow[];
@@ -48,6 +55,7 @@ const gapClass = (gap: number | null) =>
 
 function BellCurveModal({ open, onClose, years, defaultYear }: BellCurveModalProps) {
   const [year, setYear] = useState(defaultYear);
+  const [entity, setEntity] = useState("All");
   const [businessUnit, setBusinessUnit] = useState("All");
   const [ratingType, setRatingType] = useState<RatingType>("hr");
   const [data, setData] = useState<BellCurveData | null>(null);
@@ -56,11 +64,25 @@ function BellCurveModal({ open, onClose, years, defaultYear }: BellCurveModalPro
   // PMS Settings has one row per quarter, so the same year can repeat
   const uniqueYears = useMemo(() => Array.from(new Set(years)), [years]);
 
-  const fetchBellCurve = async (y: string, bu: string, rt: RatingType) => {
+  // Business units narrow to the selected entity; a unit can sit under more than one entity
+  const businessUnitOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          (data?.business_units || [])
+            .filter((o) => entity === "All" || o.entity === entity)
+            .map((o) => o.business_unit)
+        )
+      ),
+    [data, entity]
+  );
+
+  const fetchBellCurve = async (y: string, ent: string, bu: string, rt: RatingType) => {
     try {
       setLoading(true);
       const res = await frappeClient.api.get("jh_digitrack.api.pms_bell_curve.get_bell_curve", {
         year: y,
+        entity: ent,
         business_unit: bu,
         rating_type: rt,
       });
@@ -73,19 +95,29 @@ function BellCurveModal({ open, onClose, years, defaultYear }: BellCurveModalPro
     }
   };
 
-  // Each time the popup opens, start from the current year, all business units and HR rating
+  // Each time the popup opens, start from the current year, all entities / business units and HR rating
   useEffect(() => {
     if (!open) return;
     setYear(defaultYear);
+    setEntity("All");
     setBusinessUnit("All");
     setRatingType("hr");
-    fetchBellCurve(defaultYear, "All", "hr");
+    fetchBellCurve(defaultYear, "All", "All", "hr");
   }, [open, defaultYear]);
 
   // Switching the rating basis reloads the chart straight away
   const handleRatingTypeChange = (rt: RatingType) => {
     setRatingType(rt);
-    fetchBellCurve(year, businessUnit, rt);
+    fetchBellCurve(year, entity, businessUnit, rt);
+  };
+
+  // Drop the selected unit when it doesn't belong to the newly chosen entity
+  const handleEntityChange = (ent: string) => {
+    setEntity(ent);
+    const unitInEntity = (data?.business_units || []).some(
+      (o) => o.business_unit === businessUnit && (ent === "All" || o.entity === ent)
+    );
+    if (!unitInEntity) setBusinessUnit("All");
   };
 
   const rows = data?.rows || [];
@@ -183,12 +215,25 @@ function BellCurveModal({ open, onClose, years, defaultYear }: BellCurveModalPro
             </select>
 
             <select
+              value={entity}
+              onChange={(e) => handleEntityChange(e.target.value)}
+              className="px-2 py-1 border rounded-md text-[0.65rem] focus:outline-none"
+            >
+              <option value="All">All Entities</option>
+              {(data?.entities || []).map((ent) => (
+                <option key={ent} value={ent}>
+                  {ent}
+                </option>
+              ))}
+            </select>
+
+            <select
               value={businessUnit}
               onChange={(e) => setBusinessUnit(e.target.value)}
               className="px-2 py-1 border rounded-md text-[0.65rem] focus:outline-none"
             >
               <option value="All">All Business Units</option>
-              {(data?.business_units || []).map((bu) => (
+              {businessUnitOptions.map((bu) => (
                 <option key={bu} value={bu}>
                   {bu}
                 </option>
@@ -196,7 +241,7 @@ function BellCurveModal({ open, onClose, years, defaultYear }: BellCurveModalPro
             </select>
 
             <button
-              onClick={() => fetchBellCurve(year, businessUnit, ratingType)}
+              onClick={() => fetchBellCurve(year, entity, businessUnit, ratingType)}
               disabled={loading}
               className="px-3 py-1 text-[0.65rem] bg-primary text-white rounded-md hover:bg-[#7d241f] disabled:opacity-60"
             >

@@ -201,6 +201,9 @@ scheduler_events = {
         ],
         "0 3 * * *": [
             "jh_digitrack.api.password_policy.flag_users_for_password_reset"
+        ],
+        "0 */4 * * *": [
+            "jh_digitrack.api.pms_review_notifications.send_pending_review_emails"
         ]
     },
     # "hourly": [
@@ -309,7 +312,10 @@ fixtures = [
     },
     {
         "doctype": "JH Email Template",
-        "filters": [["name", "in", ["Task Email Me"]]],
+        "filters": [["name", "in", [
+            "J-Reflect Functional Manager Review",
+            "J-Reflect Skip Level Manager Review",
+        ]]],
     },
 ]
 
