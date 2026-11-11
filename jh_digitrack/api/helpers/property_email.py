@@ -173,19 +173,6 @@ def generate_property_notification_email(type, context):
                 f"· {row.cheque_date or '—'} · Payee: {row.payee or '—'}",
             ))
 
-        doc_links = [d.attachment for d in (renewal.supporting_documents or []) if d.attachment]
-        if doc_links:
-            rows.append((
-                "Supporting Documents",
-                ", ".join(f'<a href="{url}{link}">{link.split("/")[-1]}</a>' for link in doc_links),
-            ))
-        if renewal.renewed_contract_document:
-            rows.append((
-                "Renewed Contract",
-                f'<a href="{url}{renewal.renewed_contract_document}">'
-                f'{renewal.renewed_contract_document.split("/")[-1]}</a>',
-            ))
-
     elif type == "tat_escalation":
         table_heading = "Renewal Details"
         renewal = context["renewal"]
