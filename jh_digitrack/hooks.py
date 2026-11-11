@@ -315,6 +315,8 @@ fixtures = [
         "filters": [["name", "in", [
             "J-Reflect Functional Manager Review",
             "J-Reflect Skip Level Manager Review",
+            "Property MD FYI",
+            "Property MD Approval Request",
         ]]],
     },
 ]
