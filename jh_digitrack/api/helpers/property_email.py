@@ -32,7 +32,11 @@ TEMPLATE_STR = """
         {% endfor %}
     </table>
 
+    {% if note %}
+    <p>{{ note }}</p>
+    {% else %}
     <p>Please log in to <a href="{{ url }}/jh-digitrack">JH DigiTrack</a> to take action.</p>
+    {% endif %}
     <p class="footer">This is an automated message. This email inbox is not actively monitored.</p>
 </body>
 </html>
@@ -64,6 +68,7 @@ def generate_property_notification_email(type, context):
     header = ""
     rows = []
     table_heading = "Details"
+    note = ""
 
     if type == "pre_renewal":
         table_heading = "Property Details"
@@ -166,6 +171,11 @@ def generate_property_notification_email(type, context):
             if row.label:
                 rows.append((row.label, frappe.utils.fmt_money(row.amount) if row.amount else "—"))
 
+        note = (
+            f'For the supporting documents and the renewed contract, please log in to '
+            f'<a href="{url}/jh-digitrack">JH DigiTrack</a>.'
+        )
+
         for idx, row in enumerate(renewal.cheque_details or [], start=1):
             rows.append((
                 f"Cheque {idx}",
@@ -192,4 +202,4 @@ def generate_property_notification_email(type, context):
             ("Days Overdue", str(days_overdue)),
         ]
 
-    return Template(TEMPLATE_STR).render(header=header, rows=rows, url=url, table_heading=table_heading)
+    return Template(TEMPLATE_STR).render(header=header, rows=rows, url=url, table_heading=table_heading, note=note)
