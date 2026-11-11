@@ -1,7 +1,11 @@
 import frappe
 from frappe import _
 from frappe.utils import cint, flt
-from jh_digitrack.api.helpers.email import send_notification_email
+from jh_digitrack.api.helpers.email import send_notification_email, send_template_email
+
+# JH Email Template names for the two MD emails (subject/body live in the template)
+MD_FYI_TEMPLATE = "Property MD FYI"
+MD_APPROVAL_TEMPLATE = "Property MD Approval Request"
 
 ROLE_PRIORITY = [
     "module_admin",
@@ -1514,23 +1518,76 @@ def get_renewal_role(renewal_id: str):
     return result
 
 
+def _get_property_info(renewal):
+    """(property_info, property_type_label) for a renewal's property, used by the notification emails."""
+    property_info = frappe._dict()
+    if renewal.property:
+        property_info = frappe.db.get_value(
+            "JH Property Master", renewal.property,
+            ["property_name", "business_used", "type_of_property", "other_property_type"],
+            as_dict=True,
+        ) or frappe._dict()
+
+    property_type_label = (
+        property_info.other_property_type
+        if property_info.type_of_property == "Other" and property_info.other_property_type
+        else property_info.type_of_property
+    )
+    return property_info, property_type_label
+
+
+ACTION_LABELS = {"approve": "approved", "sendback": "sent back", "reject": "rejected", "submit": "submitted"}
+
+
+def _md_email_context(renewal, actor=None, action=None):
+    """Variables passed to the MD JH Email Templates (listed on each template's Available Variables)."""
+    from jh_digitrack.api.helpers.property_email import get_workflow_assigned_label
+
+    esc = frappe.utils.escape_html
+    property_info, property_type_label = _get_property_info(renewal)
+    md_user = frappe.db.get_single_value("JH Digitrack Settings", "md_user")
+
+    def _date(value):
+        return frappe.utils.getdate(value).strftime("%d.%m.%Y") if value else "—"
+
+    def _money(value):
+        return frappe.utils.fmt_money(value) if value else "—"
+
+    return {
+        "md_name": esc(frappe.db.get_value("User", md_user, "full_name") or "Sir") if md_user else "Sir",
+        "renewal_name": esc(renewal.name),
+        "renewal_label": esc(get_workflow_assigned_label(renewal, property_info.business_used, property_type_label)),
+        "property_name": esc(property_info.property_name or renewal.property or "—"),
+        "business_used": esc(property_info.business_used or "—"),
+        "property_type": esc(property_type_label or renewal.property_type or "—"),
+        "division": esc(renewal.division or "—"),
+        "location": esc(renewal.location or "—"),
+        "landlord": esc(renewal.landlord or "—"),
+        "renewal_from": _date(renewal.renewal_from),
+        "renewal_to": _date(renewal.renewal_to),
+        "current_rent": _money(renewal.current_rent),
+        "proposed_rent": _money(renewal.proposed_rent),
+        "rent_change": _money(renewal.rent_change),
+        "rent_change_percent": f"{flt(renewal.rent_change_percent):.2f}",
+        "actor_name": esc((frappe.db.get_value("User", actor, "full_name") or actor) if actor else "—"),
+        "action_label": ACTION_LABELS.get(action, f"{action}d" if action else "updated"),
+        "digitrack_url": frappe.utils.get_url("/jh-digitrack"),
+    }
+
+
 def notify_md(renewal):
+    """FYI to the MD when the CFO approves a renewal whose rent change is ≤ 5% (no MD approval needed)."""
     settings = frappe.get_single("JH Digitrack Settings")
 
     if not settings.md_user:
         frappe.logger().warning("MD user not set. Skipping email.")
         return
 
-    send_notification_email(
+    send_template_email(
+        MD_FYI_TEMPLATE,
+        _md_email_context(renewal, actor=frappe.session.user, action="approve"),
         source_document="Property MD FYI Notification",
         recipients=[settings.md_user],
-        subject="Rental Renewal Approved (No MD Approval Required)",
-        message=f"""
-        Dear Sir,<br><br>
-        Rental Renewal <b>{frappe.utils.escape_html(renewal.name)}</b> has been approved by CFO.<br>
-        Rent change is ≤ 5%, so MD approval is not required.<br>
-        This is for your information.
-        """
     )
 
 
@@ -1574,21 +1631,19 @@ def _notify_step_assignee(renewal, action, actor):
         return
 
     recipients = assignee if isinstance(assignee, list) else [assignee]
+
+    if renewal.workflow_state == "Pending MD":
+        # MD approval request: subject/body come from the JH Email Template
+        send_template_email(
+            MD_APPROVAL_TEMPLATE,
+            _md_email_context(renewal, actor=actor, action=action),
+            source_document="Property Workflow Next Step Notification",
+            recipients=recipients,
+        )
+        return
+
     actor_name = frappe.db.get_value("User", actor, "full_name") or actor
-
-    property_info = frappe._dict()
-    if renewal.property:
-        property_info = frappe.db.get_value(
-            "JH Property Master", renewal.property,
-            ["property_name", "business_used", "type_of_property", "other_property_type"],
-            as_dict=True,
-        ) or frappe._dict()
-
-    property_type_label = (
-        property_info.other_property_type
-        if property_info.type_of_property == "Other" and property_info.other_property_type
-        else property_info.type_of_property
-    )
+    property_info, property_type_label = _get_property_info(renewal)
 
     subject = get_workflow_assigned_label(renewal, property_info.business_used, property_type_label)
     message = generate_property_notification_email(
