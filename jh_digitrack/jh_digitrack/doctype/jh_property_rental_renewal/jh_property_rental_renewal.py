@@ -59,7 +59,7 @@ class JHPropertyRentalRenewal(Document):
 		existing = next((row for row in rows if row.label == PARENT_RENT_LABEL), None)
 
 		if self.proposed_rent:
-			rent_amount = round(flt(self.proposed_rent))
+			rent_amount = flt(self.proposed_rent, 2)
 			if existing:
 				existing.amount = rent_amount
 			else:
@@ -82,7 +82,7 @@ class JHPropertyRentalRenewal(Document):
 		existing = next((row for row in rows if row.label == PARENT_VAT_LABEL), None)
 
 		if self.include_vat:
-			vat_amount = round(flt(self.proposed_rent) * VAT_RATE)
+			vat_amount = flt(flt(self.proposed_rent) * VAT_RATE, 2)
 			if existing:
 				existing.amount = vat_amount
 			else:
@@ -91,10 +91,10 @@ class JHPropertyRentalRenewal(Document):
 			self.table_xqmr.remove(existing)
 
 	def calculate_particular_total(self):
-		self.particular_total = round(sum(flt(row.amount) for row in self.get("table_xqmr", [])))
+		self.particular_total = flt(sum(flt(row.amount) for row in self.get("table_xqmr", [])), 2)
 
 	def calculate_cheque_total(self):
-		self.cheque_total = round(sum(flt(row.cheque_amount) for row in self.get("cheque_details", [])))
+		self.cheque_total = flt(sum(flt(row.cheque_amount) for row in self.get("cheque_details", [])), 2)
 
 	def validate_dates(self):
 		is_draft = self.is_new() or (self.workflow_state or "Draft") == "Draft"

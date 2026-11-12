@@ -339,15 +339,21 @@ useEffect(() => {
       return false;
     }
 
-    // Cheque total must match backend particular_total
-    const enteredChequeTotal = chequeDetails.reduce(
-      (sum, cheque) => sum + Number(cheque.cheque_amount || 0),
-      0
+    // Cheque total must match backend particular_total. Both sides are
+    // rounded to 2 decimals so float noise (e.g. 0.1 + 0.2) can't cause
+    // a false mismatch on fils amounts.
+    const roundTo2 = (value: number) => Math.round(value * 100) / 100;
+
+    const enteredChequeTotal = roundTo2(
+      chequeDetails.reduce(
+        (sum, cheque) => sum + Number(cheque.cheque_amount || 0),
+        0
+      )
     );
 
     // Backend value is expected to be available on renewalDoc
-    const particularTotal = Number(
-      (renewalDoc as any)?.particular_total ?? 0
+    const particularTotal = roundTo2(
+      Number((renewalDoc as any)?.particular_total ?? 0)
     );
 
 
