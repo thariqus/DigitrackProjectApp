@@ -160,7 +160,7 @@ function sync_parent_rent_row(frm) {
 	let existing = rows.find((row) => row.label === PARENT_RENT_LABEL);
 
 	if (frm.doc.proposed_rent) {
-		const rent_amount = Math.round(flt(frm.doc.proposed_rent));
+		const rent_amount = flt(frm.doc.proposed_rent, 2);
 		if (existing) {
 			frappe.model.set_value(existing.doctype, existing.name, "amount", rent_amount);
 		} else {
@@ -183,7 +183,7 @@ function sync_parent_vat_row(frm) {
 	const existing = rows.find((row) => row.label === PARENT_VAT_LABEL);
 
 	if (frm.doc.include_vat) {
-		const vat_amount = Math.round(flt(frm.doc.proposed_rent) * VAT_RATE);
+		const vat_amount = flt(flt(frm.doc.proposed_rent) * VAT_RATE, 2);
 		if (existing) {
 			frappe.model.set_value(existing.doctype, existing.name, "amount", vat_amount);
 		} else {
@@ -201,14 +201,14 @@ function sync_parent_vat_row(frm) {
 function calculate_particular_total(frm) {
 	const rows = frm.doc[PARTICULARS_FIELD] || [];
 	const total = rows.reduce((sum, row) => sum + flt(row.amount), 0);
-	frm.set_value("particular_total", total);
+	frm.set_value("particular_total", flt(total, 2));
 }
 
 // Sums all cheque entry amounts into the "Cheque Total" field.
 function calculate_cheque_total(frm) {
 	const rows = frm.doc[CHEQUE_DETAILS_FIELD] || [];
 	const total = rows.reduce((sum, row) => sum + flt(row.cheque_amount), 0);
-	frm.set_value("cheque_total", total);
+	frm.set_value("cheque_total", flt(total, 2));
 }
 
 // When a particular row's own "Include VAT" checkbox is ticked, inserts a
@@ -222,7 +222,7 @@ frappe.ui.form.on("JH Property Particulars", {
 		const next_row = rows[row_idx + 1];
 
 		if (row.include_vat_) {
-			const vat_amount = Math.round(flt(row.amount) * VAT_RATE);
+			const vat_amount = flt(flt(row.amount) * VAT_RATE, 2);
 			if (next_row && next_row.label === vat_label) {
 				frappe.model.set_value(next_row.doctype, next_row.name, "amount", vat_amount);
 			} else {
