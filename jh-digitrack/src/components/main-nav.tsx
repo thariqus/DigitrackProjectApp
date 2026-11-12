@@ -32,7 +32,8 @@ import { useAppVersion } from "@/hooks/system";
 import { JHDigitrackSettings } from "@/types/JHDigitrack/JHDigitrackSettings";
 import { useDocDetail } from "@/hooks/doc";
 import { useHasPmsAccess, useHasPropertyAccess, useHasCustomerRegistrationRole } from "@/hooks/userrole";
-import { useDelegationPanel } from "@/context/DelegationPanelContext";
+// Manage Delegation hidden from the menu for now; uncomment to restore.
+// import { useDelegationPanel } from "@/context/DelegationPanelContext";
 
 export function MainNav() {
   const { pathname } = useLocation();
@@ -40,7 +41,7 @@ export function MainNav() {
   const { data: appVersion } = useAppVersion();
   const { mutate: logout } = useLogout();
   const navigate = useNavigate()
-  const { setOpen } = useDelegationPanel();
+  // const { setOpen } = useDelegationPanel();
   const [isAppsOpen, setIsAppsOpen] = useState(false);
  
  
@@ -286,6 +287,7 @@ export function MainNav() {
                 </DropdownMenuItem>
               )}
 
+              {/* Manage Delegation hidden from the menu for now; uncomment to restore.
               <DropdownMenuItem
                   onSelect={(e) => {
                     e.preventDefault();
@@ -298,6 +300,7 @@ export function MainNav() {
                 >
                   <span>Manage Delegation</span>
                 </DropdownMenuItem>
+              */}
 
               <DropdownMenuItem
                 className="w-full"
