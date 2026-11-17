@@ -54,7 +54,7 @@ function Projects() {
     doctype: "JH Project Item", fields: ["name", "project"], limit: 5000,
   });
   const { data: employees = [] } = useDocs<JHUserMaster>({
-    doctype: "JH User Master", fields: ["name", "full_name", "employee_code", "active", "email", "user"], limit: 1000,
+    doctype: "JH User Master", fields: ["name", "full_name", "employee_code", "active", "email", "user"], limit: 0, // 0 = no limit: list every employee
   });
   const { data: businesses = [] } = useDocs<Business>({ doctype: "JH Business Master", fields: ["name", "business_name"], limit: 1000 });
   const navigate = useNavigate();

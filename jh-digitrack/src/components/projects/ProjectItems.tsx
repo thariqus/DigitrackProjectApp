@@ -122,7 +122,7 @@ export default function ProjectItems() {
   const { data: items = [], isLoading, refetch } = useDocs<ProjectItem>({ doctype: ITEM_DOCTYPE, fields: ["*"], filters: [["project", "=", projectId]], orderBy: { field: "modified", order: "desc" }, limit: 5000, enabled: Boolean(projectId) });
   const { data: statuses = [], refetch: refetchStatuses } = useDocs<ItemStatus>({ doctype: "JH Project Item Status", fields: ["name", "status_name", "status_number", "workflow_state"], orderBy: { field: "status_number", order: "asc" }, limit: 500 });
   const { data: auditLogs = [], isLoading: auditLoading } = useProjectItemAudit(projectId);
-  const { data: users = [] } = useDocs<JHUserMaster>({ doctype: "JH User Master", fields: ["name", "full_name", "user", "email", "active"], limit: 1000 });
+  const { data: users = [] } = useDocs<JHUserMaster>({ doctype: "JH User Master", fields: ["name", "full_name", "user", "email", "active"], limit: 0 });
   const { data: currentUser } = useCurrentUser();
   const saveDoc = useSaveDoc();
   const fileRemove = useFileRemove();
