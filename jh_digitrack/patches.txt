@@ -4,6 +4,7 @@
 
 [post_model_sync]
 # Patches added in this section will be executed after doctypes are migrated
+jh_digitrack.patches.seed_project_item_statuses
 jh_digitrack.patches.task_owner_to_created_by
 jh_digitrack.patches.disable_desk_access_for_jh_digitrack_members
 jh_digitrack.patches.make_all_digitrack_members_website_users

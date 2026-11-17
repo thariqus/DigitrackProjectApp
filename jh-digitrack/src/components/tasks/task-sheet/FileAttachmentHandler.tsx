@@ -28,6 +28,7 @@ interface FileAttachmentHandlerProps {
   getAttachmentOwner?: (fileName: string) => string | undefined;
   currentUser?: string;
   taskOwner?: string;
+  allowedExtensions?: string[];
 }
 
 function FileAttachmentHandler({
@@ -38,6 +39,7 @@ function FileAttachmentHandler({
   getAttachmentOwner,
   currentUser,
   taskOwner,
+  allowedExtensions,
 }: FileAttachmentHandlerProps) {
   const [files, setFiles] = useState<File[]>([]);
   const [dragActive, setDragActive] = useState(false);
@@ -48,12 +50,19 @@ function FileAttachmentHandler({
    * @returns True if file is valid
    */
   const validateFile = useCallback((file: File): boolean => {
+    if (allowedExtensions?.length) {
+      const extension = file.name.split(".").pop()?.toLowerCase() || "";
+      if (!allowedExtensions.includes(extension)) {
+        toast.error(`File ${file.name} is not an allowed type`);
+        return false;
+      }
+    }
     if (file.size > MAX_FILE_SIZE) {
       toast.error(`File ${file.name} exceeds the maximum file size of 10MB`);
       return false;
     }
     return true;
-  }, []);
+  }, [allowedExtensions]);
 
   /**
    * Validates all files against size limits
@@ -264,7 +273,7 @@ function FileAttachmentHandler({
           className="hidden"
           id="file-upload"
           onChange={handleFileChange}
-          accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+          accept={allowedExtensions?.length ? allowedExtensions.map((extension) => `.${extension}`).join(",") : "image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"}
         />
         <label htmlFor="file-upload" className="cursor-pointer">
           <Cloud className="h-10 w-10 mx-auto mb-2 text-[#94a3b8]" />

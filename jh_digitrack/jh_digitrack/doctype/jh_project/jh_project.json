@@ -1,0 +1,34 @@
+{
+ "doctype": "DocType",
+ "name": "JH Project",
+ "module": "JH Digitrack",
+ "autoname": "format:PRJ-{####}",
+ "title_field": "project_name",
+ "modified": "2026-11-17 16:00:00.000000",
+ "search_fields": "project_name,business_unit,status",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1,
+ "engine": "InnoDB",
+ "field_order": ["project_name", "project_description", "business_unit", "start_date", "due_date", "update_email_interval_days", "last_update_email_sent_on", "status", "show_status_priority", "participants", "created_by", "created_at"],
+ "fields": [
+  {"fieldname":"project_name","label":"Project Name","fieldtype":"Data","reqd":1,"in_list_view":1},
+  {"fieldname":"project_description","label":"Project Description","fieldtype":"Long Text"},
+  {"fieldname":"business_unit","label":"Business","fieldtype":"Link","options":"JH Business Master","in_list_view":1},
+  {"fieldname":"start_date","label":"Start Date","fieldtype":"Date","in_list_view":1},
+  {"fieldname":"due_date","label":"Due Date","fieldtype":"Date","in_list_view":1},
+  {"fieldname":"update_email_interval_days","label":"Update Email Interval (Days)","fieldtype":"Int","default":"0","non_negative":1},
+  {"fieldname":"last_update_email_sent_on","label":"Last Update Email Sent On","fieldtype":"Date","read_only":1,"no_copy":1},
+  {"fieldname":"status","label":"Status","fieldtype":"Select","options":"Open\nIn Progress\nClosed\nCancelled","default":"Open","reqd":1,"in_list_view":1},
+  {"fieldname":"show_status_priority","label":"Show Status Priority","fieldtype":"Check","default":"1"},
+  {"fieldname":"participants","label":"Participant List","fieldtype":"Table","options":"JH Project Participant"},
+  {"fieldname":"created_by","label":"Created By","fieldtype":"Link","options":"User","read_only":1,"default":"__user"},
+  {"fieldname":"created_at","label":"Created Date Time","fieldtype":"Datetime","read_only":1}
+ ],
+ "permissions": [
+  {"role":"System Manager","read":1,"write":1,"create":1,"delete":1,"report":1,"export":1,"share":1,"print":1,"email":1},
+  {"role":"JH Digitrack Admin","read":1,"write":1,"create":1,"delete":1,"report":1,"export":1,"share":1,"print":1,"email":1},
+  {"role":"JH Digitrack Member","read":1,"write":1,"create":1,"report":1,"export":1,"share":1,"print":1,"email":1},
+  {"role":"JH Digitrack Member","delete":1,"if_owner":1}
+ ]
+}

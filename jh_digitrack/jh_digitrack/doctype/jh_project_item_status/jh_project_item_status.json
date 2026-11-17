@@ -1,0 +1,73 @@
+{
+ "doctype": "DocType",
+ "name": "JH Project Item Status",
+ "module": "JH Digitrack",
+ "autoname": "field:status_name",
+ "title_field": "status_name",
+ "modified": "2026-11-17 18:00:00.000000",
+ "track_changes": 1,
+ "sort_field": "status_number",
+ "sort_order": "ASC",
+ "field_order": [
+  "status_name",
+  "status_number",
+  "workflow_state"
+ ],
+ "fields": [
+  {
+   "fieldname": "status_name",
+   "label": "Status Name",
+   "fieldtype": "Data",
+   "reqd": 1,
+   "unique": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "status_number",
+   "label": "Sort Number",
+   "fieldtype": "Int",
+   "reqd": 1,
+   "unique": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "workflow_state",
+   "label": "Workflow",
+   "fieldtype": "Select",
+   "options": "Open\nClosed",
+   "default": "Open",
+   "reqd": 1,
+   "in_list_view": 1,
+   "set_only_once": 1
+  }
+ ],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1
+  },
+  {
+   "role": "JH Digitrack Admin",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1
+  },
+  {
+   "role": "JH Digitrack Member",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1
+  }
+ ]
+}

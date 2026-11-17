@@ -190,6 +190,9 @@ scheduler_events = {
         "0 7 * * *": [
             "jh_digitrack.api.property_notifications.process_property_notifications"
         ],
+        "0 8 * * *": [
+            "jh_digitrack.api.project_items.send_scheduled_update_emails"
+        ],
         "0 0 * * *": [
             "jh_digitrack.api.helpers.delegation.check_delegation_expiry"
         ],

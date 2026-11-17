@@ -5,11 +5,12 @@ import { ActionButtonsProps } from "@/types/tasks";
 export const ActionButtons = ({
   onCreateTask,
   disabled = false,
+  label = "Create Task",
 }: ActionButtonsProps) => (
   <div className="flex justify-end">
     <Button onClick={onCreateTask} size="sm" disabled={disabled}>
       <Plus className="mr-2 h-4 w-4" />
-      Create Task
+      {label}
     </Button>
   </div>
 );

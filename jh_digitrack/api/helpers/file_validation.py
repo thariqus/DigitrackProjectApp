@@ -230,6 +230,15 @@ def validate_uploaded_file(file_doc):
             frappe.ValidationError
         )
 
+    if file_doc.attached_to_doctype == "JH Project Item":
+        item_extension = get_file_extension(filename)
+        allowed_item_extensions = {"xls", "xlsx", "pdf", "doc", "docx"}
+        if item_extension not in allowed_item_extensions:
+            frappe.throw(
+                _("Item attachments must be Excel, PDF, or Word documents."),
+                frappe.ValidationError,
+            )
+
     # Check if extension is allowed
     is_allowed, ext = is_extension_allowed(filename)
     if not is_allowed:

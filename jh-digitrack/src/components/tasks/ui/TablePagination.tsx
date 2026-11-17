@@ -12,6 +12,7 @@ import {
 interface PaginationProps {
   totalPages: number;
   initialPage?: number;
+  currentPage?: number;
   siblingsCount?: number;
   onPageChange?: (page: number) => void;
 }
@@ -19,14 +20,16 @@ interface PaginationProps {
 export default function PaginationWithState({
   totalPages = 10,
   initialPage = 1,
+  currentPage: controlledPage,
   siblingsCount = 1,
   onPageChange,
 }: PaginationProps) {
-  const [currentPage, setCurrentPage] = useState(initialPage);
+  const [localPage, setLocalPage] = useState(initialPage);
+  const currentPage = controlledPage ?? localPage;
 
   const handlePageChange = (page: number) => {
     if (page < 1 || page > totalPages) return;
-    setCurrentPage(page);
+    if (controlledPage === undefined) setLocalPage(page);
     onPageChange?.(page);
   };
 

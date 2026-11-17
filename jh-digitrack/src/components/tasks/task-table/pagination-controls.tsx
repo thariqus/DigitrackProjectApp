@@ -47,6 +47,7 @@ export const PaginationControls = ({
       <TablePagination
         totalPages={totalPages}
         initialPage={currentPage}
+        currentPage={currentPage}
         onPageChange={(page) => setCurrentPage(page)}
       />
     </div>

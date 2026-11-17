@@ -10,6 +10,7 @@ import SplashScreen from "@/components/splash-screen";
 import Layout from "@/components/layout";
 import Tasks from "@/components/tasks";
 import Projects from "@/components/projects";
+import ProjectItems from "@/components/projects/ProjectItems";
 import Meetings from "@/components/meetings";
 import Scrapitems from "@/components/scrapitem";
 import Unauthorized from "./components/Unauthorized";
@@ -242,6 +243,7 @@ function AppWrapper() {
                 <Route path="dashboard" element={<Dashboard />} />
                 <Route path="tasks" element={<Tasks />} />
                 <Route path="projects" element={<Projects />} />
+                <Route path="projects/:projectId/items" element={<ProjectItems />} />
                 <Route path="idle-assets" element={<Scrapitems />} />
                 <Route path="jrc-permission" element={<JRCPermission />} />
                 <Route path="email" element={<EmailDashboard />} />

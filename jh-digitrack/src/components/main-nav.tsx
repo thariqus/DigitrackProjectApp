@@ -89,6 +89,11 @@ export function MainNav() {
             <span>Dashboard</span>
           </Link>
 
+          <Link to="projects" className={className(["projects"])}>
+            <FolderOpenDot className="h-5 w-5" />
+            <span>Projects</span>
+          </Link>
+
           <button
             onClick={() => {
               window.location.href =

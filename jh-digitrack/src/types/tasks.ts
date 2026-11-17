@@ -41,11 +41,13 @@ export interface TaskTableProps {
 export interface SearchBarProps {
   value: string;
   onChange: (value: string) => void;
+  placeholder?: string;
 }
 
 export interface ActionButtonsProps {
   onCreateTask: () => void;
   disabled?: boolean;
+  label?: string;
 }
 
 export interface TaskRowProps {
@@ -66,6 +68,7 @@ export interface DeleteConfirmationProps {
   onOpenChange: (open: boolean) => void;
   taskToDelete?: string;
   taskName?: string;
+  itemLabel?: string;
   onConfirm: () => void;
 }
 
