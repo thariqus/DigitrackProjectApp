@@ -51,6 +51,7 @@ export type ProjectItem = {
   created_at?: string; owner?: string; creation?: string; modified?: string;
   modified_by?: string; deleted_at?: string; deleted_by?: string;
   rca_required?: number; rca_approved?: number; rca_approved_by?: string; rca_approved_at?: string; rca_approval_comments?: string;
+  assigned_participants?: { employee: string }[];
 };
 type ItemForm = Pick<ProjectItem, "item_description" | "requirement_or_defect" | "due_date" | "revised_due_date" | "reported_site" | "severity" | "status" | "rca_required">;
 const EMPTY_FORM: ItemForm = { item_description: "", requirement_or_defect: "FR", due_date: "", revised_due_date: "", reported_site: "", severity: "Medium", status: "Open", rca_required: 0 };
@@ -160,6 +161,7 @@ export default function ProjectItems() {
   const [newStatusWorkflow, setNewStatusWorkflow] = useState<WorkflowState>("Open");
   const [statusSaving, setStatusSaving] = useState(false);
   const [form, setForm] = useState<ItemForm>(EMPTY_FORM);
+  const [assignedIds, setAssignedIds] = useState<string[]>([]);
   const [newFiles, setNewFiles] = useState<File[]>([]);
   const { data: editingDetail } = useDocDetail({ doctype: ITEM_DOCTYPE, name: editing?.name || "", disabled: !editing });
   const { data: selectedDetail } = useDocDetail({ doctype: ITEM_DOCTYPE, name: selected?.name || "", disabled: !selected });
@@ -193,7 +195,10 @@ export default function ProjectItems() {
       toast.error("Could not update the Show Status Priority setting");
     }
   };
-  const participantIds = (project?.participants || []).map((participant) => participant.employee);
+  const participantIds = Array.from(new Set((project?.participants || []).map((participant) => participant.employee)));
+  const assignableIds = Array.from(new Set([...participantIds, ...assignedIds]));
+  const participantName = (id: string) => users.find((user) => user.name === id)?.full_name || id;
+  const toggleAssigned = (id: string, checked: boolean) => setAssignedIds(checked ? [...assignedIds, id] : assignedIds.filter((assigned) => assigned !== id));
   const emailOptions = users.filter((user) => user.active !== 0 && Boolean(user.email) && participantIds.includes(user.name)).map((user) => ({ value: user.name, label: `${user.full_name || user.name} · ${user.email}` }));
   const visibleEmailOptions = emailOptions.filter((option) => option.label.toLowerCase().includes(emailSearch.toLowerCase()));
   const lastModified = useMemo(() => {
@@ -231,12 +236,13 @@ export default function ProjectItems() {
     if (name) await queryClient.invalidateQueries({ queryKey: ["DocInfo", { doctype: ITEM_DOCTYPE, name }] });
     await refetch();
   };
-  const beginCreate = () => { setEditing(null); setForm({ ...EMPTY_FORM }); setNewFiles([]); setFormOpen(true); };
+  const beginCreate = () => { setEditing(null); setForm({ ...EMPTY_FORM }); setAssignedIds(participantIds); setNewFiles([]); setFormOpen(true); };
   const beginEdit = async (item: ProjectItem) => {
     try {
       const latest = await frappeClient.db.getDoc(ITEM_DOCTYPE, item.name) as ProjectItem;
       setEditing(latest);
       setForm({ item_description: latest.item_description || "", requirement_or_defect: latest.requirement_or_defect || "FR", due_date: latest.due_date || "", revised_due_date: latest.revised_due_date || "", reported_site: latest.reported_site || "", severity: latest.severity || "Medium", status: latest.status || "Open", rca_required: latest.rca_required || 0 });
+      setAssignedIds((latest.assigned_participants || []).map((row) => row.employee));
       setNewFiles([]);
       setSelected(null);
       setFormOpen(true);
@@ -244,6 +250,7 @@ export default function ProjectItems() {
   };
   const saveItemData = async (status = form.status) => {
       const saved = await saveDoc.mutateAsync({ doctype: ITEM_DOCTYPE, project: projectId, ...form, status,
+        assigned_participants: assignedIds.map((employee) => ({ doctype: "JH Project Participant", employee })),
         ...(editing ? {
           name: editing.name, modified: editing.modified, owner: editing.owner, creation: editing.creation,
           created_by: editing.created_by, created_at: editing.created_at, item_number: editing.item_number,
@@ -406,6 +413,7 @@ export default function ProjectItems() {
                 <div className="space-y-2"><Label htmlFor="item-due-date">Due Date (Actual)</Label><input id="item-due-date" type="date" className={taskDateClass} value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })}/></div>
                 <div className="space-y-2"><Label htmlFor="item-revised-date">Revised Due Date</Label><input id="item-revised-date" type="date" className={taskDateClass} value={form.revised_due_date} onChange={(e) => setForm({ ...form, revised_due_date: e.target.value })}/></div>
                 <div className="space-y-2"><Label htmlFor="item-status">Status <span className="text-red-600">*</span></Label><SearchableSelect id="item-status" options={statusesSorted.map((status) => ({ value: status.name, label: statusLabel(status.name) }))} value={form.status} onChange={(value) => setForm({ ...form, status: value })} placeholder="Select status"/></div>
+                <div className="space-y-2 sm:col-span-2"><div className="flex items-center justify-between"><Label>Assigned Participants</Label>{assignableIds.length > 0 && <div className="flex gap-3 text-xs"><button type="button" className="text-[#972e26] hover:underline" onClick={() => setAssignedIds(assignableIds)}>Select all</button><button type="button" className="text-muted-foreground hover:underline" onClick={() => setAssignedIds([])}>Clear</button></div>}</div>{assignableIds.length ? <div className="grid max-h-40 gap-2 overflow-y-auto rounded-md border p-3 sm:grid-cols-3">{assignableIds.map((id) => <label key={id} className="flex items-center gap-2 text-sm"><input type="checkbox" className="h-4 w-4 accent-[#972e26]" checked={assignedIds.includes(id)} onChange={(event) => toggleAssigned(id, event.target.checked)}/><span className="truncate">{participantName(id)}</span></label>)}</div> : <p className="text-sm text-muted-foreground">This Project has no participants.</p>}</div>
                 <div className="flex items-center gap-3 sm:col-span-2"><input id="rca-required" type="checkbox" className="h-4 w-4 accent-[#972e26]" checked={Boolean(form.rca_required)} disabled={Boolean(editing?.rca_required) || editingLocked} onChange={(event) => setForm({ ...form, rca_required: event.target.checked ? 1 : 0 })}/><Label htmlFor="rca-required">RCA Required</Label><input id="rca-verified" type="checkbox" className="ml-4 h-4 w-4 accent-emerald-600" checked={Boolean(editing?.rca_approved)} disabled readOnly/><Label htmlFor="rca-verified" className="text-muted-foreground">RCA Verified</Label>{Boolean(editing?.rca_approved) && <span className="text-sm text-emerald-700">By {creatorName(editing.rca_approved_by)} · {dateTime(editing.rca_approved_at)}</span>}</div>
                 <div className="space-y-2"><Label htmlFor="reported-site">Reported Site</Label><Input id="reported-site" value={form.reported_site} onChange={(e) => setForm({ ...form, reported_site: e.target.value })}/></div>
                 {editing && <>
@@ -431,7 +439,7 @@ export default function ProjectItems() {
           <SheetClose asChild><Button variant="ghost" size="icon" aria-label="Close item details"><X className="size-4"/></Button></SheetClose>
         </div></div>
         <div className="space-y-6 p-6"><div><p className="text-sm text-gray-500">{selected?.name}</p><h2 className="mt-1 text-2xl font-bold">{selected?.item_description}</h2></div>
-          <div className="grid grid-cols-[150px_1fr] gap-y-5"><DetailField label="Item ID" value={selected?.name}/><DetailField label="Item Description" value={selected?.item_description}/><DetailField label="Project" value={`${project.name} · ${project.project_name}`}/><DetailField label="Req/Defect" value={selected?.requirement_or_defect}/><DetailField label="Severity" value={selected && <SeverityBadge severity={selected.severity} showNumber={showStatusPriority}/>}/><DetailField label="Status" value={selected && <StatusBadge status={statusLabel(selected.status)} number={undefined}/>}/><DetailField label="Due Date (Actual)" value={selected?.due_date}/><DetailField label="Revised Due Date" value={selected?.revised_due_date}/><DetailField label="Reported Site" value={selected?.reported_site}/><DetailField label="RCA Required" value={selected?.rca_required ? "Yes" : "No"}/>{Boolean(selected?.rca_required) && <><DetailField label="RCA Approved" value={selected.rca_approved ? "Yes" : "No"}/><DetailField label="RCA Approved By" value={creatorName(selected.rca_approved_by)}/><DetailField label="RCA Approved At" value={dateTime(selected.rca_approved_at)}/><DetailField label="RCA Approval Comments" value={selected.rca_approval_comments}/></>}<DetailField label="Created By" value={selected && creatorName(selected.created_by || selected.owner)}/><DetailField label="Created Date Time" value={dateTime(selected?.created_at || selected?.creation)}/><DetailField label="Last Modified" value={selected && `${creatorName(selected.modified_by)} · ${dateTime(selected.modified)}`}/>{selected?.deleted_at && <DetailField label="Deleted By" value={`${creatorName(selected.deleted_by)} · ${dateTime(selected.deleted_at)}`}/>}</div>
+          <div className="grid grid-cols-[150px_1fr] gap-y-5"><DetailField label="Item ID" value={selected?.name}/><DetailField label="Item Description" value={selected?.item_description}/><DetailField label="Project" value={`${project.name} · ${project.project_name}`}/><DetailField label="Req/Defect" value={selected?.requirement_or_defect}/><DetailField label="Severity" value={selected && <SeverityBadge severity={selected.severity} showNumber={showStatusPriority}/>}/><DetailField label="Status" value={selected && <StatusBadge status={statusLabel(selected.status)} number={undefined}/>}/><DetailField label="Due Date (Actual)" value={selected?.due_date}/><DetailField label="Revised Due Date" value={selected?.revised_due_date}/><DetailField label="Reported Site" value={selected?.reported_site}/><DetailField label="Assigned Participants" value={((selectedDetail?.docs?.[0] as ProjectItem | undefined)?.assigned_participants || []).map((row) => participantName(row.employee)).join(", ")}/><DetailField label="RCA Required" value={selected?.rca_required ? "Yes" : "No"}/>{Boolean(selected?.rca_required) && <><DetailField label="RCA Approved" value={selected.rca_approved ? "Yes" : "No"}/><DetailField label="RCA Approved By" value={creatorName(selected.rca_approved_by)}/><DetailField label="RCA Approved At" value={dateTime(selected.rca_approved_at)}/><DetailField label="RCA Approval Comments" value={selected.rca_approval_comments}/></>}<DetailField label="Created By" value={selected && creatorName(selected.created_by || selected.owner)}/><DetailField label="Created Date Time" value={dateTime(selected?.created_at || selected?.creation)}/><DetailField label="Last Modified" value={selected && `${creatorName(selected.modified_by)} · ${dateTime(selected.modified)}`}/>{selected?.deleted_at && <DetailField label="Deleted By" value={`${creatorName(selected.deleted_by)} · ${dateTime(selected.deleted_at)}`}/>}</div>
           <section className="space-y-3 border-t pt-5"><h3 className="font-semibold">Attachments</h3>{(selectedDetail?.docinfo?.attachments || []).length ? <div className="flex flex-wrap gap-3">{selectedDetail!.docinfo.attachments.map((file: Attachment) => <a key={file.name} href={file.file_url} target="_blank" rel="noreferrer" className="flex max-w-72 items-center gap-2 rounded-md border p-3 text-sm hover:bg-muted"><FileText className="h-4 w-4 shrink-0"/><span className="truncate">{file.file_name}</span></a>)}</div> : <p className="text-sm text-muted-foreground">No attachments</p>}</section>
           {selected && <ProjectTimeline itemId={selected.name} createdBy={selected.created_by || selected.owner} createdAt={selected.created_at || selected.creation} />}
         </div>

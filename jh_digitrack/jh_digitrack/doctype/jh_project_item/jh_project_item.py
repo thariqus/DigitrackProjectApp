@@ -66,6 +66,7 @@ class JHProjectItem(Document):
             frappe.throw("Select a valid Item Status")
         if self.requirement_or_defect not in {"FR", "NFR", "Defect"}:
             frappe.throw("Req/Def must be FR, NFR, or Defect")
+        self.validate_assigned_participants()
 
         previous = self.get_doc_before_save() if not self.is_new() else None
         if previous and cint(previous.rca_required) and not cint(self.rca_required):
@@ -90,6 +91,26 @@ class JHProjectItem(Document):
                 frappe.throw("RCA approval is only valid when moving an Item that requires RCA to a Closed workflow status")
             if not self.rca_approval_comments or not self.rca_approval_comments.strip():
                 frappe.throw("RCA approval comments are required")
+
+    def validate_assigned_participants(self) -> None:
+        project_participants = frappe.get_all(
+            "JH Project Participant",
+            filters={"parenttype": "JH Project", "parent": self.project},
+            pluck="employee",
+            order_by="idx asc",
+        )
+        if self.is_new() and not self.assigned_participants:
+            for employee in dict.fromkeys(project_participants):
+                self.append("assigned_participants", {"employee": employee})
+            return
+
+        assigned = [row.employee for row in self.assigned_participants]
+        if len(assigned) != len(set(assigned)):
+            frappe.throw("A participant can be assigned only once")
+        previous = self.get_doc_before_save()
+        already_assigned = {row.employee for row in previous.assigned_participants} if previous else set()
+        if not set(assigned).issubset(set(project_participants) | already_assigned):
+            frappe.throw("Assigned participants must be in the Project Participant List")
 
     def validate_closed_item_edit(self, previous, is_closed: bool) -> None:
         """RCA fields of an Item in a Closed workflow status are locked until
