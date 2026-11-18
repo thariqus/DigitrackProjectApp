@@ -166,7 +166,9 @@ export default function ProjectItems() {
   const { data: editingDetail } = useDocDetail({ doctype: ITEM_DOCTYPE, name: editing?.name || "", disabled: !editing });
   const { data: selectedDetail } = useDocDetail({ doctype: ITEM_DOCTYPE, name: selected?.name || "", disabled: !selected });
 
-  const creatorName = (id?: string) => users.find((user) => user.user === id)?.full_name || id || "—";
+  // Without this guard an empty id matches the first employee with no linked
+  // login, so an unapproved Item showed that employee as the RCA approver.
+  const creatorName = (id?: string) => (id ? users.find((user) => user.user === id)?.full_name || id : "—");
   const workflowOf = (name?: string): WorkflowState => {
     const status = statuses.find((entry) => entry.name === name);
     return status?.workflow_state || "Open";
