@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { JHTaskMaster } from "./JHDigitrack/JHTaskMaster";
 
 // Re-export the JHTasksMaster type as Task for better naming
@@ -69,6 +70,8 @@ export interface DeleteConfirmationProps {
   taskToDelete?: string;
   taskName?: string;
   itemLabel?: string;
+  /** Replaces the default "This action will permanently delete …" text. */
+  description?: ReactNode;
   onConfirm: () => void;
 }
 

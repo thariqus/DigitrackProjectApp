@@ -21,6 +21,7 @@ export const DeleteConfirmation = ({
   onOpenChange,
   taskName,
   itemLabel = "task",
+  description,
   onConfirm,
 }: DeleteConfirmationProps) => (
   <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -28,8 +29,10 @@ export const DeleteConfirmation = ({
       <AlertDialogHeader>
         <AlertDialogTitle>Are you sure?</AlertDialogTitle>
         <AlertDialogDescription>
-          This action will permanently delete the {itemLabel}{" "}
-          <b>{truncateString(taskName || "Unknown", 20)}</b>.
+          {description ?? <>
+            This action will permanently delete the {itemLabel}{" "}
+            <b>{truncateString(taskName || "Unknown", 20)}</b>.
+          </>}
         </AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter>
