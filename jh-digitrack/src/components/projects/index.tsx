@@ -130,8 +130,11 @@ function Projects() {
     if (!Number.isInteger(form.update_email_interval_days) || form.update_email_interval_days < 0 || form.update_email_interval_days > 365) return toast.error("Update Email Interval must be a whole number from 0 to 365");
     setSaving(true);
     try {
+      // savedocs replaces the whole record, so an edit starts from the latest
+      // saved Project. Fields that are not on this form (Show Status Priority,
+      // Last Update Email Sent On, Created By, Created At) keep their values.
       const doc = {
-        doctype: "JH Project", ...(editing ? { name: editing.name, modified: editing.modified, owner: editing.owner, creation: editing.creation } : {}), ...form,
+        ...(editing ?? {}), doctype: "JH Project", ...form,
         participants: participantIds.map((employee) => ({ doctype: "JH Project Participant", employee })),
       };
       await saveDoc.mutateAsync(doc);
