@@ -1,6 +1,6 @@
 import frappe
 from frappe.model.document import Document
-from frappe.utils import cint, now_datetime
+from frappe.utils import cint, getdate, now_datetime
 
 MAX_UPDATE_EMAIL_INTERVAL_DAYS = 365
 
@@ -47,7 +47,9 @@ class JHProject(Document):
             item.save()
 
     def validate(self):
-        if self.start_date and self.due_date and self.due_date < self.start_date:
+        # A partial update (API, set_value) mixes a date loaded from the
+        # database with a date string from the request, so compare as dates.
+        if self.start_date and self.due_date and getdate(self.due_date) < getdate(self.start_date):
             frappe.throw("Due Date cannot be earlier than Start Date")
         if not self.is_new():
             self.keep_system_fields()
