@@ -1,6 +1,6 @@
 import frappe
 from frappe.model.document import Document
-from frappe.utils import cint, now_datetime
+from frappe.utils import cint, getdate, now_datetime
 
 RCA_APPROVAL_FIELDS = ("rca_approved", "rca_approved_by", "rca_approved_at", "rca_approval_comments")
 
@@ -67,6 +67,8 @@ class JHProjectItem(Document):
             frappe.throw("Select a valid Item Status")
         if self.requirement_or_defect not in {"FR", "NFR", "Defect"}:
             frappe.throw("Req/Def must be FR, NFR, or Defect")
+        if self.due_date and self.revised_due_date and getdate(self.revised_due_date) < getdate(self.due_date):
+            frappe.throw("Revised Due Date cannot be earlier than Due Date (Actual)")
         self.validate_assigned_participants()
 
         previous = self.get_doc_before_save() if not self.is_new() else None
