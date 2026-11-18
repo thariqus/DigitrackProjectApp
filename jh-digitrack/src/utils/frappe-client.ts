@@ -1,24 +1,18 @@
 import { FrappeApp } from "frappe-js-sdk";
-import { toast } from "sonner";
-import { HtmlRender } from "@/components/utils/html-render";
+import { serverMessage } from "@/utils/server-message";
 
 const frappe = new FrappeApp(import.meta.env.VITE_FRAPPE_API_URL);
 
-// Show the error message
+// Log the server's message and pass the original error on. frappe-js-sdk
+// builds the error it throws from error.response, including
+// _server_messages, so callers can show the reason with errorMessage().
+// (This used to call the HtmlRender component as a function, which throws
+// outside React rendering. The SDK then failed with "Cannot read properties
+// of undefined (reading 'data')" and the server's message was lost.)
 frappe.axios.interceptors.response.use(undefined, function (error) {
-  const errors =
-    JSON.parse(error?.response?.data?._server_messages || "[]") || [];
-  const err = errors.at(-1);
-
-  // If the error is not a validation error, return the error
-  if (!err) return Promise.reject(error);
-
-  // Get the error message
-  const { message } = JSON.parse(err);
-
-  // Show the error message
-  console.error(message);
-  toast.error(HtmlRender({ content: message }).toString());
+  const message = serverMessage(error?.response?.data);
+  if (message) console.error(message);
+  return Promise.reject(error);
 });
 
 export default {

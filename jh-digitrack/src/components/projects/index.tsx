@@ -20,6 +20,7 @@ import DeleteConfirmation from "@/components/tasks/ui/DeleteConfirmation";
 import ProjectTimeline from "./ProjectTimeline";
 import { PaginationControls } from "@/components/tasks/task-table/pagination-controls";
 import frappeClient from "@/utils/frappe-client";
+import { errorMessage } from "@/utils/server-message";
 import SearchableFilterButton from "./SearchableFilterButton";
 import SearchableSelect from "./SearchableSelect";
 import SortableHeader from "./SortableHeader";
@@ -129,7 +130,7 @@ function Projects() {
       setModal(true);
     } catch (error) {
       console.error(error);
-      toast.error("Could not load the latest project. Refresh the list and try again.");
+      toast.error(errorMessage(error, "Could not load the latest project. Refresh the list and try again."));
     }
   };
   const save = async (event: React.FormEvent) => {
@@ -150,7 +151,7 @@ function Projects() {
       toast.success(editing ? "Project updated" : "Project created");
       setModal(false); await Promise.all([refetch(), refetchTabs()]);
     } catch (error) {
-      console.error(error); toast.error("Could not save project");
+      console.error(error); toast.error(errorMessage(error, "Could not save project"));
     } finally { setSaving(false); }
   };
   const confirmDelete = async () => {
@@ -162,7 +163,7 @@ function Projects() {
       await Promise.all([refetch(), refetchTabs()]);
     } catch (error) {
       console.error(error);
-      toast.error("Could not delete project");
+      toast.error(errorMessage(error, "Could not delete project"));
     }
   };
   return <section className="space-y-6">

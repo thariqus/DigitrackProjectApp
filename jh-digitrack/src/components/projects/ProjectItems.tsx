@@ -11,6 +11,7 @@ import { useApproveRcaAndClose, useProjectItemAudit, useSendProjectItemEmail, us
 import { ProjectItemAuditEntry } from "@/hooks/project-items";
 import { queryClient } from "@/utils/query-client";
 import frappeClient from "@/utils/frappe-client";
+import { errorMessage } from "@/utils/server-message";
 import { JHUserMaster } from "@/types/JHDigitrack/JHUserMaster";
 import { Attachment } from "@/types/doc";
 import { Button } from "@/components/ui/button";
@@ -194,7 +195,7 @@ export default function ProjectItems() {
       await refetchProject();
     } catch (error) {
       console.error(error);
-      toast.error("Could not update the Show Status Priority setting");
+      toast.error(errorMessage(error, "Could not update the Show Status Priority setting"));
     }
   };
   const participantIds = Array.from(new Set((project?.participants || []).map((participant) => participant.employee)));
@@ -248,7 +249,7 @@ export default function ProjectItems() {
       setNewFiles([]);
       setSelected(null);
       setFormOpen(true);
-    } catch (error) { console.error(error); toast.error("Could not load the latest Item"); }
+    } catch (error) { console.error(error); toast.error(errorMessage(error, "Could not load the latest Item")); }
   };
   const saveItemData = async (status = form.status) => {
       const saved = await saveDoc.mutateAsync({ doctype: ITEM_DOCTYPE, project: projectId, ...form, status,
@@ -279,7 +280,7 @@ export default function ProjectItems() {
       toast.success(editingLocked && workflowOf(form.status) === "Open" ? "Item reopened and RCA approval reset" : editing ? "Item updated" : "Item created");
       setFormOpen(false); setEditing(null); setNewFiles([]);
       await invalidateItems(saved.name);
-    } catch (error) { console.error(error); toast.error("Could not save Item"); }
+    } catch (error) { console.error(error); toast.error(errorMessage(error, "Could not save Item")); }
     finally { setSaving(false); }
   };
   const approveAndClose = async () => {
@@ -294,7 +295,7 @@ export default function ProjectItems() {
       toast.success("RCA verified and Item closed");
       setRcaDialogOpen(false); setFormOpen(false); setEditing(null); setNewFiles([]); setRcaComments("");
       await invalidateItems(saved.name);
-    } catch (error) { console.error(error); toast.error("Could not approve RCA and close Item"); }
+    } catch (error) { console.error(error); toast.error(errorMessage(error, "Could not approve RCA and close Item")); }
     finally { setSaving(false); }
   };
   const addStatus = async () => {
@@ -306,14 +307,14 @@ export default function ProjectItems() {
       await saveDoc.mutateAsync({ doctype: "JH Project Item Status", status_name: statusName, status_number: statusNumber, workflow_state: newStatusWorkflow });
       setNewStatusName(""); setNewStatusNumber(""); setNewStatusWorkflow("Open");
       await refetchStatuses(); toast.success("Status added");
-    } catch (error) { console.error(error); toast.error("Could not add status"); }
+    } catch (error) { console.error(error); toast.error(errorMessage(error, "Could not add status")); }
     finally { setStatusSaving(false); }
   };
   const removeStatus = async (status: ItemStatus) => {
     try {
       await deleteStatusDoc.mutateAsync({ doctype: "JH Project Item Status", name: status.name });
       await refetchStatuses(); toast.success("Status removed");
-    } catch (error) { console.error(error); toast.error("Cannot remove a status used by Items or required by the workflow"); }
+    } catch (error) { console.error(error); toast.error(errorMessage(error, "Cannot remove a status used by Items or required by the workflow")); }
   };
   const removeAttachment = async (file: Attachment) => {
     if (!editing) return;
@@ -328,7 +329,7 @@ export default function ProjectItems() {
       toast.success("Item deleted; its history and attachments were retained");
       setDeleteTarget(null); setSelected(null);
       await invalidateItems(deleteTarget.name);
-    } catch (error) { console.error(error); toast.error("Could not delete Item"); }
+    } catch (error) { console.error(error); toast.error(errorMessage(error, "Could not delete Item")); }
   };
   const toggleSort = (field: typeof sortBy) => { if (sortBy === field) setSortDirection(sortDirection === "asc" ? "desc" : "asc"); else { setSortBy(field); setSortDirection("asc"); } setPage(1); };
   const submitEmail = async () => {
@@ -336,7 +337,7 @@ export default function ProjectItems() {
     try {
       await sendEmail.mutateAsync({ item_name: selected.name, recipients: emailTo, cc: emailCc, bcc: emailBcc, message: emailMessage.trim() });
       toast.success("Item email sent"); setEmailOpen(false); setEmailTo([]); setEmailCc([]); setEmailBcc([]); setEmailMessage("");
-    } catch (error) { console.error(error); toast.error("Could not send Item email"); }
+    } catch (error) { console.error(error); toast.error(errorMessage(error, "Could not send Item email")); }
   };
   const currentAttachments = editingDetail?.docinfo?.attachments ?? [];
   const attachmentOwner = (fileName: string) => editingDetail?.docinfo?.attachment_logs?.find((log) => log.content?.includes(fileName))?.owner;
