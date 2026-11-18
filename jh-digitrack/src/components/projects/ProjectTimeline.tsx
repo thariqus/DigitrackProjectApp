@@ -21,12 +21,17 @@ const versionValue = (fieldtype: string | undefined, value: unknown) => {
   }
   return String(value ?? "—");
 };
-// Child table edits are logged as rows added, removed or changed. The Item
-// form re-sends every row on save, so only the net difference is a change.
-const assignmentChange = (data: { added?: ChildRow[]; removed?: ChildRow[]; row_changed?: ChildRowChange[] }) => {
-  const rows = (entries: ChildRow[] = []) => entries.filter((row) => row[0] === "assigned_participants").map((row) => row[1]?.employee).filter(Boolean) as string[];
+// Employee tables: an Item's Assigned Participants and a Project's Participant List.
+const EMPLOYEE_TABLES: Record<string, { fieldname: string; label: string }> = {
+  "JH Project Item": { fieldname: "assigned_participants", label: "Assigned Participants" },
+  "JH Project": { fieldname: "participants", label: "Participant List" },
+};
+// Child table edits are logged as rows added, removed or changed. The forms
+// re-send every row on save, so only the net difference is a change.
+const employeeTableChange = (fieldname: string, data: { added?: ChildRow[]; removed?: ChildRow[]; row_changed?: ChildRowChange[] }) => {
+  const rows = (entries: ChildRow[] = []) => entries.filter((row) => row[0] === fieldname).map((row) => row[1]?.employee).filter(Boolean) as string[];
   const added = new Set(rows(data.added)), removed = new Set(rows(data.removed));
-  (data.row_changed ?? []).filter((row) => row[0] === "assigned_participants").forEach((row) => row[3].forEach(([field, from, to]) => {
+  (data.row_changed ?? []).filter((row) => row[0] === fieldname).forEach((row) => row[3].forEach(([field, from, to]) => {
     if (field === "employee") { removed.add(from); added.add(to); }
   }));
   return { added: [...added].filter((id) => !removed.has(id)), removed: [...removed].filter((id) => !added.has(id)) };
@@ -60,16 +65,17 @@ export default function ProjectTimeline({ projectId, itemId, createdBy, createdA
         content: `changed <b>${field?.label || change[0]}</b> from ${versionValue(field?.fieldtype, change[1])} to ${versionValue(field?.fieldtype, change[2])}`,
       };
     });
-    const { added, removed } = assignmentChange(data);
+    const table = EMPLOYEE_TABLES[doctype];
+    const { added, removed } = employeeTableChange(table.fieldname, data);
     const names = (ids: string[]) => ids.map((id) => escapeHtml(employeeName(id))).join(", ");
     const parts = [added.length && `added ${names(added)}`, removed.length && `removed ${names(removed)}`].filter(Boolean);
     if (parts.length) logs.push({
       owner: entry.owner, owner_user_id: entry.owner, creation: entry.creation,
       comment_type: "Version Change",
-      content: `changed <b>Assigned Participants</b>: ${parts.join("; ")}`,
+      content: `changed <b>${table.label}</b>: ${parts.join("; ")}`,
     });
     return logs;
-  }), [detail?.docinfo?.versions, meta?.fields, employeeName]);
+  }), [detail?.docinfo?.versions, meta?.fields, employeeName, doctype]);
   const creationLogs: Log[] = createdBy && createdAt ? [{
     owner: createdBy, owner_user_id: createdBy, creation: createdAt,
     comment_type: "Creation", content: "",

@@ -221,7 +221,7 @@ function Projects() {
                 <div className="space-y-2"><Label htmlFor="project-status">Status</Label><SearchableSelect id="project-status" options={STATUS.map((status) => ({ value: status, label: status }))} value={form.status} onChange={(value) => setForm({...form, status:value as Project["status"]})} placeholder="Select project status"/></div>
                 <div className="space-y-2"><Label htmlFor="project-participants">Participant List</Label><MultiSelectCombobox options={visibleParticipantOptions} selectedOptions={participantOptions} selected={participantIds} onChange={setParticipantIds} onSearch={setParticipantSearch} searchKeyword={participantSearch} placeholder="Select participants" emptyMessage="No employees found."/></div>
               </div>
-              {editing && <ProjectTimeline projectId={editing.name} createdBy={editing.created_by || editing.owner} createdAt={editing.created_at || editing.creation} />}
+              {editing && <ProjectTimeline projectId={editing.name} createdBy={editing.created_by || editing.owner} createdAt={editing.created_at || editing.creation} employeeName={(id) => employees.find((employee) => employee.name === id)?.full_name || id} />}
             </div>
           </ScrollArea>
           <SheetFooter className="absolute bottom-0 w-full flex-col bg-white">
