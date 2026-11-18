@@ -69,16 +69,20 @@ def get_project_item_audit(project_id: str) -> list[dict[str, Any]]:
         limit_page_length=5000,
     )
     field_labels = {field.fieldname: field.label for field in frappe.get_meta("JH Project Item").fields}
+    employee_names = {}
     for version in versions:
         try:
-            changes = json.loads(version.data or "{}").get("changed", [])
+            data = json.loads(version.data or "{}")
         except (TypeError, ValueError):
             continue
         changes = [
             {"field": field_labels.get(change[0], change[0]), "from": change[1], "to": change[2]}
-            for change in changes
+            for change in data.get("changed", [])
             if change[0] not in {"created_by", "created_at", "deleted_at", "deleted_by", "item_number"}
         ]
+        assignment_change = _assignment_change(data, employee_names)
+        if assignment_change:
+            changes.append(assignment_change)
         if not changes:
             continue
         item = items_by_name[version.docname]
@@ -93,6 +97,37 @@ def get_project_item_audit(project_id: str) -> list[dict[str, Any]]:
 
     audit.sort(key=lambda entry: entry["timestamp"] or "", reverse=True)
     return audit[:5000]
+
+
+def _assignment_change(version_data: dict, employee_names: dict) -> dict[str, str] | None:
+    """Summarize an Assigned Participants change from a Version log entry.
+
+    Frappe logs child table edits as rows added, removed or changed, not as
+    field changes. The Item form re-sends every row on save, so an
+    unchanged list also appears as rows removed and added; only the net
+    difference is a real change.
+    """
+    added, removed = set(), set()
+    for key, target in (("added", added), ("removed", removed)):
+        for row in version_data.get(key, []):
+            if row and row[0] == "assigned_participants" and isinstance(row[1], dict):
+                target.add(row[1].get("employee"))
+    for row in version_data.get("row_changed", []):
+        if row and row[0] == "assigned_participants":
+            for fieldname, old, new in row[3]:
+                if fieldname == "employee":
+                    removed.add(old)
+                    added.add(new)
+    added, removed = added - removed - {None}, removed - added - {None}
+    if not added and not removed:
+        return None
+
+    def names(employees: set) -> str:
+        for employee in employees - employee_names.keys():
+            employee_names[employee] = frappe.db.get_value("JH User Master", employee, "full_name") or employee
+        return ", ".join(sorted(employee_names[employee] for employee in employees)) or "—"
+
+    return {"field": "Assigned Participants (removed → added)", "from": names(removed), "to": names(added)}
 
 
 @frappe.whitelist(methods=["POST"])

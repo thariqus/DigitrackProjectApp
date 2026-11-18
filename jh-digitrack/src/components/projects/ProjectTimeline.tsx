@@ -11,16 +11,29 @@ import { useCurrentJhUser, useJhUser } from "@/hooks/auth";
 import { useAddComment, useDocDetail, useDocTypeMeta } from "@/hooks/doc";
 import { queryClient } from "@/utils/query-client";
 
-type Props = { projectId?: string; itemId?: string; createdBy?: string; createdAt?: string };
+type Props = { projectId?: string; itemId?: string; createdBy?: string; createdAt?: string; employeeName?: (employee: string) => string };
 type Log = { owner: string; creation: string; comment_type: string; content: string; owner_user_id: string };
+type ChildRow = [string, { employee?: string }];
+type ChildRowChange = [string, number, string, [string, string, string][]];
 const versionValue = (fieldtype: string | undefined, value: unknown) => {
   if (fieldtype === "Check" && [0, 1, "0", "1"].includes(value as number | string)) {
     return Number(value) ? "Yes" : "No";
   }
   return String(value ?? "—");
 };
+// Child table edits are logged as rows added, removed or changed. The Item
+// form re-sends every row on save, so only the net difference is a change.
+const assignmentChange = (data: { added?: ChildRow[]; removed?: ChildRow[]; row_changed?: ChildRowChange[] }) => {
+  const rows = (entries: ChildRow[] = []) => entries.filter((row) => row[0] === "assigned_participants").map((row) => row[1]?.employee).filter(Boolean) as string[];
+  const added = new Set(rows(data.added)), removed = new Set(rows(data.removed));
+  (data.row_changed ?? []).filter((row) => row[0] === "assigned_participants").forEach((row) => row[3].forEach(([field, from, to]) => {
+    if (field === "employee") { removed.add(from); added.add(to); }
+  }));
+  return { added: [...added].filter((id) => !removed.has(id)), removed: [...removed].filter((id) => !added.has(id)) };
+};
+const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (char) => `&#${char.charCodeAt(0)};`);
 
-export default function ProjectTimeline({ projectId, itemId, createdBy, createdAt }: Props) {
+export default function ProjectTimeline({ projectId, itemId, createdBy, createdAt, employeeName = (employee) => employee }: Props) {
   const doctype = itemId ? "JH Project Item" : "JH Project";
   const documentName = itemId || projectId || "";
   const [comment, setComment] = useState("");
@@ -37,7 +50,7 @@ export default function ProjectTimeline({ projectId, itemId, createdBy, createdA
   const versions: Log[] = useMemo(() => (detail?.docinfo?.versions ?? []).flatMap((entry: any) => {
     let data: any;
     try { data = JSON.parse(entry.data || "{}"); } catch { return []; }
-    return (data.changed ?? []).filter((change: [string, unknown, unknown]) =>
+    const logs: Log[] = (data.changed ?? []).filter((change: [string, unknown, unknown]) =>
       !["created_by", "created_at", "item_number"].includes(change[0]),
     ).map((change: [string, unknown, unknown]) => {
       const field = meta?.fields?.find((item: { fieldname: string; fieldtype?: string }) => item.fieldname === change[0]);
@@ -47,7 +60,16 @@ export default function ProjectTimeline({ projectId, itemId, createdBy, createdA
         content: `changed <b>${field?.label || change[0]}</b> from ${versionValue(field?.fieldtype, change[1])} to ${versionValue(field?.fieldtype, change[2])}`,
       };
     });
-  }), [detail?.docinfo?.versions, meta?.fields]);
+    const { added, removed } = assignmentChange(data);
+    const names = (ids: string[]) => ids.map((id) => escapeHtml(employeeName(id))).join(", ");
+    const parts = [added.length && `added ${names(added)}`, removed.length && `removed ${names(removed)}`].filter(Boolean);
+    if (parts.length) logs.push({
+      owner: entry.owner, owner_user_id: entry.owner, creation: entry.creation,
+      comment_type: "Version Change",
+      content: `changed <b>Assigned Participants</b>: ${parts.join("; ")}`,
+    });
+    return logs;
+  }), [detail?.docinfo?.versions, meta?.fields, employeeName]);
   const creationLogs: Log[] = createdBy && createdAt ? [{
     owner: createdBy, owner_user_id: createdBy, creation: createdAt,
     comment_type: "Creation", content: "",
