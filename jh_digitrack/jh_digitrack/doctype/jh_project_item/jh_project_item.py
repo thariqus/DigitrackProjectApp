@@ -38,6 +38,7 @@ class JHProjectItem(Document):
             self.name = f"{self.project.replace('-', '')}#{self.item_number:02d}"
 
     def validate(self):
+        self.validate_not_deleted()
         if self.is_new():
             self.created_by = frappe.session.user
             self.created_at = now_datetime()
@@ -91,6 +92,14 @@ class JHProjectItem(Document):
                 frappe.throw("RCA approval is only valid when moving an Item that requires RCA to a Closed workflow status")
             if not self.rca_approval_comments or not self.rca_approval_comments.strip():
                 frappe.throw("RCA approval comments are required")
+
+    def validate_not_deleted(self) -> None:
+        """A soft-deleted Item is read-only. The Items page hides Edit for it;
+        this also blocks direct API updates, including clearing deleted_at."""
+        if self.is_new():
+            return
+        if frappe.db.get_value("JH Project Item", self.name, "deleted_at"):
+            frappe.throw("This Item is deleted and cannot be edited")
 
     def validate_assigned_participants(self) -> None:
         """An Item may have no assignees. The Item form ticks every Project
