@@ -435,7 +435,11 @@ export default function ProjectItems() {
     <Sheet open={Boolean(selected)} onOpenChange={(open) => !open && setSelected(null)}>
       <SheetContent className="overflow-y-auto p-0 sm:max-w-5xl">
         <div className="flex items-center justify-between border-b p-4"><StatusBadge status={selected?.deleted_at ? "Deleted" : selected?.status || "Open"}/><div className="mr-5 flex gap-2">
-          {!selected?.deleted_at && <Button variant="ghost" size="icon" aria-label="Email item participants" onClick={() => { setEmailTo([]); setEmailCc([]); setEmailBcc([]); setEmailMessage(""); setEmailOpen(true); }}><Mail className="h-5 w-5"/></Button>}
+          {!selected?.deleted_at && <Button variant="ghost" size="icon" aria-label="Email item participants" onClick={() => {
+            // Start with the Item's assignees in To; anyone can be moved or removed.
+            const assignees = ((selectedDetail?.docs?.[0] as ProjectItem | undefined)?.assigned_participants || []).map((row) => row.employee);
+            setEmailTo(assignees.filter((id) => emailOptions.some((option) => option.value === id))); setEmailCc([]); setEmailBcc([]); setEmailMessage(""); setEmailOpen(true);
+          }}><Mail className="h-5 w-5"/></Button>}
           {!selected?.deleted_at && <Button variant="ghost" size="icon" aria-label="Edit item" onClick={() => selected && beginEdit(selected)}><FileEdit className="h-5 w-5"/></Button>}
           {!selected?.deleted_at && <Button variant="ghost" size="icon" aria-label="Delete item" onClick={() => selected && setDeleteTarget(selected)}><Trash2 className="h-5 w-5"/></Button>}
           <SheetClose asChild><Button variant="ghost" size="icon" aria-label="Close item details"><X className="size-4"/></Button></SheetClose>

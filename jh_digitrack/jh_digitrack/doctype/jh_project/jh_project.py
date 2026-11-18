@@ -10,6 +10,42 @@ class JHProject(Document):
         if frappe.db.exists("JH Project Item", {"project": self.name}):
             frappe.throw("Cannot delete this Project because it contains Items.")
 
+    def on_update(self):
+        self.unassign_removed_participants()
+
+    def unassign_removed_participants(self) -> None:
+        """Remove participants who left the Project from its Items.
+
+        Assignees then stay a subset of the Participant List, so they can be
+        emailed about their Items. Each Item save is logged in its history.
+        Deleted Items are read-only and keep their assignees.
+        """
+        previous = self.get_doc_before_save()
+        if not previous:
+            return
+        removed = {row.employee for row in previous.participants} - {row.employee for row in self.participants}
+        if not removed:
+            return
+        item_names = set(frappe.get_all(
+            "JH Project Participant",
+            filters={"parenttype": "JH Project Item", "parentfield": "assigned_participants", "employee": ["in", list(removed)]},
+            pluck="parent",
+        ))
+        if not item_names:
+            return
+        items = frappe.get_all(
+            "JH Project Item",
+            filters={"name": ["in", list(item_names)], "project": self.name, "deleted_at": ["is", "not set"]},
+            pluck="name",
+        )
+        for item_name in items:
+            item = frappe.get_doc("JH Project Item", item_name)
+            item.set("assigned_participants", [row for row in item.assigned_participants if row.employee not in removed])
+            # A consequence of the Project edit, so the editor does not also
+            # need write access to every affected Item.
+            item.flags.ignore_permissions = True
+            item.save()
+
     def validate(self):
         if self.start_date and self.due_date and self.due_date < self.start_date:
             frappe.throw("Due Date cannot be earlier than Start Date")
