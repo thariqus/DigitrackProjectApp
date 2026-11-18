@@ -93,17 +93,13 @@ class JHProjectItem(Document):
                 frappe.throw("RCA approval comments are required")
 
     def validate_assigned_participants(self) -> None:
+        """An Item may have no assignees. The Item form ticks every Project
+        participant by default, so an empty list is the user's choice."""
         project_participants = frappe.get_all(
             "JH Project Participant",
             filters={"parenttype": "JH Project", "parent": self.project},
             pluck="employee",
-            order_by="idx asc",
         )
-        if self.is_new() and not self.assigned_participants:
-            for employee in dict.fromkeys(project_participants):
-                self.append("assigned_participants", {"employee": employee})
-            return
-
         assigned = [row.employee for row in self.assigned_participants]
         if len(assigned) != len(set(assigned)):
             frappe.throw("A participant can be assigned only once")
