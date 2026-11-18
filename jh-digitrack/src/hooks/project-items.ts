@@ -18,6 +18,15 @@ export const useApproveRcaAndClose = () => useMutation({
     frappe.api.post("jh_digitrack.api.project_items.approve_rca_and_close", payload),
 });
 
+export type ProjectTabs = { is_admin: boolean; my: string[]; team: string[] };
+export const useProjectTabs = () => useQuery({
+  queryKey: ["ProjectTabs"],
+  queryFn: async () => {
+    const response = await frappe.api.get<{ message: ProjectTabs }>("jh_digitrack.api.project_items.get_project_tabs");
+    return response.message;
+  },
+});
+
 export type ProjectItemAuditEntry = {
   item_id: string;
   item_description: string;

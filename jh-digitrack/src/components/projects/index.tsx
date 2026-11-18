@@ -4,6 +4,7 @@ import { FileEdit, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { useDocs, useDeleteDoc, useSaveDoc } from "@/hooks/doc";
 import { useCurrentUser } from "@/hooks/auth";
+import { useProjectTabs } from "@/hooks/project-items";
 import { JHUserMaster } from "@/types/JHDigitrack/JHUserMaster";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -57,6 +58,7 @@ function Projects() {
     doctype: "JH User Master", fields: ["name", "full_name", "employee_code", "active", "email", "user"], limit: 0, // 0 = no limit: list every employee
   });
   const { data: businesses = [] } = useDocs<Business>({ doctype: "JH Business Master", fields: ["name", "business_name"], limit: 1000 });
+  const { data: projectTabs, isLoading: tabsLoading, refetch: refetchTabs } = useProjectTabs();
   const navigate = useNavigate();
   const saveDoc = useSaveDoc();
   const deleteDoc = useDeleteDoc();
@@ -85,18 +87,25 @@ function Projects() {
   const creatorOptions = Array.from(new Set(projects.map((project) => project.created_by || project.owner).filter((creator): creator is string => Boolean(creator))))
     .map((creator) => ({ value: creator, label: employees.find((employee) => employee.user === creator)?.full_name || creator }));
   const projectsWithItems = new Set(projectItems.map((item) => item.project));
+  const myProjects = useMemo(() => new Set(projectTabs?.my ?? []), [projectTabs]);
+  const teamProjects = useMemo(() => new Set(projectTabs?.team ?? []), [projectTabs]);
   const shown = useMemo(() => projects.filter((p) => {
     const matchesSearch = `${p.name} ${p.project_name} ${p.business_unit ?? ""} ${p.status}`.toLowerCase().includes(search.toLowerCase());
     const matchesStatus = !statusFilter || p.status === statusFilter;
     const matchesCreator = !createdByFilter || (p.created_by || p.owner) === createdByFilter;
     const matchesDueDate = !dueDateFilter || (dueDateFilter === "none" ? !p.due_date : dueDateFilter === "overdue" ? Boolean(p.due_date && p.due_date < new Date().toISOString().slice(0, 10)) : Boolean(p.due_date && p.due_date >= new Date().toISOString().slice(0, 10)));
-    const matchesOwner = activeTab !== "created-by-me" || (p.created_by || p.owner) === currentUser;
-    return matchesSearch && matchesStatus && matchesCreator && matchesDueDate && matchesOwner;
+    // My Projects: created by me or I am a participant. Team Projects: my
+    // reporting line's Projects. All Projects (admins only): every Project.
+    const matchesTab = activeTab === "my-projects" ? myProjects.has(p.name)
+      : activeTab === "team-projects" ? teamProjects.has(p.name)
+        : activeTab === "created-by-me" ? (p.created_by || p.owner) === currentUser
+          : true;
+    return matchesSearch && matchesStatus && matchesCreator && matchesDueDate && matchesTab;
   }).sort((a, b) => {
     const av = sortBy === "created_by" ? (a.created_by || a.owner || "") : (a[sortBy] || "");
     const bv = sortBy === "created_by" ? (b.created_by || b.owner || "") : (b[sortBy] || "");
     return String(av).localeCompare(String(bv)) * (sortDirection === "asc" ? 1 : -1);
-  }), [projects, search, statusFilter, createdByFilter, dueDateFilter, activeTab, currentUser, sortBy, sortDirection]);
+  }), [projects, search, statusFilter, createdByFilter, dueDateFilter, activeTab, currentUser, myProjects, teamProjects, sortBy, sortDirection]);
   const toggleSort = (field: typeof sortBy) => { if (sortBy === field) setSortDirection(sortDirection === "asc" ? "desc" : "asc"); else { setSortBy(field); setSortDirection("asc"); } setCurrentPage(1); };
   const totalPages = Math.ceil(shown.length / pageSize);
   const visibleProjects = shown.slice((currentPage - 1) * pageSize, currentPage * pageSize);
@@ -139,7 +148,7 @@ function Projects() {
       };
       await saveDoc.mutateAsync(doc);
       toast.success(editing ? "Project updated" : "Project created");
-      setModal(false); await refetch();
+      setModal(false); await Promise.all([refetch(), refetchTabs()]);
     } catch (error) {
       console.error(error); toast.error("Could not save project");
     } finally { setSaving(false); }
@@ -150,7 +159,7 @@ function Projects() {
       await deleteDoc.mutateAsync({ doctype: "JH Project", name: deleteTarget.name });
       toast.success("Project deleted");
       setDeleteTarget(null);
-      await refetch();
+      await Promise.all([refetch(), refetchTabs()]);
     } catch (error) {
       console.error(error);
       toast.error("Could not delete project");
@@ -170,6 +179,7 @@ function Projects() {
         <TabsTrigger value="my-projects" className="data-[state=active]:bg-white text-gray-700 px-4">My Projects</TabsTrigger>
         <TabsTrigger value="created-by-me" className="data-[state=active]:bg-white text-gray-700 px-4">Created By Me</TabsTrigger>
         <TabsTrigger value="team-projects" className="data-[state=active]:bg-white text-gray-700 px-4">Team Projects</TabsTrigger>
+        {projectTabs?.is_admin && <TabsTrigger value="all-projects" className="data-[state=active]:bg-white text-gray-700 px-4">All Projects</TabsTrigger>}
       </TabsList>
     </Tabs>
     <div className="flex items-center justify-between gap-3">
@@ -184,7 +194,7 @@ function Projects() {
       <SearchableFilterButton label="Due Date" icon="calendar" value={dueDateFilter} options={[{ value: "upcoming", label: "Upcoming" }, { value: "overdue", label: "Overdue" }, { value: "none", label: "No Due Date" }]} onChange={(value) => { setDueDateFilter(value); setCurrentPage(1); }} />
     </div>
     <div className="overflow-x-auto rounded-md border bg-white"><table className="w-full min-w-[950px] text-left text-sm"><thead className="border-b text-muted-foreground"><tr><th className="px-3 py-3">#</th><SortableHeader label="Project ID" active={sortBy === "name"} direction={sortDirection} onClick={() => toggleSort("name")}/><SortableHeader label="Project Name" active={sortBy === "project_name"} direction={sortDirection} onClick={() => toggleSort("project_name")}/><SortableHeader label="Status" active={sortBy === "status"} direction={sortDirection} onClick={() => toggleSort("status")}/><SortableHeader label="Due Date" active={sortBy === "due_date"} direction={sortDirection} onClick={() => toggleSort("due_date")}/><SortableHeader label="Created By" active={sortBy === "created_by"} direction={sortDirection} onClick={() => toggleSort("created_by")}/><th className="px-3 py-3 text-center">Actions</th></tr></thead><tbody className="divide-y">
-      {isLoading ? <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">Loading projects…</td></tr> : shown.length === 0 ? <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">No projects found. Create one to get started.</td></tr> : visibleProjects.map((p, index) => <tr key={p.name} className="cursor-pointer hover:bg-muted/30" onClick={() => navigate(`/jh-digitrack/projects/${encodeURIComponent(p.name)}/items`)}><td className="px-3 py-3">{(currentPage - 1) * pageSize + index + 1}</td><td className="px-3 py-3 font-medium">{p.name}</td><td className="px-3 py-3 font-medium">{p.project_name}</td><td className="px-3 py-3"><span className="rounded-md bg-blue-50 px-2.5 py-1 text-xs text-blue-700">{p.status}</span></td><td className="px-3 py-3">{p.due_date || "—"}</td><td className="px-3 py-3">{p.created_by || p.owner || "—"}</td><td className="px-3 py-2 text-center"><div className="flex justify-center"><Button variant="ghost" size="icon" aria-label={`Edit ${p.project_name}`} onClick={(event) => { event.stopPropagation(); beginEdit(p); }}><FileEdit className="h-4 w-4"/></Button>{p.owner === currentUser && !itemsLoading && !itemsError && !projectsWithItems.has(p.name) && <Button variant="ghost" size="icon" aria-label={`Delete ${p.project_name}`} onClick={(event) => { event.stopPropagation(); setDeleteTarget(p); }}><Trash2 className="h-4 w-4"/></Button>}</div></td></tr>)}</tbody>
+      {isLoading || tabsLoading ? <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">Loading projects…</td></tr> : shown.length === 0 ? <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">No projects found. Create one to get started.</td></tr> : visibleProjects.map((p, index) => <tr key={p.name} className="cursor-pointer hover:bg-muted/30" onClick={() => navigate(`/jh-digitrack/projects/${encodeURIComponent(p.name)}/items`)}><td className="px-3 py-3">{(currentPage - 1) * pageSize + index + 1}</td><td className="px-3 py-3 font-medium">{p.name}</td><td className="px-3 py-3 font-medium">{p.project_name}</td><td className="px-3 py-3"><span className="rounded-md bg-blue-50 px-2.5 py-1 text-xs text-blue-700">{p.status}</span></td><td className="px-3 py-3">{p.due_date || "—"}</td><td className="px-3 py-3">{p.created_by || p.owner || "—"}</td><td className="px-3 py-2 text-center"><div className="flex justify-center"><Button variant="ghost" size="icon" aria-label={`Edit ${p.project_name}`} onClick={(event) => { event.stopPropagation(); beginEdit(p); }}><FileEdit className="h-4 w-4"/></Button>{p.owner === currentUser && !itemsLoading && !itemsError && !projectsWithItems.has(p.name) && <Button variant="ghost" size="icon" aria-label={`Delete ${p.project_name}`} onClick={(event) => { event.stopPropagation(); setDeleteTarget(p); }}><Trash2 className="h-4 w-4"/></Button>}</div></td></tr>)}</tbody>
       {shown.length > 0 && <tfoot><tr><td colSpan={7} className="border-t"><PaginationControls tasksPerPage={pageSize} setTasksPerPage={(size) => { setPageSize(size); setCurrentPage(1); }} totalPages={totalPages} currentPage={currentPage} setCurrentPage={setCurrentPage}/></td></tr></tfoot>}
     </table></div>
 

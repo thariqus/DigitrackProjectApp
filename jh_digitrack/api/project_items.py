@@ -24,6 +24,15 @@ def soft_delete_item(name: str):
 
 
 @frappe.whitelist(methods=["GET"])
+def get_project_tabs() -> dict[str, Any]:
+    """Project names for the current user's My Projects and Team Projects tabs."""
+    from jh_digitrack.permissions import is_project_admin, project_scope
+
+    scope = project_scope()
+    return {"is_admin": is_project_admin(), "my": sorted(scope["my"]), "team": sorted(scope["team"])}
+
+
+@frappe.whitelist(methods=["GET"])
 def get_project_item_audit(project_id: str) -> list[dict[str, Any]]:
     frappe.has_permission(doctype="JH Project", ptype="read", doc=project_id, throw=True)
 

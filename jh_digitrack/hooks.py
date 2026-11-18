@@ -127,11 +127,14 @@ after_migrate = "jh_digitrack.setup.after_migrate.run"
 
 permission_query_conditions = {
     "JH Travel Request": "jh_digitrack.permissions.travel_request_query",
+    "JH Project": "jh_digitrack.permissions.project_query",
+    "JH Project Item": "jh_digitrack.permissions.project_item_query",
 }
-#
-# has_permission = {
-# 	"Event": "frappe.desk.doctype.event.event.has_permission",
-# }
+
+has_permission = {
+    "JH Project": "jh_digitrack.permissions.project_has_permission",
+    "JH Project Item": "jh_digitrack.permissions.project_item_has_permission",
+}
 
 # DocType Class
 # ---------------
