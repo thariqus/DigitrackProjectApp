@@ -156,6 +156,11 @@ def send_project_item_email(
     if not message or not message.strip():
         frappe.throw("Message is required")
 
+    # Each person gets one copy: To wins over CC, and CC over BCC.
+    recipients = list(dict.fromkeys(recipients))
+    cc = [name for name in dict.fromkeys(cc or []) if name not in recipients]
+    bcc = [name for name in dict.fromkeys(bcc or []) if name not in recipients and name not in cc]
+
     item = frappe.get_doc("JH Project Item", item_name)
     item.check_permission("read")
     project = frappe.get_doc("JH Project", item.project)
