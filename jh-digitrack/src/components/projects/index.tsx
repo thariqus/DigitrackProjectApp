@@ -89,7 +89,6 @@ function Projects() {
     .map((creator) => ({ value: creator, label: employees.find((employee) => employee.user === creator)?.full_name || creator }));
   const projectsWithItems = new Set(projectItems.map((item) => item.project));
   const myProjects = useMemo(() => new Set(projectTabs?.my ?? []), [projectTabs]);
-  const teamProjects = useMemo(() => new Set(projectTabs?.team ?? []), [projectTabs]);
   const shown = useMemo(() => projects.filter((p) => {
     const matchesSearch = `${p.name} ${p.project_name} ${p.business_unit ?? ""} ${p.status}`.toLowerCase().includes(search.toLowerCase());
     const matchesStatus = !statusFilter || p.status === statusFilter;
@@ -98,15 +97,13 @@ function Projects() {
     // My Projects: created by me or I am a participant. Team Projects: my
     // reporting line's Projects. All Projects (admins only): every Project.
     const matchesTab = activeTab === "my-projects" ? myProjects.has(p.name)
-      : activeTab === "team-projects" ? teamProjects.has(p.name)
-        : activeTab === "created-by-me" ? (p.created_by || p.owner) === currentUser
-          : true;
+        : true;
     return matchesSearch && matchesStatus && matchesCreator && matchesDueDate && matchesTab;
   }).sort((a, b) => {
     const av = sortBy === "created_by" ? (a.created_by || a.owner || "") : (a[sortBy] || "");
     const bv = sortBy === "created_by" ? (b.created_by || b.owner || "") : (b[sortBy] || "");
     return String(av).localeCompare(String(bv)) * (sortDirection === "asc" ? 1 : -1);
-  }), [projects, search, statusFilter, createdByFilter, dueDateFilter, activeTab, currentUser, myProjects, teamProjects, sortBy, sortDirection]);
+  }), [projects, search, statusFilter, createdByFilter, dueDateFilter, activeTab, myProjects, sortBy, sortDirection]);
   const toggleSort = (field: typeof sortBy) => { if (sortBy === field) setSortDirection(sortDirection === "asc" ? "desc" : "asc"); else { setSortBy(field); setSortDirection("asc"); } setCurrentPage(1); };
   const totalPages = Math.ceil(shown.length / pageSize);
   const visibleProjects = shown.slice((currentPage - 1) * pageSize, currentPage * pageSize);
@@ -178,8 +175,6 @@ function Projects() {
       <TabsList className="h-11 w-fit bg-rose-50 p-1">
         <TabsTrigger value="dashboard" className="data-[state=active]:bg-white text-gray-700 px-4">Dashboard</TabsTrigger>
         <TabsTrigger value="my-projects" className="data-[state=active]:bg-white text-gray-700 px-4">My Projects</TabsTrigger>
-        <TabsTrigger value="created-by-me" className="data-[state=active]:bg-white text-gray-700 px-4">Created By Me</TabsTrigger>
-        <TabsTrigger value="team-projects" className="data-[state=active]:bg-white text-gray-700 px-4">Team Projects</TabsTrigger>
         {projectTabs?.is_admin && <TabsTrigger value="all-projects" className="data-[state=active]:bg-white text-gray-700 px-4">All Projects</TabsTrigger>}
       </TabsList>
     </Tabs>

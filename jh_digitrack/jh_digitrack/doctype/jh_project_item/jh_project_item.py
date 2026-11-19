@@ -69,6 +69,7 @@ class JHProjectItem(Document):
             frappe.throw("Req/Def must be FR, NFR, or Defect")
         if self.due_date and self.revised_due_date and getdate(self.revised_due_date) < getdate(self.due_date):
             frappe.throw("Revised Due Date cannot be earlier than Due Date (Actual)")
+        self.validate_due_date_unchanged()
         self.validate_assigned_participants()
 
         previous = self.get_doc_before_save() if not self.is_new() else None
@@ -102,6 +103,13 @@ class JHProjectItem(Document):
             return
         if frappe.db.get_value("JH Project Item", self.name, "deleted_at"):
             frappe.throw("This Item is deleted and cannot be edited")
+
+    def validate_due_date_unchanged(self) -> None:
+        previous = self.get_doc_before_save()
+        if not previous or not previous.due_date:
+            return
+        if not self.due_date or getdate(self.due_date) != getdate(previous.due_date):
+            frappe.throw("Due Date (Actual) cannot be changed. Use Revised Due Date instead.")
 
     def validate_assigned_participants(self) -> None:
         """An Item may have no assignees. The Item form ticks every Project

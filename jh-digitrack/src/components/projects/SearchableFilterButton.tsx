@@ -43,7 +43,7 @@ export default function SearchableFilterButton({
             <CommandItem value={`All ${label}`} onSelect={() => { onChange(""); setOpen(false); }}>
               <Check className={`mr-2 h-4 w-4 ${value ? "opacity-0" : "opacity-100"}`} />All {label}
             </CommandItem>
-            {options.map((option) => <CommandItem key={option.value} value={option.label} onSelect={() => { onChange(option.value); setOpen(false); }}>
+            {options.map((option) => <CommandItem key={option.value} value={option.label} onSelect={() => { onChange(value === option.value ? "" : option.value); setOpen(false); }}>
               <Check className={`mr-2 h-4 w-4 ${value === option.value ? "opacity-100" : "opacity-0"}`} />{option.label}
             </CommandItem>)}
           </CommandGroup>

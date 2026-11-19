@@ -11,8 +11,9 @@ import { useCurrentJhUser, useJhUser } from "@/hooks/auth";
 import { useAddComment, useDocDetail, useDocTypeMeta } from "@/hooks/doc";
 import { queryClient } from "@/utils/query-client";
 
-type Props = { projectId?: string; itemId?: string; createdBy?: string; createdAt?: string; employeeName?: (employee: string) => string };
-type Log = { owner: string; creation: string; comment_type: string; content: string; owner_user_id: string };
+export type ItemEvent = { itemId: string; description: string; action: string; user: string; at: string };
+type Props = { projectId?: string; itemId?: string; createdBy?: string; createdAt?: string; employeeName?: (employee: string) => string; itemEvents?: ItemEvent[] };
+type Log = { owner: string; creation: string; comment_type: string; content: string; owner_user_id: string; action?: string };
 type ChildRow = [string, { employee?: string }];
 type ChildRowChange = [string, number, string, [string, string, string][]];
 const versionValue = (fieldtype: string | undefined, value: unknown) => {
@@ -38,7 +39,7 @@ const employeeTableChange = (fieldname: string, data: { added?: ChildRow[]; remo
 };
 const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (char) => `&#${char.charCodeAt(0)};`);
 
-export default function ProjectTimeline({ projectId, itemId, createdBy, createdAt, employeeName = (employee) => employee }: Props) {
+export default function ProjectTimeline({ projectId, itemId, createdBy, createdAt, employeeName = (employee) => employee, itemEvents = [] }: Props) {
   const doctype = itemId ? "JH Project Item" : "JH Project";
   const documentName = itemId || projectId || "";
   const [comment, setComment] = useState("");
@@ -80,10 +81,15 @@ export default function ProjectTimeline({ projectId, itemId, createdBy, createdA
     owner: createdBy, owner_user_id: createdBy, creation: createdAt,
     comment_type: "Creation", content: "",
   }] : [];
-  const allLogs = useMemo(() => [...comments, ...versions, ...creationLogs].sort(
+  const itemLogs: Log[] = useMemo(() => itemEvents.map((event) => ({
+    owner: event.user, owner_user_id: event.user, creation: event.at,
+    comment_type: "Item Event", action: event.action,
+    content: `<b>${escapeHtml(event.itemId)}</b> · ${escapeHtml(event.description || "")}`,
+  })), [itemEvents]);
+  const allLogs = useMemo(() => [...comments, ...versions, ...creationLogs, ...itemLogs].sort(
     (a, b) => new Date(b.creation).getTime() - new Date(a.creation).getTime(),
-  ), [comments, versions, creationLogs]);
-  const activity = allLogs.filter((log) => log.comment_type === "Version Change" || log.comment_type === "Creation");
+  ), [comments, versions, creationLogs, itemLogs]);
+  const activity = allLogs.filter((log) => ["Version Change", "Creation", "Item Event"].includes(log.comment_type));
 
   const submitComment = () => {
     const content = comment.trim();
@@ -105,13 +111,13 @@ export default function ProjectTimeline({ projectId, itemId, createdBy, createdA
       <span className="absolute -left-1 top-1 h-2 w-2 rounded-full bg-red-200" />
       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
         <span className="font-medium">{user?.full_name || log.owner}</span>
-        <span className="text-sm text-gray-500">{log.comment_type === "Creation" ? `created the ${itemId ? "item" : "project"}` : log.comment_type === "Version Change" ? `updated the ${itemId ? "item" : "project"}` : "commented"}</span>
+        <span className="text-sm text-gray-500">{log.action ? log.action : log.comment_type === "Creation" ? `created the ${itemId ? "item" : "project"}` : log.comment_type === "Version Change" ? `updated the ${itemId ? "item" : "project"}` : "commented"}</span>
         <time className="text-xs text-gray-400" dateTime={log.creation}>
           {log.creation ? formatDistanceToNow(new Date(log.creation), { addSuffix: true }) : ""}
         </time>
       </div>
       {log.content && <div className="mt-1 flex items-start gap-2 text-sm text-gray-600">
-        {log.comment_type === "Creation" ? <Plus className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" /> : log.comment_type !== "Version Change" && <MessageSquare className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" />}
+        {log.comment_type === "Creation" ? <Plus className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" /> : !["Version Change", "Item Event"].includes(log.comment_type) && <MessageSquare className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" />}
         <p className="break-words" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(log.content) }} />
       </div>}
     </div>;

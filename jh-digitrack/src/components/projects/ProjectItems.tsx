@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router";
-import { format } from "date-fns";
 import { ArrowLeft, Download, FileEdit, FileText, ListPlus, Mail, Plus, Trash2, X } from "lucide-react";
 import * as XLSX from "xlsx";
 import { toast } from "sonner";
@@ -25,7 +24,7 @@ import DeleteConfirmation from "@/components/tasks/ui/DeleteConfirmation";
 import { PaginationControls } from "@/components/tasks/task-table/pagination-controls";
 import SearchBar from "@/components/tasks/ui/SearchBar";
 import FileAttachmentHandler from "@/components/tasks/task-sheet/FileAttachmentHandler";
-import ProjectTimeline from "./ProjectTimeline";
+import ProjectTimeline, { ItemEvent } from "./ProjectTimeline";
 import SearchableFilterButton from "./SearchableFilterButton";
 import SearchableSelect from "./SearchableSelect";
 import SortableHeader from "./SortableHeader";
@@ -56,14 +55,9 @@ export type ProjectItem = {
 };
 type ItemForm = Pick<ProjectItem, "item_description" | "requirement_or_defect" | "due_date" | "revised_due_date" | "reported_site" | "severity" | "status" | "rca_required">;
 const EMPTY_FORM: ItemForm = { item_description: "", requirement_or_defect: "FR", due_date: "", revised_due_date: "", reported_site: "", severity: "Medium", status: "Open", rca_required: 0 };
+const readOnlyClass = "cursor-not-allowed bg-muted text-muted-foreground";
 const taskDateClass = "pl-3 text-left font-normal w-full h-9 border rounded-sm";
 const dateTime = (value?: string) => value ? new Date(value).toLocaleString() : "—";
-const auditValue = (field: string, value: unknown) => {
-  if (["RCA Required", "RCA Approved"].includes(field) && [0, 1, "0", "1"].includes(value as number | string)) {
-    return Number(value) ? "Yes" : "No";
-  }
-  return String(value ?? "—");
-};
 const readableComment = (content = "") => {
   const doc = new DOMParser().parseFromString(content, "text/html");
   return (doc.body.textContent || "").replace(/\s+/g, " ").trim();
@@ -79,31 +73,29 @@ function ItemRow({ item, index, page, pageSize, creatorName, statusNumber, showP
     .filter((entry: any) => entry.comment_type === "Comment")
     .sort((a: any, b: any) => new Date(b.creation).getTime() - new Date(a.creation).getTime())
     .slice(0, 2);
-  const [timelineOpen, setTimelineOpen] = useState(false);
-  const previousStep = statusSteps.length > 1 ? statusSteps[statusSteps.length - 2] : undefined;
-  const lastChangedAt = statusSteps[statusSteps.length - 1]?.at;
-  return <>
-  <tr className={`cursor-pointer align-top hover:bg-muted/30 ${timelineOpen ? "bg-muted/30" : ""}`} onClick={() => onOpen(item)}>
+  return <tbody className="group cursor-pointer border-t hover:bg-muted/30" onClick={() => onOpen(item)}>
+  <tr className="align-top">
     <td className="px-2 py-3 text-center text-muted-foreground">{(page - 1) * pageSize + index + 1}</td>
     <td className="break-words px-2 py-3 font-medium text-[#972e26]">{item.name}</td>
-    <td className="px-2 py-3"><p className="whitespace-pre-wrap">{item.item_description}</p><div className="mt-2 space-y-1 border-t pt-1.5"><p className="text-[11px] font-medium text-muted-foreground">Comments · Latest 2</p>{comments.length ? comments.map((comment: any) => <p key={comment.name} className="line-clamp-1 text-xs text-muted-foreground" title={readableComment(comment.content)}><span className="font-medium">{creatorName(comment.owner)}:</span> {readableComment(comment.content)}</p>) : <span className="text-xs text-muted-foreground">No comments yet</span>}</div></td>
+    <td className="px-2 py-3"><p className="whitespace-pre-wrap">{item.item_description}</p><div className="mt-2 space-y-1 border-t pt-1.5">{comments.length ? comments.map((comment: any) => <p key={comment.name} className="line-clamp-1 text-xs text-muted-foreground" title={readableComment(comment.content)}><span className="font-medium">{creatorName(comment.owner)}:</span> {readableComment(comment.content)}</p>) : <span className="text-xs text-muted-foreground">No comments yet</span>}</div></td>
     <td className="px-2 py-3">{item.requirement_or_defect}</td>
     <td className="whitespace-nowrap px-2 py-3">{item.due_date || "—"}</td>
     <td className="whitespace-nowrap px-2 py-3">{item.revised_due_date || "—"}</td>
     <td className="px-2 py-3">{item.reported_site || "—"}</td>
     <td className="px-2 py-3"><SeverityBadge severity={item.severity} showNumber={showPriority}/></td>
-    <td className="px-2 py-3"><div className="space-y-1"><StatusBadge status={item.deleted_at ? "Deleted" : item.status} number={item.deleted_at ? undefined : statusNumber}/>{previousStep && lastChangedAt && <button type="button" aria-expanded={timelineOpen} className="block text-left text-[11px] text-muted-foreground underline decoration-dotted underline-offset-2 hover:text-[#972e26]" onClick={(event) => { event.stopPropagation(); setTimelineOpen(!timelineOpen); }}>{statusLabel(previousStep.status)} · {format(new Date(lastChangedAt), "d MMM yy")}</button>}</div></td>
+    <td className="px-2 py-3"><StatusBadge status={item.deleted_at ? "Deleted" : item.status} number={item.deleted_at ? undefined : statusNumber}/></td>
     <td className="px-3 py-2 text-center" onClick={(event) => event.stopPropagation()}><div className="flex items-center justify-center">
       {!item.deleted_at && <Button variant="ghost" size="icon" aria-label={`Edit ${item.name}`} onClick={() => onEdit(item)}><FileEdit className="h-4 w-4"/></Button>}
       {!item.deleted_at && <Button variant="ghost" size="icon" aria-label={`Delete ${item.name}`} onClick={() => onDelete(item)}><Trash2 className="h-4 w-4"/></Button>}
     </div></td>
   </tr>
-  {timelineOpen && <tr className="bg-muted/30">
-    <td colSpan={10} className="border-t border-dashed px-4 py-1.5">
-      <div className="flex items-start gap-3"><span className="shrink-0 pt-1 text-[11px] font-medium text-muted-foreground">Status timeline</span><StatusTimeline steps={statusSteps} statusLabel={statusLabel}/></div>
+  <tr className="bg-slate-50/70">
+    <td/>
+    <td colSpan={9} className="border-t border-slate-100 px-2 py-2">
+      <div className="flex items-start gap-3"><span className="shrink-0 pt-0.5 text-[11px] font-medium text-muted-foreground">Status timeline</span><StatusTimeline steps={statusSteps} statusLabel={statusLabel}/></div>
     </td>
-  </tr>}
-  </>;
+  </tr>
+  </tbody>;
 }
 
 function SeverityBadge({ severity, showNumber }: { severity: string; showNumber: boolean }) {
@@ -123,7 +115,7 @@ export default function ProjectItems() {
   const { data: project, isLoading: loadingProject, refetch: refetchProject } = useDoc<Project>({ doctype: "JH Project", name: projectId, disabled: !projectId });
   const { data: items = [], isLoading, refetch } = useDocs<ProjectItem>({ doctype: ITEM_DOCTYPE, fields: ["*"], filters: [["project", "=", projectId]], orderBy: { field: "modified", order: "desc" }, limit: 5000, enabled: Boolean(projectId) });
   const { data: statuses = [], refetch: refetchStatuses } = useDocs<ItemStatus>({ doctype: "JH Project Item Status", fields: ["name", "status_name", "status_number", "workflow_state"], orderBy: { field: "status_number", order: "asc" }, limit: 500 });
-  const { data: auditLogs = [], isLoading: auditLoading } = useProjectItemAudit(projectId);
+  const { data: auditLogs = [] } = useProjectItemAudit(projectId);
   const { data: users = [] } = useDocs<JHUserMaster>({ doctype: "JH User Master", fields: ["name", "full_name", "user", "email", "active"], limit: 0 });
   const { data: currentUser } = useCurrentUser();
   const saveDoc = useSaveDoc();
@@ -138,6 +130,7 @@ export default function ProjectItems() {
   const [typeFilter, setTypeFilter] = useState("");
   const [severityFilter, setSeverityFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [workflowFilter, setWorkflowFilter] = useState<string>("Open");
   const [sortBy, setSortBy] = useState<"name" | "item_description" | "requirement_or_defect" | "due_date" | "revised_due_date" | "reported_site" | "severity" | "status" | "modified" | "created_at">("modified");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
   const [showDeleted, setShowDeleted] = useState(false);
@@ -184,6 +177,10 @@ export default function ProjectItems() {
     auditLogs.forEach((entry: ProjectItemAuditEntry) => grouped.set(entry.item_id, [...(grouped.get(entry.item_id) || []), entry]));
     return grouped;
   }, [auditLogs]);
+  const itemEvents: ItemEvent[] = useMemo(() => auditLogs.map((entry: ProjectItemAuditEntry) => ({
+    itemId: entry.item_id, description: entry.item_description, user: entry.user, at: entry.timestamp,
+    action: entry.event === "Item created" ? "added an item" : entry.event === "Item deleted" ? "deleted an item" : "modified an item",
+  })), [auditLogs]);
   const statusLabel = (name: string) => {
     const status = statuses.find((entry) => entry.name === name);
     if (!status) return name;
@@ -220,8 +217,9 @@ export default function ProjectItems() {
       && (!typeFilter || item.requirement_or_defect === typeFilter)
       && (!severityFilter || item.severity === severityFilter)
       && (!statusFilter || (statusFilter === "Deleted" ? Boolean(item.deleted_at) : !item.deleted_at && item.status === statusFilter))
+      && (!workflowFilter || Boolean(item.deleted_at) || workflowOf(item.status) === workflowFilter)
       && (!searchText || `${item.name} ${item.item_description} ${item.requirement_or_defect} ${item.severity} ${item.status} ${item.reported_site || ""}`.toLowerCase().includes(searchText)));
-  }, [items, showDeleted, typeFilter, severityFilter, statusFilter, search]);
+  }, [items, showDeleted, typeFilter, severityFilter, statusFilter, workflowFilter, statuses, search]);
   const sortedItems = useMemo(() => [...filteredItems].sort((a, b) => {
     let comparison = 0;
     if (sortBy === "severity") comparison = (SEVERITY_NUMBERS[a.severity] || 99) - (SEVERITY_NUMBERS[b.severity] || 99);
@@ -373,8 +371,9 @@ export default function ProjectItems() {
     <div className="flex flex-wrap items-center gap-3">
       <SearchableFilterButton label="Req/Defect" value={typeFilter} options={TYPES.map((value) => ({ value, label: value }))} onChange={(value) => { setTypeFilter(value); setPage(1); }} />
       <SearchableFilterButton label="Severity" value={severityFilter} options={SEVERITIES.map((value) => ({ value, label: severityLabel(value, showStatusPriority) }))} onChange={(value) => { setSeverityFilter(value); setPage(1); }} />
+      <SearchableFilterButton label="Workflow" value={workflowFilter} options={WORKFLOW_OPTIONS} onChange={(value) => { setWorkflowFilter(value); setPage(1); }} />
       <SearchableFilterButton label="Status" value={statusFilter} options={[...statusesSorted.map((status) => ({ value: status.name, label: statusLabel(status.name) })), { value: "Deleted", label: "Deleted" }]} onChange={(value) => { setStatusFilter(value); setPage(1); }} />
-      <Button variant="outline" className="h-10 border-dashed" onClick={() => { setNewStatusNumber(String(Math.max(0, ...statuses.map((status) => status.status_number)) + 1)); setStatusDialogOpen(true); }}><ListPlus className="mr-2 h-4 w-4"/>Manage Statuses</Button>
+      <Button variant="outline" className="h-10 border-dashed" disabled onClick={() => { setNewStatusNumber(String(Math.max(0, ...statuses.map((status) => status.status_number)) + 1)); setStatusDialogOpen(true); }}><ListPlus className="mr-2 h-4 w-4"/>Manage Statuses</Button>
       <Button variant="outline" className="h-10" onClick={() => {
         const rows = sortedItems.map((item) => ({ "Item ID": item.name, "Item Description": item.item_description, "Req/Defect": item.requirement_or_defect, "Due Date (Actual)": item.due_date || "", "Revised Due Date": item.revised_due_date || "", "Reported Site": item.reported_site || "", Severity: severityLabel(item.severity, showStatusPriority), Status: statusLabel(item.status), "RCA Required": item.rca_required ? "Yes" : "No", "Created By": item.created_by || item.owner || "", "Last Modified": item.modified || "" }));
         const sheet = XLSX.utils.json_to_sheet(rows); const book = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(book, sheet, "Project Items"); XLSX.writeFile(book, `${project.name}-items-${new Date().toISOString().slice(0, 10)}.xlsx`);
@@ -386,24 +385,13 @@ export default function ProjectItems() {
       <table className="w-full min-w-[1180px] table-fixed text-left text-sm">
         <colgroup><col className="w-9"/><col className="w-32"/><col className="w-[220px]"/><col className="w-24"/><col className="w-28"/><col className="w-28"/><col className="w-24"/><col className="w-20"/><col className="w-32"/><col className="w-28"/></colgroup>
         <thead className="border-b text-muted-foreground"><tr><th className="px-2 py-3 text-center">#</th>{([ ["Item ID", "name"], ["Item Description", "item_description"], ["Req/Defect", "requirement_or_defect"], ["Due Date (Actual)", "due_date"], ["Revised Due Date", "revised_due_date"], ["Reported Site", "reported_site"], ["Severity", "severity"], ["Status", "status"] ] as [string, typeof sortBy][]).map(([label, field]) => <SortableHeader key={field} label={label} active={sortBy === field} direction={sortDirection} onClick={() => toggleSort(field)}/>)}<th className="px-2 py-3 text-center">Actions</th></tr></thead>
-        <tbody className="divide-y">
-          {isLoading ? <tr><td colSpan={10} className="p-8 text-center text-muted-foreground">Loading items…</td></tr> : !sortedItems.length ? <tr><td colSpan={10} className="p-8 text-center text-muted-foreground">No items found. Create an item to get started.</td></tr> : visibleItems.map((item, index) => <ItemRow key={item.name} item={item} index={index} page={page} pageSize={pageSize} creatorName={creatorName} statusNumber={showStatusPriority ? statuses.find((status) => status.name === item.status)?.status_number : undefined} showPriority={showStatusPriority} statusSteps={buildStatusSteps(auditByItem.get(item.name) || [], item.status, item.created_at || item.creation)} statusLabel={statusLabel} onOpen={setSelected} onEdit={beginEdit} onDelete={setDeleteTarget}/>) }
-        </tbody>
+        {isLoading ? <tbody><tr><td colSpan={10} className="p-8 text-center text-muted-foreground">Loading items…</td></tr></tbody> : !sortedItems.length ? <tbody><tr><td colSpan={10} className="p-8 text-center text-muted-foreground">No items found. Create an item to get started.</td></tr></tbody> : visibleItems.map((item, index) => <ItemRow key={item.name} item={item} index={index} page={page} pageSize={pageSize} creatorName={creatorName} statusNumber={showStatusPriority ? statuses.find((status) => status.name === item.status)?.status_number : undefined} showPriority={showStatusPriority} statusSteps={buildStatusSteps(auditByItem.get(item.name) || [], item.status, item.created_at || item.creation)} statusLabel={statusLabel} onOpen={setSelected} onEdit={beginEdit} onDelete={setDeleteTarget}/>) }
         {sortedItems.length > 0 && <tfoot><tr><td colSpan={10} className="border-t"><PaginationControls tasksPerPage={pageSize} setTasksPerPage={(size) => { setPageSize(size); setPage(1); }} totalPages={totalPages} currentPage={page} setCurrentPage={setPage}/></td></tr></tfoot>}
       </table>
     </div>
 
-    <section className="overflow-hidden rounded-md border bg-white">
-      <div className="border-b px-4 py-3"><h2 className="font-semibold">Activities</h2></div>
-      {auditLoading ? <p className="p-6 text-center text-sm text-muted-foreground">Loading activities…</p> : !auditLogs.length ? <p className="p-6 text-center text-sm text-muted-foreground">No item activities yet.</p> : <ol className="max-h-[480px] space-y-0 overflow-y-auto px-5 py-4">{auditLogs.map((entry: ProjectItemAuditEntry, index: number) => {
-        const EventIcon = entry.event === "Item created" ? Plus : entry.event === "Item deleted" ? Trash2 : FileEdit;
-        return <li key={`${entry.item_id}-${entry.event}-${entry.timestamp}-${index}`} className="relative ml-3 border-l pb-6 pl-7 last:border-transparent last:pb-1">
-          <span className="absolute -left-[17px] top-0 flex h-8 w-8 items-center justify-center rounded-full border bg-white text-[#972e26]"><EventIcon className="h-4 w-4"/></span>
-          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1"><div><span className="font-medium">{creatorName(entry.user)}</span><span className="text-muted-foreground"> {entry.event.toLowerCase()} </span><span className="font-medium">{entry.item_id}</span></div><time className="text-xs text-muted-foreground">{dateTime(entry.timestamp)}</time></div>
-          <p className="mt-1 text-sm text-muted-foreground">{entry.item_description}</p>
-          {entry.changes.length > 0 && <ul className="mt-2 space-y-1 rounded-md bg-muted/30 px-3 py-2 text-sm">{entry.changes.map((change, changeIndex) => <li key={`${change.field}-${changeIndex}`}><span className="font-medium">{change.field}:</span> {auditValue(change.field, change.from)} <span className="px-1 text-muted-foreground">→</span> {auditValue(change.field, change.to)}</li>)}</ul>}
-        </li>;
-      })}</ol>}
+    <section className="rounded-md border bg-white px-4 pb-4">
+      <ProjectTimeline projectId={project.name} createdBy={project.created_by || project.owner} createdAt={project.creation} employeeName={participantName} itemEvents={itemEvents} />
     </section>
 
     <Sheet open={formOpen} onOpenChange={setFormOpen}>
@@ -414,20 +402,25 @@ export default function ProjectItems() {
             <div className="space-y-6 py-5 pb-28 pr-4">
               {editingLocked && <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">This Item is closed, so its RCA fields are locked. To change them, move the Status to an Open workflow status. This resets the RCA approval.</div>}
               <div className="grid gap-6 sm:grid-cols-2">
-                <div className="space-y-2"><Label htmlFor="item-project">Project</Label><Input id="item-project" value={`${project.name} · ${project.project_name}`} readOnly/></div>
+                {editing && <div className="space-y-2"><Label>Item ID</Label><Input value={editing.name} className={readOnlyClass} readOnly/></div>}
+                <div className="space-y-2"><Label htmlFor="item-project">Project</Label><Input id="item-project" value={`${project.name} · ${project.project_name}`} className={readOnlyClass} readOnly/></div>
+                {editing && <>
+                  <div className="space-y-2"><Label>Created By</Label><Input value={creatorName(editing.created_by || editing.owner)} className={readOnlyClass} readOnly/></div>
+                  <div className="space-y-2"><Label>Created Date Time</Label><Input value={dateTime(editing.created_at || editing.creation)} className={readOnlyClass} readOnly/></div>
+                </>}
+              </div>
+              <div className="grid gap-6 sm:grid-cols-2">
                 <div className="space-y-2 sm:col-span-2"><Label htmlFor="item-description">Item Description</Label><Textarea id="item-description" rows={5} required value={form.item_description} onChange={(e) => setForm({ ...form, item_description: e.target.value })}/></div>
-                <div className="space-y-2"><Label htmlFor="item-type">Req/Defect <span className="text-red-600">*</span></Label><SearchableSelect id="item-type" options={TYPES.map((value) => ({ value, label: value }))} value={form.requirement_or_defect} onChange={(value) => setForm({ ...form, requirement_or_defect: value })} placeholder="Select requirement or defect"/></div>
-                <div className="space-y-2"><Label htmlFor="item-severity">Severity <span className="text-red-600">*</span></Label><SearchableSelect id="item-severity" options={SEVERITIES.map((value) => ({ value, label: severityLabel(value, showStatusPriority) }))} value={form.severity} onChange={(value) => setForm({ ...form, severity: value })} placeholder="Select severity"/></div>
-                <div className="space-y-2"><Label htmlFor="item-due-date">Due Date (Actual)</Label><input id="item-due-date" type="date" className={taskDateClass} value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })}/></div>
+                <div className="grid gap-6 sm:col-span-2 sm:grid-cols-[140px_1fr_1fr]">
+                  <div className="space-y-2"><Label htmlFor="item-type">Req/Defect <span className="text-red-600">*</span></Label><SearchableSelect id="item-type" options={TYPES.map((value) => ({ value, label: value }))} value={form.requirement_or_defect} onChange={(value) => setForm({ ...form, requirement_or_defect: value })} placeholder="Select"/></div>
+                  <div className="space-y-2"><Label htmlFor="item-status">Status <span className="text-red-600">*</span></Label><SearchableSelect id="item-status" options={statusesSorted.map((status) => ({ value: status.name, label: statusLabel(status.name) }))} value={form.status} onChange={(value) => setForm({ ...form, status: value })} placeholder="Select status"/></div>
+                  <div className="space-y-2"><Label htmlFor="item-severity">Severity <span className="text-red-600">*</span></Label><SearchableSelect id="item-severity" options={SEVERITIES.map((value) => ({ value, label: severityLabel(value, showStatusPriority) }))} value={form.severity} onChange={(value) => setForm({ ...form, severity: value })} placeholder="Select severity"/></div>
+                </div>
+                <div className="space-y-2"><Label htmlFor="item-due-date">Due Date (Actual)</Label><input id="item-due-date" type="date" className={`${taskDateClass} ${editing?.due_date ? readOnlyClass : ""}`} value={form.due_date} readOnly={Boolean(editing?.due_date)} onChange={(e) => setForm({ ...form, due_date: e.target.value })}/></div>
                 <div className="space-y-2"><Label htmlFor="item-revised-date">Revised Due Date</Label><input id="item-revised-date" type="date" className={taskDateClass} min={form.due_date || undefined} value={form.revised_due_date} onChange={(e) => setForm({ ...form, revised_due_date: e.target.value })}/></div>
-                <div className="space-y-2"><Label htmlFor="item-status">Status <span className="text-red-600">*</span></Label><SearchableSelect id="item-status" options={statusesSorted.map((status) => ({ value: status.name, label: statusLabel(status.name) }))} value={form.status} onChange={(value) => setForm({ ...form, status: value })} placeholder="Select status"/></div>
                 <div className="space-y-2 sm:col-span-2"><div className="flex items-center justify-between"><Label>Assigned Participants</Label>{assignableIds.length > 0 && <div className="flex gap-3 text-xs"><button type="button" className="text-[#972e26] hover:underline" onClick={() => setAssignedIds(assignableIds)}>Select all</button><button type="button" className="text-muted-foreground hover:underline" onClick={() => setAssignedIds([])}>Clear</button></div>}</div>{assignableIds.length ? <div className="grid max-h-40 gap-2 overflow-y-auto rounded-md border p-3 sm:grid-cols-3">{assignableIds.map((id) => <label key={id} className="flex items-center gap-2 text-sm"><input type="checkbox" className="h-4 w-4 accent-[#972e26]" checked={assignedIds.includes(id)} onChange={(event) => toggleAssigned(id, event.target.checked)}/><span className="truncate">{participantName(id)}</span></label>)}</div> : <p className="text-sm text-muted-foreground">This Project has no participants.</p>}</div>
                 <div className="flex items-center gap-3 sm:col-span-2"><input id="rca-required" type="checkbox" className="h-4 w-4 accent-[#972e26]" checked={Boolean(form.rca_required)} disabled={Boolean(editing?.rca_required) || editingLocked} onChange={(event) => setForm({ ...form, rca_required: event.target.checked ? 1 : 0 })}/><Label htmlFor="rca-required">RCA Required</Label><input id="rca-verified" type="checkbox" className="ml-4 h-4 w-4 accent-emerald-600" checked={Boolean(editing?.rca_approved)} disabled readOnly/><Label htmlFor="rca-verified" className="text-muted-foreground">RCA Verified</Label>{Boolean(editing?.rca_approved) && <span className="text-sm text-emerald-700">By {creatorName(editing.rca_approved_by)} · {dateTime(editing.rca_approved_at)}</span>}</div>
                 <div className="space-y-2"><Label htmlFor="reported-site">Reported Site</Label><Input id="reported-site" value={form.reported_site} onChange={(e) => setForm({ ...form, reported_site: e.target.value })}/></div>
-                {editing && <>
-                  <div className="space-y-2"><Label>Created By</Label><Input value={creatorName(editing.created_by || editing.owner)} readOnly/></div>
-                  <div className="space-y-2"><Label>Created Date Time</Label><Input value={dateTime(editing.created_at || editing.creation)} readOnly/></div>
-                </>}
               </div>
               <FileAttachmentHandler key={editing?.name || "new-item"} allowedExtensions={["xls", "xlsx", "pdf", "doc", "docx"]} existingFiles={currentAttachments} onFilesChange={setNewFiles} onExistingFileRemove={removeAttachment} getAttachmentOwner={attachmentOwner} currentUser={currentUser} taskOwner={editing?.owner}/>
               {editing && <ProjectTimeline itemId={editing.name} createdBy={editing.created_by || editing.owner} createdAt={editing.created_at || editing.creation} employeeName={participantName} />}
