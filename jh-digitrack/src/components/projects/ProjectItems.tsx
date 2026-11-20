@@ -31,6 +31,7 @@ import SortableHeader from "./SortableHeader";
 import StatusTimeline from "./StatusTimeline";
 import { StatusStep, buildStatusSteps } from "./statusSteps";
 import { MultiSelectCombobox } from "@/components/ui/multi-select";
+import { SelectedNames } from "./SelectedNames";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const ITEM_DOCTYPE = "JH Project Item";
@@ -55,18 +56,17 @@ export type ProjectItem = {
 };
 type ItemForm = Pick<ProjectItem, "item_description" | "requirement_or_defect" | "due_date" | "revised_due_date" | "reported_site" | "severity" | "status" | "rca_required">;
 const EMPTY_FORM: ItemForm = { item_description: "", requirement_or_defect: "FR", due_date: "", revised_due_date: "", reported_site: "", severity: "Medium", status: "Open", rca_required: 0 };
-const readOnlyClass = "cursor-not-allowed bg-muted text-muted-foreground";
-const taskDateClass = "pl-3 text-left font-normal w-full h-9 border rounded-sm";
 const dateTime = (value?: string) => value ? new Date(value).toLocaleString() : "—";
+const formatDate = (value: string) => new Date(`${value}T00:00:00`).toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric" });
 const readableComment = (content = "") => {
   const doc = new DOMParser().parseFromString(content, "text/html");
   return (doc.body.textContent || "").replace(/\s+/g, " ").trim();
 };
 
-function ItemRow({ item, index, page, pageSize, creatorName, statusNumber, showPriority, statusSteps, statusLabel, onOpen, onEdit, onDelete }: {
+function ItemRow({ item, index, page, pageSize, creatorName, statusNumber, showPriority, statusSteps, statusLabel, onOpen, onEdit, onDelete, canDelete }: {
   item: ProjectItem; index: number; page: number; pageSize: number; creatorName: (id?: string) => string; statusNumber?: number; showPriority: boolean;
   statusSteps: StatusStep[]; statusLabel: (status: string) => string;
-  onOpen: (item: ProjectItem) => void; onEdit: (item: ProjectItem) => void; onDelete: (item: ProjectItem) => void;
+  onOpen: (item: ProjectItem) => void; onEdit: (item: ProjectItem) => void; onDelete: (item: ProjectItem) => void; canDelete: boolean;
 }) {
   const { data: detail } = useDocDetail({ doctype: ITEM_DOCTYPE, name: item.name });
   const comments = [...(detail?.docinfo?.comments ?? [])]
@@ -86,7 +86,7 @@ function ItemRow({ item, index, page, pageSize, creatorName, statusNumber, showP
     <td className="px-2 py-3"><StatusBadge status={item.deleted_at ? "Deleted" : item.status} number={item.deleted_at ? undefined : statusNumber}/></td>
     <td className="px-3 py-2 text-center" onClick={(event) => event.stopPropagation()}><div className="flex items-center justify-center">
       {!item.deleted_at && <Button variant="ghost" size="icon" aria-label={`Edit ${item.name}`} onClick={() => onEdit(item)}><FileEdit className="h-4 w-4"/></Button>}
-      {!item.deleted_at && <Button variant="ghost" size="icon" aria-label={`Delete ${item.name}`} onClick={() => onDelete(item)}><Trash2 className="h-4 w-4"/></Button>}
+      {!item.deleted_at && canDelete && <Button variant="ghost" size="icon" aria-label={`Delete ${item.name}`} onClick={() => onDelete(item)}><Trash2 className="h-4 w-4"/></Button>}
     </div></td>
   </tr>
   <tr className="bg-slate-50/70">
@@ -115,7 +115,7 @@ export default function ProjectItems() {
   const { data: project, isLoading: loadingProject, refetch: refetchProject } = useDoc<Project>({ doctype: "JH Project", name: projectId, disabled: !projectId });
   const { data: items = [], isLoading, refetch } = useDocs<ProjectItem>({ doctype: ITEM_DOCTYPE, fields: ["*"], filters: [["project", "=", projectId]], orderBy: { field: "modified", order: "desc" }, limit: 5000, enabled: Boolean(projectId) });
   const { data: statuses = [], refetch: refetchStatuses } = useDocs<ItemStatus>({ doctype: "JH Project Item Status", fields: ["name", "status_name", "status_number", "workflow_state"], orderBy: { field: "status_number", order: "asc" }, limit: 500 });
-  const { data: auditLogs = [] } = useProjectItemAudit(projectId);
+  const { data: auditLogs = [], isLoading: loadingAudit } = useProjectItemAudit(projectId);
   const { data: users = [] } = useDocs<JHUserMaster>({ doctype: "JH User Master", fields: ["name", "full_name", "user", "email", "active"], limit: 0 });
   const { data: currentUser } = useCurrentUser();
   const saveDoc = useSaveDoc();
@@ -157,6 +157,7 @@ export default function ProjectItems() {
   const [statusSaving, setStatusSaving] = useState(false);
   const [form, setForm] = useState<ItemForm>(EMPTY_FORM);
   const [assignedIds, setAssignedIds] = useState<string[]>([]);
+  const [assignedSearch, setAssignedSearch] = useState("");
   const [newFiles, setNewFiles] = useState<File[]>([]);
   const { data: editingDetail } = useDocDetail({ doctype: ITEM_DOCTYPE, name: editing?.name || "", disabled: !editing });
   const { data: selectedDetail } = useDocDetail({ doctype: ITEM_DOCTYPE, name: selected?.name || "", disabled: !selected });
@@ -177,6 +178,9 @@ export default function ProjectItems() {
     auditLogs.forEach((entry: ProjectItemAuditEntry) => grouped.set(entry.item_id, [...(grouped.get(entry.item_id) || []), entry]));
     return grouped;
   }, [auditLogs]);
+  // An Item can be deleted only until its first saved edit. Until the history
+  // has loaded, treat every Item as edited so the button never flashes in.
+  const canDelete = (item: ProjectItem) => !loadingAudit && !(auditByItem.get(item.name) || []).some((entry) => entry.event === "Item edited");
   const itemEvents: ItemEvent[] = useMemo(() => auditLogs.map((entry: ProjectItemAuditEntry) => ({
     itemId: entry.item_id, description: entry.item_description, user: entry.user, at: entry.timestamp,
     action: entry.event === "Item created" ? "added an item" : entry.event === "Item deleted" ? "deleted an item" : "modified an item",
@@ -199,7 +203,8 @@ export default function ProjectItems() {
   const participantIds = Array.from(new Set((project?.participants || []).map((participant) => participant.employee)));
   const assignableIds = Array.from(new Set([...participantIds, ...assignedIds]));
   const participantName = (id: string) => users.find((user) => user.name === id)?.full_name || id;
-  const toggleAssigned = (id: string, checked: boolean) => setAssignedIds(checked ? [...assignedIds, id] : assignedIds.filter((assigned) => assigned !== id));
+  const assignableOptions = assignableIds.map((id) => ({ value: id, label: participantName(id) }));
+  const visibleAssignableOptions = assignableOptions.filter((option) => option.label.toLowerCase().includes(assignedSearch.toLowerCase()));
   const emailOptions = users.filter((user) => user.active !== 0 && Boolean(user.email) && participantIds.includes(user.name)).map((user) => ({ value: user.name, label: `${user.full_name || user.name} · ${user.email}` }));
   const visibleEmailOptions = emailOptions.filter((option) => option.label.toLowerCase().includes(emailSearch.toLowerCase()));
   // Each list offers only people not already picked in the other two.
@@ -240,13 +245,14 @@ export default function ProjectItems() {
     if (name) await queryClient.invalidateQueries({ queryKey: ["DocInfo", { doctype: ITEM_DOCTYPE, name }] });
     await refetch();
   };
-  const beginCreate = () => { setEditing(null); setForm({ ...EMPTY_FORM }); setAssignedIds(participantIds); setNewFiles([]); setFormOpen(true); };
+  const beginCreate = () => { setEditing(null); setForm({ ...EMPTY_FORM }); setAssignedIds(participantIds); setAssignedSearch(""); setNewFiles([]); setFormOpen(true); };
   const beginEdit = async (item: ProjectItem) => {
     try {
       const latest = await frappeClient.db.getDoc(ITEM_DOCTYPE, item.name) as ProjectItem;
       setEditing(latest);
       setForm({ item_description: latest.item_description || "", requirement_or_defect: latest.requirement_or_defect || "FR", due_date: latest.due_date || "", revised_due_date: latest.revised_due_date || "", reported_site: latest.reported_site || "", severity: latest.severity || "Medium", status: latest.status || "Open", rca_required: latest.rca_required || 0 });
       setAssignedIds((latest.assigned_participants || []).map((row) => row.employee));
+      setAssignedSearch("");
       setNewFiles([]);
       setSelected(null);
       setFormOpen(true);
@@ -272,6 +278,7 @@ export default function ProjectItems() {
   const saveItem = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!form.item_description.trim()) return toast.error("Item Description is required");
+    if (!assignedIds.length) return toast.error("Add at least one Assigned Participant");
     if (form.due_date && form.revised_due_date && form.revised_due_date < form.due_date) return toast.error("Revised Due Date cannot be earlier than Due Date (Actual)");
     if (form.rca_required && !editingLocked && workflowOf(form.status) === "Closed") {
       setRcaComments(""); setRcaDialogOpen(true); return;
@@ -385,7 +392,7 @@ export default function ProjectItems() {
       <table className="w-full min-w-[1180px] table-fixed text-left text-sm">
         <colgroup><col className="w-9"/><col className="w-32"/><col className="w-[220px]"/><col className="w-24"/><col className="w-28"/><col className="w-28"/><col className="w-24"/><col className="w-20"/><col className="w-32"/><col className="w-28"/></colgroup>
         <thead className="border-b text-muted-foreground"><tr><th className="px-2 py-3 text-center">#</th>{([ ["Item ID", "name"], ["Item Description", "item_description"], ["Req/Defect", "requirement_or_defect"], ["Due Date (Actual)", "due_date"], ["Revised Due Date", "revised_due_date"], ["Reported Site", "reported_site"], ["Severity", "severity"], ["Status", "status"] ] as [string, typeof sortBy][]).map(([label, field]) => <SortableHeader key={field} label={label} active={sortBy === field} direction={sortDirection} onClick={() => toggleSort(field)}/>)}<th className="px-2 py-3 text-center">Actions</th></tr></thead>
-        {isLoading ? <tbody><tr><td colSpan={10} className="p-8 text-center text-muted-foreground">Loading items…</td></tr></tbody> : !sortedItems.length ? <tbody><tr><td colSpan={10} className="p-8 text-center text-muted-foreground">No items found. Create an item to get started.</td></tr></tbody> : visibleItems.map((item, index) => <ItemRow key={item.name} item={item} index={index} page={page} pageSize={pageSize} creatorName={creatorName} statusNumber={showStatusPriority ? statuses.find((status) => status.name === item.status)?.status_number : undefined} showPriority={showStatusPriority} statusSteps={buildStatusSteps(auditByItem.get(item.name) || [], item.status, item.created_at || item.creation)} statusLabel={statusLabel} onOpen={setSelected} onEdit={beginEdit} onDelete={setDeleteTarget}/>) }
+        {isLoading ? <tbody><tr><td colSpan={10} className="p-8 text-center text-muted-foreground">Loading items…</td></tr></tbody> : !sortedItems.length ? <tbody><tr><td colSpan={10} className="p-8 text-center text-muted-foreground">No items found. Create an item to get started.</td></tr></tbody> : visibleItems.map((item, index) => <ItemRow key={item.name} canDelete={canDelete(item)} item={item} index={index} page={page} pageSize={pageSize} creatorName={creatorName} statusNumber={showStatusPriority ? statuses.find((status) => status.name === item.status)?.status_number : undefined} showPriority={showStatusPriority} statusSteps={buildStatusSteps(auditByItem.get(item.name) || [], item.status, item.created_at || item.creation)} statusLabel={statusLabel} onOpen={setSelected} onEdit={beginEdit} onDelete={setDeleteTarget}/>) }
         {sortedItems.length > 0 && <tfoot><tr><td colSpan={10} className="border-t"><PaginationControls tasksPerPage={pageSize} setTasksPerPage={(size) => { setPageSize(size); setPage(1); }} totalPages={totalPages} currentPage={page} setCurrentPage={setPage}/></td></tr></tfoot>}
       </table>
     </div>
@@ -396,32 +403,28 @@ export default function ProjectItems() {
 
     <Sheet open={formOpen} onOpenChange={setFormOpen}>
       <SheetContent className="px-5 sm:max-w-5xl">
-        <SheetHeader className="flex-row items-center justify-between px-0"><SheetTitle className="max-w-[100ch] truncate text-2xl font-semibold">{editing ? "Edit Item" : "Create Item"}</SheetTitle><SheetClose asChild><Button variant="ghost" size="icon" aria-label="Close"><X className="size-4"/></Button></SheetClose></SheetHeader>
+        <SheetHeader className="flex-row items-start justify-between px-0 pb-2"><div className="min-w-0"><SheetTitle className="max-w-[100ch] truncate text-2xl font-semibold">{editing ? "Edit Item" : "Create Item"}</SheetTitle><p className="mt-1 truncate text-sm text-muted-foreground">{editing && <><span className="font-medium text-foreground">{editing.name}</span> · </>}Project {project.name} · {project.project_name}{editing && <> · Created by {creatorName(editing.created_by || editing.owner)} on {dateTime(editing.created_at || editing.creation)}</>}</p>{editing?.due_date && <p className="mt-1 text-sm font-semibold text-[#972e26]">Due Date (Actual): {formatDate(editing.due_date)}</p>}</div><SheetClose asChild><Button variant="ghost" size="icon" aria-label="Close"><X className="size-4"/></Button></SheetClose></SheetHeader>
         <form onSubmit={saveItem} className="relative">
           <ScrollArea className="h-[calc(100vh-120px)]">
-            <div className="space-y-6 py-5 pb-28 pr-4">
+            <div className="space-y-5 pt-2 pb-28 pr-4">
               {editingLocked && <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">This Item is closed, so its RCA fields are locked. To change them, move the Status to an Open workflow status. This resets the RCA approval.</div>}
               <div className="grid gap-6 sm:grid-cols-2">
-                {editing && <div className="space-y-2"><Label>Item ID</Label><Input value={editing.name} className={readOnlyClass} readOnly/></div>}
-                <div className="space-y-2"><Label htmlFor="item-project">Project</Label><Input id="item-project" value={`${project.name} · ${project.project_name}`} className={readOnlyClass} readOnly/></div>
-                {editing && <>
-                  <div className="space-y-2"><Label>Created By</Label><Input value={creatorName(editing.created_by || editing.owner)} className={readOnlyClass} readOnly/></div>
-                  <div className="space-y-2"><Label>Created Date Time</Label><Input value={dateTime(editing.created_at || editing.creation)} className={readOnlyClass} readOnly/></div>
-                </>}
-              </div>
-              <div className="grid gap-6 sm:grid-cols-2">
-                <div className="space-y-2 sm:col-span-2"><Label htmlFor="item-description">Item Description</Label><Textarea id="item-description" rows={5} required value={form.item_description} onChange={(e) => setForm({ ...form, item_description: e.target.value })}/></div>
-                <div className="grid gap-6 sm:col-span-2 sm:grid-cols-[140px_1fr_1fr]">
-                  <div className="space-y-2"><Label htmlFor="item-type">Req/Defect <span className="text-red-600">*</span></Label><SearchableSelect id="item-type" options={TYPES.map((value) => ({ value, label: value }))} value={form.requirement_or_defect} onChange={(value) => setForm({ ...form, requirement_or_defect: value })} placeholder="Select"/></div>
-                  <div className="space-y-2"><Label htmlFor="item-status">Status <span className="text-red-600">*</span></Label><SearchableSelect id="item-status" options={statusesSorted.map((status) => ({ value: status.name, label: statusLabel(status.name) }))} value={form.status} onChange={(value) => setForm({ ...form, status: value })} placeholder="Select status"/></div>
-                  <div className="space-y-2"><Label htmlFor="item-severity">Severity <span className="text-red-600">*</span></Label><SearchableSelect id="item-severity" options={SEVERITIES.map((value) => ({ value, label: severityLabel(value, showStatusPriority) }))} value={form.severity} onChange={(value) => setForm({ ...form, severity: value })} placeholder="Select severity"/></div>
+                <div className="flex flex-col gap-2"><Label htmlFor="item-description">Item Description <span className="text-red-600">*</span></Label><Textarea id="item-description" required value={form.item_description} onChange={(e) => setForm({ ...form, item_description: e.target.value })} className="field-sizing-fixed h-[180px] resize-none overflow-y-auto"/></div>
+                <div className="space-y-4">
+                  <div className="space-y-2"><div className="flex items-center justify-between"><Label>Assigned Participants <span className="text-red-600">*</span></Label>{assignableIds.length > 0 && <div className="flex gap-3 text-xs"><button type="button" className="text-[#972e26] hover:underline" onClick={() => setAssignedIds(assignableIds)}>Select all</button><button type="button" className="text-muted-foreground hover:underline" onClick={() => setAssignedIds([])}>Clear</button></div>}</div>{assignableIds.length ? <><MultiSelectCombobox options={visibleAssignableOptions} selectedOptions={assignableOptions} selected={assignedIds} onChange={setAssignedIds} onSearch={setAssignedSearch} searchKeyword={assignedSearch} placeholder="Select assigned participants" emptyMessage="No project participants found." maxVisible={2} className="font-normal"/><SelectedNames names={assignedIds.map(participantName)}/></> : <p className="text-sm text-muted-foreground">This Project has no participants. Add participants to the Project first.</p>}</div>
+                  <div className="grid grid-cols-2 gap-4">
+                    {!editing?.due_date && <div className="space-y-2"><Label htmlFor="item-due-date">Due Date (Actual)</Label><Input id="item-due-date" type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })}/></div>}
+                    {editing && <div className="space-y-2"><Label htmlFor="item-revised-date">Revised Due Date</Label><Input id="item-revised-date" type="date" min={form.due_date || undefined} value={form.revised_due_date} onChange={(e) => setForm({ ...form, revised_due_date: e.target.value })}/></div>}
+                  </div>
                 </div>
-                <div className="space-y-2"><Label htmlFor="item-due-date">Due Date (Actual)</Label><input id="item-due-date" type="date" className={`${taskDateClass} ${editing?.due_date ? readOnlyClass : ""}`} value={form.due_date} readOnly={Boolean(editing?.due_date)} onChange={(e) => setForm({ ...form, due_date: e.target.value })}/></div>
-                <div className="space-y-2"><Label htmlFor="item-revised-date">Revised Due Date</Label><input id="item-revised-date" type="date" className={taskDateClass} min={form.due_date || undefined} value={form.revised_due_date} onChange={(e) => setForm({ ...form, revised_due_date: e.target.value })}/></div>
-                <div className="space-y-2 sm:col-span-2"><div className="flex items-center justify-between"><Label>Assigned Participants</Label>{assignableIds.length > 0 && <div className="flex gap-3 text-xs"><button type="button" className="text-[#972e26] hover:underline" onClick={() => setAssignedIds(assignableIds)}>Select all</button><button type="button" className="text-muted-foreground hover:underline" onClick={() => setAssignedIds([])}>Clear</button></div>}</div>{assignableIds.length ? <div className="grid max-h-40 gap-2 overflow-y-auto rounded-md border p-3 sm:grid-cols-3">{assignableIds.map((id) => <label key={id} className="flex items-center gap-2 text-sm"><input type="checkbox" className="h-4 w-4 accent-[#972e26]" checked={assignedIds.includes(id)} onChange={(event) => toggleAssigned(id, event.target.checked)}/><span className="truncate">{participantName(id)}</span></label>)}</div> : <p className="text-sm text-muted-foreground">This Project has no participants.</p>}</div>
-                <div className="flex items-center gap-3 sm:col-span-2"><input id="rca-required" type="checkbox" className="h-4 w-4 accent-[#972e26]" checked={Boolean(form.rca_required)} disabled={Boolean(editing?.rca_required) || editingLocked} onChange={(event) => setForm({ ...form, rca_required: event.target.checked ? 1 : 0 })}/><Label htmlFor="rca-required">RCA Required</Label><input id="rca-verified" type="checkbox" className="ml-4 h-4 w-4 accent-emerald-600" checked={Boolean(editing?.rca_approved)} disabled readOnly/><Label htmlFor="rca-verified" className="text-muted-foreground">RCA Verified</Label>{Boolean(editing?.rca_approved) && <span className="text-sm text-emerald-700">By {creatorName(editing.rca_approved_by)} · {dateTime(editing.rca_approved_at)}</span>}</div>
+              </div>
+              <div className="grid gap-6 sm:grid-cols-[140px_1fr_1fr_1fr]">
+                <div className="space-y-2"><Label htmlFor="item-type">Req/Defect <span className="text-red-600">*</span></Label><SearchableSelect id="item-type" options={TYPES.map((value) => ({ value, label: value }))} value={form.requirement_or_defect} onChange={(value) => setForm({ ...form, requirement_or_defect: value })} placeholder="Select"/></div>
+                <div className="space-y-2"><Label htmlFor="item-status">Status <span className="text-red-600">*</span></Label><SearchableSelect id="item-status" options={statusesSorted.map((status) => ({ value: status.name, label: statusLabel(status.name) }))} value={form.status} onChange={(value) => setForm({ ...form, status: value })} placeholder="Select status"/></div>
+                <div className="space-y-2"><Label htmlFor="item-severity">Severity <span className="text-red-600">*</span></Label><SearchableSelect id="item-severity" options={SEVERITIES.map((value) => ({ value, label: severityLabel(value, showStatusPriority) }))} value={form.severity} onChange={(value) => setForm({ ...form, severity: value })} placeholder="Select severity"/></div>
                 <div className="space-y-2"><Label htmlFor="reported-site">Reported Site</Label><Input id="reported-site" value={form.reported_site} onChange={(e) => setForm({ ...form, reported_site: e.target.value })}/></div>
               </div>
+              <div className="flex items-center gap-3"><input id="rca-required" type="checkbox" className="h-4 w-4 accent-[#972e26]" checked={Boolean(form.rca_required)} disabled={Boolean(editing?.rca_required) || editingLocked} onChange={(event) => setForm({ ...form, rca_required: event.target.checked ? 1 : 0 })}/><Label htmlFor="rca-required">RCA Required</Label><input id="rca-verified" type="checkbox" className="ml-4 h-4 w-4 accent-emerald-600" checked={Boolean(editing?.rca_approved)} disabled readOnly/><Label htmlFor="rca-verified" className="text-muted-foreground">RCA Verified</Label>{Boolean(editing?.rca_approved) && <span className="text-sm text-emerald-700">By {creatorName(editing.rca_approved_by)} · {dateTime(editing.rca_approved_at)}</span>}</div>
               <FileAttachmentHandler key={editing?.name || "new-item"} allowedExtensions={["xls", "xlsx", "pdf", "doc", "docx"]} existingFiles={currentAttachments} onFilesChange={setNewFiles} onExistingFileRemove={removeAttachment} getAttachmentOwner={attachmentOwner} currentUser={currentUser} taskOwner={editing?.owner}/>
               {editing && <ProjectTimeline itemId={editing.name} createdBy={editing.created_by || editing.owner} createdAt={editing.created_at || editing.creation} employeeName={participantName} />}
             </div>
@@ -440,7 +443,7 @@ export default function ProjectItems() {
             setEmailTo(assignees.filter((id) => emailOptions.some((option) => option.value === id))); setEmailCc([]); setEmailBcc([]); setEmailMessage(""); setEmailOpen(true);
           }}><Mail className="h-5 w-5"/></Button>}
           {!selected?.deleted_at && <Button variant="ghost" size="icon" aria-label="Edit item" onClick={() => selected && beginEdit(selected)}><FileEdit className="h-5 w-5"/></Button>}
-          {!selected?.deleted_at && <Button variant="ghost" size="icon" aria-label="Delete item" onClick={() => selected && setDeleteTarget(selected)}><Trash2 className="h-5 w-5"/></Button>}
+          {selected && !selected.deleted_at && canDelete(selected) && <Button variant="ghost" size="icon" aria-label="Delete item" onClick={() => setDeleteTarget(selected)}><Trash2 className="h-5 w-5"/></Button>}
           <SheetClose asChild><Button variant="ghost" size="icon" aria-label="Close item details"><X className="size-4"/></Button></SheetClose>
         </div></div>
         <div className="space-y-6 p-6"><div><p className="text-sm text-gray-500">{selected?.name}</p><h2 className="mt-1 text-2xl font-bold">{selected?.item_description}</h2></div>

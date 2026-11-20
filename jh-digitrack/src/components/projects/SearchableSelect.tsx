@@ -27,7 +27,7 @@ export default function SearchableSelect({ id, options, value, onChange, placeho
 
   return <Popover open={open} onOpenChange={(nextOpen) => { setOpen(nextOpen); if (!nextOpen) setSearch(""); }} modal>
     <PopoverTrigger asChild>
-      <Button id={id} variant="outline" role="combobox" aria-expanded={open} disabled={disabled} className="w-full justify-between">
+      <Button id={id} variant="outline" role="combobox" aria-expanded={open} disabled={disabled} className="w-full justify-between font-normal">
         <span className={selectedOption ? "truncate" : "truncate text-muted-foreground"}>{selectedOption?.label || placeholder}</span>
         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
       </Button>

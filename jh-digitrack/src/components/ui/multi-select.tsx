@@ -37,6 +37,8 @@ interface MultiSelectProps {
   emptyMessage?: string;
   onSearch?: (value: string) => void;
   searchKeyword?: string;
+  /** Show at most this many badges in the trigger, then a "+N more" chip. Shows all when unset. */
+  maxVisible?: number;
 }
 
 export function MultiSelectCombobox({
@@ -51,8 +53,11 @@ export function MultiSelectCombobox({
   emptyMessage = "No options found.",
   onSearch,
   searchKeyword = "",
+  maxVisible,
 }: MultiSelectProps) {
   const [open, setOpen] = React.useState(false);
+  const visibleSelected = maxVisible === undefined ? selected : selected.slice(0, maxVisible);
+  const hiddenCount = selected.length - visibleSelected.length;
 
   const handleUnselect = (item: string) => {
     onChange(selected.filter((i) => i !== item));
@@ -81,9 +86,9 @@ export function MultiSelectCombobox({
           onClick={() => setOpen(!open)}
           disabled={disabled}
         >
-          <div className="flex flex-wrap gap-1">
+          <div className="flex min-w-0 flex-wrap items-center gap-1">
             {selected.length > 0 ? (
-              selected.map((item) => {
+              visibleSelected.map((item) => {
                 const option = selectedOptions.find(
                   (option) => option.value === item
                 );
@@ -92,11 +97,11 @@ export function MultiSelectCombobox({
                     key={option?.value}
                     variant="secondary"
                     className={cn(
-                      "mr-1 animate-in duration-200 fade-in-0 mb-1 gap-1 px-2 py-0",
+                      "max-w-[220px] animate-in duration-200 fade-in-0 gap-1 px-2 py-0.5",
                       badgeClassName
                     )}
                   >
-                    {option?.label}
+                    <span className="truncate">{option?.label}</span>
                     <button
                       className="ml-1 rounded-full outline-none ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2"
                       type="button"
@@ -115,13 +120,18 @@ export function MultiSelectCombobox({
                         handleUnselect(item);
                       }}
                     >
-                      <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                      <X className="h-3 w-3 shrink-0 text-muted-foreground hover:text-foreground" />
                     </button>
                   </Badge>
                 );
               })
             ) : (
               <span className="text-muted-foreground">{placeholder}</span>
+            )}
+            {hiddenCount > 0 && (
+              <Badge variant="outline" className="px-2 py-0.5">
+                +{hiddenCount} more
+              </Badge>
             )}
           </div>
           <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />

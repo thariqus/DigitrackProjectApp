@@ -7,6 +7,8 @@ from frappe.utils import cint, escape_html, getdate, now_datetime, nowdate, vali
 from jh_digitrack.jh_digitrack.doctype.jh_project_item.jh_project_item import get_workflow_state
 
 SEVERITY_PRIORITY = {"Critical": 1, "High": 2, "Medium": 3, "Low": 4}
+# Set by the system, so a change to them is not a user edit.
+SYSTEM_FIELDS = {"created_by", "created_at", "deleted_at", "deleted_by", "item_number"}
 
 
 @frappe.whitelist(methods=["POST"])
@@ -16,6 +18,8 @@ def soft_delete_item(name: str):
     item.check_permission("write")
     if item.deleted_at:
         frappe.throw("This Item is already deleted")
+    if _has_edits(item.name):
+        frappe.throw("This Item has been edited, so it cannot be deleted")
 
     item.deleted_at = now_datetime()
     item.deleted_by = frappe.session.user
@@ -84,14 +88,7 @@ def get_project_item_audit(project_id: str) -> list[dict[str, Any]]:
             data = json.loads(version.data or "{}")
         except (TypeError, ValueError):
             continue
-        changes = [
-            {"field": field_labels.get(change[0], change[0]), "from": change[1], "to": change[2]}
-            for change in data.get("changed", [])
-            if change[0] not in {"created_by", "created_at", "deleted_at", "deleted_by", "item_number"}
-        ]
-        assignment_change = _assignment_change(data, employee_names)
-        if assignment_change:
-            changes.append(assignment_change)
+        changes = _version_changes(data, field_labels, employee_names)
         if not changes:
             continue
         item = items_by_name[version.docname]
@@ -106,6 +103,39 @@ def get_project_item_audit(project_id: str) -> list[dict[str, Any]]:
 
     audit.sort(key=lambda entry: entry["timestamp"] or "", reverse=True)
     return audit[:5000]
+
+
+def _version_changes(data: dict, field_labels: dict, employee_names: dict) -> list[dict[str, Any]]:
+    """The user-visible changes in one Version. System fields are ignored."""
+    changes = [
+        {"field": field_labels.get(change[0], change[0]), "from": change[1], "to": change[2]}
+        for change in data.get("changed", [])
+        if change[0] not in SYSTEM_FIELDS
+    ]
+    assignment_change = _assignment_change(data, employee_names)
+    if assignment_change:
+        changes.append(assignment_change)
+    return changes
+
+
+def _has_edits(item_name: str) -> bool:
+    """True once the Item has a saved edit. The Item list uses the same rule
+    (an "Item edited" audit entry) to disable its Delete button."""
+    field_labels = {field.fieldname: field.label for field in frappe.get_meta("JH Project Item").fields}
+    employee_names = {}
+    versions = frappe.get_all(
+        "Version",
+        filters={"ref_doctype": "JH Project Item", "docname": item_name},
+        pluck="data",
+    )
+    for raw in versions:
+        try:
+            data = json.loads(raw or "{}")
+        except (TypeError, ValueError):
+            continue
+        if _version_changes(data, field_labels, employee_names):
+            return True
+    return False
 
 
 def _assignment_change(version_data: dict, employee_names: dict) -> dict[str, str] | None:

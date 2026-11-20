@@ -112,17 +112,20 @@ class JHProjectItem(Document):
             frappe.throw("Due Date (Actual) cannot be changed. Use Revised Due Date instead.")
 
     def validate_assigned_participants(self) -> None:
-        """An Item may have no assignees. The Item form ticks every Project
-        participant by default, so an empty list is the user's choice."""
+        """An Item needs at least one assignee. Deleted Items are exempt, and so
+        are older Items saved before this rule that still have no assignees."""
+        previous = self.get_doc_before_save()
+        assigned = [row.employee for row in self.assigned_participants]
+        had_no_assignees = previous is not None and not previous.assigned_participants
+        if not assigned and not self.deleted_at and not had_no_assignees:
+            frappe.throw("Add at least one Assigned Participant")
         project_participants = frappe.get_all(
             "JH Project Participant",
             filters={"parenttype": "JH Project", "parent": self.project},
             pluck="employee",
         )
-        assigned = [row.employee for row in self.assigned_participants]
         if len(assigned) != len(set(assigned)):
             frappe.throw("A participant can be assigned only once")
-        previous = self.get_doc_before_save()
         already_assigned = {row.employee for row in previous.assigned_participants} if previous else set()
         if not set(assigned).issubset(set(project_participants) | already_assigned):
             frappe.throw("Assigned participants must be in the Project Participant List")

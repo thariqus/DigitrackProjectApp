@@ -25,6 +25,7 @@ import SearchableFilterButton from "./SearchableFilterButton";
 import SearchableSelect from "./SearchableSelect";
 import SortableHeader from "./SortableHeader";
 import { MultiSelectCombobox } from "@/components/ui/multi-select";
+import { SelectedNames } from "./SelectedNames";
 
 type Participant = { employee: string; full_name?: string; employee_code?: string };
 type Business = { name: string; business_name?: string; active?: number };
@@ -46,7 +47,6 @@ type Project = {
   modified?: string;
 };
 const STATUS = ["Open", "In Progress", "Closed", "Cancelled"] as const;
-const taskDateClass = "pl-3 text-left font-normal w-full h-9 border rounded-sm";
 
 function Projects() {
   const { data: projects = [], isLoading, refetch } = useDocs<Project>({
@@ -207,14 +207,14 @@ function Projects() {
             <div className="space-y-6 py-5 pb-28 pr-4">
               <p className="text-sm text-muted-foreground">{editing?.name ?? "Project ID will be generated when saved."}</p>
               <div className="grid gap-6 sm:grid-cols-2">
-                <div className="space-y-2"><Label htmlFor="project-name">Project Name</Label><Input id="project-name" required value={form.project_name} onChange={(e) => setForm({...form, project_name:e.target.value})}/></div>
+                <div className="space-y-2"><Label htmlFor="project-name">Project Name <span className="text-red-600">*</span></Label><Input id="project-name" required value={form.project_name} onChange={(e) => setForm({...form, project_name:e.target.value})}/></div>
                 <div className="space-y-2"><Label htmlFor="business-unit">Business</Label><SearchableSelect id="business-unit" options={businesses.map((business) => ({ value: business.name, label: business.business_name || business.name }))} value={form.business_unit} onChange={(value) => setForm({...form, business_unit:value})} placeholder="Select business"/></div>
-                <div className="space-y-2"><Label htmlFor="project-start-date">Start Date</Label><input id="project-start-date" type="date" className={taskDateClass} value={form.start_date} onChange={(e) => setForm({...form, start_date:e.target.value})}/></div>
-                <div className="space-y-2"><Label htmlFor="project-due-date">Due Date</Label><input id="project-due-date" type="date" className={taskDateClass} value={form.due_date} onChange={(e) => setForm({...form, due_date:e.target.value})}/></div>
+                <div className="space-y-2"><Label htmlFor="project-start-date">Start Date</Label><Input id="project-start-date" type="date" value={form.start_date} onChange={(e) => setForm({...form, start_date:e.target.value})}/></div>
+                <div className="space-y-2"><Label htmlFor="project-due-date">Due Date</Label><Input id="project-due-date" type="date" value={form.due_date} onChange={(e) => setForm({...form, due_date:e.target.value})}/></div>
                 <div className="space-y-2"><Label htmlFor="project-update-interval">Update Email Interval (Days)</Label><Input id="project-update-interval" type="number" min={0} max={365} step={1} value={form.update_email_interval_days} onChange={(e) => setForm({...form, update_email_interval_days: e.target.value === "" ? 0 : Number(e.target.value)})}/></div>
                 <div className="space-y-2 sm:col-span-2"><Label htmlFor="project-description">Project Description</Label><Textarea id="project-description" rows={5} value={form.project_description} onChange={(e) => setForm({...form, project_description:e.target.value})}/></div>
                 <div className="space-y-2"><Label htmlFor="project-status">Status</Label><SearchableSelect id="project-status" options={STATUS.map((status) => ({ value: status, label: status }))} value={form.status} onChange={(value) => setForm({...form, status:value as Project["status"]})} placeholder="Select project status"/></div>
-                <div className="space-y-2"><Label htmlFor="project-participants">Participant List</Label><MultiSelectCombobox options={visibleParticipantOptions} selectedOptions={participantOptions} selected={participantIds} onChange={setParticipantIds} onSearch={setParticipantSearch} searchKeyword={participantSearch} placeholder="Select participants" emptyMessage="No employees found."/></div>
+                <div className="space-y-2"><Label htmlFor="project-participants">Participant List</Label><MultiSelectCombobox options={visibleParticipantOptions} selectedOptions={participantOptions} selected={participantIds} onChange={setParticipantIds} onSearch={setParticipantSearch} searchKeyword={participantSearch} placeholder="Select participants" emptyMessage="No employees found." maxVisible={2} className="font-normal"/><SelectedNames names={participantIds.map((id) => employees.find((employee) => employee.name === id)?.full_name || id)}/></div>
               </div>
               {editing && <ProjectTimeline projectId={editing.name} createdBy={editing.created_by || editing.owner} createdAt={editing.created_at || editing.creation} employeeName={(id) => employees.find((employee) => employee.name === id)?.full_name || id} />}
             </div>

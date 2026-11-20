@@ -38,9 +38,18 @@ class JHProject(Document):
             filters={"name": ["in", list(item_names)], "project": self.name, "deleted_at": ["is", "not set"]},
             pluck="name",
         )
+        updated_items = []
         for item_name in items:
             item = frappe.get_doc("JH Project Item", item_name)
             item.set("assigned_participants", [row for row in item.assigned_participants if row.employee not in removed])
+            updated_items.append(item)
+        orphaned = [item.name for item in updated_items if not item.assigned_participants]
+        if orphaned:
+            frappe.throw(
+                "Cannot remove these participants. They are the only assignees on Items: "
+                f"{', '.join(orphaned)}. Assign another participant to these Items first."
+            )
+        for item in updated_items:
             # A consequence of the Project edit, so the editor does not also
             # need write access to every affected Item.
             item.flags.ignore_permissions = True
